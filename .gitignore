@@ -1,0 +1,6 @@
+/secrets
+/.terraform
+/terraform.*
+/*.plan
+/encrypted
+/config.tf.json
