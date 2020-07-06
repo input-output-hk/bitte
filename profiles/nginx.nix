@@ -94,6 +94,8 @@ in {
       "L+ /var/lib/nginx/nixos-images/source - - - - ${self.outPath}"
       "L+ /var/lib/nginx/nixos-images/source.tar.xz - - - - ${flakeBall}"
       "L+ /var/lib/nginx/nixos-images/client.enc.json - - - - /var/lib/nginx/client.enc.json"
+      "L+ /var/lib/nginx/nixos-images/ca.pem - - - - /etc/ssl/certs/ca.pem"
+      "L+ /var/lib/nginx/nixos-images/all.pem - - - - /etc/ssl/certs/all.pem"
     ];
 
     systemd.services.image-builder = {

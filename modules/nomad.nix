@@ -985,12 +985,7 @@ in {
             PATH="${makeBinPath [ pkgs.coreutils ]}"
             set -exuo pipefail
 
-            mkdir -p certs
-
-            for pem in /run/keys/core-*.pem /run/keys/{cert,cert-key}.pem; do
-              [ -s "$pem" ] || continue
-              cp "$pem" certs
-            done
+            chown --reference . --recursive .
           '';
         in "!${start-pre}/bin/nomad-start-pre";
 
@@ -1012,6 +1007,8 @@ in {
         RestartSec = 2;
         StartLimitBurst = 3;
         StartLimitIntervalSec = 10;
+        WorkingDirectory = "/var/lib/nomad";
+        StateDirectory = "nomad";
       };
     };
   };

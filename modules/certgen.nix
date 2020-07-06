@@ -63,7 +63,6 @@ in {
         cp cert-key.pem /var/lib/nomad/certs
         cp cert.pem /var/lib/nomad/certs
 
-
         enc="client.enc.json"
         echo "Waiting for $PWD/$enc from deployer..."
 
@@ -74,7 +73,7 @@ in {
         done
         set -x
 
-        cp "$enc/client.enc.json" "/var/lib/nginx"
+        cp "$enc" "/var/lib/nginx"
       '';
     };
   };

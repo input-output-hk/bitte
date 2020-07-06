@@ -299,14 +299,10 @@ in {
             PATH="${makeBinPath [ pkgs.coreutils ]}"
             set -exuo pipefail
 
-            mkdir -p certs
-
-            for pem in /run/keys/core-*.pem /run/keys/{cert,cert-key}.pem; do
-              [ -s "$pem" ] || continue
-              cp "$pem" certs
-            done
+            chown --reference . --recursive .
           '';
         in "!${start-pre}/bin/vault-start-pre";
+
         ExecStart =
           "@${pkgs.vault-bin}/bin/vault vault server -config /etc/${cfg.configDir}";
 

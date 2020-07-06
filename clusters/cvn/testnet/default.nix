@@ -168,6 +168,12 @@ in {
                 "logs:PutLogEvents"
               ];
             };
+
+            kms = {
+              effect = "Allow";
+              resources = [ config.cluster.kms ];
+              actions = [ "kms:Encrypt" "kms:Decrypt" "kms:DescribeKey" ];
+            };
           };
         };
 
@@ -300,8 +306,8 @@ in {
         associatePublicIP = true;
         maxInstanceLifetime = 604800;
         ami = amis.nixos.${config.cluster.region};
-        iam.role = config.cluster.iam.roles.clients;
-        iam.instanceProfile.role = config.cluster.iam.roles.clients;
+        iam.role = config.cluster.iam.roles.client;
+        iam.instanceProfile.role = config.cluster.iam.roles.client;
 
         subnets = [ subnets.prv-1 subnets.prv-2 subnets.prv-3 ];
 
@@ -336,6 +342,7 @@ in {
               restartIfChanged = false;
               unitConfig.X-StopOnRemoval = false;
               serviceConfig.Type = "oneshot";
+              serviceConfig.Restart = "on-failure";
               script = '''
                 set -exuo pipefail
                 pushd /run/keys

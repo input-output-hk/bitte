@@ -5,7 +5,6 @@ let
 in {
   services.consul = mkIf config.services.consul.enable {
     addresses = { http = mkDefault "127.0.0.1"; };
-    autoEncrypt.allowTls = true;
     caFile = "/etc/ssl/certs/ca.pem";
     certFile = "/var/lib/consul/certs/cert.pem";
     clientAddr = "0.0.0.0";

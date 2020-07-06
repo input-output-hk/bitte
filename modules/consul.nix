@@ -268,8 +268,9 @@ in {
       };
 
       autoEncrypt = mkOption {
-        type =
-          submodule { options = { allowTls = mkEnableOption "Allow TLS"; }; };
+        type = nullOr
+          (submodule { options = { allowTls = mkEnableOption "Allow TLS"; }; });
+        default = null;
       };
 
       verifyIncoming = mkEnableOption "Verify incoming conns";
@@ -328,14 +329,10 @@ in {
             PATH="${makeBinPath [ pkgs.coreutils ]}"
             set -exuo pipefail
 
-            mkdir -p certs
-
-            for pem in /run/keys/{cert,cert-key,ca}.pem; do
-              [ -s "$pem" ] || continue
-              cp "$pem" certs
-            done
+            chown --reference . --recursive .
           '';
         in "!${start-pre}/bin/consul-start-pre";
+
         ExecStart =
           "@${cfg.package}/bin/consul consul agent -config-dir /etc/${cfg.configDir}";
 
