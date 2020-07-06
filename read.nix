@@ -8,7 +8,11 @@ let
       (lib.filterAttrs (n: v: v == "directory" || n == "default.nix"))
       builtins.attrNames
       (map (name: path + "/${name}"))
-      (map (child: if ( baseNameOf child ) == "default.nix" then child else readDirRec child ))
+      (map (child:
+        if (baseNameOf child) == "default.nix" then
+          child
+        else
+          readDirRec child))
       lib.flatten
     ];
 

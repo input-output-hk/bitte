@@ -23,7 +23,7 @@ in {
       serviceConfig = {
         Type = "exec";
         RemainAfterExit = true;
-      ExecStart =  "${pkgs.systemd}/bin/systemctl restart vault-agent.service";
+        ExecStart = "${pkgs.systemd}/bin/systemctl restart vault-agent.service";
       };
     };
 

@@ -179,7 +179,7 @@ in {
           };
 
           chrootEnv = mkOption {
-            type = nullOr ( attrsOf str );
+            type = nullOr (attrsOf str);
             default = null;
             example = { "/usr/bin/env" = "/usr/bin/env"; };
             description = ''
@@ -212,7 +212,7 @@ in {
           };
 
           meta = mkOption {
-            type = nullOr ( attrsOf str );
+            type = nullOr (attrsOf str);
             default = null;
             description = ''
               Specifies a key-value map that annotates with user-defined metadata.

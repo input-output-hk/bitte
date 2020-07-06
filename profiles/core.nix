@@ -15,9 +15,5 @@
 
   environment.etc."ipxe".text = "${pkgs.ipxe}";
 
-  environment.systemPackages = with pkgs; [
-    sops
-    awscli
-    cachix
-  ];
+  environment.systemPackages = with pkgs; [ sops awscli cachix ];
 }

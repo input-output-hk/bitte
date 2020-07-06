@@ -9,7 +9,9 @@ in {
 
     security.acme.acceptTerms = lib.mkForce true;
     security.acme.email = lib.mkForce "michael.fellinger@iohk.io";
-    security.acme.certs."ipxe.${config.cluster.domain}".keyType = "rsa4096";
+    # security.acme.certs."ipxe.${config.cluster.domain}".keyType = "rsa4096";
+
+    # TODO: distribute this across core nodes to remove the SPOF
 
     services.nginx = {
       # enableReload = true;
@@ -82,17 +84,20 @@ in {
       };
     };
 
-    systemd.tmpfiles.rules = let flakeBall = pkgs.runCommand "flake.tar.xz" {} ''
-      tar cJf $out -C ${self.outPath}/ .
-    '';
+    systemd.tmpfiles.rules = let
+      flakeBall = pkgs.runCommand "flake.tar.xz" { } ''
+        tar cJf $out -C ${self.outPath}/ .
+      '';
     in [
       "d /var/lib/nginx/nixos-images 0755 nginx nginx -"
       "Z /var/lib/nginx 0755 nginx nginx -"
       "L+ /var/lib/nginx/nixos-images/source - - - - ${self.outPath}"
       "L+ /var/lib/nginx/nixos-images/source.tar.xz - - - - ${flakeBall}"
+      "L+ /var/lib/nginx/nixos-images/client.enc.json - - - - /var/lib/nginx/client.enc.json"
     ];
 
     systemd.services.image-builder = {
+      description = "Make sure we have client machines built for caching";
       after = [ "vault-agent.service" "network-online.target" ];
       requires = [ "vault-agent.service" ];
       wantedBy = [ "nginx.service" "multi-user.target" ];
@@ -111,9 +116,7 @@ in {
           AWS_DEFAULT_REGION VAULT_CACERT VAULT_ADDR VAULT_FORMAT;
       };
 
-      path = with pkgs; [
-        vault-bin glibc gawk gnugrep coreutils nixFlakes
-      ];
+      path = with pkgs; [ vault-bin glibc gawk gnugrep coreutils nixFlakes ];
 
       script = ''
         set -euo pipefail

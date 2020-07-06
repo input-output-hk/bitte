@@ -51,7 +51,5 @@
         overlays = [ self.overlay.x86_64-linux ];
         system = "x86_64-linux";
       };
-    in {
-      inherit (pkgs) nixosModules nixosConfigurations clusters;
-    });
+    in { inherit (pkgs) nixosModules nixosConfigurations clusters; });
 }

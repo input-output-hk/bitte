@@ -26,8 +26,8 @@ in final: prev: {
     };
   });
 
-  ipxe = prev.callPackage ./pkgs/ipxe.nix { 
-    inherit self; 
+  ipxe = prev.callPackage ./pkgs/ipxe.nix {
+    inherit self;
     embedScript = prev.writeText "ipxe" ''
       #!ipxe
 

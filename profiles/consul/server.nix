@@ -1,6 +1,6 @@
 { lib, pkgs, config, ... }:
 let
-  inherit (lib) mapAttrsToList ;
+  inherit (lib) mapAttrsToList;
   inherit (config.cluster) instances region;
   instance = instances.${config.networking.hostName};
   inherit (instance) privateIP;

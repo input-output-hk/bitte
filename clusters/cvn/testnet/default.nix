@@ -281,6 +281,7 @@ in {
       # iPXE is only supported on non-Nitro instances, that means we won't
       # get the latest and greates until they fix that...
       # All currently supported instance families with their smallest type:
+
       # "m4.large" = 1;
       # "t2.large" = 0;
       # "m3.large" = 0;
@@ -288,7 +289,7 @@ in {
       # "d2.xlarge" = 0;
       # "r3.large" = 0;
       # "c3.large" = 0;
-      #
+
       # Use NixOS AMI for now
       "t3a.large" = 1;
     } (instanceType: desiredCapacity:

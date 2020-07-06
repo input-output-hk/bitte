@@ -3,7 +3,8 @@
 let
   inherit (builtins) attrNames readDir mapAttrs;
   inherit (lib)
-    flip pipe mkForce filterAttrs flatten listToAttrs forEach nameValuePair mapAttrs';
+    flip pipe mkForce filterAttrs flatten listToAttrs forEach nameValuePair
+    mapAttrs';
 
   readDirRec = path:
     pipe path [

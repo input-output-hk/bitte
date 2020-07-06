@@ -150,7 +150,8 @@ in {
       default = { };
     };
 
-    services.consul-policies.enable = mkEnableOption "Create consul policies on this machine";
+    services.consul-policies.enable =
+      mkEnableOption "Create consul policies on this machine";
   };
 
   config = mkIf config.services.consul-policies.enable {

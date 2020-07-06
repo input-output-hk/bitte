@@ -1,11 +1,10 @@
-{ config, nodeName , ... }: 
+{ config, nodeName, ... }:
 let
   inherit (config.cluster) instances;
   instance = instances.${nodeName};
   inherit (instance) privateIP;
-in
 
-{
+in {
   imports = [ ./default.nix ];
   config = {
     services.vault = {
@@ -24,9 +23,7 @@ in
         tlsMinVersion = "tls13";
       };
 
-      storage.raft = {
-        nodeId = nodeName;
-      };
+      storage.raft = { nodeId = nodeName; };
     };
   };
 }
