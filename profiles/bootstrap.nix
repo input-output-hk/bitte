@@ -174,7 +174,7 @@ in {
         CURL_CA_BUNDLE = "/etc/ssl/certs/ca.pem";
       };
 
-      path = with pkgs; [ curl sops coreutils jq ];
+      path = with pkgs; [ curl sops coreutils jq nomad gawk glibc vault-bin ];
 
       # TODO: silence the sensitive parts
       script = ''
@@ -200,21 +200,22 @@ in {
         NOMAD_TOKEN="$(< bootstrap.token)"
         export NOMAD_TOKEN
 
+        VAULT_TOKEN="$(sops -d --extract '["root_token"]' /var/lib/vault/vault.enc.json)"
+        export VAULT_TOKEN
+
         nomad_vault_token="$(
           nomad acl token create -type management \
           | grep 'Secret ID' \
           | awk '{ print $4 }'
         )"
 
-        # TODO: the certificates should come from Nomad config, but it's not
-        # structured yet.
         vault read nomad/config/access &> /dev/null ||
           vault write nomad/config/access \
             address="$NOMAD_ADDR" \
             token="$nomad_vault_token" \
-            ca_cert="$(< ${config.services.consul.caFile})" \
-            client_cert="$(< ${config.services.consul.certFile})" \
-            client_key="$(< ${config.services.consul.keyFile})"
+            ca_cert="$(< ${config.services.nomad.tls.caFile})" \
+            client_cert="$(< ${config.services.nomad.tls.certFile})" \
+            client_key="$(< ${config.services.nomad.tls.keyFile})"
 
         touch /var/lib/nomad/.bootstrap-done
       '';
