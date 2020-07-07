@@ -9,6 +9,7 @@
   ];
 
   services.certgen.enable = true;
+  services.vault-agent-core.enable = true;
 
   # needed to scp the master token
   environment.etc."consul.d/.keep.json".text = "{}";

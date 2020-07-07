@@ -9,7 +9,8 @@
     ./policies.nix
     ./terraform.nix
     ./terraform-output.nix
-    ./vault-agent.nix
+    ./vault-agent-client.nix
+    ./vault-agent-server.nix
     ./vault.nix
   ];
 

@@ -336,7 +336,18 @@ in {
         ExecStart =
           "@${cfg.package}/bin/consul consul agent -config-dir /etc/${cfg.configDir}";
 
-        ExecReload = "@${cfg.package}/bin/consul consul reload";
+        ExecReload = let
+          reload = pkgs.writeShellScriptBin "consul-reload" ''
+            PATH="${makeBinPath [pkgs.jq cfg.package]}"
+            set -euo pipefail
+            CONSUL_HTTP_TOKEN="$(jq -r -e .acl.tokens.default /etc/consul.d/tokens.json)"
+            export CONSUL_HTTP_TOKEN
+            set -x
+            consul reload
+          '';
+        in
+          "${reload}/bin/consul-reload";
+
         Restart = "on-failure";
         RestartSec = "30s";
         DynamicUser = true;
@@ -345,8 +356,6 @@ in {
         PrivateTmp = true;
         StateDirectory = baseNameOf cfg.dataDir;
         WorkingDirectory = toString cfg.dataDir;
-        # ProtectSystem = "strict";
-        # ReadOnlyPaths = "${config.services.consul.configDir}";
       };
     };
   };

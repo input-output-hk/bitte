@@ -2,10 +2,10 @@
   services.consul = {
     roles = with config.services.consul.policies; {
       consul-agent.policyNames = [ consul-agent.name ];
-      consul-server.policyNames = [ consul-server.name ];
-      core-1-consul.policyNames = [ consul-server.name core-1.name ];
-      core-2-consul.policyNames = [ consul-server.name core-2.name ];
-      core-3-consul.policyNames = [ consul-server.name core-3.name ];
+      consul-server.policyNames = [ consul-agent.name ];
+      core-1-consul.policyNames = [ consul-agent.name core-1.name ];
+      core-2-consul.policyNames = [ consul-agent.name core-2.name ];
+      core-3-consul.policyNames = [ consul-agent.name core-3.name ];
       nomad-client.policyNames = [ nomad-client.name ];
       nomad-server.policyNames = [ nomad-server.name ];
       vault-server.policyNames = [ vault-server.name ];
@@ -44,18 +44,15 @@
         queryPrefix = allRead;
       };
 
-      # consul-templates = {
-      #   keyPrefix."${config.networking.hostName}/secrets".policy = read;
-      # };
-
       consul-agent = {
         nodePrefix = allWrite;
         servicePrefix = allRead;
       };
 
-      consul-server = {
+      consul-default = {
+        agentPrefix = allWrite;
         nodePrefix = allWrite;
-        servicePrefix = allWrite;
+        servicePrefix = allRead;
       };
 
       consul-server-default = {
@@ -76,21 +73,18 @@
 
       consul-server-agent = {
         nodePrefix = allWrite;
-        # servicePrefix = allWrite;
-
-        agentPrefix = allWrite;
-        eventPrefix = allWrite;
-        keyPrefix = allWrite;
-        queryPrefix = allWrite;
-        servicePrefix = allWrite;
-        sessionPrefix = allWrite;
-
-        acl = "write";
-        keyring = "write";
-        operator = "write";
+        servicePrefix = allRead;
       };
 
       vault-server = {
+        agentPrefix = allWrite;
+        keyPrefix = write "vault/";
+        nodePrefix = allWrite;
+        service = write "vault";
+        sessionPrefix = allWrite;
+      };
+
+      vault-client = {
         agentPrefix = allWrite;
         keyPrefix = write "vault/";
         nodePrefix = allWrite;
@@ -155,7 +149,8 @@
       "auth/token/lookup-self".capabilities = [ r ];
       "auth/token/renew-self".capabilities = [ u ];
       "consul/creds/nomad-client".capabilities = [ r ];
-      "consul/creds/consul-client".capabilities = [ r ];
+      "consul/creds/consul-agent".capabilities = [ r ];
+      "consul/creds/consul-default".capabilities = [ r ];
       "consul/creds/vault-client".capabilities = [ r ];
       # TODO: add nomad creds here
     };

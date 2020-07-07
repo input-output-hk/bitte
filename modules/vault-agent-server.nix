@@ -1,14 +1,18 @@
 { config, lib, pkgs, ... }:
 let
   inherit (builtins) toJSON;
-  inherit (lib) mkIf filter;
+  inherit (lib) mkIf filter mkEnableOption;
 
   # There's an issue where vault-agent may stop to make templates.
   # https://github.com/hashicorp/vault/pull/9200
   # For now we do the dirty thing and add a timer that just restarts this every
   # so often.
 in {
-  config = mkIf config.services.vault.enable {
+  options = {
+    services.vault-agent-core.enable = mkEnableOption "Start vault-agent for cores";
+  };
+
+  config = mkIf config.services.vault-agent-core.enable {
     systemd.timers.vault-agent-restart = {
       wantedBy = [ "vault-agent.service" ];
       timerConfig = {
@@ -34,7 +38,7 @@ in {
 
       environment = {
         inherit (config.environment.variables)
-          AWS_DEFAULT_REGION VAULT_CACERT VAULT_ADDR VAULT_FORMAT;
+          AWS_DEFAULT_REGION VAULT_CACERT VAULT_FORMAT;
       };
 
       serviceConfig = {
@@ -96,25 +100,6 @@ in {
                   {
                     "consul": {
                       "token": "{{ .Data.token }}"
-                    }
-                  }
-                  {{ end }}
-                '';
-              };
-            } else
-              null)
-
-            (if config.services.vault.enable then {
-              template = {
-                command = "${pkgs.systemd}/bin/systemctl reload vault.service";
-                destination = "/etc/vault.d/consul-token.json";
-                contents = ''
-                  {{ with secret "consul/creds/vault-server" }}
-                  {
-                    "service_registration": {
-                      "consul": {
-                        "token": "{{ .Data.token }}"
-                      }
                     }
                   }
                   {{ end }}

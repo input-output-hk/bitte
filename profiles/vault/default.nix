@@ -11,6 +11,8 @@ in {
     };
 
     services.vault = {
+      logLevel = "trace";
+
       serviceRegistration.consul = {
         scheme = "https";
         address = "127.0.0.1:8501";
@@ -34,15 +36,22 @@ in {
         tlsMinVersion = "tls13";
       };
 
-      storage.raft = {
-        retryJoin = mapAttrsToList (_: v: {
-          leaderApiAddr = "https://${v.privateIP}:8200";
-          leaderCaCertFile = "/var/lib/vault/certs/${v.name}.pem";
-          # leaderCaCertFile = "/etc/ssl/certs/all.pem";
-          leaderClientCertFile = config.services.vault.listener.tcp.tlsCertFile;
-          leaderClientKeyFile = config.services.vault.listener.tcp.tlsKeyFile;
-        }) instances;
+      storage.consul = {
+        address = "127.0.0.1:8500";
+        tlsCaFile = "/etc/ssl/certs/ca.pem";
+        tlsCertFile = "/var/lib/vault/certs/cert.pem";
+        tlsKeyFile = "/var/lib/vault/certs/cert-key.pem";
       };
+
+      # storage.raft = {
+      #   retryJoin = mapAttrsToList (_: v: {
+      #     leaderApiAddr = "https://${v.privateIP}:8200";
+      #     leaderCaCertFile = "/var/lib/vault/certs/${v.name}.pem";
+      #     # leaderCaCertFile = "/etc/ssl/certs/ca.pem";
+      #     leaderClientCertFile = config.services.vault.listener.tcp.tlsCertFile;
+      #     leaderClientKeyFile = config.services.vault.listener.tcp.tlsKeyFile;
+      #   }) instances;
+      # };
     };
   };
 }

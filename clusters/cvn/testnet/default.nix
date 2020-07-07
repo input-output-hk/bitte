@@ -297,7 +297,7 @@ in {
       # "c3.large" = 0;
 
       # Use NixOS AMI for now
-      "t3a.large" = 1;
+      "t3a.medium" = 1;
     } (instanceType: desiredCapacity:
       let
         saneName = "clients-${lib.replaceStrings [ "." ] [ "-" ] instanceType}";
@@ -343,6 +343,7 @@ in {
               unitConfig.X-StopOnRemoval = false;
               serviceConfig.Type = "oneshot";
               serviceConfig.Restart = "on-failure";
+              serviceConfig.RestartSec = "30s";
               script = '''
                 set -exuo pipefail
                 pushd /run/keys

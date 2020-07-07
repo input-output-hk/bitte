@@ -1,4 +1,4 @@
-{ lib, pkgs, config, ... }:
+{ lib, pkgs, config, nodeName, ... }:
 let
   inherit (config.cluster) name region domain kms instances;
   inherit (lib) mkIf mapAttrsToList;
@@ -9,7 +9,7 @@ in {
     dataDir = /var/lib/nomad;
     logLevel = "DEBUG";
     datacenter = config.cluster.region;
-    name = config.networking.hostName;
+    # name = nodeName;
 
     acl.enabled = true;
 

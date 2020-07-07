@@ -24,7 +24,6 @@ let
     self.inputs.nixpkgs.lib.nixosSystem {
       inherit pkgs system;
       modules = [
-        { networking = { hostName = mkForce nodeName; }; }
         ../modules/default.nix
         self.nixosModules.amazon-image
       ] ++ modules;
@@ -45,7 +44,10 @@ in listToAttrs (forEach clusterFiles (file:
     terraform = proto.config.terraform;
 
     nodes =
-      mapAttrs (name: instance: mkSystem name ([ file ] ++ instance.modules))
+      mapAttrs (name: instance: mkSystem name ([
+        { networking.hostName = mkForce name; }
+        file
+      ] ++ instance.modules))
       proto.config.cluster.instances;
 
     groups =

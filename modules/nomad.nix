@@ -164,7 +164,7 @@ in {
       default = "INFO";
     };
 
-    name = mkOption { type = str; };
+    name = mkOption { type = nullOr str; default = null; };
 
     client = mkOption {
       default = { };
@@ -474,7 +474,12 @@ in {
           };
 
           hostVolume = mkOption {
-            type = submodule {
+            default = null;
+            description = ''
+              Exposes paths from the host as volumes that can be mounted into
+              jobs.
+            '';
+            type = nullOr (submodule {
               options = {
                 path = mkOption {
                   type = nullOr path;
@@ -495,12 +500,7 @@ in {
                   '';
                 };
               };
-            };
-            default = { };
-            description = ''
-              Exposes paths from the host as volumes that can be mounted into
-              jobs.
-            '';
+            });
           };
         };
       };

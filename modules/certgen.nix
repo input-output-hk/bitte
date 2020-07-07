@@ -1,10 +1,7 @@
-{ pkgs, lib, config, ... }:
+{ pkgs, lib, config, nodeName, ... }:
 let
   inherit (builtins) toJSON;
   inherit (lib) mapAttrs mkIf mkEnableOption;
-  inherit (config.cluster) region kms instances;
-  instance = instances.${config.networking.hostName};
-  inherit (instance) name bootstrapper privateIP;
 in {
   # FIXME: this leaves the root certificate on each core machine for signing
   #        themselves...
@@ -74,6 +71,9 @@ in {
         set -x
 
         cp "$enc" "/var/lib/nginx"
+        if [ -d /var/lib/nginx ]; then
+          cp core-*.pem /var/lib/nginx/nixos-images
+        fi
       '';
     };
   };

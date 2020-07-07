@@ -94,61 +94,9 @@ in {
       "L+ /var/lib/nginx/nixos-images/source - - - - ${self.outPath}"
       "L+ /var/lib/nginx/nixos-images/source.tar.xz - - - - ${flakeBall}"
       "L+ /var/lib/nginx/nixos-images/client.enc.json - - - - /var/lib/nginx/client.enc.json"
+      "L+ /var/lib/nginx/nixos-images/vault.enc.json - - - - /var/lib/nginx/vault.enc.json"
       "L+ /var/lib/nginx/nixos-images/ca.pem - - - - /etc/ssl/certs/ca.pem"
       "L+ /var/lib/nginx/nixos-images/all.pem - - - - /etc/ssl/certs/all.pem"
     ];
-
-    systemd.services.image-builder = {
-      description = "Make sure we have client machines built for caching";
-      after = [ "vault-agent.service" "network-online.target" ];
-      requires = [ "vault-agent.service" ];
-      wantedBy = [ "nginx.service" "multi-user.target" ];
-
-      serviceConfig = {
-        RemainAfterExit = true;
-        Restart = "on-failure";
-        RestartSec = "30s";
-        StateDirectory = "image-builder";
-        Type = "oneshot";
-        WorkingDirectory = "/var/lib/image-builder";
-      };
-
-      environment = {
-        inherit (config.environment.variables)
-          AWS_DEFAULT_REGION VAULT_CACERT VAULT_ADDR VAULT_FORMAT;
-      };
-
-      path = with pkgs; [ vault-bin glibc gawk gnugrep coreutils nixFlakes ];
-
-      script = ''
-        set -euo pipefail
-
-        set +x
-        VAULT_TOKEN="$(< /run/keys/vault-token)"
-        export VAULT_TOKEN
-        set -x
-
-        export HOME="$PWD"
-
-        if ! grep github.com "$HOME/.ssh/known_hosts"; then
-          mkdir -p "$HOME/.ssh"
-
-          echo 'github.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ==' \
-          >> "$HOME/.ssh/known_hosts"
-        fi
-
-        if [ -s "$HOME/.ssh/id_rsa" ]; then
-          vault kv get secret/github-deploy-key > "$HOME/.ssh/id_rsa"
-          chmod 0600 "$HOME/.ssh/id_rsa"
-        fi
-
-        for name in ${toString (attrNames config.cluster.autoscalingGroups)}; do
-          flakeAttr="clusters.${config.cluster.name}.groups-ipxe.$name-ipxe.config.system.build.ipxeBootDir"
-          flake="${self.outPath}"
-
-          nix build "$flake#$flakeAttr" -o "/var/lib/nginx/nixos-images/$name"
-        done
-      '';
-    };
   };
 }

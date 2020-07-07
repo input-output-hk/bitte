@@ -22,8 +22,6 @@ in {
         tlsKeyFile = "/var/lib/vault/certs/cert-key.pem";
         tlsMinVersion = "tls13";
       };
-
-      storage.raft = { nodeId = nodeName; };
     };
   };
 }

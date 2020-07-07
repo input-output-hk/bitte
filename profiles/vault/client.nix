@@ -1,4 +1,4 @@
 { ... }: {
   imports = [ ./default.nix ];
-  config = { services.vault = { enable = true; }; };
+  config.services.vault.enable = true;
 }

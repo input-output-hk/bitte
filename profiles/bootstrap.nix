@@ -36,7 +36,7 @@ in {
             WorkingDirectory;
         };
 
-        path = with pkgs; [ consul jq systemd ];
+        path = with pkgs; [ consul jq systemd  sops];
 
         script = let
           mkToken = purpose: policy: ''
@@ -95,22 +95,34 @@ in {
           # Vault #
           # # # # #
 
-          if [ ! -s /etc/vault.d/consul-token.json ]; then
-            vault="$(${mkToken "vault-server" "vault-server"})"
+          if [ ! -s /var/lib/nginx/vault.enc.json ]; then
+            mkdir -p /var/lib/nginx
 
-            mkdir -p /etc/vault.d
+            vaultToken="$(
+              consul acl token create \
+                -policy-name=vault-client \
+                -description "vault-client $(date +%Y-%m-%d-%H-%M-%S)" \
+                -format json \
+              | jq -e -r .SecretID
+            )"
 
             echo '{}' \
-            | jq --arg vault "$vault" '.service_registration.consul.token = $vault' \
-            > /etc/vault.d/consul-token.json.new
+            | jq --arg token "$vaultToken" '.storage.consul.token = $token' \
+            | jq --arg token "$vaultToken" '.service_registration.consul.token = $token' \
+            | sops \
+              --input-type json \
+              --output-type json \
+              --kms "${kms}" \
+              --encrypt \
+              /dev/stdin > /var/lib/nginx/vault.enc.json.new
 
-            mv /etc/vault.d/consul-token.json.new /etc/vault.d/consul-token.json
+            mv /var/lib/nginx/vault.enc.json.new /var/lib/nginx/vault.enc.json
           fi
         '';
       };
 
     systemd.services.vault-setup = mkIf config.services.vault.enable {
-      after = [ "upload-bootstrap.service" "consul-policies.service" ];
+      after = [ "upload-bootstrap.service" "consul-policies.service" "vault-consul-token.service" ];
       wantedBy = [ "multi-user.target" ];
 
       serviceConfig = {
@@ -213,6 +225,7 @@ in {
         "consul-initial-tokens.service"
         "vault.service"
         "network-online.target"
+        "vault-consul-token.service"
       ];
       requires = [ "consul-initial-tokens.service" "vault.service" ];
       wantedBy = [ "multi-user.target" ];

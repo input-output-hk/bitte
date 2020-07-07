@@ -1,8 +1,8 @@
-{ lib, pkgs, config, ... }:
+{ lib, pkgs, config, nodeName, ... }:
 let
   inherit (lib) mapAttrsToList;
   inherit (config.cluster) instances region;
-  instance = instances.${config.networking.hostName};
+  instance = instances.${nodeName};
   inherit (instance) privateIP;
 in {
   imports = [ ./default.nix ];
