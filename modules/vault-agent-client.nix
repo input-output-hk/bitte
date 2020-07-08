@@ -9,7 +9,8 @@ let
   # so often.
 in {
   options = {
-    services.vault-agent-client.enable = mkEnableOption "Start vault-agent for clients";
+    services.vault-agent-client.enable =
+      mkEnableOption "Start vault-agent for clients";
   };
 
   config = mkIf config.services.vault-agent-client.enable {

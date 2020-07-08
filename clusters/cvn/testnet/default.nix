@@ -278,11 +278,6 @@ in {
       };
     };
 
-    # mkfs.ext4 /dev/xvda
-    # mkdir -p /mnt
-    # mount /dev/xvda /mnt
-    # nixos-install --system /run/current-system --root /mnt
-
     autoscalingGroups = (lib.flip lib.mapAttrs' {
       # iPXE is only supported on non-Nitro instances, that means we won't
       # get the latest and greates until they fix that...
@@ -297,7 +292,7 @@ in {
       # "c3.large" = 0;
 
       # Use NixOS AMI for now
-      "t3a.medium" = 1;
+      "t3a.medium" = 0;
     } (instanceType: desiredCapacity:
       let
         saneName = "clients-${lib.replaceStrings [ "." ] [ "-" ] instanceType}";
@@ -363,40 +358,10 @@ in {
           }
         '';
 
-        # userData = ''
-        #   #!ipxe
-        #
-        #   chain -ar http://ipxe.${config.cluster.domain}/${saneName}/netboot.ipxe
-        # '';
-
         securityGroupRules = {
           inherit (securityGroupRules) internet internal ssh;
         };
       }));
-
-    # clients = {
-    #   desiredCapacity = 1;
-    #   instanceType = "c5.large";
-    #   associatePublicIP = true;
-    #   maxInstanceLifetime = 604800;
-    #   ami = amis.ipxe-usb.eu-central-1;
-    #   iam.role = config.cluster.iam.roles.core;
-    #   iam.instanceProfile.role = config.cluster.iam.roles.core;
-    #
-    #   subnets = [ subnets.prv-1 subnets.prv-2 subnets.prv-3 ];
-    #
-    #   modules = [ ../../../profiles/client.nix ];
-    #
-    #   userData = ''
-    #     #!ipxe
-    #
-    #     chain -ar http://ipxe.${config.cluster.domain}/clients/netboot.ipxe
-    #   '';
-    #
-    #   securityGroupRules = {
-    #     inherit (securityGroupRules) internet internal ssh;
-    #   };
-    # };
 
     instances = {
       core-1 = {

@@ -9,7 +9,8 @@ let
   # so often.
 in {
   options = {
-    services.vault-agent-core.enable = mkEnableOption "Start vault-agent for cores";
+    services.vault-agent-core.enable =
+      mkEnableOption "Start vault-agent for cores";
   };
 
   config = mkIf config.services.vault-agent-core.enable {

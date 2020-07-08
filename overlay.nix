@@ -71,6 +71,8 @@ in final: prev: {
 
   sops-add = prev.callPackage ./pkgs/sops-add.nix { };
 
+  envoy = prev.callPackage ./pkgs/envoy.nix { };
+
   clusters = final.callPackage ./lib/clusters.nix { inherit self system; } {
     root = ./clusters;
   };

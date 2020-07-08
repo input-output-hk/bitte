@@ -23,10 +23,8 @@ let
   mkSystem = nodeName: modules:
     self.inputs.nixpkgs.lib.nixosSystem {
       inherit pkgs system;
-      modules = [
-        ../modules/default.nix
-        self.nixosModules.amazon-image
-      ] ++ modules;
+      modules = [ ../modules/default.nix self.nixosModules.amazon-image ]
+        ++ modules;
       specialArgs = { inherit nodeName self; };
     };
 
@@ -43,11 +41,9 @@ in listToAttrs (forEach clusterFiles (file:
     terraform-output = proto.config.terraform-output;
     terraform = proto.config.terraform;
 
-    nodes =
-      mapAttrs (name: instance: mkSystem name ([
-        { networking.hostName = mkForce name; }
-        file
-      ] ++ instance.modules))
+    nodes = mapAttrs (name: instance:
+      mkSystem name
+      ([ { networking.hostName = mkForce name; } file ] ++ instance.modules))
       proto.config.cluster.instances;
 
     groups =

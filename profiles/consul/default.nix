@@ -18,6 +18,13 @@ in {
     verifyOutgoing = true;
     verifyServerHostname = true;
 
+    nodeMeta = {
+      inherit region;
+      inherit nodeName;
+    } // (lib.optionalAttrs ((instances.${nodeName} or null) != null) {
+      inherit (instances.${nodeName}) instanceType domain;
+    });
+
     # TODO: this should be generated alongside the master token
     encrypt = "YXlNgsjK78grfwFAzh9RNcutqf7XWqQQqA4a5TraJfs=";
 

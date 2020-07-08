@@ -4,7 +4,8 @@ let
   inherit (lib)
     mkIf pipe filterAttrs mapAttrs' nameValuePair flip concatMapStrings isList
     toLower mapAttrsToList hasPrefix mkEnableOption mkOption makeBinPath;
-  inherit (lib.types) package str enum ints submodule listOf nullOr port path;
+  inherit (lib.types)
+    package str enum ints submodule listOf nullOr port path attrsOf;
   inherit (builtins) toJSON length attrNames split typeOf;
 
   sanitize = obj:
@@ -299,6 +300,11 @@ in {
         type = enum [ "tls10" "tls11" "tls12" "tls13" ];
         default = "tls12";
       };
+
+      nodeMeta = mkOption {
+        type = attrsOf str;
+        default = { };
+      };
     };
   };
 
@@ -312,7 +318,7 @@ in {
           clientAddr encrypt addresses retryJoin primaryDatacenter acl connect
           caFile certFile keyFile autoEncrypt verifyServerHostname
           verifyOutgoing verifyIncoming dataDir tlsMinVersion ports
-          enableLocalScriptChecks;
+          enableLocalScriptChecks nodeMeta;
       });
 
     systemd.services.consul = {
@@ -333,20 +339,21 @@ in {
           '';
         in "!${start-pre}/bin/consul-start-pre";
 
+        path = [ pkgs.envoy ];
+
         ExecStart =
           "@${cfg.package}/bin/consul consul agent -config-dir /etc/${cfg.configDir}";
 
         ExecReload = let
           reload = pkgs.writeShellScriptBin "consul-reload" ''
-            PATH="${makeBinPath [pkgs.jq cfg.package]}"
+            PATH="${makeBinPath [ pkgs.jq cfg.package ]}"
             set -euo pipefail
             CONSUL_HTTP_TOKEN="$(jq -r -e .acl.tokens.default /etc/consul.d/tokens.json)"
             export CONSUL_HTTP_TOKEN
             set -x
             consul reload
           '';
-        in
-          "${reload}/bin/consul-reload";
+        in "${reload}/bin/consul-reload";
 
         Restart = "on-failure";
         RestartSec = "30s";

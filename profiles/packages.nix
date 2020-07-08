@@ -18,5 +18,6 @@
     tree
     vim
     cachix
+    envoy
   ];
 }

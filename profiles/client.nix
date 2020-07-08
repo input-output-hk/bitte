@@ -21,8 +21,8 @@
   services.vault-agent-client.enable = true;
 
   systemd.services.client-secrets = {
-    wantedBy = ["multi-user.target"];
-    before = [ "consul.service" "vault.service" "nomad.serivce"];
+    wantedBy = [ "multi-user.target" ];
+    before = [ "consul.service" "vault.service" "nomad.serivce" ];
 
     serviceConfig = {
       Type = "oneshot";

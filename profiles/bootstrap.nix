@@ -36,7 +36,7 @@ in {
             WorkingDirectory;
         };
 
-        path = with pkgs; [ consul jq systemd  sops];
+        path = with pkgs; [ consul jq systemd sops ];
 
         script = let
           mkToken = purpose: policy: ''
@@ -122,7 +122,11 @@ in {
       };
 
     systemd.services.vault-setup = mkIf config.services.vault.enable {
-      after = [ "upload-bootstrap.service" "consul-policies.service" "vault-consul-token.service" ];
+      after = [
+        "upload-bootstrap.service"
+        "consul-policies.service"
+        "vault-consul-token.service"
+      ];
       wantedBy = [ "multi-user.target" ];
 
       serviceConfig = {
@@ -176,9 +180,8 @@ in {
 
       path = with pkgs; [ curl sops coreutils jq nomad gawk glibc vault-bin ];
 
-      # TODO: silence the sensitive parts
       script = ''
-        set -exuo pipefail
+        set -euo pipefail
 
         pushd /var/lib/nomad
 

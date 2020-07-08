@@ -164,7 +164,10 @@ in {
       default = "INFO";
     };
 
-    name = mkOption { type = nullOr str; default = null; };
+    name = mkOption {
+      type = nullOr str;
+      default = null;
+    };
 
     client = mkOption {
       default = { };
@@ -969,7 +972,7 @@ in {
         (filterAttrs (n: _: hasPrefix "${baseNameOf cfg.configDir}/" n)
           config.environment.etc);
 
-      path = with pkgs; [ iptables iproute consul ];
+      path = with pkgs; [ iptables iproute consul envoy ];
 
       environment = mkIf config.services.consul.enable {
         CONSUL_HTTP_SSL = "true";
