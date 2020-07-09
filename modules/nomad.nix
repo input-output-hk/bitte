@@ -13,10 +13,10 @@ let
   # TODO: put this in lib
   sanitize = obj:
     lib.getAttr (typeOf obj) {
+      lambda = throw "Cannot sanitize functions";
       bool = obj;
       int = obj;
       string = obj;
-      str = obj;
       path = toString obj;
       list = map sanitize obj;
       null = null;
@@ -36,14 +36,6 @@ let
     (concatMapStrings (s: if isList s then "_${toString s}" else s))
     toLower
   ];
-
-  toPrettyJSON = name: value:
-    let
-      json = toJSON value;
-      mini = pkgs.writeText "${name}.mini.json" json;
-    in pkgs.runCommandNoCCLocal "${name}.json" { } ''
-      ${pkgs.jq}/bin/jq -S < ${mini} > $out
-    '';
 
   serverJoinType = submodule {
     options = {
@@ -940,16 +932,63 @@ in {
       };
     };
 
-    plugin = mkOption {
-      default = [ ];
-      type = listOf (submodule {
-        options = { rawExec = mkOption { type = listOf attrs; }; };
+    # TODO: refactor this, no clue why it's so convoluted.
+    plugin = let
+      rawExecType = submodule {
+        options = { enabled = mkEnableOption "Enable raw-exec"; };
+      };
+
+      dockerAuthType = submodule {
+        options = {
+          helper = mkOption {
+            type = nullOr str;
+            default = null;
+          };
+
+          config = mkOption {
+            type = nullOr path;
+            default = null;
+          };
+        };
+      };
+
+      dockerType = submodule {
+        options = {
+          auth = mkOption {
+            type = nullOr dockerAuthType;
+            default = null;
+            apply = value: [ value ];
+          };
+        };
+      };
+
+      pluginType = submodule ({ name, ... }: {
+        options = {
+          rawExec = mkOption {
+            type = nullOr rawExecType;
+            default = null;
+          };
+
+          docker = mkOption {
+            type = nullOr dockerType;
+            default = null;
+          };
+        };
       });
+    in mkOption {
+      default = null;
+      type = nullOr pluginType;
+      apply = top:
+        if top == null then
+          null
+        else
+          flip mapAttrsToList top
+          (name: value: { ${name} = [{ config = [ value ]; }]; });
     };
   };
 
   config = mkIf cfg.enable {
-    environment.etc."nomad.d/nomad.json".source = toPrettyJSON "nomad.json"
+    environment.etc."nomad.d/config.json".source = pkgs.toPrettyJSON "config"
       (sanitize {
         inherit (cfg)
           dataDir logLevel datacenter name acl ports tls consul server client
@@ -972,13 +1011,20 @@ in {
         (filterAttrs (n: _: hasPrefix "${baseNameOf cfg.configDir}/" n)
           config.environment.etc);
 
-      path = with pkgs; [ iptables iproute consul envoy ];
+      path = with pkgs; [
+        iptables
+        iproute
+        consul
+        envoy
+        amazon-ecr-credential-helper
+      ];
 
       environment = mkIf config.services.consul.enable {
         CONSUL_HTTP_SSL = "true";
         CONSUL_CACERT = config.services.consul.caFile;
         CONSUL_CLIENT_CERT = config.services.consul.certFile;
         CONSUL_CLIENT_KEY = config.services.consul.keyFile;
+        HOME = "/var/lib/nomad";
       };
 
       serviceConfig = {
@@ -987,7 +1033,6 @@ in {
           start-pre = pkgs.writeShellScriptBin "nomad-start-pre" ''
             PATH="${makeBinPath [ pkgs.coreutils ]}"
             set -exuo pipefail
-
             chown --reference . --recursive .
           '';
         in "!${start-pre}/bin/nomad-start-pre";
@@ -1014,5 +1059,16 @@ in {
         StateDirectory = "nomad";
       };
     };
+
+    # TODO: Possibly replace this with DOCKER_CONFIG
+    systemd.tmpfiles.rules = let
+      dockerConfig = pkgs.toPrettyJSON "config" {
+        credHelpers = {
+          "895947072537.dkr.ecr.us-east-2.amazonaws.com" = "ecr-login";
+          # TODO: this ain't working
+          "hub.docker.com" = "";
+        };
+      };
+    in [ "L+ /var/lib/nomad/.docker/config.json - - - - ${dockerConfig}" ];
   };
 }

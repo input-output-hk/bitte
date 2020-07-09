@@ -33,14 +33,6 @@ let
     toLower
   ];
 
-  toPrettyJSON = name: value:
-    let
-      json = toJSON value;
-      mini = pkgs.writeText "${name}.mini.json" json;
-    in pkgs.runCommandNoCCLocal "${name}.json" { } ''
-      ${pkgs.jq}/bin/jq -S < ${mini} > $out
-    '';
-
   storageRaftType = submodule {
     options = {
       path = mkOption {
@@ -311,14 +303,14 @@ in {
     environment.systemPackages = [ pkgs.vault-bin ];
 
     environment.etc."${cfg.configDir}/config.json".source =
-      toPrettyJSON "config.json" (sanitize {
+      pkgs.toPrettyJSON "config" (sanitize {
         inherit (cfg)
           serviceRegistration ui logLevel disableMlock apiAddr clusterAddr seal
           listener storage;
       });
 
     environment.etc."${cfg.configDir}/extra-config.json".source =
-      toPrettyJSON "extra-config.json" cfg.extraConfig;
+      pkgs.toPrettyJSON "extra-config" cfg.extraConfig;
 
     systemd.services.vault = {
       wantedBy = [ "multi-user.target" ];

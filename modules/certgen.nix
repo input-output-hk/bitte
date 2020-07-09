@@ -32,11 +32,9 @@ in {
 
         echo "Waiting for $PWD/$enc from deployer..."
 
-        set +x
         until [ -s "$enc" ]; do
           sleep 1
         done
-        set -x
 
         sops -d certs.enc.json | cfssljson -bare
 
@@ -64,11 +62,9 @@ in {
         echo "Waiting for $PWD/$enc from deployer..."
 
         # Clients
-        set +x
         until [ -s "$enc" ]; do
           sleep 1
         done
-        set -x
 
         cp "$enc" "/var/lib/nginx"
         if [ -d /var/lib/nginx ]; then

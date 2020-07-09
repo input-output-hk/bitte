@@ -34,14 +34,6 @@ let
     toLower
   ];
 
-  toPrettyJSON = name: value:
-    let
-      json = toJSON value;
-      mini = pkgs.writeText "${name}.mini.json" json;
-    in pkgs.runCommandNoCCLocal "${name}.json" { } ''
-      ${pkgs.jq}/bin/jq -S < ${mini} > $out
-    '';
-
 in {
   options = {
     services.consul = {
@@ -312,7 +304,7 @@ in {
     environment.systemPackages = [ cfg.package ];
 
     environment.etc."/${cfg.configDir}/config.json".source =
-      toPrettyJSON "config.json" (sanitize {
+      pkgs.toPrettyJSON "config" (sanitize {
         inherit (cfg)
           ui datacenter bootstrapExpect bindAddr advertiseAddr server logLevel
           clientAddr encrypt addresses retryJoin primaryDatacenter acl connect
@@ -338,8 +330,6 @@ in {
             chown --reference . --recursive .
           '';
         in "!${start-pre}/bin/consul-start-pre";
-
-        path = [ pkgs.envoy ];
 
         ExecStart =
           "@${cfg.package}/bin/consul consul agent -config-dir /etc/${cfg.configDir}";

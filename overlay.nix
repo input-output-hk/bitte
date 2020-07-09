@@ -73,6 +73,8 @@ in final: prev: {
 
   envoy = prev.callPackage ./pkgs/envoy.nix { };
 
+  toPrettyJSON = prev.callPackage ./lib/to-pretty-json.nix { };
+
   clusters = final.callPackage ./lib/clusters.nix { inherit self system; } {
     root = ./clusters;
   };

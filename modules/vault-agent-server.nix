@@ -42,75 +42,76 @@ in {
           AWS_DEFAULT_REGION VAULT_CACERT VAULT_FORMAT;
       };
 
+      path = with pkgs; [ vault-bin glibc gawk ];
+
       serviceConfig = {
         Restart = "always";
         RestartSec = "30s";
-      };
+        ExecStart = let
+          vaultAgentConfig = pkgs.toPrettyJSON "vault-agent" {
+            pid_file = "./vault-agent.pid";
+            vault.address = "https://10.0.0.10:8200";
+            # exit_after_auth = true;
+            auto_auth = {
+              method = [{
+                type = "aws";
+                config = {
+                  type = "iam";
+                  role = "core-iam";
+                  header_value = config.cluster.domain;
+                };
+              }];
 
-      path = with pkgs; [ vault-bin glibc gawk ];
+              sinks = [{
+                sink = {
+                  type = "file";
+                  config = { path = "/run/keys/vault-token"; };
+                  perms = "0644";
+                };
+              }];
+            };
 
-      script = let
-        vaultAgentConfig = pkgs.writeText "vault-agent.json" (toJSON {
-          pid_file = "./vault-agent.pid";
-          vault.address = "https://10.0.0.10:8200";
-          # exit_after_auth = true;
-          auto_auth = {
-            method = [{
-              type = "aws";
-              config = {
-                type = "iam";
-                role = "core-iam";
-                header_value = config.cluster.domain;
-              };
-            }];
-
-            sinks = [{
-              sink = {
-                type = "file";
-                config = { path = "/run/keys/vault-token"; };
-                perms = "0644";
-              };
-            }];
-          };
-
-          templates = filter (t: t != null) [
-            (if config.services.consul.enable then {
-              template = {
-                destination = "/etc/consul.d/tokens.json";
-                command = "${pkgs.systemd}/bin/systemctl reload consul.service";
-                contents = ''
-                  {
-                    "acl": {
-                      "tokens": {
-                        "default": "{{ with secret "consul/creds/consul-server-default" }}{{ .Data.token }}{{ end }}",
-                        "agent": "{{ with secret "consul/creds/consul-server-agent" }}{{ .Data.token }}{{ end }}"
+            templates = filter (t: t != null) [
+              (if config.services.consul.enable then {
+                template = {
+                  destination = "/etc/consul.d/tokens.json";
+                  command =
+                    "${pkgs.systemd}/bin/systemctl reload consul.service";
+                  contents = ''
+                    {
+                      "acl": {
+                        "tokens": {
+                          "default": "{{ with secret "consul/creds/consul-server-default" }}{{ .Data.token }}{{ end }}",
+                          "agent": "{{ with secret "consul/creds/consul-server-agent" }}{{ .Data.token }}{{ end }}"
+                        }
                       }
                     }
-                  }
-                '';
-              };
-            } else
-              null)
+                  '';
+                };
+              } else
+                null)
 
-            (if config.services.nomad.enable then {
-              template = {
-                command = "${pkgs.systemd}/bin/systemctl restart nomad.service";
-                destination = "/etc/nomad.d/consul-token.json";
-                contents = ''
-                  {{ with secret "consul/creds/nomad-server" }}
-                  {
-                    "consul": {
-                      "token": "{{ .Data.token }}"
+              (if config.services.nomad.enable then {
+                template = {
+                  command =
+                    "${pkgs.systemd}/bin/systemctl restart nomad.service";
+                  destination = "/etc/nomad.d/consul-token.json";
+                  contents = ''
+                    {{ with secret "consul/creds/nomad-server" }}
+                    {
+                      "consul": {
+                        "token": "{{ .Data.token }}"
+                      }
                     }
-                  }
-                  {{ end }}
-                '';
-              };
-            } else
-              null)
-          ];
-        });
-      in "${pkgs.vault-bin}/bin/vault agent -config ${vaultAgentConfig}";
+                    {{ end }}
+                  '';
+                };
+              } else
+                null)
+            ];
+          };
+        in "@${pkgs.vault-bin}/bin/vault vault agent -config ${vaultAgentConfig}";
+      };
     };
   };
 }

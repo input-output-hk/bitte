@@ -123,7 +123,6 @@ in {
 
     systemd.services.vault-setup = mkIf config.services.vault.enable {
       after = [
-        "upload-bootstrap.service"
         "consul-policies.service"
         "vault-consul-token.service"
       ];
@@ -246,7 +245,7 @@ in {
           AWS_DEFAULT_REGION VAULT_CACERT VAULT_ADDR VAULT_FORMAT;
       };
 
-      path = with pkgs; [ consul vault-bin glibc gawk sops coreutils jq ];
+      path = with pkgs; [ consul vault-bin glibc gawk sops coreutils jq gnused ];
 
       script = ''
         set -exuo pipefail
@@ -309,15 +308,21 @@ in {
 
         # TODO: pull ARN from terraform outputs or query aws at runtime?
 
+        arn="$(
+          curl -f -s http://169.254.169.254/latest/meta-data/iam/info \
+          | jq -e -r .InstanceProfileArn \
+          | sed 's/:instance.*//'
+        )"
+
         vault write auth/aws/role/core-iam \
           auth_type=iam \
-          bound_iam_principal_arn=arn:aws:iam::276730534310:role/${config.cluster.name}-core \
+          bound_iam_principal_arn="$arn:role/${config.cluster.name}-core" \
           policies=default,core \
           max_ttl=1h
 
         vault write auth/aws/role/clients-iam \
           auth_type=iam \
-          bound_iam_principal_arn=arn:aws:iam::276730534310:role/${config.cluster.name}-client \
+          bound_iam_principal_arn="$arn:role/${config.cluster.name}-client" \
           policies=default,clients \
           max_ttl=1h
 

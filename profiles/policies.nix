@@ -3,9 +3,6 @@
     roles = with config.services.consul.policies; {
       consul-agent.policyNames = [ consul-agent.name ];
       consul-server.policyNames = [ consul-agent.name ];
-      core-1-consul.policyNames = [ consul-agent.name core-1.name ];
-      core-2-consul.policyNames = [ consul-agent.name core-2.name ];
-      core-3-consul.policyNames = [ consul-agent.name core-3.name ];
       nomad-client.policyNames = [ nomad-client.name ];
       nomad-server.policyNames = [ nomad-server.name ];
       vault-server.policyNames = [ vault-server.name ];
@@ -33,10 +30,6 @@
         keyring = "write";
         operator = "write";
       };
-
-      core-1.node = write "core-1";
-      core-2.node = write "core-2";
-      core-3.node = write "core-3";
 
       dns = {
         nodePrefix = allRead;

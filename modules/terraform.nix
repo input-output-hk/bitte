@@ -346,9 +346,9 @@ let
       localProvisioner = mkOption {
         type = localExecType;
         default = {
-          command = "certs";
-          interpreter = let ip = var "aws_eip.${this.config.uid}.public_ip";
-          in [ "${pkgs.bitte}/bin/bitte" ];
+          # command = "provision";
+          # interpreter = let ip = var "aws_eip.${this.config.uid}.public_ip";
+          # in [ "${pkgs.bitte}/bin/bitte" ];
 
           # command = name;
           # interpreter = let ip = var "aws_eip.${this.config.uid}.public_ip";
@@ -390,7 +390,14 @@ let
 
       tags = mkOption {
         type = attrsOf str;
-        default = { };
+        default = {
+          Cluster = cfg.name;
+          Name = this.config.name;
+          UID = this.config.uid;
+          Consul = "server";
+          Vault = "server";
+          Nomad = "server";
+        };
       };
 
       privateIP = mkOption { type = str; };
@@ -556,7 +563,6 @@ in {
     terraform = {
       provider = {
         aws = {
-          profile = cfg.name;
           region = cfg.region;
         };
       };
@@ -626,11 +632,32 @@ in {
               statement = { inherit (policy) effect actions resources; };
             }))));
 
-      output.instances = {
-        value = toJSON {
-          core-1 = var "aws_instance.core-1.public_ip";
-          core-2 = var "aws_instance.core-2.public_ip";
-          core-3 = var "aws_instance.core-3.public_ip";
+      output.cluster = {
+        value = {
+          flake = self.outPath;
+          nix = pkgs.nixFlakes;
+          kms = cfg.kms;
+          region = cfg.region;
+          name = cfg.name;
+
+          roles = flip mapAttrs cfg.iam.roles
+            (name: role: { arn = var "aws_iam_role.${role.uid}.arn"; });
+
+          instances = flip mapAttrs cfg.instances (name: server: {
+            flake_attr = "nixosConfigurations.${server.uid}.config.system.build.toplevel";
+            instance_type = var "aws_instance.${server.name}.instance_type";
+            name = server.name;
+            private_ip = var "aws_instance.${server.name}.private_ip";
+            public_ip = var "aws_instance.${server.name}.public_ip";
+            tags = server.tags;
+            uid = server.uid;
+          });
+
+          asgs = flip mapAttrs cfg.autoscalingGroups (name: group: {
+            flake_attr = "nixosConfigurations.${group.uid}.config.system.build.toplevel";
+            instance_type = var "aws_launch_configuration.${group.uid}.instance_type";
+            uid = group.uid;
+          });
         };
       };
 
@@ -664,13 +691,13 @@ in {
               device_index = 0;
             };
 
-            provisioner = [{
-              local-exec = {
-                inherit (server.localProvisioner)
-                  interpreter command environment;
-                working_dir = server.localProvisioner.workingDir;
-              };
-            }];
+            # provisioner = [{
+            #   local-exec = {
+            #     inherit (server.localProvisioner)
+            #       interpreter command environment;
+            #     working_dir = server.localProvisioner.workingDir;
+            #   };
+            # }];
 
             # provisioner = let
             #   connection = {

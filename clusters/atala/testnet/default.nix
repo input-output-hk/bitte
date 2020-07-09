@@ -10,12 +10,19 @@ let
     import (self.inputs.nixpkgs + "/nixos/modules/virtualisation/ec2-amis.nix");
 
   amis = {
-    ipxe-usb = { eu-central-1 = "ami-03bb2098732ba5697"; };
-    ipxe-efi-usb = { eu-central-1 = "ami-02cb98a940a920aac"; };
-    ipxe-efi = { eu-central-1 = "ami-0c523d56db1b4026e"; };
-    ipxe-iso = { eu-central-1 = "ami-07f78d3dd3240bf2e"; };
     nixos = lib.mapAttrs' (name: value: lib.nameValuePair name value.hvm-ebs)
       nixosAmis."20.03";
+  };
+
+  availableKms = {
+    atala.us-east-2 =
+      "arn:aws:kms:us-east-2:895947072537:key/683261a5-cb8a-4f28-a507-bae96551ee5d";
+    atala.eu-central-1 =
+      "arn:aws:kms:eu-central-1:895947072537:key/214e1694-7f2e-4a00-9b23-08872b79c9c3";
+    atala-testnet.us-east-2 =
+      "arn:aws:kms:us-east-2:276730534310:key/2a265813-cabb-4ab7-aff6-0715134d5660";
+    atala-testnet.eu-central-1 =
+      "arn:aws:kms:eu-central-1:276730534310:key/5193b747-7449-40f6-976a-67d91257abdb";
   };
 
   # TODO: derive needed security groups from networking.firewall?
@@ -80,193 +87,21 @@ let
   };
 in {
   cluster = {
-    name = "cvn-testnet";
+    name = "atala-testnet";
 
     # TODO: this should really go into the servers and support more than one...
     region = "eu-central-1";
 
     # TODO: figure out better KMS strategy
-    kms =
-      "arn:aws:kms:eu-central-1:276730534310:key/5193b747-7449-40f6-976a-67d91257abdb";
+    kms = availableKms.atala.eu-central-1;
 
-    domain = "cvn-testnet.aws.iohkdev.io";
+    domain = "atala-testnet.aws.iohkdev.io";
 
     route53 = true;
 
     certificate.organization = "IOHK";
 
     generateSSHKey = true;
-
-    iam = {
-      roles = {
-        client = {
-          assumePolicy = {
-            effect = "Allow";
-            action = "sts:AssumeRole";
-            principal.service = "ec2.amazonaws.com";
-          };
-
-          policies = {
-            ssm = {
-              effect = "Allow";
-              resources = [ "*" ];
-              actions = [
-                "ec2:ReportInstanceStatus"
-                "ec2messages:AcknowledgeMessage"
-                "ec2messages:DeleteMessage"
-                "ec2messages:FailMessage"
-                "ec2messages:GetEndpoint"
-                "ec2messages:GetMessages"
-                "ec2messages:SendReply"
-                "ssmmessages:CreateControlChannel"
-                "ssmmessages:CreateDataChannel"
-                "ssmmessages:OpenControlChannel"
-                "ssmmessages:OpenDataChannel"
-                "ssm:DescribeAssociation"
-                "ssm:GetDeployablePatchSnapshotForInstance"
-                "ssm:GetDocument"
-                "ssm:DescribeDocument"
-                "ssm:GetManifest"
-                "ssm:GetParameter"
-                "ssm:GetParameters"
-                "ssm:ListAssociations"
-                "ssm:ListInstanceAssociations"
-                "ssm:PutInventory"
-                "ssm:PutComplianceItems"
-                "ssm:PutConfigurePackageResult"
-                "ssm:UpdateAssociationStatus"
-                "ssm:UpdateInstanceAssociationStatus"
-                "ssm:UpdateInstanceInformation"
-              ];
-            };
-
-            nomad = {
-              effect = "Allow";
-              resources = [ "*" ];
-              actions = [ "autoscaling:SetInstanceHealth" ];
-            };
-
-            consul = {
-              effect = "Allow";
-              resources = [ "*" ];
-              actions = [
-                "ec2:DescribeInstances"
-                "ec2:DescribeTags"
-                "autoscaling:DescribeAutoScalingGroups"
-              ];
-            };
-
-            vault = {
-              effect = "Allow";
-              resources = [ "*" ];
-              actions = [
-                "ec2:DescribeInstances"
-                "iam:GetInstanceProfile"
-                "iam:GetUser"
-                "iam:GetRole"
-                "logs:CreateLogStream"
-                "logs:PutLogEvents"
-              ];
-            };
-
-            kms = {
-              effect = "Allow";
-              resources = [ config.cluster.kms ];
-              actions = [ "kms:Encrypt" "kms:Decrypt" "kms:DescribeKey" ];
-            };
-          };
-        };
-
-        core = {
-          assumePolicy = {
-            effect = "Allow";
-            action = "sts:AssumeRole";
-            principal.service = "ec2.amazonaws.com";
-          };
-
-          policies = {
-            # TODO: don't forget putting it in statement
-            kms = {
-              effect = "Allow";
-              resources = [ config.cluster.kms ];
-              actions = [ "kms:Encrypt" "kms:Decrypt" "kms:DescribeKey" ];
-            };
-
-            assumeRole = {
-              effect = "Allow";
-              resources = [
-                config.cluster.instances.core-1.iam.instanceProfile.tfArn
-                config.cluster.instances.core-2.iam.instanceProfile.tfArn
-                config.cluster.instances.core-3.iam.instanceProfile.tfArn
-              ];
-              actions = [ "sts:AssumeRole" ];
-            };
-
-            ssm = {
-              effect = "Allow";
-              resources = [ "*" ];
-              actions = [
-                "ec2:ReportInstanceStatus"
-                "ec2messages:AcknowledgeMessage"
-                "ec2messages:DeleteMessage"
-                "ec2messages:FailMessage"
-                "ec2messages:GetEndpoint"
-                "ec2messages:GetMessages"
-                "ec2messages:SendReply"
-                "ssmmessages:CreateControlChannel"
-                "ssmmessages:CreateDataChannel"
-                "ssmmessages:OpenControlChannel"
-                "ssmmessages:OpenDataChannel"
-                "ssm:DescribeAssociation"
-                "ssm:GetDeployablePatchSnapshotForInstance"
-                "ssm:GetDocument"
-                "ssm:DescribeDocument"
-                "ssm:GetManifest"
-                "ssm:GetParameter"
-                "ssm:GetParameters"
-                "ssm:ListAssociations"
-                "ssm:ListInstanceAssociations"
-                "ssm:PutInventory"
-                "ssm:PutComplianceItems"
-                "ssm:PutConfigurePackageResult"
-                "ssm:UpdateAssociationStatus"
-                "ssm:UpdateInstanceAssociationStatus"
-                "ssm:UpdateInstanceInformation"
-              ];
-            };
-
-            nomad = {
-              effect = "Allow";
-              resources = [ "*" ];
-              actions = [ "autoscaling:SetInstanceHealth" ];
-            };
-
-            consul = {
-              effect = "Allow";
-              resources = [ "*" ];
-              actions = [
-                "ec2:DescribeInstances"
-                "ec2:DescribeTags"
-                "autoscaling:DescribeAutoScalingGroups"
-              ];
-            };
-
-            vault = {
-              effect = "Allow";
-              resources = [ "*" ];
-              actions = [
-                "ec2:DescribeInstances"
-                "iam:GetInstanceProfile"
-                "iam:GetUser"
-                "iam:GetRole"
-                "logs:CreateLogStream"
-                "logs:PutLogEvents"
-              ];
-            };
-          };
-        };
-      };
-    };
 
     vpc = {
       cidr = "10.0.0.0/16";
@@ -279,7 +114,20 @@ in {
     };
 
     autoscalingGroups = (lib.flip lib.mapAttrs' {
-      "t3a.medium" = 0;
+      # iPXE is only supported on non-Nitro instances, that means we won't
+      # get the latest and greates until they fix that...
+      # All currently supported instance families with their smallest type:
+
+      # "m4.large" = 1;
+      # "t2.large" = 0;
+      # "m3.large" = 0;
+      # "c4.xlarge" = 0;
+      # "d2.xlarge" = 0;
+      # "r3.large" = 0;
+      # "c3.large" = 0;
+
+      # Use NixOS AMI for now
+      "t3a.medium" = 1;
     } (instanceType: desiredCapacity:
       let
         saneName = "clients-${lib.replaceStrings [ "." ] [ "-" ] instanceType}";
@@ -391,6 +239,195 @@ in {
 
         securityGroupRules = {
           inherit (securityGroupRules) internet internal ssh;
+        };
+      };
+    };
+
+    iam = {
+      roles = {
+        client = {
+          assumePolicy = {
+            effect = "Allow";
+            action = "sts:AssumeRole";
+            principal.service = "ec2.amazonaws.com";
+          };
+
+          policies = {
+            ssm = {
+              effect = "Allow";
+              resources = [ "*" ];
+              actions = [
+                "ec2:ReportInstanceStatus"
+                "ec2messages:AcknowledgeMessage"
+                "ec2messages:DeleteMessage"
+                "ec2messages:FailMessage"
+                "ec2messages:GetEndpoint"
+                "ec2messages:GetMessages"
+                "ec2messages:SendReply"
+                "ssmmessages:CreateControlChannel"
+                "ssmmessages:CreateDataChannel"
+                "ssmmessages:OpenControlChannel"
+                "ssmmessages:OpenDataChannel"
+                "ssm:DescribeAssociation"
+                "ssm:GetDeployablePatchSnapshotForInstance"
+                "ssm:GetDocument"
+                "ssm:DescribeDocument"
+                "ssm:GetManifest"
+                "ssm:GetParameter"
+                "ssm:GetParameters"
+                "ssm:ListAssociations"
+                "ssm:ListInstanceAssociations"
+                "ssm:PutInventory"
+                "ssm:PutComplianceItems"
+                "ssm:PutConfigurePackageResult"
+                "ssm:UpdateAssociationStatus"
+                "ssm:UpdateInstanceAssociationStatus"
+                "ssm:UpdateInstanceInformation"
+              ];
+            };
+
+            ecr = {
+              effect = "Allow";
+              resources = [ "*" ];
+              actions = [
+                "ecr:GetAuthorizationToken"
+                "ecr:BatchCheckLayerAvailability"
+                "ecr:GetDownloadUrlForLayer"
+                "ecr:GetRepositoryPolicy"
+                "ecr:DescribeRepositories"
+                "ecr:ListImages"
+                "ecr:DescribeImages"
+                "ecr:BatchGetImage"
+                "ecr:GetLifecyclePolicy"
+                "ecr:GetLifecyclePolicyPreview"
+                "ecr:ListTagsForResource"
+                "ecr:DescribeImageScanFindings"
+              ];
+            };
+
+            nomad = {
+              effect = "Allow";
+              resources = [ "*" ];
+              actions = [ "autoscaling:SetInstanceHealth" ];
+            };
+
+            consul = {
+              effect = "Allow";
+              resources = [ "*" ];
+              actions = [
+                "ec2:DescribeInstances"
+                "ec2:DescribeTags"
+                "autoscaling:DescribeAutoScalingGroups"
+              ];
+            };
+
+            vault = {
+              effect = "Allow";
+              resources = [ "*" ];
+              actions = [
+                "ec2:DescribeInstances"
+                "iam:GetInstanceProfile"
+                "iam:GetUser"
+                "iam:GetRole"
+                "logs:CreateLogStream"
+                "logs:PutLogEvents"
+              ];
+            };
+
+            kms = {
+              effect = "Allow";
+              resources = [ config.cluster.kms ];
+              actions = [ "kms:Encrypt" "kms:Decrypt" "kms:DescribeKey" ];
+            };
+          };
+        };
+
+        core = {
+          assumePolicy = {
+            effect = "Allow";
+            action = "sts:AssumeRole";
+            principal.service = "ec2.amazonaws.com";
+          };
+
+          policies = {
+            kms = {
+              effect = "Allow";
+              resources = [ config.cluster.kms ];
+              actions = [ "kms:Encrypt" "kms:Decrypt" "kms:DescribeKey" ];
+            };
+
+            assumeRole = {
+              effect = "Allow";
+              resources = [
+                config.cluster.instances.core-1.iam.instanceProfile.tfArn
+                config.cluster.instances.core-2.iam.instanceProfile.tfArn
+                config.cluster.instances.core-3.iam.instanceProfile.tfArn
+              ];
+              actions = [ "sts:AssumeRole" ];
+            };
+
+            ssm = {
+              effect = "Allow";
+              resources = [ "*" ];
+              actions = [
+                "ec2:ReportInstanceStatus"
+                "ec2messages:AcknowledgeMessage"
+                "ec2messages:DeleteMessage"
+                "ec2messages:FailMessage"
+                "ec2messages:GetEndpoint"
+                "ec2messages:GetMessages"
+                "ec2messages:SendReply"
+                "ssmmessages:CreateControlChannel"
+                "ssmmessages:CreateDataChannel"
+                "ssmmessages:OpenControlChannel"
+                "ssmmessages:OpenDataChannel"
+                "ssm:DescribeAssociation"
+                "ssm:GetDeployablePatchSnapshotForInstance"
+                "ssm:GetDocument"
+                "ssm:DescribeDocument"
+                "ssm:GetManifest"
+                "ssm:GetParameter"
+                "ssm:GetParameters"
+                "ssm:ListAssociations"
+                "ssm:ListInstanceAssociations"
+                "ssm:PutInventory"
+                "ssm:PutComplianceItems"
+                "ssm:PutConfigurePackageResult"
+                "ssm:UpdateAssociationStatus"
+                "ssm:UpdateInstanceAssociationStatus"
+                "ssm:UpdateInstanceInformation"
+              ];
+            };
+
+            nomad = {
+              effect = "Allow";
+              resources = [ "*" ];
+              actions = [ "autoscaling:SetInstanceHealth" ];
+            };
+
+            consul = {
+              effect = "Allow";
+              resources = [ "*" ];
+              actions = [
+                "ec2:DescribeInstances"
+                "ec2:DescribeTags"
+                "autoscaling:DescribeAutoScalingGroups"
+              ];
+            };
+
+            vault = {
+              effect = "Allow";
+              resources = [ "*" ];
+              actions = [
+                "ec2:DescribeInstances"
+                "iam:GetInstanceProfile"
+                "iam:GetUser"
+                "iam:GetRole"
+                "logs:CreateLogStream"
+                "logs:PutLogEvents"
+              ];
+            };
+          };
         };
       };
     };
