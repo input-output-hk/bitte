@@ -8,13 +8,18 @@ let
   cert = "/etc/ssl/certs/cert.pem";
   key = "/var/lib/nomad/cert-key.pem";
 in {
-  environment.variables = { NOMAD_ADDR = "https://127.0.0.1:4646"; };
+  environment.variables = {
+    NOMAD_ADDR = "https://127.0.0.1:${toString config.services.nomad.ports.http}";
+  };
 
   services.nomad = {
     dataDir = /var/lib/nomad;
     logLevel = "DEBUG";
     datacenter = config.cluster.region;
-    name = if (instances.${nodeName} or null) != null then "nomad-${nodeName}" else null;
+    name = if (instances.${nodeName} or null) != null then
+      "nomad-${nodeName}"
+    else
+      null;
 
     acl.enabled = true;
 
@@ -34,9 +39,9 @@ in {
     };
 
     consul = {
-      address = "127.0.0.1:8501";
+      address = "127.0.0.1:${toString config.services.consul.ports.https}";
       ssl = true;
-      caFile = ca;
+      caFile = full;
       certFile = cert;
       keyFile = key;
       allowUnauthenticated = false;

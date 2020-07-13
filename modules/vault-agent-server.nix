@@ -10,6 +10,132 @@ let
   # https://github.com/hashicorp/vault/pull/9200
   # For now we do the dirty thing and add a timer that just restarts this every
   # so often.
+
+  vaultAgentConfig = pkgs.toPrettyJSON "vault-agent" {
+    pid_file = "./vault-agent.pid";
+    vault.address = "https://127.0.0.1:8200";
+    # exit_after_auth = true;
+    auto_auth = {
+      method = [{
+        type = "aws";
+        config = {
+          type = "iam";
+          role = "core-iam";
+          header_value = config.cluster.domain;
+        };
+      }];
+
+      sinks = [{
+        sink = {
+          type = "file";
+          config = { path = "/run/keys/vault-token"; };
+          perms = "0644";
+        };
+      }];
+    };
+
+    templates = let
+      pkiAttrs = {
+        common_name = "server.${region}.consul";
+        ip_sans = [ "127.0.0.1" privateIP ];
+        alt_names = [
+          "vault.service.consul"
+          "conusl.service.consul"
+          "nomad.service.consul"
+        ];
+        ttl = "322h";
+      };
+
+      pkiArgs = flip mapAttrsToList pkiAttrs (name: value:
+        if isList value then
+          ''"${name}=${concatStringsSep "," value}"''
+        else
+          ''"${name}=${toString value}"'');
+
+      pkiSecret = ''"pki/issue/server" ${toString pkiArgs}'';
+
+      reload-cvn = writeShellScriptBin "reload-cvn" ''
+        set -x
+        ${pkgs.systemd}/bin/systemctl reload consul.service
+        ${pkgs.systemd}/bin/systemctl restart nomad.service
+        ${pkgs.systemd}/bin/systemctl reload vault.service
+        exit 0
+      '';
+
+    in filter (t: t != null) [
+      (if config.services.consul.enable then {
+        template = {
+          destination = "/etc/consul.d/tokens.json";
+          command =
+            "${pkgs.systemd}/bin/systemctl reload consul.service";
+          contents = ''
+            {
+              "acl": {
+                "tokens": {
+                  "default": "{{ with secret "consul/creds/consul-server-default" }}{{ .Data.token }}{{ end }}",
+                  "agent": "{{ with secret "consul/creds/consul-server-agent" }}{{ .Data.token }}{{ end }}"
+                }
+              }
+            }
+          '';
+        };
+      } else
+        null)
+
+      (if config.services.nomad.enable then {
+        template = {
+          command =
+            "${pkgs.systemd}/bin/systemctl restart nomad.service";
+          destination = "/etc/nomad.d/consul-token.json";
+          contents = ''
+            {{ with secret "consul/creds/nomad-server" }}
+            {
+              "consul": {
+                "token": "{{ .Data.token }}"
+              }
+            }
+            {{ end }}
+          '';
+        };
+      } else
+        null)
+
+      (if config.services.vault.enable then {
+        template = {
+          command = "${reload-cvn}/bin/reload-cvn";
+          destination = "/etc/ssl/certs/full.pem";
+          contents = ''
+            {{ with secret ${pkiSecret} }}{{ .Data.certificate }}
+            {{ .Data.issuing_ca }}{{ end }}
+          '';
+        };
+      } else
+        null)
+
+      (if config.services.vault.enable then {
+        template = {
+          command = "${reload-cvn}/bin/reload-cvn";
+          destination = "/etc/ssl/certs/cert.pem";
+          contents = ''
+            {{ with secret ${pkiSecret} }}{{ .Data.certificate }}{{ end }}
+          '';
+        };
+      } else
+        null)
+
+      (if config.services.vault.enable then {
+        template = {
+          command = "${reload-cvn}/bin/reload-cvn";
+          destination = "/etc/ssl/certs/cert-key.pem";
+          contents = ''
+            {{ with secret ${pkiSecret} }}{{ .Data.private_key }}{{ end }}
+          '';
+        };
+      } else
+        null)
+    ];
+  };
+
 in {
   options = {
     services.vault-agent-core.enable =
@@ -17,24 +143,6 @@ in {
   };
 
   config = mkIf config.services.vault-agent-core.enable {
-    systemd.timers.vault-agent-restart = {
-      wantedBy = [ "vault-agent.service" ];
-      timerConfig = {
-        OnActiveSec = "10m";
-        OnUnitActiveSec = "10m";
-      };
-    };
-
-    systemd.services.vault-agent-restart = {
-      wantedBy = [ "vault-agent.service" ];
-      before = [ "vault-agent.service" ];
-      serviceConfig = {
-        Type = "exec";
-        RemainAfterExit = true;
-        ExecStart = "${pkgs.systemd}/bin/systemctl restart vault-agent.service";
-      };
-    };
-
     systemd.services.vault-agent = {
       after = [ "vault.service" "consul.service" ];
       requires = [ "vault.service" "consul.service" ];
@@ -42,7 +150,7 @@ in {
 
       environment = {
         inherit (config.environment.variables) AWS_DEFAULT_REGION VAULT_FORMAT;
-        VAULT_CACERT  = "/etc/ssl/certs/full.pem";
+        VAULT_CACERT = "/etc/ssl/certs/full.pem";
         CONSUL_HTTP_ADDR = "127.0.0.1:8500";
         CONSUL_CACERT = "/etc/ssl/certs/full.pem";
       };
@@ -52,127 +160,8 @@ in {
       serviceConfig = {
         Restart = "always";
         RestartSec = "30s";
-        ExecStart = let
-          vaultAgentConfig = pkgs.toPrettyJSON "vault-agent" {
-            pid_file = "./vault-agent.pid";
-            vault.address = "https://vault.service.consul:8200";
-            # exit_after_auth = true;
-            auto_auth = {
-              method = [{
-                type = "aws";
-                config = {
-                  type = "iam";
-                  role = "core-iam";
-                  header_value = config.cluster.domain;
-                };
-              }];
-
-              sinks = [{
-                sink = {
-                  type = "file";
-                  config = { path = "/run/keys/vault-token"; };
-                  perms = "0644";
-                };
-              }];
-            };
-
-            templates = let
-              pkiAttrs = {
-                common_name = "server.${region}.consul";
-                ip_sans = ["127.0.0.1" privateIP];
-                alt_names = ["vault.service.consul" "conusl.service.consul" "nomad.service.consul" ];
-                ttl = "322h";
-              };
-
-              pkiArgs = flip mapAttrsToList pkiAttrs (name: value:
-                if isList value then
-                ''"${name}=${ concatStringsSep "," value }"''
-                else ''"${name}=${toString value}"''
-              );
-
-              pkiSecret = ''"pki/issue/server" ${toString pkiArgs}'';
-
-              reload-cvn = writeShellScriptBin "reload-cvn" ''
-                set -exuo pipefail
-                ${pkgs.systemd}/bin/systemctl reload consul.service
-                ${pkgs.systemd}/bin/systemctl reload nomad.service
-                ${pkgs.systemd}/bin/systemctl reload vault.service
-              '';
-
-              in filter (t: t != null) [
-              (if config.services.consul.enable then {
-                template = {
-                  destination = "/etc/consul.d/tokens.json";
-                  command =
-                    "${pkgs.systemd}/bin/systemctl reload consul.service";
-                  contents = ''
-                    {
-                      "acl": {
-                        "tokens": {
-                          "default": "{{ with secret "consul/creds/consul-server-default" }}{{ .Data.token }}{{ end }}",
-                          "agent": "{{ with secret "consul/creds/consul-server-agent" }}{{ .Data.token }}{{ end }}"
-                        }
-                      }
-                    }
-                  '';
-                };
-              } else
-                null)
-
-              (if config.services.nomad.enable then {
-                template = {
-                  command =
-                    "${pkgs.systemd}/bin/systemctl restart nomad.service";
-                  destination = "/etc/nomad.d/consul-token.json";
-                  contents = ''
-                    {{ with secret "consul/creds/nomad-server" }}
-                    {
-                      "consul": {
-                        "token": "{{ .Data.token }}"
-                      }
-                    }
-                    {{ end }}
-                  '';
-                };
-              } else
-                null)
-
-              (if config.services.vault.enable then {
-                template = {
-                  command = "${reload-cvn}/bin/reload-cvn";
-                  destination = "/etc/ssl/certs/full.pem";
-                  contents = ''
-                    {{ with secret ${pkiSecret} }}{{ .Data.certificate }}
-                    {{ .Data.issuing_ca }}{{ end }}
-                  '';
-                };
-              } else
-                null)
-
-              (if config.services.vault.enable then {
-                template = {
-                  command = "${reload-cvn}/bin/reload-cvn";
-                  destination = "/etc/ssl/certs/cert.pem";
-                  contents = ''
-                    {{ with secret ${pkiSecret} }}{{ .Data.certificate }}{{ end }}
-                  '';
-                };
-              } else
-                null)
-
-              (if config.services.vault.enable then {
-                template = {
-                  command = "${reload-cvn}/bin/reload-cvn";
-                  destination = "/etc/ssl/certs/cert-key.pem";
-                  contents = ''
-                    {{ with secret ${pkiSecret} }}{{ .Data.private_key }}{{ end }}
-                  '';
-                };
-              } else
-                null)
-            ];
-          };
-        in "${pkgs.vault-bin}/bin/vault agent -config ${vaultAgentConfig}";
+        ExecStart =
+          "${pkgs.vault-bin}/bin/vault agent -config ${vaultAgentConfig}";
       };
     };
   };

@@ -18,11 +18,11 @@ in final: prev: {
   ssm-agent = prev.callPackage ./pkgs/ssm-agent { };
 
   vault-bin = prev.vault-bin.overrideAttrs (old: rec {
-    version = "1.4.2";
+    version = "1.5.0-rc";
     src = prev.fetchurl {
       url =
         "https://releases.hashicorp.com/vault/${version}/vault_${version}_linux_amd64.zip";
-      sha256 = "sha256-8ryonL/7hxAmXrA7yUUswxawMzjEEbqEU//nQZOQuPE=";
+      sha256 = "sha256-HAfRENfGbcrwrszmfCSCNlYVR6Ha5kM88k6efMnOCic=";
     };
   });
 

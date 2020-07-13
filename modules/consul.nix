@@ -357,9 +357,10 @@ in {
 
         reloadScript = let
           reload = pkgs.writeShellScriptBin "consul-reload" ''
-            PATH="${makeBinPath [ pkgs.jq cfg.package ]}"
-            set -euo pipefail
-            CONSUL_HTTP_TOKEN="$(jq -r -e .acl.tokens.default ${cfg.configDir}/tokens.json)"
+            set -exuo pipefail
+            PATH="${makeBinPath [ pkgs.jq cfg.package pkgs.coreutils ]}"
+            set +x
+            CONSUL_HTTP_TOKEN="$(jq -r -e .acl.tokens.default /etc/${cfg.configDir}/tokens.json)"
             export CONSUL_HTTP_TOKEN
             set -x
             cd /var/lib/consul/
