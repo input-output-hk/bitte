@@ -2,15 +2,20 @@
 let
   inherit (pkgs.terralib) sops2kms sops2region cidrsOf;
   inherit (builtins) readFile replaceStrings;
+  inherit (lib) mapAttrs' nameValuePair forEach flip flatten;
+  inherit (config.cluster) s3-bucket kms;
   inherit (config.cluster.vpc) subnets;
   inherit (pkgs.terralib) var id pp;
   global = "0.0.0.0/0";
+
+  bucketArn = "arn:aws:s3:::${s3-bucket}";
+  bucketRootDir = "infra/secrets/${config.cluster.name}/${kms}";
 
   nixosAmis =
     import (self.inputs.nixpkgs + "/nixos/modules/virtualisation/ec2-amis.nix");
 
   amis = {
-    nixos = lib.mapAttrs' (name: value: lib.nameValuePair name value.hvm-ebs)
+    nixos = mapAttrs' (name: value: nameValuePair name value.hvm-ebs)
       nixosAmis."20.03";
   };
 
@@ -56,6 +61,16 @@ let
       cidrs = [ global ];
     };
 
+    haproxyStats = {
+      port = 1936;
+      cidrs = [ global ];
+    };
+
+    vault-http = {
+      port = 8200;
+      cidrs = [ global ];
+    };
+
     consul-serf-lan = {
       port = 8301;
       protocols = [ "tcp" "udp" ];
@@ -95,7 +110,9 @@ in {
     # TODO: figure out better KMS strategy
     kms = availableKms.atala.eu-central-1;
 
-    domain = "atala-testnet.aws.iohkdev.io";
+    domain = "testnet.atalaprism.io";
+
+    s3-bucket = "atala-cvp";
 
     route53 = true;
 
@@ -113,96 +130,109 @@ in {
       };
     };
 
-    autoscalingGroups = (lib.flip lib.mapAttrs' {
-      # iPXE is only supported on non-Nitro instances, that means we won't
-      # get the latest and greates until they fix that...
-      # All currently supported instance families with their smallest type:
+    autoscalingGroups = (flip mapAttrs' { "t3a.medium" = 0; }
+      (instanceType: desiredCapacity:
+        let saneName = "clients-${replaceStrings [ "." ] [ "-" ] instanceType}";
+        in nameValuePair saneName {
+          inherit desiredCapacity instanceType;
+          associatePublicIP = true;
+          maxInstanceLifetime = 604800;
+          ami = amis.nixos.${config.cluster.region};
+          iam.role = config.cluster.iam.roles.client;
+          iam.instanceProfile.role = config.cluster.iam.roles.client;
 
-      # "m4.large" = 1;
-      # "t2.large" = 0;
-      # "m3.large" = 0;
-      # "c4.xlarge" = 0;
-      # "d2.xlarge" = 0;
-      # "r3.large" = 0;
-      # "c3.large" = 0;
+          subnets = [ subnets.prv-1 subnets.prv-2 subnets.prv-3 ];
 
-      # Use NixOS AMI for now
-      "t3a.medium" = 1;
-    } (instanceType: desiredCapacity:
-      let
-        saneName = "clients-${lib.replaceStrings [ "." ] [ "-" ] instanceType}";
-      in lib.nameValuePair saneName {
-        inherit desiredCapacity instanceType;
-        associatePublicIP = true;
-        maxInstanceLifetime = 604800;
-        ami = amis.nixos.${config.cluster.region};
-        iam.role = config.cluster.iam.roles.client;
-        iam.instanceProfile.role = config.cluster.iam.roles.client;
+          modules = [ ../../../profiles/client.nix ];
 
-        subnets = [ subnets.prv-1 subnets.prv-2 subnets.prv-3 ];
+          userData = ''
+            ### https://nixos.org/channels/nixpkgs-unstable nixos
+            { pkgs, config, ... }: {
+              imports = [ <nixpkgs/nixos/modules/virtualisation/amazon-image.nix> ];
 
-        modules = [ ../../../profiles/client.nix ];
+              nix = {
+                package = pkgs.nixFlakes;
+                extraOptions = '''
+                  show-trace = true
+                  experimental-features = nix-command flakes ca-references
+                ''';
+                binaryCaches = [
+                  "https://hydra.iohk.io"
+                  "https://manveru.cachix.org"
+                ];
+                binaryCachePublicKeys = [
+                  "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
+                  "manveru.cachix.org-1:L5nJHSinfA2K5dDCG3KAEadwf/e3qqhuBr7yCwSksXo="
+                ];
+              };
 
-        userData = ''
-          ### https://nixos.org/channels/nixpkgs-unstable nixos
-          { pkgs, config, ... }: {
-            imports = [ <nixpkgs/nixos/modules/virtualisation/amazon-image.nix> ];
+              systemd.services.install = {
+                wantedBy = ["multi-user.target"];
+                after = ["network-online.target"];
+                path = with pkgs; [ config.system.build.nixos-rebuild coreutils gnutar curl xz ];
+                restartIfChanged = false;
+                unitConfig.X-StopOnRemoval = false;
+                serviceConfig.Type = "oneshot";
+                serviceConfig.Restart = "on-failure";
+                serviceConfig.RestartSec = "30s";
+                script = '''
+                  set -exuo pipefail
+                  pushd /run/keys
+                  curl -o source.tar.xz https://consul.${config.cluster.domain}/cluster-bootstrap/source.tar.xz
+                  mkdir -p source
+                  tar xvf source.tar.xz -C source
+                  nixos-rebuild --flake ./source#${config.cluster.name}-${saneName} boot
+                  booted="$(readlink /run/booted-system/{initrd,kernel,kernel-modules})"
+                  built="$(readlink /nix/var/nix/profiles/system/{initrd,kernel,kernel-modules})"
+                  if [ "$booted" = "$built" ]; then
+                    nixos-rebuild --flake ./source#${config.cluster.name}-${saneName} switch
+                  else
+                    /run/current-system/sw/bin/shutdown -r now
+                  fi
+                ''';
+              };
+            }
+          '';
 
-            nix = {
-              package = pkgs.nixFlakes;
-              extraOptions = '''
-                show-trace = true
-                experimental-features = nix-command flakes ca-references recursive-nix
-              ''';
-              systemFeatures = [ "recursive-nix" "nixos-test" ];
-              binaryCaches = [
-                "https://hydra.iohk.io"
-                "https://manveru.cachix.org"
-              ];
-              binaryCachePublicKeys = [
-                "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
-                "manveru.cachix.org-1:L5nJHSinfA2K5dDCG3KAEadwf/e3qqhuBr7yCwSksXo="
-              ];
-            };
+          securityGroupRules = {
+            inherit (securityGroupRules) internet internal ssh;
+          };
+        }));
 
-            systemd.services.install = {
-              wantedBy = ["multi-user.target"];
-              after = ["network-online.target"];
-              path = with pkgs; [ config.system.build.nixos-rebuild coreutils gnutar curl xz ];
-              restartIfChanged = false;
-              unitConfig.X-StopOnRemoval = false;
-              serviceConfig.Type = "oneshot";
-              serviceConfig.Restart = "on-failure";
-              serviceConfig.RestartSec = "30s";
-              script = '''
-                set -exuo pipefail
-                pushd /run/keys
-                curl -o source.tar.xz http://ipxe.${config.cluster.domain}/source.tar.xz
-                mkdir -p source
-                tar xvf source.tar.xz -C source
-                nixos-rebuild --flake ./source#${config.cluster.name}-${saneName} boot
-                booted="$(readlink /run/booted-system/{initrd,kernel,kernel-modules})"
-                built="$(readlink /nix/var/nix/profiles/system/{initrd,kernel,kernel-modules})"
-                if [ "$booted" = "$built" ]; then
-                  nixos-rebuild --flake ./source#${config.cluster.name}-${saneName} switch
-                else
-                  /run/current-system/sw/bin/shutdown -r now
-                fi
-              ''';
-            };
-          }
-        '';
+    instances = let
+      userData = ''
+        ### https://nixos.org/channels/nixpkgs-unstable nixos
+        { pkgs, config, ... }: {
+          imports = [ <nixpkgs/nixos/modules/virtualisation/amazon-image.nix> ];
 
-        securityGroupRules = {
-          inherit (securityGroupRules) internet internal ssh;
-        };
-      }));
+          nix = {
+            package = pkgs.nixFlakes;
+            extraOptions = '''
+              show-trace = true
+              experimental-features = nix-command flakes ca-references
+            ''';
+            binaryCaches = [
+              "https://hydra.iohk.io"
+              "https://manveru.cachix.org"
+            ];
+            binaryCachePublicKeys = [
+              "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
+              "manveru.cachix.org-1:L5nJHSinfA2K5dDCG3KAEadwf/e3qqhuBr7yCwSksXo="
+            ];
+          };
 
-    instances = {
+          # Needed to give backed up certs the right permissions
+          services.nginx.enable = true;
+
+          environment.etc.ready.text = "true";
+        }
+      '';
+    in {
       core-1 = {
         instanceType = "t3a.medium";
         privateIP = "10.0.0.10";
         subnet = subnets.prv-1;
+        inherit userData;
         iam.role = config.cluster.iam.roles.core;
         iam.instanceProfile.role = config.cluster.iam.roles.core;
 
@@ -210,7 +240,8 @@ in {
           [ ../../../profiles/core.nix ../../../profiles/bootstrapper.nix ];
 
         securityGroupRules = {
-          inherit (securityGroupRules) internet internal ssh http https;
+          inherit (securityGroupRules)
+            internet internal ssh http https haproxyStats vault-http;
         };
       };
 
@@ -218,6 +249,7 @@ in {
         instanceType = "t3a.medium";
         privateIP = "10.0.32.10";
         subnet = subnets.prv-2;
+        inherit userData;
         iam.role = config.cluster.iam.roles.core;
         iam.instanceProfile.role = config.cluster.iam.roles.core;
 
@@ -232,6 +264,7 @@ in {
         instanceType = "t3a.medium";
         privateIP = "10.0.64.10";
         subnet = subnets.prv-3;
+        inherit userData;
         iam.role = config.cluster.iam.roles.core;
         iam.instanceProfile.role = config.cluster.iam.roles.core;
 
@@ -244,7 +277,51 @@ in {
     };
 
     iam = {
-      roles = {
+      roles = let
+        # "a/b/c/d" => [ "" "/a" "/a/b" "/a/b/c" "/a/b/c/d" ]
+        pathPrefix = dir:
+          let
+            fullPath = "${bucketRootDir}/${dir}";
+            splitPath = lib.splitString "/" fullPath;
+            cascade = lib.foldl' (s: v:
+              let p = "${s.path}${v}/";
+              in {
+                acc = s.acc ++ [ p ];
+                path = p;
+              }) {
+                acc = [ "" ];
+                path = "";
+              } splitPath;
+
+          in cascade.acc;
+        allowS3For = bucketDirs: {
+          s3-bucket-console = {
+            effect = "Allow";
+            actions = [ "s3:ListAllMyBuckets" "s3:GetBucketLocation" ];
+            resources = [ "arn:aws:s3:::*" ];
+          };
+
+          s3-bucket-listing = {
+            effect = "Allow";
+            actions = [ "s3:ListBucket" ];
+            resources = [ bucketArn ];
+            condition = forEach bucketDirs (dir: {
+              test = "StringLike";
+              variable = "s3:prefix";
+              values = pathPrefix dir;
+            });
+          };
+
+          s3-directory-actions = {
+            effect = "Allow";
+            actions = [ "s3:*" ];
+            resources = flatten (forEach bucketDirs (dir: [
+              "${bucketArn}/${bucketRootDir}/${dir}/*"
+              "${bucketArn}/${bucketRootDir}/${dir}"
+            ]));
+          };
+        };
+      in {
         client = {
           assumePolicy = {
             effect = "Allow";
@@ -252,7 +329,8 @@ in {
             principal.service = "ec2.amazonaws.com";
           };
 
-          policies = {
+          policies = let s3 = allowS3For [ "client" ];
+          in s3 // {
             ssm = {
               effect = "Allow";
               resources = [ "*" ];
@@ -336,7 +414,7 @@ in {
 
             kms = {
               effect = "Allow";
-              resources = [ config.cluster.kms ];
+              resources = [ kms ];
               actions = [ "kms:Encrypt" "kms:Decrypt" "kms:DescribeKey" ];
             };
           };
@@ -349,11 +427,31 @@ in {
             principal.service = "ec2.amazonaws.com";
           };
 
-          policies = {
+          policies = let s3 = allowS3For [ "server" "client" ];
+          in s3 // {
             kms = {
               effect = "Allow";
-              resources = [ config.cluster.kms ];
+              resources = [ kms ];
               actions = [ "kms:Encrypt" "kms:Decrypt" "kms:DescribeKey" ];
+            };
+
+            change-route53 = {
+              effect = "Allow";
+              resources = [
+                "arn:aws:route53:::hostedzone/*"
+                "arn:aws:route53:::change/*"
+              ];
+              actions = [
+                "route53:GetChange"
+                "route53:ChangeResourceRecordSets"
+                "route53:ListResourceRecordSets"
+              ];
+            };
+
+            list-route53 = {
+              effect = "Allow";
+              actions = [ "route53:ListHostedZonesByName" ];
+              resources = [ "*" ];
             };
 
             assumeRole = {

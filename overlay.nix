@@ -1,6 +1,6 @@
 { system, self }:
 let
-  inherit (self.inputs) nixpkgs nix nomadix terranix ops-lib;
+  inherit (self.inputs) nixpkgs nix ops-lib;
   inherit (builtins) fromJSON toJSON trace mapAttrs genList foldl';
   inherit (nixpkgs) lib;
 in final: prev: {
@@ -26,28 +26,12 @@ in final: prev: {
     };
   });
 
-  ipxe = prev.callPackage ./pkgs/ipxe.nix {
-    inherit self;
-    embedScript = prev.writeText "ipxe" ''
-      #!ipxe
-
-      echo Amazon EC2 - iPXE boot via user-data
-      echo CPU: ''${cpuvendor} ''${cpumodel}
-      ifstat ||
-      dhcp ||
-      route ||
-      chain -ar http://169.254.169.254/latest/user-data
-    '';
-  };
-
   inherit (self.inputs.nixpkgs-master.legacyPackages.${system}) consul;
 
   terraform-with-plugins = prev.terraform.withPlugins
     (plugins: lib.attrVals [ "null" "local" "aws" "tls" "sops" ] plugins);
 
   mkShellNoCC = prev.mkShell.override { stdenv = prev.stdenvNoCC; };
-
-  ec2-ipxe = prev.callPackage ./pkgs/ec2-ipxe.nix { };
 
   mill = prev.callPackage ./pkgs/mill.nix { };
 
@@ -73,6 +57,8 @@ in final: prev: {
 
   envoy = prev.callPackage ./pkgs/envoy.nix { };
 
+  nomad = prev.callPackage ./pkgs/nomad.nix { };
+
   toPrettyJSON = prev.callPackage ./lib/to-pretty-json.nix { };
 
   clusters = final.callPackage ./lib/clusters.nix { inherit self system; } {
@@ -83,7 +69,7 @@ in final: prev: {
     (lib.mapAttrsToList (clusterName: cluster:
       lib.mapAttrsToList
       (name: value: lib.nameValuePair "${clusterName}-${name}" value)
-      (cluster.nodes // cluster.groups // cluster.groups-ipxe)))
+      (cluster.nodes // cluster.groups)))
     lib.flatten
     lib.listToAttrs
   ];
@@ -101,6 +87,19 @@ in final: prev: {
 
     cidrsOf = lib.mapAttrsToList (_: subnet: subnet.cidr);
   };
+
+  # systemd will not try to restart services whose dependencies have failed.
+  # so we turn that into actual unit failures instead.
+  ensureDependencies = services:
+    let
+      script = prev.writeShellScriptBin "check" ''
+        set -exuo pipefail
+        for service in ${toString services}; do
+          ${prev.systemd}/bin/systemctl is-active "$service.service"
+        done
+      '';
+    in "${script}/bin/check";
+
 
   ssh-keys = let
     authorized_keys = lib.fileContents ../modules/ssh_keys/authorized_keys;

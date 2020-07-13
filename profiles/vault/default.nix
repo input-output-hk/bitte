@@ -2,12 +2,18 @@
 let
   inherit (lib) mapAttrsToList mkIf;
   inherit (config.cluster) region instances kms;
+  cfg = config.services.vault;
+
+  full = "/etc/ssl/certs/full.pem";
+  ca = "/etc/ssl/certs/ca.pem";
+  cert = "/etc/ssl/certs/cert.pem";
+  key = "/var/lib/vault/cert-key.pem";
 in {
-  config = mkIf config.services.vault.enable {
+  config = mkIf cfg.enable {
     environment.variables = {
       VAULT_FORMAT = "json";
-      VAULT_ADDR = "https://127.0.0.1:8200/";
-      VAULT_CACERT = "/etc/ssl/certs/ca.pem";
+      VAULT_ADDR = "https://vault.service.consul:8200/";
+      VAULT_CACERT = "/etc/ssl/certs/full.pem";
     };
 
     services.vault = {
@@ -15,10 +21,10 @@ in {
 
       serviceRegistration.consul = {
         scheme = "https";
-        address = "127.0.0.1:8501";
-        tlsClientCaFile = "/etc/ssl/certs/ca.pem";
-        tlsCertFile = "/var/lib/vault/certs/cert.pem";
-        tlsKeyFile = "/var/lib/vault/certs/cert-key.pem";
+        address = "consul.service.consul:8501";
+        tlsClientCaFile = full;
+        tlsCertFile = cert;
+        tlsKeyFile = key;
       };
 
       seal.awskms = {
@@ -30,17 +36,17 @@ in {
 
       listener.tcp = {
         address = "0.0.0.0:8200";
-        tlsClientCaFile = "/etc/ssl/certs/all.pem";
-        tlsCertFile = "/var/lib/vault/certs/cert.pem";
-        tlsKeyFile = "/var/lib/vault/certs/cert-key.pem";
+        tlsClientCaFile = full;
+        tlsCertFile = cert;
+        tlsKeyFile = key;
         tlsMinVersion = "tls13";
       };
 
       storage.consul = {
-        address = "127.0.0.1:8500";
-        tlsCaFile = "/etc/ssl/certs/ca.pem";
-        tlsCertFile = "/var/lib/vault/certs/cert.pem";
-        tlsKeyFile = "/var/lib/vault/certs/cert-key.pem";
+        address = "consul.service.consul:8500";
+        tlsCaFile = ca;
+        tlsCertFile = cert;
+        tlsKeyFile = key;
       };
 
       # storage.raft = {

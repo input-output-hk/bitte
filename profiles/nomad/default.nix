@@ -2,6 +2,11 @@
 let
   inherit (config.cluster) name region domain kms instances;
   inherit (lib) mkIf mapAttrsToList;
+
+  full = "/etc/ssl/certs/full.pem";
+  ca = "/etc/ssl/certs/ca.pem";
+  cert = "/etc/ssl/certs/cert.pem";
+  key = "/var/lib/nomad/cert-key.pem";
 in {
   environment.variables = { NOMAD_ADDR = "https://127.0.0.1:4646"; };
 
@@ -9,7 +14,7 @@ in {
     dataDir = /var/lib/nomad;
     logLevel = "DEBUG";
     datacenter = config.cluster.region;
-    # name = nodeName;
+    name = if (instances.${nodeName} or null) != null then "nomad-${nodeName}" else null;
 
     acl.enabled = true;
 
@@ -22,18 +27,18 @@ in {
     tls = {
       http = true;
       rpc = true;
-      caFile = "/etc/ssl/certs/ca.pem";
-      certFile = "/var/lib/nomad/certs/cert.pem";
-      keyFile = "/var/lib/nomad/certs/cert-key.pem";
+      caFile = full;
+      certFile = cert;
+      keyFile = key;
       tlsMinVersion = "tls12";
     };
 
     consul = {
       address = "127.0.0.1:8501";
       ssl = true;
-      caFile = "/etc/ssl/certs/ca.pem";
-      certFile = "/var/lib/nomad/certs/cert.pem";
-      keyFile = "/var/lib/nomad/certs/cert-key.pem";
+      caFile = ca;
+      certFile = cert;
+      keyFile = key;
       allowUnauthenticated = false;
     };
   };

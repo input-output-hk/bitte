@@ -5,7 +5,7 @@ let
     mkIf pipe filterAttrs mapAttrs' nameValuePair flip concatMapStrings isList
     toLower mapAttrsToList hasPrefix mkEnableOption mkOption makeBinPath;
   inherit (lib.types)
-    package str enum ints submodule listOf nullOr port path attrsOf;
+    package str enum ints submodule listOf nullOr port path attrsOf attrs;
   inherit (builtins) toJSON length attrNames split typeOf;
 
   sanitize = obj:
@@ -59,6 +59,11 @@ in {
       logLevel = mkOption {
         type = enum [ "trace" "debug" "info" "warn" "err" ];
         default = "info";
+      };
+
+      extraConfig = mkOption {
+        type = nullOr attrs;
+        default = null;
       };
 
       datacenter = mkOption {
@@ -163,7 +168,8 @@ in {
       };
 
       encrypt = mkOption {
-        type = str;
+        type = nullOr str;
+        default = null;
         description = ''
           Specifies the secret key to use for encryption of Consul network
           traffic. This key must be 32-bytes that are Base64-encoded. The
@@ -280,6 +286,11 @@ in {
               default = null;
             };
 
+            http = mkOption {
+              type = nullOr port;
+              default = 8500;
+            };
+
             https = mkOption {
               type = nullOr port;
               default = null;
@@ -303,6 +314,13 @@ in {
   config = mkIf cfg.enable {
     environment.systemPackages = [ cfg.package ];
 
+    environment.variables = {
+      CONSUL_HTTP_ADDR = "127.0.0.1:8500";
+      CONSUL_CACERT = cfg.caFile;
+      CONSUL_CLIENT_CERT = cfg.certFile;
+      CONSUL_CLIENT_KEY = cfg.keyFile;
+    };
+
     environment.etc."/${cfg.configDir}/config.json".source =
       pkgs.toPrettyJSON "config" (sanitize {
         inherit (cfg)
@@ -313,6 +331,10 @@ in {
           enableLocalScriptChecks nodeMeta;
       });
 
+    environment.etc."/${cfg.configDir}/extra-config.json".source =
+      mkIf (cfg.extraConfig != null)
+      (pkgs.toPrettyJSON "config" (sanitize cfg.extraConfig));
+
     systemd.services.consul = {
       wantedBy = [ "multi-user.target" ];
       after = [ "network.target" ];
@@ -321,32 +343,38 @@ in {
         (filterAttrs (n: _: hasPrefix "/${cfg.configDir}/" n)
           config.environment.etc);
 
-      serviceConfig = {
-        ExecStartPre = let
+      path = with pkgs; [ envoy ];
+
+      serviceConfig = let
+        preScript = let
           start-pre = pkgs.writeShellScriptBin "consul-start-pre" ''
             PATH="${makeBinPath [ pkgs.coreutils ]}"
             set -exuo pipefail
-
+            cp /etc/ssl/certs/cert-key.pem .
             chown --reference . --recursive .
           '';
         in "!${start-pre}/bin/consul-start-pre";
 
-        ExecStart =
-          "@${cfg.package}/bin/consul consul agent -config-dir /etc/${cfg.configDir}";
-
-        ExecReload = let
+        reloadScript = let
           reload = pkgs.writeShellScriptBin "consul-reload" ''
             PATH="${makeBinPath [ pkgs.jq cfg.package ]}"
             set -euo pipefail
-            CONSUL_HTTP_TOKEN="$(jq -r -e .acl.tokens.default /etc/consul.d/tokens.json)"
+            CONSUL_HTTP_TOKEN="$(jq -r -e .acl.tokens.default ${cfg.configDir}/tokens.json)"
             export CONSUL_HTTP_TOKEN
             set -x
+            cd /var/lib/consul/
+            cp /etc/ssl/certs/cert-key.pem .
+            chown --reference . --recursive .
             consul reload
           '';
-        in "${reload}/bin/consul-reload";
-
+        in "!${reload}/bin/consul-reload";
+      in {
+        ExecStartPre = preScript;
+        ExecReload = reloadScript;
+        ExecStart =
+          "@${cfg.package}/bin/consul consul agent -config-dir /etc/${cfg.configDir}";
         Restart = "on-failure";
-        RestartSec = "30s";
+        RestartSec = "10s";
         DynamicUser = true;
         User = "consul";
         Group = "consul";

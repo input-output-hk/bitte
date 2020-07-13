@@ -9,7 +9,7 @@ let
     mkOption mkIf replaceStrings readFile optionalAttrs mapAttrs mkMerge
     mapAttrsToList mapAttrs' nameValuePair flip foldl' recursiveUpdate
     listToAttrs flatten optional mkOptionType imap0 mkEnableOption forEach
-    remove;
+    remove reverseList head tail;
   inherit (pkgs.lib.types)
     attrs submodule str attrsOf bool ints path enum port listof nullOr listOf
     oneOf list package;
@@ -52,6 +52,8 @@ let
       };
 
       kms = mkOption { type = str; };
+
+      s3-bucket = mkOption { type = str; };
 
       generateSSHKey = mkOption {
         type = bool;
@@ -136,6 +138,11 @@ let
         actions = mkOption { type = listOf str; };
 
         resources = mkOption { type = listOf str; };
+
+        condition = mkOption {
+          type = nullOr (listOf attrs);
+          default = null;
+        };
       };
     }));
 
@@ -343,24 +350,30 @@ let
 
       iam = mkOption { type = serverIamType this.config.name; };
 
+      userData = mkOption {
+        type = nullOr str;
+        default = null;
+      };
+
+      # Gotta do it this way since TF outputs aren't generated at this point and we need the IP.
       localProvisioner = mkOption {
         type = localExecType;
-        default = {
-          # command = "provision";
-          # interpreter = let ip = var "aws_eip.${this.config.uid}.public_ip";
-          # in [ "${pkgs.bitte}/bin/bitte" ];
-
-          # command = name;
-          # interpreter = let ip = var "aws_eip.${this.config.uid}.public_ip";
-          # in [
-          #   "${pkgs.bitte}/bin/bitte" "bootstrap"
-          #   "--cluster" "${cfg.name}"
-          #   "--ip" "${ip}"
-          #   "--flake" "${this.config.flake}"
-          #   "--flake-host" "${name}"
-          #   "--name" "${this.config.uid}"
-          # ];
-        };
+        default = let
+          ip = var "aws_eip.${this.config.uid}.public_ip";
+          args = [
+            "${pkgs.bitte}/bin/bitte"
+            "provision"
+            "--name"
+            this.config.name
+            "--cluster"
+            cfg.name
+            "--ip"
+            ip
+          ];
+          rev = reverseList args;
+          command = head rev;
+          interpreter = reverseList (tail rev);
+        in { inherit command interpreter; };
       };
 
       postDeploy = mkOption {
@@ -562,9 +575,31 @@ in {
   config = {
     terraform = {
       provider = {
-        aws = {
-          region = cfg.region;
-        };
+        aws = let
+          regions = [
+            "ap-east-1"
+            "ap-northeast-1"
+            "ap-northeast-2"
+            "ap-south-1"
+            "ap-southeast-1"
+            "ap-southeast-2"
+            "ca-central-1"
+            "eu-central-1"
+            "eu-north-1"
+            "eu-west-1"
+            "eu-west-2"
+            "eu-west-3"
+            "me-south-1"
+            "sa-east-1"
+            "us-east-1"
+            "us-east-2"
+            "us-west-1"
+            "us-west-2"
+          ];
+        in [{ region = cfg.region; }] ++ (forEach regions (region: {
+          inherit region;
+          alias = replaceStrings [ "-" ] [ "_" ] region;
+        }));
       };
 
       resource.local_file = {
@@ -629,7 +664,11 @@ in {
         (flip mapAttrsToList cfg.iam.roles (roleName: role:
           flip mapAttrsToList role.policies (policyName: policy:
             nameValuePair policy.uid {
-              statement = { inherit (policy) effect actions resources; };
+              statement = {
+                inherit (policy) effect actions resources;
+              } // (optionalAttrs (policy.condition != null) {
+                inherit (policy) condition;
+              });
             }))));
 
       output.cluster = {
@@ -644,7 +683,8 @@ in {
             (name: role: { arn = var "aws_iam_role.${role.uid}.arn"; });
 
           instances = flip mapAttrs cfg.instances (name: server: {
-            flake_attr = "nixosConfigurations.${server.uid}.config.system.build.toplevel";
+            flake_attr =
+              "nixosConfigurations.${server.uid}.config.system.build.toplevel";
             instance_type = var "aws_instance.${server.name}.instance_type";
             name = server.name;
             private_ip = var "aws_instance.${server.name}.private_ip";
@@ -654,8 +694,10 @@ in {
           });
 
           asgs = flip mapAttrs cfg.autoscalingGroups (name: group: {
-            flake_attr = "nixosConfigurations.${group.uid}.config.system.build.toplevel";
-            instance_type = var "aws_launch_configuration.${group.uid}.instance_type";
+            flake_attr =
+              "nixosConfigurations.${group.uid}.config.system.build.toplevel";
+            instance_type =
+              var "aws_launch_configuration.${group.uid}.instance_type";
             uid = group.uid;
           });
         };
@@ -691,13 +733,15 @@ in {
               device_index = 0;
             };
 
-            # provisioner = [{
-            #   local-exec = {
-            #     inherit (server.localProvisioner)
-            #       interpreter command environment;
-            #     working_dir = server.localProvisioner.workingDir;
-            #   };
-            # }];
+            user_data = server.userData;
+
+            provisioner = [{
+              local-exec = {
+                inherit (server.localProvisioner)
+                  interpreter command environment;
+                working_dir = server.localProvisioner.workingDir;
+              };
+            }];
 
             # provisioner = let
             #   connection = {
@@ -967,25 +1011,42 @@ in {
           route_table_id = id "aws_route_table.${cfg.name}";
         }) cfg.vpc.subnets;
 
-      data.aws_route53_zone.selected.name = mkIf cfg.route53 "${cfg.domain}.";
+      # data.aws_acm_certificate.testnet-atalaprism = {
+      #   provider = "aws.us_east_2";
+      #   domain = "atalaprism.io";
+      #   types = [ "AMAZON_ISSUED" ];
+      #   statuses = [ "ISSUED" ];
+      #   most_recent = true;
+      # };
+      #
+      # output.certs = {
+      #   value = {
+      #     testnet-atalaprism =
+      #       var "data.aws_acm_certificate.testnet-atalaprism.arn";
+      #   };
+      # };
+
+      data.aws_route53_zone.selected = mkIf cfg.route53 {
+        provider = "aws.us_east_2";
+        name = "${cfg.domain}.";
+      };
 
       # TODO: merge records
       resource.aws_route53_record = mkIf cfg.route53 (listToAttrs (remove null
         (flatten (flip mapAttrsToList self.clusters.${cfg.name}.nodes
-          (name: node:
-            if node.config.services.nginx.enable then
-              forEach (attrNames node.config.services.nginx.virtualHosts) (vh:
-                nameValuePair
-                "${cfg.name}-${replaceStrings [ "." ] [ "_" ] vh}" {
-                  zone_id = id "data.aws_route53_zone.selected";
-                  name = vh;
-                  type = "A";
-                  ttl = "60";
-                  records =
-                    [ (var "aws_eip.${cfg.instances.${name}.uid}.public_ip") ];
-                })
-            else
-              null)))));
+          (nodeName: node:
+            flip mapAttrsToList node.config.services.haproxy.services
+            (service: options:
+              nameValuePair
+              "${cfg.name}-${replaceStrings [ "." ] [ "_" ] service}" {
+                zone_id = id "data.aws_route53_zone.selected";
+                name = options.host;
+                type = "A";
+                ttl = "60";
+                records = [
+                  (var "aws_eip.${cfg.instances.${nodeName}.uid}.public_ip")
+                ];
+              }))))));
 
       data.aws_availability_zones.available.state = "available";
 

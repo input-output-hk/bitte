@@ -1,6 +1,7 @@
 { lib, config, pkgs, nodeName, ... }:
 let
   inherit (builtins) split typeOf length attrNames;
+  inherit (pkgs) ensureDependencies;
   inherit (lib)
     mkIf mkEnableOption mkOption flip pipe concatMapStrings isList toLower
     mapAttrs' nameValuePair fileContents filterAttrs hasPrefix mapAttrsToList
@@ -322,19 +323,27 @@ in {
 
       unitConfig.RequiresMountsFor = [ cfg.storagePath ];
 
-      serviceConfig = {
-        ExecStartPre = let
-          start-pre = pkgs.writeShellScriptBin "vault-start-pre" ''
-            PATH="${makeBinPath [ pkgs.coreutils ]}"
-            set -exuo pipefail
-            chown --reference . --recursive .
-          '';
-        in "!${start-pre}/bin/vault-start-pre";
+      serviceConfig = let
+        preScript = pkgs.writeShellScriptBin "vault-start-pre" ''
+          export PATH="${makeBinPath [ pkgs.coreutils ]}"
+          set -exuo pipefail
+          cp /etc/ssl/certs/cert-key.pem .
+          chown --reference . --recursive .
+        '';
 
+        reloadScript = pkgs.writeShellScriptBin "vault-reload" ''
+          export PATH="${makeBinPath [ pkgs.coreutils ]}"
+          set -exuo pipefail
+          cp /etc/ssl/certs/cert-key.pem .
+          chown --reference . --recursive .
+          kill -SIGHUP "$MAINPID"
+        '';
+      in {
+        ExecStartPre = "!${preScript}/bin/vault-start-pre";
+        ExecReload = "!${reloadScript}/bin/vault-reload";
         ExecStart =
           "@${pkgs.vault-bin}/bin/vault vault server -config /etc/${cfg.configDir}";
 
-        ExecReload = "${pkgs.coreutils}/bin/kill -SIGHUP $MAINPID";
         KillSignal = "SIGINT";
 
         StateDirectory = baseNameOf cfg.storagePath;
@@ -353,7 +362,7 @@ in {
         NoNewPrivileges = true;
 
         TimeoutStopSec = "30s";
-        RestartSec = "30s";
+        RestartSec = "10s";
         Restart = "on-failure";
         StartLimitInterval = "60s";
         StartLimitBurst = 3;
@@ -370,7 +379,8 @@ in {
         Type = "oneshot";
         RemainAfterExit = true;
         Restart = "on-failure";
-        RestartSec = "30s";
+        RestartSec = "20s";
+        ExecStartPre = ensureDependencies [ "consul" ];
       };
 
       path = with pkgs; [ consul curl jq ];
@@ -380,8 +390,8 @@ in {
 
         [ -s /etc/vault.d/consul-tokens.json ] && exit
 
-        if [ -s /etc/consul.d/master-token.json ]; then
-          CONSUL_HTTP_TOKEN="$(jq -e -r .acl.tokens.master /etc/consul.d/master-token.json)"
+        if [ -s /etc/consul.d/secrets.json ]; then
+          CONSUL_HTTP_TOKEN="$(jq -e -r .acl.tokens.master /etc/consul.d/secrets.json)"
           export CONSUL_HTTP_TOKEN
 
           vaultToken="$(
@@ -410,7 +420,8 @@ in {
         Type = "oneshot";
         RemainAfterExit = true;
         Restart = "on-failure";
-        RestartSec = "30s";
+        RestartSec = "20s";
+        ExecStartPre = ensureDependencies [ "consul" ];
       };
 
       path = with pkgs; [ curl jq ];

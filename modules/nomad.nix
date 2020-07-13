@@ -1020,10 +1020,7 @@ in {
       ];
 
       environment = mkIf config.services.consul.enable {
-        CONSUL_HTTP_SSL = "true";
-        CONSUL_CACERT = config.services.consul.caFile;
-        CONSUL_CLIENT_CERT = config.services.consul.certFile;
-        CONSUL_CLIENT_KEY = config.services.consul.keyFile;
+        CONSUL_HTTP_ADDR = "127.0.0.1:8500";
         HOME = "/var/lib/nomad";
       };
 
@@ -1033,6 +1030,7 @@ in {
           start-pre = pkgs.writeShellScriptBin "nomad-start-pre" ''
             PATH="${makeBinPath [ pkgs.coreutils ]}"
             set -exuo pipefail
+            cp /etc/ssl/certs/cert-key.pem .
             chown --reference . --recursive .
           '';
         in "!${start-pre}/bin/nomad-start-pre";

@@ -5,12 +5,10 @@ let
 in {
   services.consul = mkIf config.services.consul.enable {
     addresses = { http = mkDefault "127.0.0.1"; };
-    caFile = "/etc/ssl/certs/ca.pem";
-    certFile = "/var/lib/consul/certs/cert.pem";
+
     clientAddr = "0.0.0.0";
     datacenter = region;
     enableLocalScriptChecks = true;
-    keyFile = "/var/lib/consul/certs/cert-key.pem";
     logLevel = "trace";
     primaryDatacenter = region;
     tlsMinVersion = "tls12";
@@ -18,15 +16,16 @@ in {
     verifyOutgoing = true;
     verifyServerHostname = true;
 
+    caFile = "/etc/ssl/certs/full.pem";
+    certFile = "/etc/ssl/certs/cert.pem";
+    keyFile = "/var/lib/consul/cert-key.pem";
+
     nodeMeta = {
       inherit region;
       inherit nodeName;
     } // (lib.optionalAttrs ((instances.${nodeName} or null) != null) {
       inherit (instances.${nodeName}) instanceType domain;
     });
-
-    # TODO: this should be generated alongside the master token
-    encrypt = "YXlNgsjK78grfwFAzh9RNcutqf7XWqQQqA4a5TraJfs=";
 
     bindAddr = ''
       {{ GetPrivateInterfaces | include "network" "10.0.0.0/8" | attr "address" }}'';
@@ -52,6 +51,38 @@ in {
     ports = {
       grpc = 8502;
       https = 8501;
+    };
+
+    extraConfig = {
+      configEntries = [{
+        bootstrap = [
+          {
+            kind = "proxy-defaults";
+            name = "global";
+            config = [{ protocol = "http"; }];
+          }
+          {
+            kind = "ingress-gateway";
+            name = "ingress-gateway";
+            tls = [{ enabled = true; }];
+            listeners = [{
+              port = 4646;
+              protocol = "http";
+              services = [{
+                name = "nomad";
+                hosts = [
+                  "nomad.testnet.atalaprism.io"
+                  "nomad.testnet.atalaprism.io:4646"
+                  "nomad.ingress.eu-central-1.consul"
+                  "nomad.ingress.eu-central-1.consul:4646"
+                  "nomad.service.consul:8200"
+                  "nomad.service.consul"
+                ];
+              }];
+            }];
+          }
+        ];
+      }];
     };
   };
 

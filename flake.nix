@@ -8,10 +8,6 @@
     inclusive.url = "github:manveru/nix-inclusive";
     utils.url = "github:numtide/flake-utils";
     bitte-cli.url = "github:input-output-hk/bitte-cli";
-    ipxe = {
-      url = "github:ipxe/ipxe";
-      flake = false;
-    };
     # bitte-cli.url = "/home/manveru/github/input-output-hk/bitte-cli";
     ops-lib = {
       url = "github:input-output-hk/ops-lib";
@@ -42,7 +38,7 @@
       packages = {
         inherit (legacyPackages)
           bitte nixos-rebuild nixFlakes sops crystal terraform-with-plugins
-          sops-add ssm-agent cfssl consul ec2-ipxe;
+          sops-add ssm-agent cfssl consul;
       };
 
       apps.bitte = utils.lib.mkApp { drv = legacyPackages.bitte; };

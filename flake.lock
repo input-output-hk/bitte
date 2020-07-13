@@ -8,11 +8,11 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1594246394,
-        "narHash": "sha256-mGozjUiLajwB6mUweZ5uG2lfkgrUOyvaThjuzKcHzMY=",
+        "lastModified": 1594653760,
+        "narHash": "sha256-C8AXdSC0Szt0+5t5uAGus/hp2VhJ6kNGxvFgxvP/Wa4=",
         "owner": "input-output-hk",
         "repo": "bitte-cli",
-        "rev": "b4c1815a0789b03105a7e791f8543c02a7da1cf0",
+        "rev": "601793c91a234d0a76378bb253cd673809d0bc5c",
         "type": "github"
       },
       "original": {
@@ -54,22 +54,6 @@
       "original": {
         "owner": "manveru",
         "repo": "nix-inclusive",
-        "type": "github"
-      }
-    },
-    "ipxe": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1593860437,
-        "narHash": "sha256-NDL7P6h03wet+0mnSQYIZdEC6wn95+oWOWrx7XndL5c=",
-        "owner": "ipxe",
-        "repo": "ipxe",
-        "rev": "586b723733904c0825844582dd19a44c71bc972b",
-        "type": "github"
-      },
-      "original": {
-        "owner": "ipxe",
-        "repo": "ipxe",
         "type": "github"
       }
     },
@@ -189,7 +173,6 @@
       "inputs": {
         "bitte-cli": "bitte-cli",
         "inclusive": "inclusive_2",
-        "ipxe": "ipxe",
         "netboot": "netboot",
         "nixpkgs": "nixpkgs_2",
         "nixpkgs-crystal": "nixpkgs-crystal_2",

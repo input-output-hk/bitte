@@ -1,12 +1,12 @@
 { ... }: {
   imports = [
     ./amazon-ssm-agent.nix
-    ./certgen.nix
     ./consul.nix
     ./consul-policies.nix
     ./consul-template.nix
     ./nomad.nix
     ./policies.nix
+    ./s3-download.nix
     ./terraform.nix
     ./terraform-output.nix
     ./vault-agent-client.nix

@@ -6,7 +6,7 @@ let
     mapAttrsToList concatStringsSep isString makeBinPath filter remove
     listToAttrs;
   inherit (lib.types) listOf enum attrsOf str submodule nullOr;
-  inherit (pkgs) jq writeText runCommandNoCCLocal;
+  inherit (pkgs) jq writeText runCommandNoCCLocal ensureDependencies;
 
   vaultPolicyOptionsType = submodule ({ ... }: {
     options = {
@@ -48,8 +48,7 @@ in {
 
   # TODO: also remove them again.
   config.systemd.services.vault-acl = mkIf config.services.vault-acl.enable {
-    after = [ "vault-bootstrap.service" ];
-    requires = [ "vault-bootstrap.service" ];
+    after = [ "vault.service" "vault-bootstrap.service" ];
     wantedBy = [ "multi-user.target" ];
     description = "Service that creates all Vault policies.";
 
@@ -57,9 +56,9 @@ in {
       Type = "oneshot";
       RemainAfterExit = true;
       Restart = "on-failure";
-      RestartSec = "30s";
-
+      RestartSec = "20s";
       WorkingDirectory = "/var/lib/vault";
+      ExecStartPre = ensureDependencies [ "vault-bootstrap" "vault" ];
     };
 
     environment = {

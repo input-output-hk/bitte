@@ -166,6 +166,7 @@ in {
         RemainAfterExit = true;
         Restart = "on-failure";
         RestartSec = "30s";
+        ExecStartPre = pkgs.ensureDependencies ["consul"];
       };
 
       path = with pkgs; [ consul coreutils jq ];
@@ -236,7 +237,7 @@ in {
 
         # set +x
         CONSUL_HTTP_TOKEN="$(
-          jq -e -r '.acl.tokens.master' < /etc/consul.d/master-token.json
+          jq -e -r '.acl.tokens.master' < /etc/consul.d/secrets.json
         )"
         export CONSUL_HTTP_TOKEN
         # set -x

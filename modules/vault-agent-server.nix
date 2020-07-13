@@ -1,7 +1,10 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, nodeName, ... }:
 let
-  inherit (builtins) toJSON;
-  inherit (lib) mkIf filter mkEnableOption;
+  inherit (builtins) toJSON isList;
+  inherit (pkgs) writeShellScriptBin;
+  inherit (lib) mkIf filter mkEnableOption concatStringsSep flip mapAttrsToList;
+  inherit (config.cluster) region;
+  inherit (config.cluster.instances.${nodeName}) privateIP;
 
   # There's an issue where vault-agent may stop to make templates.
   # https://github.com/hashicorp/vault/pull/9200
@@ -38,8 +41,10 @@ in {
       wantedBy = [ "multi-user.target" ];
 
       environment = {
-        inherit (config.environment.variables)
-          AWS_DEFAULT_REGION VAULT_CACERT VAULT_FORMAT;
+        inherit (config.environment.variables) AWS_DEFAULT_REGION VAULT_FORMAT;
+        VAULT_CACERT  = "/etc/ssl/certs/full.pem";
+        CONSUL_HTTP_ADDR = "127.0.0.1:8500";
+        CONSUL_CACERT = "/etc/ssl/certs/full.pem";
       };
 
       path = with pkgs; [ vault-bin glibc gawk ];
@@ -50,7 +55,7 @@ in {
         ExecStart = let
           vaultAgentConfig = pkgs.toPrettyJSON "vault-agent" {
             pid_file = "./vault-agent.pid";
-            vault.address = "https://10.0.0.10:8200";
+            vault.address = "https://vault.service.consul:8200";
             # exit_after_auth = true;
             auto_auth = {
               method = [{
@@ -71,7 +76,30 @@ in {
               }];
             };
 
-            templates = filter (t: t != null) [
+            templates = let
+              pkiAttrs = {
+                common_name = "server.${region}.consul";
+                ip_sans = ["127.0.0.1" privateIP];
+                alt_names = ["vault.service.consul" "conusl.service.consul" "nomad.service.consul" ];
+                ttl = "322h";
+              };
+
+              pkiArgs = flip mapAttrsToList pkiAttrs (name: value:
+                if isList value then
+                ''"${name}=${ concatStringsSep "," value }"''
+                else ''"${name}=${toString value}"''
+              );
+
+              pkiSecret = ''"pki/issue/server" ${toString pkiArgs}'';
+
+              reload-cvn = writeShellScriptBin "reload-cvn" ''
+                set -exuo pipefail
+                ${pkgs.systemd}/bin/systemctl reload consul.service
+                ${pkgs.systemd}/bin/systemctl reload nomad.service
+                ${pkgs.systemd}/bin/systemctl reload vault.service
+              '';
+
+              in filter (t: t != null) [
               (if config.services.consul.enable then {
                 template = {
                   destination = "/etc/consul.d/tokens.json";
@@ -108,9 +136,43 @@ in {
                 };
               } else
                 null)
+
+              (if config.services.vault.enable then {
+                template = {
+                  command = "${reload-cvn}/bin/reload-cvn";
+                  destination = "/etc/ssl/certs/full.pem";
+                  contents = ''
+                    {{ with secret ${pkiSecret} }}{{ .Data.certificate }}
+                    {{ .Data.issuing_ca }}{{ end }}
+                  '';
+                };
+              } else
+                null)
+
+              (if config.services.vault.enable then {
+                template = {
+                  command = "${reload-cvn}/bin/reload-cvn";
+                  destination = "/etc/ssl/certs/cert.pem";
+                  contents = ''
+                    {{ with secret ${pkiSecret} }}{{ .Data.certificate }}{{ end }}
+                  '';
+                };
+              } else
+                null)
+
+              (if config.services.vault.enable then {
+                template = {
+                  command = "${reload-cvn}/bin/reload-cvn";
+                  destination = "/etc/ssl/certs/cert-key.pem";
+                  contents = ''
+                    {{ with secret ${pkiSecret} }}{{ .Data.private_key }}{{ end }}
+                  '';
+                };
+              } else
+                null)
             ];
           };
-        in "@${pkgs.vault-bin}/bin/vault vault agent -config ${vaultAgentConfig}";
+        in "${pkgs.vault-bin}/bin/vault agent -config ${vaultAgentConfig}";
       };
     };
   };

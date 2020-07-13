@@ -278,77 +278,77 @@ in {
       };
     };
 
-    autoscalingGroups = (lib.flip lib.mapAttrs' {
-      "t3a.medium" = 0;
-    } (instanceType: desiredCapacity:
-      let
-        saneName = "clients-${lib.replaceStrings [ "." ] [ "-" ] instanceType}";
-      in lib.nameValuePair saneName {
-        inherit desiredCapacity instanceType;
-        associatePublicIP = true;
-        maxInstanceLifetime = 604800;
-        ami = amis.nixos.${config.cluster.region};
-        iam.role = config.cluster.iam.roles.client;
-        iam.instanceProfile.role = config.cluster.iam.roles.client;
+    autoscalingGroups = (lib.flip lib.mapAttrs' { "t3a.medium" = 0; }
+      (instanceType: desiredCapacity:
+        let
+          saneName =
+            "clients-${lib.replaceStrings [ "." ] [ "-" ] instanceType}";
+        in lib.nameValuePair saneName {
+          inherit desiredCapacity instanceType;
+          associatePublicIP = true;
+          maxInstanceLifetime = 604800;
+          ami = amis.nixos.${config.cluster.region};
+          iam.role = config.cluster.iam.roles.client;
+          iam.instanceProfile.role = config.cluster.iam.roles.client;
 
-        subnets = [ subnets.prv-1 subnets.prv-2 subnets.prv-3 ];
+          subnets = [ subnets.prv-1 subnets.prv-2 subnets.prv-3 ];
 
-        modules = [ ../../../profiles/client.nix ];
+          modules = [ ../../../profiles/client.nix ];
 
-        userData = ''
-          ### https://nixos.org/channels/nixpkgs-unstable nixos
-          { pkgs, config, ... }: {
-            imports = [ <nixpkgs/nixos/modules/virtualisation/amazon-image.nix> ];
+          userData = ''
+            ### https://nixos.org/channels/nixpkgs-unstable nixos
+            { pkgs, config, ... }: {
+              imports = [ <nixpkgs/nixos/modules/virtualisation/amazon-image.nix> ];
 
-            nix = {
-              package = pkgs.nixFlakes;
-              extraOptions = '''
-                show-trace = true
-                experimental-features = nix-command flakes ca-references recursive-nix
-              ''';
-              systemFeatures = [ "recursive-nix" "nixos-test" ];
-              binaryCaches = [
-                "https://hydra.iohk.io"
-                "https://manveru.cachix.org"
-              ];
-              binaryCachePublicKeys = [
-                "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
-                "manveru.cachix.org-1:L5nJHSinfA2K5dDCG3KAEadwf/e3qqhuBr7yCwSksXo="
-              ];
-            };
+              nix = {
+                package = pkgs.nixFlakes;
+                extraOptions = '''
+                  show-trace = true
+                  experimental-features = nix-command flakes ca-references recursive-nix
+                ''';
+                systemFeatures = [ "recursive-nix" "nixos-test" ];
+                binaryCaches = [
+                  "https://hydra.iohk.io"
+                  "https://manveru.cachix.org"
+                ];
+                binaryCachePublicKeys = [
+                  "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
+                  "manveru.cachix.org-1:L5nJHSinfA2K5dDCG3KAEadwf/e3qqhuBr7yCwSksXo="
+                ];
+              };
 
-            systemd.services.install = {
-              wantedBy = ["multi-user.target"];
-              after = ["network-online.target"];
-              path = with pkgs; [ config.system.build.nixos-rebuild coreutils gnutar curl xz ];
-              restartIfChanged = false;
-              unitConfig.X-StopOnRemoval = false;
-              serviceConfig.Type = "oneshot";
-              serviceConfig.Restart = "on-failure";
-              serviceConfig.RestartSec = "30s";
-              script = '''
-                set -exuo pipefail
-                pushd /run/keys
-                curl -o source.tar.xz http://ipxe.${config.cluster.domain}/source.tar.xz
-                mkdir -p source
-                tar xvf source.tar.xz -C source
-                nixos-rebuild --flake ./source#${config.cluster.name}-${saneName} boot
-                booted="$(readlink /run/booted-system/{initrd,kernel,kernel-modules})"
-                built="$(readlink /nix/var/nix/profiles/system/{initrd,kernel,kernel-modules})"
-                if [ "$booted" = "$built" ]; then
-                  nixos-rebuild --flake ./source#${config.cluster.name}-${saneName} switch
-                else
-                  /run/current-system/sw/bin/shutdown -r now
-                fi
-              ''';
-            };
-          }
-        '';
+              systemd.services.install = {
+                wantedBy = ["multi-user.target"];
+                after = ["network-online.target"];
+                path = with pkgs; [ config.system.build.nixos-rebuild coreutils gnutar curl xz ];
+                restartIfChanged = false;
+                unitConfig.X-StopOnRemoval = false;
+                serviceConfig.Type = "oneshot";
+                serviceConfig.Restart = "on-failure";
+                serviceConfig.RestartSec = "30s";
+                script = '''
+                  set -exuo pipefail
+                  pushd /run/keys
+                  curl -o source.tar.xz http://ipxe.${config.cluster.domain}/source.tar.xz
+                  mkdir -p source
+                  tar xvf source.tar.xz -C source
+                  nixos-rebuild --flake ./source#${config.cluster.name}-${saneName} boot
+                  booted="$(readlink /run/booted-system/{initrd,kernel,kernel-modules})"
+                  built="$(readlink /nix/var/nix/profiles/system/{initrd,kernel,kernel-modules})"
+                  if [ "$booted" = "$built" ]; then
+                    nixos-rebuild --flake ./source#${config.cluster.name}-${saneName} switch
+                  else
+                    /run/current-system/sw/bin/shutdown -r now
+                  fi
+                ''';
+              };
+            }
+          '';
 
-        securityGroupRules = {
-          inherit (securityGroupRules) internet internal ssh;
-        };
-      }));
+          securityGroupRules = {
+            inherit (securityGroupRules) internet internal ssh;
+          };
+        }));
 
     instances = {
       core-1 = {

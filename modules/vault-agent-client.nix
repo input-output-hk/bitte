@@ -39,7 +39,8 @@ in {
 
       environment = {
         inherit (config.environment.variables)
-          AWS_DEFAULT_REGION VAULT_CACERT VAULT_FORMAT;
+          AWS_DEFAULT_REGION VAULT_CACERT VAULT_FORMAT
+          ;
       };
 
       path = with pkgs; [ vault-bin glibc gawk ];
@@ -133,6 +134,28 @@ in {
                 };
               } else
                 null)
+
+              (if config.services.vault.enable then {
+                template = {
+                  destination = "/etc/ssl/certs/cert.pem";
+                  contents = ''
+                    {{ with secret "pki_int/issue/client" "common_name=client" "ttl=10s" }}
+                    {{ .Data.certificate }}
+                    {{ .Data.issuing_ca }}
+                    {{ end }}
+                  '';
+                };
+              } else null)
+
+              (if config.services.vault.enable then {
+                template = {
+                  destination = "/etc/ssl/certs/cert-key.pem";
+                  contents = ''
+                    {{ with secret "pki/issue/client" "common_name=client" }}
+                    {{ .Data.private_key }}{{ end }}
+                  '';
+                };
+              } else null)
             ];
           };
         in "@${pkgs.vault-bin}/bin/vault vault agent -config ${vaultAgentConfig}";

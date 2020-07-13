@@ -1,14 +1,15 @@
 { lib, pkgs, config, ... }:
 
 let
+  inherit (pkgs) ensureDependencies;
   inherit (lib) mkOverride mkIf attrNames concatStringsSep optional;
-  inherit (config.cluster) region instances kms;
+  inherit (config.cluster) domain kms;
   inherit (config.instance) privateIP;
 
   exportConsulMaster = ''
     set +x
     CONSUL_HTTP_TOKEN="$(
-      ${pkgs.jq}/bin/jq -e -r '.acl.tokens.master' < /etc/consul.d/master-token.json
+      ${pkgs.jq}/bin/jq -e -r '.acl.tokens.master' < /etc/consul.d/secrets.json
     )"
     export CONSUL_HTTP_TOKEN
     set -x
@@ -20,7 +21,6 @@ in {
     systemd.services.consul-initial-tokens =
       mkIf config.services.consul.enable {
         after = [ "consul.service" "consul-policies.service" ];
-        requires = [ "consul.service" "consul-policies.service" ];
         wantedBy = [ "multi-user.target" ]
           ++ (optional config.services.vault.enable "vault.service")
           ++ (optional config.services.nomad.enable "nomad.service");
@@ -31,9 +31,10 @@ in {
           Type = "oneshot";
           RemainAfterExit = true;
           Restart = "on-failure";
-          RestartSec = "30s";
+          RestartSec = "20s";
           inherit (config.systemd.services.consul.serviceConfig)
             WorkingDirectory;
+          ExecStartPre = ensureDependencies [ "consul" "consul-policies" ];
         };
 
         path = with pkgs; [ consul jq systemd sops ];
@@ -122,17 +123,16 @@ in {
       };
 
     systemd.services.vault-setup = mkIf config.services.vault.enable {
-      after = [
-        "consul-policies.service"
-        "vault-consul-token.service"
-      ];
+      after = [ "consul-policies.service" "vault-consul-token.service" ];
       wantedBy = [ "multi-user.target" ];
 
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
         Restart = "on-failure";
-        RestartSec = "30s";
+        RestartSec = "20s";
+        ExecStartPre =
+          ensureDependencies [ "consul-policies" "vault-consul-token" ];
       };
 
       environment = {
@@ -169,12 +169,13 @@ in {
         Type = "oneshot";
         RemainAfterExit = true;
         Restart = "on-failure";
-        RestartSec = "30s";
+        RestartSec = "20s";
+        ExecStartPre = ensureDependencies [ "vault" "nomad" ];
       };
 
       environment = {
         inherit (config.environment.variables) AWS_DEFAULT_REGION NOMAD_ADDR;
-        CURL_CA_BUNDLE = "/etc/ssl/certs/ca.pem";
+        CURL_CA_BUNDLE = "/etc/ssl/certs/full.pem";
       };
 
       path = with pkgs; [ curl sops coreutils jq nomad gawk glibc vault-bin ];
@@ -211,6 +212,7 @@ in {
           | awk '{ print $4 }'
         )"
 
+        # TODO: this will probably have permission issues and expiring cert.
         vault read nomad/config/access &> /dev/null ||
           vault write nomad/config/access \
             address="$NOMAD_ADDR" \
@@ -227,25 +229,39 @@ in {
       after = [
         "consul-initial-tokens.service"
         "vault.service"
-        "network-online.target"
         "vault-consul-token.service"
       ];
-      requires = [ "consul-initial-tokens.service" "vault.service" ];
       wantedBy = [ "multi-user.target" ];
 
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
         Restart = "on-failure";
-        RestartSec = "30s";
+        RestartSec = "20s";
+        ExecStartPre = ensureDependencies [
+          "consul-initial-tokens"
+          "vault"
+          "vault-consul-token"
+        ];
       };
 
       environment = {
         inherit (config.environment.variables)
-          AWS_DEFAULT_REGION VAULT_CACERT VAULT_ADDR VAULT_FORMAT;
+          AWS_DEFAULT_REGION VAULT_CACERT VAULT_FORMAT;
+        VAULT_ADDR  = "https://127.0.0.1:8200/";
       };
 
-      path = with pkgs; [ consul vault-bin glibc gawk sops coreutils jq gnused ];
+      path = with pkgs; [
+        consul
+        vault-bin
+        glibc
+        gawk
+        sops
+        coreutils
+        jq
+        gnused
+        curl
+      ];
 
       script = ''
         set -exuo pipefail
@@ -295,18 +311,70 @@ in {
 
         # vault audit enable socket address=127.0.0.1:9090 socket_type=tcp
 
-        vault secrets list | jq -e '."aws/"'     || vault secrets enable aws
-        vault secrets list | jq -e '."consul/"'  || vault secrets enable consul
-        vault secrets list | jq -e '."kv/"'      || vault secrets enable -version=2 kv
-        vault secrets list | jq -e '."nomad/"'   || vault secrets enable nomad
-        vault secrets list | jq -e '."pki/"'     || vault secrets enable pki
+        secrets="$(vault secrets list)"
 
-        vault auth list | jq -e '."approle/"' || vault auth enable approle
-        vault auth list | jq -e '."aws/"'     || vault auth enable aws
+        echo "$secrets" | jq -e '."aws/"'         || vault secrets enable aws
+        echo "$secrets" | jq -e '."consul/"'      || vault secrets enable consul
+        echo "$secrets" | jq -e '."kv/"'          || vault secrets enable -version=2 kv
+        echo "$secrets" | jq -e '."nomad/"'       || vault secrets enable nomad
+        echo "$secrets" | jq -e '."pki/"'         || vault secrets enable pki
 
-        vault secrets tune -max-lease-ttl=8760h pki
+        auth="$(vault auth list)"
 
-        # TODO: pull ARN from terraform outputs or query aws at runtime?
+        echo "$auth" | jq -e '."approle/"' || vault auth enable approle
+        echo "$auth" | jq -e '."aws/"'     || vault auth enable aws
+
+        # This lets Vault issue Consul tokens
+
+        vault read consul/config/access \
+        &> /dev/null \
+        || vault write consul/config/access \
+          ca_cert="$(< ${config.services.consul.caFile})" \
+          client_cert="$(< ${config.services.consul.certFile})" \
+          client_key="$(< ${config.services.consul.keyFile})" \
+          token="$(
+            consul acl token create \
+              -policy-name=global-management \
+              -description "Vault $(date +%Y-%m-%d-%H-%M-%S)" \
+              -format json \
+            | jq -e -r .SecretID)"
+
+        # TODO: use our air-gapped self-signed cert instead as root somehow...
+        vault secrets tune -max-lease-ttl=87600h pki
+
+        vault write \
+          pki/config/urls \
+          issuing_certificates="https://vault.${domain}:8200/v1/pki/ca" \
+          crl_distribution_points="https://vault.${domain}:8200/v1/pki/crl"
+
+        vault write \
+          pki/roles/server \
+          key_type=ec \
+          key_bits=256 \
+          allow_any_name=true \
+          enforce_hostnames=false \
+          generate_lease=true \
+          max_ttl=1h
+
+        vault write \
+          pki/roles/client \
+          key_type=ec \
+          key_bits=256 \
+          allowed_domains=service.consul \
+          allow_subdomains=true \
+          generate_lease=true \
+          max_ttl=1h
+
+        vault write \
+          pki/roles/admin \
+          key_type=ec \
+          key_bits=256 \
+          allow_any_name=true \
+          enforce_hostnames=false \
+          generate_lease=true \
+          max_ttl=12h
+
+        # Finally allow IAM roles to login to Vault
 
         arn="$(
           curl -f -s http://169.254.169.254/latest/meta-data/iam/info \
@@ -326,77 +394,35 @@ in {
           policies=default,clients \
           max_ttl=1h
 
-        vault read consul/config/access \
-        &> /dev/null \
-        || vault write consul/config/access \
-          address=127.0.0.1:${toString config.services.consul.ports.https} \
-          scheme=https \
-          ca_cert="$(< ${config.services.consul.caFile})" \
-          client_cert="$(< ${config.services.consul.certFile})" \
-          client_key="$(< ${config.services.consul.keyFile})" \
-          token="$(
-            consul acl token create \
-              -policy-name=global-management \
-              -description "Vault $(date +%Y-%m-%d-%H-%M-%S)" \
-              -format json \
-            | jq -e -r .SecretID)"
+        vault write auth/aws/role/admin-iam \
+          auth_type=iam \
+          bound_iam_principal_arn="$arn:user/vault" \
+          policies=default,admin \
+          max_ttl=1h
 
         touch .bootstrap-done
       '';
     };
-
-    # systemd.services.upload-bootstrap = {
-    #   after = [
-    #     "nomad-bootstrap.service"
-    #     "consul-bootstrap.service"
-    #     "vault-bootstrap.service"
-    #   ];
-    #   requires = [
-    #     "nomad-bootstrap.service"
-    #     "consul-bootstrap.service"
-    #     "vault-bootstrap.service"
-    #   ];
-    #   wantedBy = [ "multi-user.target" ];
-    #
-    #   serviceConfig = {
-    #     Type = "oneshot";
-    #     RemainAfterExit = true;
-    #     Restart = "on-failure";
-    #     RestartSec = "30s";
-    #   };
-    #
-    #   environment = {
-    #     inherit (config.environment.variables)
-    #       AWS_DEFAULT_REGION VAULT_CACERT VAULT_ADDR VAULT_FORMAT;
-    #   };
-    #
-    #   path = with pkgs; [ sops vault-bin coreutils jq ];
-    #
-    #   script = ''
-    #     set -exuo pipefail
-    #
-    #     pushd /run/keys
-    #
-    #     echo "Waiting for Consul, Vault, and Nomad bootstrap to be done..."
-    #
-    #     until [ -e /var/lib/consul/.bootstrap-done ]; do sleep 1; done
-    #     until [ -e /var/lib/nomad/.bootstrap-done  ]; do sleep 1; done
-    #     until [ -e /var/lib/vault/.bootstrap-done  ]; do sleep 1; done
-    #
-    #     set +x
-    #     VAULT_TOKEN="$(sops -d --extract '["root_token"]' vault.enc.json)"
-    #     export VAULT_TOKEN
-    #     set -x
-    #
-    #     sops -d --extract '["SecretID"]' consul.enc.json | \
-    #       vault kv put kv/bootstrap/consul.token token=-
-    #
-    #     sops -d --extract '["SecretID"]' nomad.enc.json | \
-    #       vault kv put kv/bootstrap/nomad.token token=-
-    #
-    #     sops -d --extract '["root_token"]' vault.enc.json | \
-    #       vault kv put kv/bootstrap/vault.token token=-
-    #   '';
-    # };
   };
 }
+
+# vault write pki_int/issue/server \
+#   common_name="initial cert" \
+# > initial_cert.json
+#
+# sops --encrypt --kms "${kms}" --input-type json --output-type json initial_cert.json \
+# > initial_cert.enc.json
+# aws s3 cp initial_cert.enc.json s3://${s3-bucket}/infra/secrets/${cluster.name}/${kms}/server/initial_cert.enc.json
+#
+# # The great switcheroo
+# # It's vital that we do not create any leases before this, or we won't
+# # be able to revoke them again.
+#
+# jq -e -r .Data.private_key < initial_cert.json  > /etc/ssl/certs/cert-key.pem
+# jq -e -r .Data.certificate < initial_cert.json  > /etc/ssl/certs/cert.pem
+# jq -e -r .Data.issuing_ca  < initial_cert.json  > /etc/ssl/certs/ca.pem
+# jq -e -r .Data.certificate < initial_cert.json  > /etc/ssl/certs/full.pem
+# jq -e -r .Data.issuing_ca  < initial_cert.json >> /etc/ssl/certs/full.pem
+#
+# systemctl restart consul
+# systemctl restart vault
