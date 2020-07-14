@@ -29,17 +29,10 @@ let
     options = { path = mkOption { type = attrsOf vaultPolicyOptionsType; }; };
   });
 
-  nomadPoliciesType = submodule { options = { }; };
-
 in {
   options = {
     services.vault.policies = mkOption {
       type = attrsOf vaultPoliciesType;
-      default = { };
-    };
-
-    services.nomad.policies = mkOption {
-      type = attrsOf nomadPoliciesType;
       default = { };
     };
 
@@ -69,8 +62,6 @@ in {
     path = with pkgs; [ vault-bin glibc gawk sops ];
 
     script = let
-      rmModule = arg: removeAttrs arg [ "_module" ];
-
       rmModules = arg:
         let
           sanitized = mapAttrsToList (name: value:
@@ -92,9 +83,9 @@ in {
     in ''
       set -euo pipefail
 
-      set +x
       VAULT_TOKEN="$(sops -d --extract '["root_token"]' vault.enc.json)"
       export VAULT_TOKEN
+
       set -x
 
       ${concatStringsSep "\n" (mapAttrsToList (name: value: ''

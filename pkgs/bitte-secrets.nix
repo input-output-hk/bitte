@@ -158,6 +158,8 @@ let
 
       [ -s "$enc.new" ] && mv "$enc.new" "$enc"
     fi
+
+    cp ca.pem "$ship/client/ca.pem"
   '';
 
   upload = writeShellScriptBin "bitte-secrets-upload" ''
@@ -172,7 +174,9 @@ let
   install = writeShellScriptBin "bitte-secrets-install" ''
     set -exuo pipefail
 
-    export PATH="${makeBinPath [ awscli sops jq coreutils cfssl ]}"
+    export PATH="${
+      makeBinPath [ awscli sops jq coreutils cfssl vault-bin glibc gawk ]
+    }"
 
     dir=/run/keys/bitte-secrets-download
     mkdir -p "$dir"
@@ -211,6 +215,29 @@ let
         mkdir -p /etc/consul.d
         sops --decrypt consul-client.enc.json \
         > /etc/consul.d/secrets.json
+
+        if [ ! -s /etc/ssl/certs/ca.pem ]; then
+          unset VAULT_CACERT
+          export VAULT_ADDR=https://vault.${domain}
+          export VAULT_FORMAT=json
+          vault login -method aws header_value=${domain} role=clients-iam
+
+          cert="$(
+            vault write pki/issue/client \
+              common_name=server.eu-central-1.consul \
+              ip_sans=127.0.0.1,10.0.91.76 \
+              alt_names=vault.service.consul,consul.service.consul,nomad.service.consul
+          )"
+
+          mkdir -p certs
+
+          echo "$cert" | jq -e -r .data.private_key  > /etc/ssl/certs/cert-key.pem
+          echo "$cert" | jq -e -r .data.certificate  > /etc/ssl/certs/cert.pem
+          echo "$cert" | jq -e -r .data.certificate  > /etc/ssl/certs/full.pem
+          echo "$cert" | jq -e -r .data.issuing_ca  >> /etc/ssl/certs/full.pem
+          cat ca.pem                                >> /etc/ssl/certs/full.pem
+          cp ca.pem                                    /etc/ssl/certs/ca.pem
+        fi
       ;;
       *)
         echo "pass 'client' or 'server' as arguments"
@@ -360,7 +387,9 @@ let
     cert="$(
       vault write pki/issue/server \
         common_name=server.${region}.consul \
-        ip_sans="127.0.0.1,${concatStringsSep "," (mapAttrsToList (_: i: i.privateIP) instances)}" \
+        ip_sans="127.0.0.1,${
+          concatStringsSep "," (mapAttrsToList (_: i: i.privateIP) instances)
+        }" \
         alt_names="vault.service.consul,conusl.service.consul,nomad.service.consul"
     )"
 

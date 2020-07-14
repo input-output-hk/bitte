@@ -100,7 +100,6 @@ in final: prev: {
       '';
     in "${script}/bin/check";
 
-
   ssh-keys = let
     authorized_keys = lib.fileContents ../modules/ssh_keys/authorized_keys;
     keys = import (ops-lib + "/overlays/ssh-keys.nix") lib;

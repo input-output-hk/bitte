@@ -6,11 +6,6 @@ let
   inherit (config.cluster) region;
   inherit (config.cluster.instances.${nodeName}) privateIP;
 
-  # There's an issue where vault-agent may stop to make templates.
-  # https://github.com/hashicorp/vault/pull/9200
-  # For now we do the dirty thing and add a timer that just restarts this every
-  # so often.
-
   vaultAgentConfig = pkgs.toPrettyJSON "vault-agent" {
     pid_file = "./vault-agent.pid";
     vault.address = "https://127.0.0.1:8200";
@@ -40,8 +35,9 @@ let
         ip_sans = [ "127.0.0.1" privateIP ];
         alt_names = [
           "vault.service.consul"
-          "conusl.service.consul"
+          "consul.service.consul"
           "nomad.service.consul"
+          "vault.testnet.atalaprism.io"
         ];
         ttl = "322h";
       };
@@ -66,8 +62,7 @@ let
       (if config.services.consul.enable then {
         template = {
           destination = "/etc/consul.d/tokens.json";
-          command =
-            "${pkgs.systemd}/bin/systemctl reload consul.service";
+          command = "${pkgs.systemd}/bin/systemctl reload consul.service";
           contents = ''
             {
               "acl": {
@@ -84,8 +79,7 @@ let
 
       (if config.services.nomad.enable then {
         template = {
-          command =
-            "${pkgs.systemd}/bin/systemctl restart nomad.service";
+          command = "${pkgs.systemd}/bin/systemctl restart nomad.service";
           destination = "/etc/nomad.d/consul-token.json";
           contents = ''
             {{ with secret "consul/creds/nomad-server" }}

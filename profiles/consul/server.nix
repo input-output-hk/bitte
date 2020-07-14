@@ -5,7 +5,7 @@ let
   instance = instances.${nodeName};
   inherit (instance) privateIP;
 in {
-  imports = [ ./default.nix ];
+  imports = [ ./default.nix ./policies.nix ];
 
   services.consul = {
     bootstrapExpect = 3;

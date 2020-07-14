@@ -9,7 +9,8 @@ let
   key = "/var/lib/nomad/cert-key.pem";
 in {
   environment.variables = {
-    NOMAD_ADDR = "https://127.0.0.1:${toString config.services.nomad.ports.http}";
+    NOMAD_ADDR =
+      "https://127.0.0.1:${toString config.services.nomad.ports.http}";
   };
 
   services.nomad = {

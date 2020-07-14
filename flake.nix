@@ -17,10 +17,6 @@
       url = "github:manveru/terranix/cleanup";
       flake = false;
     };
-    netboot = {
-      url = "github:grahamc/netboot.nix";
-      flake = false;
-    };
   };
 
   outputs = { self, nixpkgs, utils, ... }:

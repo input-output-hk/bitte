@@ -3,9 +3,10 @@
     ./amazon-ssm-agent.nix
     ./consul.nix
     ./consul-policies.nix
+    ./nomad-policies.nix
+    ./vault-policies.nix
     ./consul-template.nix
     ./nomad.nix
-    ./policies.nix
     ./s3-download.nix
     ./terraform.nix
     ./terraform-output.nix

@@ -3,7 +3,7 @@
 let
   inherit (pkgs) ensureDependencies;
   inherit (lib) mkOverride mkIf attrNames concatStringsSep optional;
-  inherit (config.cluster) domain kms;
+  inherit (config.cluster) domain kms region;
   inherit (config.instance) privateIP;
 
   exportConsulMaster = ''
@@ -248,7 +248,7 @@ in {
       environment = {
         inherit (config.environment.variables)
           AWS_DEFAULT_REGION VAULT_CACERT VAULT_FORMAT;
-        VAULT_ADDR  = "https://127.0.0.1:8200/";
+        VAULT_ADDR = "https://127.0.0.1:8200/";
       };
 
       path = with pkgs; [
@@ -360,7 +360,7 @@ in {
           pki/roles/client \
           key_type=ec \
           key_bits=256 \
-          allowed_domains=service.consul \
+          allowed_domains=service.consul,server.${region}.consul \
           allow_subdomains=true \
           generate_lease=true \
           max_ttl=1h
@@ -373,6 +373,8 @@ in {
           enforce_hostnames=false \
           generate_lease=true \
           max_ttl=12h
+
+        vault kv put kv/bootstrap/ca cert=@/etc/ssl/certs/ca.pem
 
         # Finally allow IAM roles to login to Vault
 

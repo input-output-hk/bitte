@@ -166,7 +166,7 @@ in {
         RemainAfterExit = true;
         Restart = "on-failure";
         RestartSec = "30s";
-        ExecStartPre = pkgs.ensureDependencies ["consul"];
+        ExecStartPre = pkgs.ensureDependencies [ "consul" ];
       };
 
       path = with pkgs; [ consul coreutils jq ];

@@ -130,7 +130,7 @@ in {
       };
     };
 
-    autoscalingGroups = (flip mapAttrs' { "t3a.medium" = 0; }
+    autoscalingGroups = (flip mapAttrs' { "t3a.medium" = 1; }
       (instanceType: desiredCapacity:
         let saneName = "clients-${replaceStrings [ "." ] [ "-" ] instanceType}";
         in nameValuePair saneName {

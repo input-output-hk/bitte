@@ -57,22 +57,6 @@
         "type": "github"
       }
     },
-    "netboot": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1591648099,
-        "narHash": "sha256-cBKqjuUDVKCjY2ZQswKDreA/TqpGV48p8BpUPqhq4kQ=",
-        "owner": "grahamc",
-        "repo": "netboot.nix",
-        "rev": "403f30c23bc3d5782c9e17145bf5c04b672e1863",
-        "type": "github"
-      },
-      "original": {
-        "owner": "grahamc",
-        "repo": "netboot.nix",
-        "type": "github"
-      }
-    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1593506545,
@@ -173,7 +157,6 @@
       "inputs": {
         "bitte-cli": "bitte-cli",
         "inclusive": "inclusive_2",
-        "netboot": "netboot",
         "nixpkgs": "nixpkgs_2",
         "nixpkgs-crystal": "nixpkgs-crystal_2",
         "nixpkgs-master": "nixpkgs-master",

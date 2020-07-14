@@ -5,7 +5,6 @@
     ./haproxy.nix
     ./nginx.nix
     ./nomad/server.nix
-    ./policies.nix
     ./vault/server.nix
   ];
 

@@ -63,7 +63,7 @@ in listToAttrs (forEach clusterFiles (file:
       inherit (proto.config) cluster;
     };
 
-  in nameValuePair proto.config.cluster.name ( {
+  in nameValuePair proto.config.cluster.name ({
     inherit proto terraform-output terraform nodes groups topology
-    bitte-secrets;
-  } // bitte-secrets )))
+      bitte-secrets;
+  } // bitte-secrets)))

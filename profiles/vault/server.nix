@@ -5,7 +5,7 @@ let
   inherit (instance) privateIP;
 
 in {
-  imports = [ ./default.nix ];
+  imports = [ ./default.nix ./policies.nix ];
   config = {
     services.vault = {
       enable = true;
