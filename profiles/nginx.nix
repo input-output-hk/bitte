@@ -65,33 +65,19 @@ in {
           extraConfig = ''
             proxy_ssl_trusted_certificate /etc/ssl/certs/full.pem;
             proxy_ssl_protocols TLSv1.3;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_read_timeout 310s;
+            proxy_buffering off;
           '';
         };
       };
 
-      # virtualHosts."countdash.${config.cluster.domain}" = {
-      #   locations."/" = {
-      #     proxyWebsockets = true;
-      #     proxyPass = "http://count-dashboard.service.consul:9002";
-      #   };
-      # };
-
-      # logError = "stderr debug";
-      # recommendedTlsSettings = true;
-      # sslProtocols = "TLSv1.2";
-      # sslCiphers = "AES256-SHA256";
-
-      # virtualHosts."bootstrap.${config.cluster.domain}" = {
-      #   useACMEHost = config.cluster.domain;
-      #   forceSSL = true;
-      #
-      #   root = "/var/lib/nginx/nixos-images";
-      #   locations."/" = {
-      #     extraConfig = ''
-      #       autoindex on;
-      #     '';
-      #   };
-      # };
+      virtualHosts."countdash.${config.cluster.domain}" = {
+        locations."/" = {
+          proxyWebsockets = true;
+          proxyPass = "http://count-dashboard.service.consul:9002";
+        };
+      };
     };
 
     systemd.tmpfiles.rules = let

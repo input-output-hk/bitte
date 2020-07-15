@@ -318,6 +318,7 @@ in {
         echo "$secrets" | jq -e '."kv/"'          || vault secrets enable -version=2 kv
         echo "$secrets" | jq -e '."nomad/"'       || vault secrets enable nomad
         echo "$secrets" | jq -e '."pki/"'         || vault secrets enable pki
+        echo "$secrets" | jq -e '."pki-consul/"'  || vault secrets enable -path pki-consul pki
 
         auth="$(vault auth list)"
 
@@ -360,7 +361,7 @@ in {
           pki/roles/client \
           key_type=ec \
           key_bits=256 \
-          allowed_domains=service.consul,server.${region}.consul \
+          allowed_domains=service.consul,${region}.consul \
           allow_subdomains=true \
           generate_lease=true \
           max_ttl=1h

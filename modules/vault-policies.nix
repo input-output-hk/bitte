@@ -1,12 +1,31 @@
 { pkgs, lib, config, ... }:
 let
-  inherit (builtins) toJSON readFile attrValues typeOf toFile;
+  inherit (builtins) toJSON typeOf toFile attrNames;
   inherit (lib)
-    mkOption mkOptionType mapAttrs filterAttrs mkIf mkEnableOption
-    mapAttrsToList concatStringsSep isString makeBinPath filter remove
-    listToAttrs;
+    mkOption mkIf mkEnableOption
+    mapAttrsToList concatStringsSep remove
+    listToAttrs flip;
   inherit (lib.types) listOf enum attrsOf str submodule nullOr;
-  inherit (pkgs) jq writeText runCommandNoCCLocal ensureDependencies;
+  inherit (pkgs) ensureDependencies;
+
+  rmModules = arg:
+    let
+      sanitized = mapAttrsToList (name: value:
+        if name == "_module" then
+          null
+        else {
+          inherit name;
+          value = if typeOf value == "set" then rmModules value else value;
+        }) arg;
+    in listToAttrs (remove null sanitized);
+
+  policy2hcl = name: value:
+    pkgs.runCommandLocal "json2hcl" {
+      src = toFile "${name}.json" (toJSON (rmModules value));
+      nativeBuildInputs = [ pkgs.json2hcl ];
+    } ''
+      json2hcl < "$src" > "$out"
+    '';
 
   vaultPolicyOptionsType = submodule ({ ... }: {
     options = {
@@ -29,6 +48,8 @@ let
     options = { path = mkOption { type = attrsOf vaultPolicyOptionsType; }; };
   });
 
+  createNomadRoles = flip mapAttrsToList config.services.nomad.policies
+    (name: policy: ''vault write "nomad/role/${name}" "policies=${name}"'');
 in {
   options = {
     services.vault.policies = mkOption {
@@ -56,41 +77,63 @@ in {
 
     environment = {
       inherit (config.environment.variables)
-        AWS_DEFAULT_REGION VAULT_CACERT VAULT_ADDR VAULT_FORMAT;
+        AWS_DEFAULT_REGION VAULT_CACERT VAULT_ADDR VAULT_FORMAT NOMAD_ADDR;
     };
 
-    path = with pkgs; [ vault-bin glibc gawk sops ];
+    path = with pkgs; [ vault-bin glibc gawk sops jq nomad ];
 
-    script = let
-      rmModules = arg:
-        let
-          sanitized = mapAttrsToList (name: value:
-            if name == "_module" then
-              null
-            else {
-              inherit name;
-              value = if typeOf value == "set" then rmModules value else value;
-            }) arg;
-        in listToAttrs (remove null sanitized);
-
-      policy2hcl = name: value:
-        pkgs.runCommandLocal "json2hcl" {
-          src = toFile "${name}.json" (toJSON (rmModules value));
-          nativeBuildInputs = [ pkgs.json2hcl ];
-        } ''
-          json2hcl < "$src" > "$out"
-        '';
-    in ''
+    script = ''
       set -euo pipefail
 
       VAULT_TOKEN="$(sops -d --extract '["root_token"]' vault.enc.json)"
       export VAULT_TOKEN
+      export VAULT_ADDR=https://127.0.0.1:8200
 
       set -x
 
-      ${concatStringsSep "\n" (mapAttrsToList (name: value: ''
+      # Vault Policies
+
+      ${concatStringsSep "" (mapAttrsToList (name: value: ''
         vault policy write "${name}" "${policy2hcl name value}"
       '') config.services.vault.policies)}
+
+      keepNames=(default root ${
+        toString (attrNames config.services.vault.policies)
+      })
+      policyNames=($(vault policy list | jq -e -r '.[]'))
+
+      for name in "''${policyNames[@]}"; do
+        keep=""
+        for kname in "''${keepNames[@]}"; do
+          if [ "$name" = "$kname" ]; then
+            keep="yes"
+          fi
+        done
+
+        if [ -z "$keep" ]; then
+          vault policy delete "$name"
+        fi
+      done
+
+      # Nomad Policies
+
+      ${concatStringsSep "\n" createNomadRoles}
+
+      keepNames=(${toString (attrNames config.services.nomad.policies)})
+      nomadRoles=($(nomad acl policy list -json | jq -r -e '.[].Name'))
+
+      for role in "''${nomadRoles[@]}"; do
+        keep=""
+        for kname in "''${keepNames[@]}"; do
+          if [ "$role" = "$kname" ]; then
+            keep="yes"
+          fi
+        done
+
+        if [ -z "$keep" ]; then
+          vault delete "nomad/role/$role"
+        fi
+      done
     '';
   };
 }

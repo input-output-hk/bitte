@@ -246,6 +246,38 @@ in {
               type = str;
               default = "consul";
             };
+
+            caConfig = mkOption {
+              default = null;
+              type = nullOr (submodule {
+                options = {
+                  address = mkOption {
+                    default = null;
+                    type = nullOr str;
+                  };
+
+                  rootPkiPath = mkOption {
+                    default = null;
+                    type = nullOr str;
+                  };
+
+                  intermediatePkiPath = mkOption {
+                    default = null;
+                    type = nullOr str;
+                  };
+
+                  privateKey = mkOption {
+                    default = null;
+                    type = nullOr str;
+                  };
+
+                  rootCert = mkOption {
+                    default = null;
+                    type = nullOr str;
+                  };
+                };
+              });
+            };
           };
         };
         default = { };
@@ -267,8 +299,12 @@ in {
       };
 
       autoEncrypt = mkOption {
-        type = nullOr
-          (submodule { options = { allowTls = mkEnableOption "Allow TLS"; }; });
+        type = nullOr (submodule {
+          options = {
+            allowTls = mkEnableOption "Allow TLS";
+            tls = mkEnableOption "Enable TLS";
+          };
+        });
         default = null;
       };
 
@@ -308,6 +344,7 @@ in {
         type = attrsOf str;
         default = { };
       };
+
     };
   };
 
@@ -315,10 +352,15 @@ in {
     environment.systemPackages = [ cfg.package ];
 
     environment.variables = {
-      CONSUL_HTTP_ADDR = "127.0.0.1:8500";
-      CONSUL_CACERT = cfg.caFile;
-      CONSUL_CLIENT_CERT = cfg.certFile;
-      CONSUL_CLIENT_KEY = cfg.keyFile;
+      # CONSUL_HTTP_ADDR = "127.0.0.1:8500";
+      # CONSUL_CACERT = cfg.caFile;
+      # CONSUL_CLIENT_CERT = cfg.certFile;
+      # CONSUL_CLIENT_KEY = cfg.keyFile;
+      CONSUL_CACERT = "/etc/ssl/certs/full.pem";
+      CONSUL_CLIENT_CERT = "/etc/ssl/certs/cert.pem";
+      CONSUL_CLIENT_KEY = "/var/lib/consul/cert-key.pem";
+      CONSUL_HTTP_ADDR = "https://127.0.0.1:8501";
+      CONSUL_HTTP_SSL = "true";
     };
 
     environment.etc."/${cfg.configDir}/config.json".source =

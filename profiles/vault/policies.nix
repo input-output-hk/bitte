@@ -1,12 +1,13 @@
-{ config, ... }: {
-  services.vault.policies = let
-    c = "create";
-    r = "read";
-    u = "update";
-    d = "delete";
-    l = "list";
-    s = "sudo";
-  in {
+{ config, ... }:
+let
+  c = "create";
+  r = "read";
+  u = "update";
+  d = "delete";
+  l = "list";
+  s = "sudo";
+in {
+  services.vault.policies = {
     admin.path = {
       "approle/*".capabilities = [ c r u d l ];
       "aws/*".capabilities = [ c r u d l ];
@@ -33,6 +34,7 @@
     core.path = {
       "consul/creds/*".capabilities = [ r ];
       "nomad/creds/*".capabilities = [ r ];
+      "nomad/config/access".capabilities = [ c u ];
       "kv/data/bootstrap/*".capabilities = [ r ];
       "kv/data/bootstrap/ca".capabilities = [ c r u d l ];
 
@@ -47,6 +49,7 @@
       "pki/revoke".capabilities = [ c u ];
       "pki/tidy".capabilities = [ c u ];
       "pki/cert/ca".capabilities = [ r ];
+      "pki-consul/*".capabilities = [ s ];
     };
 
     # TODO: Pull list from config.cluster.iam

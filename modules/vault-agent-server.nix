@@ -51,10 +51,19 @@ let
       pkiSecret = ''"pki/issue/server" ${toString pkiArgs}'';
 
       reload-cvn = writeShellScriptBin "reload-cvn" ''
+        VAULT_TOKEN="$(< /run/keys/vault-token)"
+        export VAULT_TOKEN
+
         set -x
         ${pkgs.systemd}/bin/systemctl reload consul.service
         ${pkgs.systemd}/bin/systemctl restart nomad.service
         ${pkgs.systemd}/bin/systemctl reload vault.service
+
+        vault write nomad/config/access \
+          ca_cert=@/etc/ssl/certs/full.pem \
+          client_cert=@/etc/ssl/certs/cert.pem \
+          client_key=@/var/lib/vault/cert-key.pem
+
         exit 0
       '';
 
@@ -100,7 +109,8 @@ let
           destination = "/etc/ssl/certs/full.pem";
           contents = ''
             {{ with secret ${pkiSecret} }}{{ .Data.certificate }}
-            {{ .Data.issuing_ca }}{{ end }}
+            {{ range .Data.ca_chain }}{{ . }}
+            {{ end }}{{ end }}
           '';
         };
       } else

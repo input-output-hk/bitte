@@ -46,6 +46,11 @@ in {
     connect = {
       enabled = true;
       caProvider = "consul";
+      caConfig = {
+        # address = "https://127.0.0.1:8200";
+        # rootPkiPath = "/pki";
+        # intermediatePkiPath = "/pki-consul";
+      };
     };
 
     ports = {

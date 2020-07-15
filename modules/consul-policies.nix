@@ -154,6 +154,7 @@ in {
       mkEnableOption "Create consul policies on this machine";
   };
 
+  # TODO: rename to consul-acl
   config = mkIf config.services.consul-policies.enable {
     systemd.services.consul-policies = {
       after = [ "consul.service" ];

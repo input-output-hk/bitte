@@ -169,11 +169,7 @@ in {
       ${concatStringsSep "" createPolicies}
 
       keepNames=(${toString (attrNames config.services.nomad.policies)})
-
-      policyNames=($(
-        nomad acl policy list -json \
-        | jq -r -e '.[].Name'
-      ))
+      policyNames=($(nomad acl policy list -json | jq -r -e '.[].Name'))
 
       for name in "''${policyNames[@]}"; do
         keep=""

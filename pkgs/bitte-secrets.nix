@@ -380,6 +380,7 @@ let
     | sed '/^$/d' \
     > issuing.pem
 
+    cat ca.pem >> issuing.pem
     cat issuing.pem
 
     vault write pki/intermediate/set-signed certificate=@issuing.pem

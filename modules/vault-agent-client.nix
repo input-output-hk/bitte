@@ -119,7 +119,8 @@ let
           destination = "/etc/ssl/certs/full.pem";
           contents = ''
             {{ with secret ${pkiSecret} }}{{ .Data.certificate }}
-            {{ .Data.issuing_ca }}{{ end }}
+            {{ range .Data.ca_chain }}{{ . }}
+            {{ end }}{{ end }}
           '';
         };
       }
@@ -161,7 +162,6 @@ in {
 
       environment = {
         inherit (config.environment.variables) AWS_DEFAULT_REGION;
-        VAULT_CACERT = "/etc/ssl/certs/full.pem";
       };
 
       path = with pkgs; [ vault-bin glibc gawk ];
