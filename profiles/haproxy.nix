@@ -4,6 +4,7 @@ let
   inherit (builtins) mapAttrs;
   inherit (lib) mapAttrsToList concatStringsSep mkOption optionalString;
   inherit (lib.types) submodule str attrsOf ints enum bool nullOr;
+  inherit (config.cluster) domain;
 
   mapServices = sep: f:
     concatStringsSep sep (mapAttrsToList f config.services.haproxy.services);
@@ -30,7 +31,7 @@ let
       "verify"
       options.verify
       "ca-file"
-      "/etc/ssl/certs/fullchain.pem"
+      "/etc/ssl/certs/full.pem"
       (optionalString (options.crt != null) "crt ${options.crt}")
     ];
 
@@ -43,11 +44,12 @@ let
         timeout server 30000
         server-template ${name} ${
           toString value.count
-        } _${name}._tcp.service.consul ${haProxyOptions name value}
+        } _${name}._${value.port}.service.consul ${haProxyOptions name value}
   '');
 in {
   options = {
     services.haproxy.services = mkOption {
+      default = { };
       type = attrsOf (submodule {
         options = {
           host = mkOption { type = str; };
@@ -55,6 +57,11 @@ in {
           verify = mkOption {
             type = enum [ "none" "required" ];
             default = "none";
+          };
+
+          port = mkOption {
+            type = str;
+            default = "tcp";
           };
 
           count = mkOption {
@@ -78,7 +85,6 @@ in {
           };
         };
       });
-      default = { };
     };
   };
 
@@ -112,13 +118,29 @@ in {
           timeout server 30000
 
         frontend ingress
-          bind *:80
+          bind *:443 ssl crt /var/lib/acme/${domain}/full.pem
+          redirect scheme https if !{ ssl_fc }
           timeout connect 5000
           timeout check 5000
           timeout client 30000
           timeout server 30000
           ${acl}
+          acl host_consul hdr(host) -i consul.${domain}
           ${useBackends}
+          use_backend consul_cluster if host_consul
+
+        backend consul_cluster
+            balance leastconn
+            timeout connect 5000
+            timeout check 5000
+            timeout client 30000
+            timeout server 30000
+            balance roundrobin
+            option httpchk HEAD /
+            default-server check maxconn 20
+            server consul1 10.0.0.10:8500
+            server consul2 10.0.32.10:8500
+            server consul3 10.0.64.10:8500
 
         ${backends}
       '';

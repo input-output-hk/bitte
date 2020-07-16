@@ -44,7 +44,7 @@ in {
 
       storage.consul = {
         address = "consul.service.consul:8500";
-        tlsCaFile = ca;
+        tlsCaFile = full;
         tlsCertFile = cert;
         tlsKeyFile = key;
       };

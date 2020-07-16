@@ -391,6 +391,12 @@ in {
           policies=default,core \
           max_ttl=1h
 
+        vault write auth/aws/role/${config.cluster.name}-core \
+          auth_type=iam \
+          bound_iam_principal_arn="$arn:role/${config.cluster.name}-core" \
+          policies=default,core \
+          max_ttl=1h
+
         vault write auth/aws/role/clients-iam \
           auth_type=iam \
           bound_iam_principal_arn="$arn:role/${config.cluster.name}-client" \
@@ -398,6 +404,12 @@ in {
           max_ttl=1h
 
         vault write auth/aws/role/admin-iam \
+          auth_type=iam \
+          bound_iam_principal_arn="$arn:user/vault" \
+          policies=default,admin \
+          max_ttl=1h
+
+        vault write auth/aws/role/vault \
           auth_type=iam \
           bound_iam_principal_arn="$arn:user/vault" \
           policies=default,admin \

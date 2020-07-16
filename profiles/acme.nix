@@ -10,9 +10,9 @@ in {
 
     certs."${domain}" = {
       dnsProvider = "route53";
-      user = "nginx";
-      group = "nginx";
-      postRun = "/run/current-system/systemd/bin/systemctl reload nginx";
+      user = "haproxy";
+      group = "haproxy";
+      postRun = "/run/current-system/systemd/bin/systemctl reload haproxy";
       # We use IAM, so this is all automatic, but the module insists on a file.
       credentialsFile = pkgs.writeText "${domain}-credentials" "";
       extraDomains = {

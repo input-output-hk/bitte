@@ -65,6 +65,7 @@ in {
             kind = "proxy-defaults";
             name = "global";
             config = [{ protocol = "http"; }];
+            meshGateway = [{mode = "local";}];
           }
           {
             kind = "ingress-gateway";

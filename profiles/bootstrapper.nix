@@ -5,23 +5,29 @@ in {
 
   services = {
     haproxy = {
-      enable = false;
+      enable = true;
       services = {
-        count-dashboard = {
+        web = {
           host = "countdash.${domain}";
+          port = "tcp";
           count = 1;
+          # check-ssl = true;
+          # ssl = true;
         };
 
-        consul = {
-          host = "consul.${domain}";
-          count = 3;
-          ssl = true;
-          # crt = "/run/keys/cert-key.pem";
-        };
+        # TODO: this is atm hardcoded in haproxy config because it behaves differently from all the others.
+        # consul = {
+        #   host = "consul.${domain}";
+        #   count = 3;
+        #   port = "https";
+        #   check-ssl = true;
+        #   ssl = true;
+        # };
 
         vault = {
           host = "vault.${domain}";
           count = 3;
+          port = "tcp";
           check-ssl = true;
           ssl = true;
         };
@@ -29,15 +35,16 @@ in {
         nomad = {
           host = "nomad.${domain}";
           count = 3;
+          port = "http";
           check-ssl = true;
           ssl = true;
         };
       };
     };
 
-    nginx.enable = true;
-    vault-acl.enable = true;
+    nginx.enable = false;
     consul-policies.enable = true;
     nomad-acl.enable = true;
+    vault-acl.enable = true;
   };
 }
