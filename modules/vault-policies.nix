@@ -2,8 +2,7 @@
 let
   inherit (builtins) toJSON typeOf toFile attrNames;
   inherit (lib)
-    mkOption mkIf mkEnableOption
-    mapAttrsToList concatStringsSep remove
+    mkOption mkIf mkEnableOption mapAttrsToList concatStringsSep remove
     listToAttrs flip;
   inherit (lib.types) listOf enum attrsOf str submodule nullOr;
   inherit (pkgs) ensureDependencies;

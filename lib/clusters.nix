@@ -63,7 +63,9 @@ in listToAttrs (forEach clusterFiles (file:
       inherit (proto.config) cluster;
     };
 
+    mkJob = import ./mk-job.nix proto;
+
   in nameValuePair proto.config.cluster.name ({
-    inherit proto terraform-output terraform nodes groups topology
-      bitte-secrets;
+    inherit proto terraform-output terraform nodes groups topology bitte-secrets
+      mkJob;
   } // bitte-secrets)))

@@ -1,7 +1,21 @@
 job "atala" {
   datacenters = ["eu-central-1"]
 
+  update {
+    max_parallel      = 1
+    health_check      = "checks"
+    min_healthy_time  = "10s"
+    healthy_deadline  = "5m"
+    progress_deadline = "10m"
+    auto_revert       = true
+    auto_promote      = true
+    canary            = 1
+    stagger           = "30s"
+  }
+
   group "prism" {
+    count = 1
+
     network {
       mode = "bridge"
     }
@@ -41,39 +55,75 @@ job "atala" {
       }
 
       config = {
-        image = "895947072537.dkr.ecr.us-east-2.amazonaws.com/node:develop-2560-c7343da9"
+        image = "895947072537.dkr.ecr.us-east-2.amazonaws.com/node:develop-2595-d90c64fd"
       }
     }
   }
 
-  group "web" {
+  group "landing" {
+    count = 1
+
+    update {
+      max_parallel = 1
+    }
+
     network {
       mode = "bridge"
-      port "http" { to = 80 }
+    }
+
+    service {
+      name = "landing"
+      port = "80"
+
+      connect {
+        sidecar_service {}
+      }
+    }
+
+    task "landing" {
+      driver = "docker"
+
+      resources {
+        cpu = 20
+        memory = 15
+      }
+
+      env {
+        REACT_APP_GRPC_CLIENT = "https://connector.testnet.atalaprism.io:4422"
+        REACT_APP_WALLET_GRPC_CLIENT = "https://connector.testnet.atalaprism.io:4422"
+        REACT_APP_ISSUER = "c8834532-eade-11e9-a88d-d8f2ca059830"
+        REACT_APP_VERIFIER = "f424f42c-2097-4b66-932d-b5e53c734eff"
+      }
+
+      config = {
+        image = "895947072537.dkr.ecr.us-east-2.amazonaws.com/landing:develop-2595-d90c64fd"
+      }
+    }
+  }
+
+
+  group "web" {
+    count = 1
+
+    network {
+      mode = "bridge"
     }
 
     service {
       name = "web"
-      tags = ["http"]
-      port = "http"
-      connect { sidecar_service {
-        proxy {
-          local_service_port = 80
-        }
-      } }
-      check {
-        type = "http"
-        path = "/"
-        interval = "10s"
-        timeout = "10s"
+      port = "80"
+
+      connect {
+        sidecar_service { }
       }
     }
 
     task "web" {
       driver = "docker"
 
-      meta {
-        version = 49
+      resources {
+        cpu = 20
+        memory = 15
       }
 
       env {
@@ -84,22 +134,33 @@ job "atala" {
       }
 
       config = {
-        image = "895947072537.dkr.ecr.us-east-2.amazonaws.com/web:develop-2560-c7343da9"
+        image = "895947072537.dkr.ecr.us-east-2.amazonaws.com/web:develop-2595-d90c64fd"
       }
     }
   }
 
   group "connector" {
+    count = 1
+
+    update {
+      max_parallel = 1
+    }
+
     network {
       mode = "bridge"
     }
 
     service {
       name = "connector"
+      port = "50051"
 
       connect {
         sidecar_service {
           proxy {
+            config {
+              protocol = "grpc"
+            }
+
             upstreams {
               destination_name = "postgres"
               local_bind_port = 5432
@@ -112,6 +173,11 @@ job "atala" {
     task "connector" {
       driver = "docker"
 
+      resources {
+        cpu = 20
+        memory = 260
+      }
+
       env {
         GEUD_CONNECTOR_PSQL_HOST = "127.0.0.1"
         GEUD_CONNECTOR_PSQL_DATABASE = "connector"
@@ -122,12 +188,14 @@ job "atala" {
       }
 
       config = {
-        image = "895947072537.dkr.ecr.us-east-2.amazonaws.com/connector:develop-2560-c7343da9"
+        image = "895947072537.dkr.ecr.us-east-2.amazonaws.com/connector:develop-2595-d90c64fd"
       }
     }
   }
 
   group "bitcoind" {
+    count = 1
+
     network {
       mode = "bridge"
     }
@@ -143,6 +211,11 @@ job "atala" {
 
     task "bitcoind" {
       driver = "docker"
+
+      resources {
+        cpu = 20
+        memory = 140
+      }
 
       config {
         image = "ruimarinho/bitcoin-core"
@@ -164,6 +237,10 @@ job "atala" {
   }
 
   group "db" {
+    update {
+      max_parallel = 1
+    }
+
     network {
       mode = "bridge"
     }
@@ -188,7 +265,7 @@ job "atala" {
         image = "postgres:12"
 
         volumes = [
-          "/tmp/docker-entrypoint:/docker-entrypoint-initdb.d"
+          "/etc/docker-mounts/db:/docker-entrypoint-initdb.d"
         ]
 
         auth {

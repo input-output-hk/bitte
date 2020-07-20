@@ -26,7 +26,7 @@ in final: prev: {
     };
   });
 
-  inherit (self.inputs.nixpkgs-master.legacyPackages.${system}) consul;
+  consul = prev.callPackage ./pkgs/consul { };
 
   terraform-with-plugins = prev.terraform.withPlugins
     (plugins: lib.attrVals [ "null" "local" "aws" "tls" "sops" ] plugins);
@@ -38,8 +38,6 @@ in final: prev: {
   recImport = prev.callPackage ./lib/rec-import.nix { };
 
   escapeUserData = prev.callPackage ./lib/escape-user-data.nix { };
-
-  writeRubyBin = prev.callPackage ./lib/write-ruby-bin.nix { };
 
   inherit (self.inputs.inclusive.lib) inclusive;
 
@@ -58,6 +56,10 @@ in final: prev: {
   envoy = prev.callPackage ./pkgs/envoy.nix { };
 
   nomad = prev.callPackage ./pkgs/nomad.nix { };
+
+  haproxy = prev.callPackage ./pkgs/haproxy.nix { };
+
+  consul-template = prev.callPackage ./pkgs/consul-template.nix { };
 
   toPrettyJSON = prev.callPackage ./lib/to-pretty-json.nix { };
 

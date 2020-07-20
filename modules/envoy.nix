@@ -5,9 +5,5 @@ let
 in {
   options = { services.envoy.enable = mkEnableOption "Enable Envoy"; };
 
-  config = {
-    systemd.services.envoy = mkIf cfg.enable {
-
-    };
-  };
+  config = { systemd.services.envoy = mkIf cfg.enable { }; };
 }

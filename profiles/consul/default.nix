@@ -46,11 +46,6 @@ in {
     connect = {
       enabled = true;
       caProvider = "consul";
-      caConfig = {
-        # address = "https://127.0.0.1:8200";
-        # rootPkiPath = "/pki";
-        # intermediatePkiPath = "/pki-consul";
-      };
     };
 
     ports = {
@@ -65,7 +60,7 @@ in {
             kind = "proxy-defaults";
             name = "global";
             config = [{ protocol = "http"; }];
-            meshGateway = [{mode = "local";}];
+            meshGateway = [{ mode = "local"; }];
           }
           {
             kind = "ingress-gateway";

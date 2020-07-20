@@ -4,16 +4,18 @@ let
     system = "x86_64-linux";
     overlays = [ self.overlay.x86_64-linux ];
   };
-  inherit (builtins) toJSON attrNames;
+  inherit (builtins) toJSON attrNames elemAt;
   inherit (pkgs.lib)
     mkOption mkIf replaceStrings readFile optionalAttrs mapAttrs mkMerge
     mapAttrsToList mapAttrs' nameValuePair flip foldl' recursiveUpdate
     listToAttrs flatten optional mkOptionType imap0 mkEnableOption forEach
-    remove reverseList head tail;
+    remove reverseList head tail splitString;
   inherit (pkgs.lib.types)
     attrs submodule str attrsOf bool ints path enum port listof nullOr listOf
     oneOf list package;
   inherit (pkgs.terralib) var id pp;
+
+  kms2region = kms: elemAt (splitString ":" kms) 3;
 
   cfg = config.cluster;
   resources = config.terraform.resource;
@@ -43,7 +45,7 @@ let
         default = let
           amis = import (self.inputs.nixpkgs
             + "/nixos/modules/virtualisation/ec2-amis.nix");
-        in amis."20.03".${config.cluster.region}.hvm-ebs;
+        in amis."20.03".${cfg.region}.hvm-ebs;
       };
 
       iam = mkOption {
@@ -60,7 +62,10 @@ let
         default = false;
       };
 
-      region = mkOption { type = str; };
+      region = mkOption {
+        type = str;
+        default = kms2region cfg.kms;
+      };
 
       vpc = mkOption {
         type = vpcType;
@@ -350,9 +355,47 @@ let
 
       iam = mkOption { type = serverIamType this.config.name; };
 
+      route53 = mkOption {
+        default = { domains = [ ]; };
+        type = submodule {
+          options = {
+            domains = mkOption {
+              type = listOf str;
+              default = [ ];
+            };
+          };
+        };
+      };
+
       userData = mkOption {
         type = nullOr str;
-        default = null;
+        default = ''
+          ### https://nixos.org/channels/nixpkgs-unstable nixos
+          { pkgs, config, ... }: {
+            imports = [ <nixpkgs/nixos/modules/virtualisation/amazon-image.nix> ];
+
+            nix = {
+              package = pkgs.nixFlakes;
+              extraOptions = '''
+                show-trace = true
+                experimental-features = nix-command flakes ca-references
+              ''';
+              binaryCaches = [
+                "https://hydra.iohk.io"
+                "https://manveru.cachix.org"
+              ];
+              binaryCachePublicKeys = [
+                "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
+                "manveru.cachix.org-1:L5nJHSinfA2K5dDCG3KAEadwf/e3qqhuBr7yCwSksXo="
+              ];
+            };
+
+            # Needed to give backed up certs the right permissions
+            services.nginx.enable = true;
+
+            environment.etc.ready.text = "true";
+          }
+        '';
       };
 
       # Gotta do it this way since TF outputs aren't generated at this point and we need the IP.
@@ -483,17 +526,59 @@ let
 
       userData = mkOption {
         type = nullOr str;
-        default = null;
-      };
+        default = ''
+          ### https://nixos.org/channels/nixpkgs-unstable nixos
+          { pkgs, config, ... }: {
+            imports = [ <nixpkgs/nixos/modules/virtualisation/amazon-image.nix> ];
 
-      userDataSource = mkOption {
-        type = nullOr path;
-        default = null;
-      };
+            nix = {
+              package = pkgs.nixFlakes;
+              extraOptions = '''
+                show-trace = true
+                experimental-features = nix-command flakes ca-references
+              ''';
+              binaryCaches = [
+                "https://hydra.iohk.io"
+                "https://manveru.cachix.org"
+              ];
+              binaryCachePublicKeys = [
+                "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
+                "manveru.cachix.org-1:L5nJHSinfA2K5dDCG3KAEadwf/e3qqhuBr7yCwSksXo="
+              ];
+            };
 
-      userDataTarget = mkOption {
-        type = nullOr path;
-        default = null;
+            systemd.services.install = {
+              wantedBy = ["multi-user.target"];
+              after = ["network-online.target"];
+              path = with pkgs; [ config.system.build.nixos-rebuild awscli coreutils gnutar curl xz ];
+              restartIfChanged = false;
+              unitConfig.X-StopOnRemoval = false;
+              serviceConfig = {
+                Type = "oneshot";
+                Restart = "on-failure";
+                RestartSec = "30s";
+              };
+              script = '''
+                set -exuo pipefail
+                pushd /run/keys
+
+                aws s3 cp \
+                  "s3://${cfg.s3-bucket}/infra/secrets/${cfg.name}/${cfg.kms}/source/source.tar.xz" \
+                  source.tar.xz
+                mkdir -p source
+                tar xvf source.tar.xz -C source
+                nixos-rebuild --flake ./source#${cfg.name}-${this.config.name} boot
+                booted="$(readlink /run/booted-system/{initrd,kernel,kernel-modules})"
+                built="$(readlink /nix/var/nix/profiles/system/{initrd,kernel,kernel-modules})"
+                if [ "$booted" = "$built" ]; then
+                  nixos-rebuild --flake ./source#${cfg.name}-${this.config.name} switch
+                else
+                  /run/current-system/sw/bin/shutdown -r now
+                fi
+              ''';
+            };
+          }
+        '';
       };
 
       minSize = mkOption {
@@ -860,16 +945,12 @@ in {
           })
 
           (mkIf (group.userData != null) { user_data = group.userData; })
-
-          (mkIf (group.userDataTarget != null) {
-            user_data = readFile group.userDataTarget;
-          })
         ])) cfg.autoscalingGroups;
 
       resource.aws_security_group = mkMerge ([{
         "${cfg.name}-core" = {
           name_prefix = "${cfg.name}-core-";
-          description = "Security group for Sol in ${cfg.name}";
+          description = "Security group for Core in ${cfg.name}";
           vpc_id = cfg.vpc.id;
           lifecycle = [{ create_before_destroy = true; }];
         };
@@ -1033,20 +1114,16 @@ in {
 
       # TODO: merge records
       resource.aws_route53_record = mkIf cfg.route53 (listToAttrs (remove null
-        (flatten (flip mapAttrsToList self.clusters.${cfg.name}.nodes
-          (nodeName: node:
-            flip mapAttrsToList node.config.services.haproxy.services
-            (service: options:
-              nameValuePair
-              "${cfg.name}-${replaceStrings [ "." ] [ "_" ] service}" {
-                zone_id = id "data.aws_route53_zone.selected";
-                name = options.host;
-                type = "A";
-                ttl = "60";
-                records = [
-                  (var "aws_eip.${cfg.instances.${nodeName}.uid}.public_ip")
-                ];
-              }))))));
+        (flatten (flip mapAttrsToList cfg.instances (name: instance:
+          forEach instance.route53.domains (subDomain:
+            nameValuePair
+            "${cfg.name}-${replaceStrings [ "." ] [ "_" ] subDomain}" {
+              zone_id = id "data.aws_route53_zone.selected";
+              name = "${subDomain}.${cfg.domain}";
+              type = "A";
+              ttl = "60";
+              records = [ (var "aws_eip.${instance.uid}.public_ip") ];
+            }))))));
 
       data.aws_availability_zones.available.state = "available";
 

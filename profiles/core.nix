@@ -8,9 +8,11 @@
     ./vault/server.nix
   ];
 
-  services.vault-agent-core.enable = true;
+  services = {
+    vault-agent-core.enable = true;
+    ingress.enable = true;
+  };
 
-  # needed to scp the master token
   environment.etc."consul.d/.keep.json".text = "{}";
 
   environment.systemPackages = with pkgs; [ sops awscli cachix cfssl ];
