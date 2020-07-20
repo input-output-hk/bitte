@@ -127,8 +127,8 @@ job "atala" {
       }
 
       env {
-        REACT_APP_GRPC_CLIENT = "https://example.com:10000"
-        REACT_APP_WALLET_GRPC_CLIENT = "http://example.com:10000"
+        REACT_APP_GRPC_CLIENT = "https://connector.testnet.atalaprism.io:4422"
+        REACT_APP_WALLET_GRPC_CLIENT = "https://connector.testnet.atalaprism.io:4422"
         REACT_APP_ISSUER = "c8834532-eade-11e9-a88d-d8f2ca059830"
         REACT_APP_VERIFIER = "f424f42c-2097-4b66-932d-b5e53c734eff"
       }

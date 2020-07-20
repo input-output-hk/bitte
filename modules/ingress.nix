@@ -86,7 +86,7 @@ let
       access-control-allow-headers =
         "keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,custom-header-1,x-accept-content-transfer-encoding,x-accept-response-streaming,x-user-agent,x-grpc-web,grpc-timeout,userid,userId,requestNonce,did,didKeyId,didSignature";
       access-control-allow-methods = "GET, PUT, DELETE, POST, OPTIONS";
-      access-control-allow-origin = "https://landing.${domain}";
+      access-control-allow-origin = "*";
       access-control-expose-headers = "grpc-status,grpc-message,userid,userId";
       access-control-max-age = "1728000";
     });
@@ -122,7 +122,7 @@ let
       http-request return status 200 ${corsHeaders} if { method OPTIONS }
       http-after-response set-header access-control-allow-headers "keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,custom-header-1,x-accept-content-transfer-encoding,x-accept-response-streaming,x-user-agent,x-grpc-web,grpc-timeout,userid,userId,requestNonce,did,didKeyId,didSignature"
       http-after-response set-header access-control-allow-methods "GET, PUT, DELETE, POST, OPTIONS"
-      http-after-response set-header access-control-allow-origin "https://landing.${domain}"
+      http-after-response set-header access-control-allow-origin "*"
       http-after-response set-header access-control-expose-headers "grpc-status,grpc-message,userid,userId"
       http-after-response set-header access-control-max-age "1728000"
       timeout connect 5000000
@@ -269,18 +269,9 @@ in {
 
         set -x
 
-        # consul config write ${ingressConfig}
         consul services register ${haproxyService}
 
         exec consul-template -config ${haproxyIngress}
-
-        # We don't actually care about port 7777
-        # exec consul connect envoy \
-        #   -gateway ingress \
-        #   -register \
-        #   -service eu-central-1-ingress \
-        #   -address '{{ GetInterfaceIP "ens5" }}:7777' \
-        #   -- -l debug
       '';
     };
   };
