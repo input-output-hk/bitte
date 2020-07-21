@@ -3,51 +3,6 @@ let
   inherit (lib) mkIf mkEnableOption makeBinPath concatStringsSep mapAttrsToList;
   inherit (config.cluster) domain;
 
-  ingressConfig = pkgs.writeText "ingress.hcl" ''
-    Kind = "ingress-gateway"
-    Name = "eu-central-1-ingress"
-
-    TLS {
-      Enabled = true
-    }
-
-    Listeners = [
-      {
-        Port = 8080
-        Protocol = "http"
-        Services = [
-          {
-            Name = "web"
-            Hosts = [
-              "web.testnet.atalaprism.io",
-              "web.ingress.consul:8080"
-            ]
-          },
-          {
-            Name = "landing"
-            Hosts = [
-              "landing.testnet.atalaprism.io",
-              "landing.ingress.consul:8080"
-            ]
-          },
-          {
-            Name = "connector"
-            Hosts = [
-              "connector.testnet.atalaprism.io",
-              "connector.ingress.consul:8080"
-            ]
-          },
-          {
-            Name = "nomad"
-          },
-          {
-            Name = "vault"
-          }
-        ]
-      }
-    ]
-  '';
-
   haproxyService = pkgs.toPrettyJSON "haproxy-service" {
     service = {
       name = "haproxy";

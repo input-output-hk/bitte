@@ -55,34 +55,12 @@ in {
 
     extraConfig = {
       configEntries = [{
-        bootstrap = [
-          {
-            kind = "proxy-defaults";
-            name = "global";
-            config = [{ protocol = "http"; }];
-            meshGateway = [{ mode = "local"; }];
-          }
-          {
-            kind = "ingress-gateway";
-            name = "ingress-gateway";
-            tls = [{ enabled = true; }];
-            listeners = [{
-              port = 4646;
-              protocol = "http";
-              services = [{
-                name = "nomad";
-                hosts = [
-                  "nomad.testnet.atalaprism.io"
-                  "nomad.testnet.atalaprism.io:4646"
-                  "nomad.ingress.eu-central-1.consul"
-                  "nomad.ingress.eu-central-1.consul:4646"
-                  "nomad.service.consul:8200"
-                  "nomad.service.consul"
-                ];
-              }];
-            }];
-          }
-        ];
+        bootstrap = [{
+          kind = "proxy-defaults";
+          name = "global";
+          config = [{ protocol = "http"; }];
+          meshGateway = [{ mode = "local"; }];
+        }];
       }];
     };
   };

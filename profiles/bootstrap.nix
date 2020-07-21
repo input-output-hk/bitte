@@ -340,7 +340,6 @@ in {
               -format json \
             | jq -e -r .SecretID)"
 
-        # TODO: use our air-gapped self-signed cert instead as root somehow...
         vault secrets tune -max-lease-ttl=87600h pki
 
         vault write \
@@ -389,31 +388,25 @@ in {
           auth_type=iam \
           bound_iam_principal_arn="$arn:role/${config.cluster.name}-core" \
           policies=default,core \
-          max_ttl=1h
+          max_ttl=24h
 
         vault write auth/aws/role/${config.cluster.name}-core \
           auth_type=iam \
           bound_iam_principal_arn="$arn:role/${config.cluster.name}-core" \
           policies=default,core \
-          max_ttl=1h
+          max_ttl=12h
 
-        vault write auth/aws/role/clients-iam \
+        vault write auth/aws/role/${config.cluster.name}-client \
           auth_type=iam \
           bound_iam_principal_arn="$arn:role/${config.cluster.name}-client" \
-          policies=default,clients \
-          max_ttl=1h
-
-        vault write auth/aws/role/admin-iam \
-          auth_type=iam \
-          bound_iam_principal_arn="$arn:user/vault" \
-          policies=default,admin \
+          policies=default,client \
           max_ttl=1h
 
         vault write auth/aws/role/vault \
           auth_type=iam \
           bound_iam_principal_arn="$arn:user/vault" \
           policies=default,admin \
-          max_ttl=1h
+          max_ttl=12h
 
         touch .bootstrap-done
       '';

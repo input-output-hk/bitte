@@ -3,7 +3,7 @@ let
   inherit (builtins) toJSON isList;
   inherit (pkgs) writeShellScriptBin;
   inherit (lib) mkIf filter mkEnableOption concatStringsSep flip mapAttrsToList;
-  inherit (config.cluster) region;
+  inherit (config.cluster) domain region;
   inherit (config.cluster.instances.${nodeName}) privateIP;
 
   vaultAgentConfig = pkgs.toPrettyJSON "vault-agent" {
@@ -15,8 +15,8 @@ let
         type = "aws";
         config = {
           type = "iam";
-          role = "core-iam";
-          header_value = config.cluster.domain;
+          role = "${config.cluster.name}-core";
+          header_value = domain;
         };
       }];
 
@@ -37,7 +37,7 @@ let
           "vault.service.consul"
           "consul.service.consul"
           "nomad.service.consul"
-          "vault.testnet.atalaprism.io"
+          "vault.${domain}"
         ];
         ttl = "322h";
       };

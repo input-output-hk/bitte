@@ -42,8 +42,8 @@ let
         type = "aws";
         config = {
           type = "iam";
-          role = "clients-iam";
-          header_value = config.cluster.domain;
+          role = "${config.cluster.name}-client";
+          header_value = domain;
         };
       }];
 

@@ -6,6 +6,19 @@ let
   inherit (lib.types) attrsOf enum submodule nullOr str listOf;
   inherit (config.instance) bootstrapper;
 
+  consulIntentionsType = submodule {
+    options = {
+      SourceName = mkOption { type = str; };
+
+      DestinationName = mkOption { type = str; };
+
+      Action = mkOption {
+        type = enum [ "allow" "deny" ];
+        default = "allow";
+      };
+    };
+  };
+
   consulRolesType = submodule ({ name, ... }@this: {
     options = {
       name = mkOption {
@@ -148,6 +161,11 @@ in {
     services.consul.roles = mkOption {
       type = attrsOf consulRolesType;
       default = { };
+    };
+
+    services.consul.intentions = mkOption {
+      type = listOf consulIntentionsType;
+      default = [ ];
     };
 
     services.consul-policies.enable =

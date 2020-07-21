@@ -54,7 +54,7 @@ in {
 
     # TODO: Pull list from config.cluster.iam
 
-    clients.path = {
+    client.path = {
       "auth/token/lookup-self".capabilities = [ r ];
       "auth/token/renew-self".capabilities = [ u ];
       "consul/creds/nomad-client".capabilities = [ r ];

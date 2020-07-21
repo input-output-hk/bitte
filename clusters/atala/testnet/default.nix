@@ -28,7 +28,6 @@ let
   };
 
 in {
-
   imports = [ ./iam.nix ];
 
   cluster = {
@@ -52,7 +51,7 @@ in {
 
     autoscalingGroups = (flip mapAttrs' { "t3a.medium" = 3; }
       (instanceType: desiredCapacity:
-        let saneName = "clients-${replaceStrings [ "." ] [ "-" ] instanceType}";
+        let saneName = "client-${replaceStrings [ "." ] [ "-" ] instanceType}";
         in nameValuePair saneName {
           inherit desiredCapacity instanceType;
           associatePublicIP = true;
@@ -95,6 +94,7 @@ in {
         subnet = subnets.prv-2;
         iam.role = cluster.iam.roles.core;
         iam.instanceProfile.role = cluster.iam.roles.core;
+        route53.domains = [ "landing" ];
 
         modules = [ ../../../profiles/core.nix ];
 
@@ -109,6 +109,7 @@ in {
         subnet = subnets.prv-3;
         iam.role = cluster.iam.roles.core;
         iam.instanceProfile.role = cluster.iam.roles.core;
+        route53.domains = [ "landing" ];
 
         modules = [ ../../../profiles/core.nix ];
 

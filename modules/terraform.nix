@@ -9,7 +9,7 @@ let
     mkOption mkIf replaceStrings readFile optionalAttrs mapAttrs mkMerge
     mapAttrsToList mapAttrs' nameValuePair flip foldl' recursiveUpdate
     listToAttrs flatten optional mkOptionType imap0 mkEnableOption forEach
-    remove reverseList head tail splitString;
+    remove reverseList head tail splitString zipAttrs;
   inherit (pkgs.lib.types)
     attrs submodule str attrsOf bool ints path enum port listof nullOr listOf
     oneOf list package;
@@ -1113,17 +1113,20 @@ in {
       };
 
       # TODO: merge records
-      resource.aws_route53_record = mkIf cfg.route53 (listToAttrs (remove null
-        (flatten (flip mapAttrsToList cfg.instances (name: instance:
-          forEach instance.route53.domains (subDomain:
-            nameValuePair
-            "${cfg.name}-${replaceStrings [ "." ] [ "_" ] subDomain}" {
-              zone_id = id "data.aws_route53_zone.selected";
-              name = "${subDomain}.${cfg.domain}";
-              type = "A";
-              ttl = "60";
-              records = [ (var "aws_eip.${instance.uid}.public_ip") ];
-            }))))));
+      resource.aws_route53_record = mkIf cfg.route53 (let
+        domains = (flatten (flip mapAttrsToList cfg.instances
+          (instanceName: instance:
+            forEach instance.route53.domains
+            (subDomain: { ${subDomain} = instance.uid; }))));
+      in flip mapAttrs' (zipAttrs domains) (subDomain: instanceUids:
+        nameValuePair
+        "${cfg.name}-${replaceStrings [ "." ] [ "_" ] subDomain}" {
+          zone_id = id "data.aws_route53_zone.selected";
+          name = "${subDomain}.${cfg.domain}";
+          type = "A";
+          ttl = "60";
+          records = forEach instanceUids (uid: var "aws_eip.${uid}.public_ip");
+        }));
 
       data.aws_availability_zones.available.state = "available";
 

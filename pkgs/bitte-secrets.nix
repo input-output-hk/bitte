@@ -1,6 +1,6 @@
 { self, cluster, lib, awscli, sops, jq, coreutils, cfssl, consul, toybox
 , vault-bin, glibc, gawk, toPrettyJSON, writeShellScriptBin, bitte
-, terraform-with-plugins, rsync, openssh, gnused }:
+, terraform-with-plugins, rsync, openssh, gnused, curl, cacert }:
 let
   inherit (cluster) kms region s3-bucket domain instances autoscalingGroups;
   inherit (lib)
@@ -175,7 +175,18 @@ let
     set -exuo pipefail
 
     export PATH="${
-      makeBinPath [ awscli sops jq coreutils cfssl vault-bin glibc gawk ]
+      makeBinPath [
+        awscli
+        sops
+        jq
+        coreutils
+        cfssl
+        vault-bin
+        glibc
+        gawk
+        curl
+        cacert
+      ]
     }"
 
     dir=/run/keys/bitte-secrets-download
@@ -220,12 +231,14 @@ let
           unset VAULT_CACERT
           export VAULT_ADDR=https://vault.${domain}
           export VAULT_FORMAT=json
-          vault login -method aws header_value=${domain} role=clients-iam
+          vault login -method aws header_value=${domain}
+
+          ip="$(curl -f -s http://169.254.169.254/latest/meta-data/local-ipv4)"
 
           cert="$(
             vault write pki/issue/client \
-              common_name=server.eu-central-1.consul \
-              ip_sans=127.0.0.1,10.0.91.76 \
+              common_name=server.${region}.consul \
+              ip_sans="127.0.0.1,$ip" \
               alt_names=vault.service.consul,consul.service.consul,nomad.service.consul
           )"
 

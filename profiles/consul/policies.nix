@@ -1,5 +1,40 @@
 { config, ... }: {
   services.consul = {
+    intentions = [
+      {
+        SourceName = "connector";
+        DestinationName = "node";
+      }
+      {
+        SourceName = "connector";
+        DestinationName = "postgres";
+      }
+      {
+        SourceName = "count-dashboard";
+        DestinationName = "count-api";
+      }
+      {
+        SourceName = "haproxy";
+        DestinationName = "connector";
+      }
+      {
+        SourceName = "haproxy";
+        DestinationName = "landing";
+      }
+      {
+        SourceName = "haproxy";
+        DestinationName = "web";
+      }
+      {
+        SourceName = "node";
+        DestinationName = "bitcoind";
+      }
+      {
+        SourceName = "node";
+        DestinationName = "postgres";
+      }
+    ];
+
     roles = with config.services.consul.policies; {
       consul-agent.policyNames = [ consul-agent.name ];
       consul-server.policyNames = [ consul-agent.name ];
