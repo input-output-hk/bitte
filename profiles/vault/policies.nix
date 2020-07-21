@@ -15,20 +15,17 @@ in {
       "kv/*".capabilities = [ c r u d l ];
       "nomad/*".capabilities = [ c r u d l ];
       "pki/*".capabilities = [ c r u d l ];
-      "pki/issue/*".capabilities = [ c r u d l ];
-      "pki/certs".capabilities = [ c r u d l ];
-      "pki/revoke".capabilities = [ c r u d l ];
-      "pki/tidy".capabilities = [ c r u d l ];
-      "pki/cert/ca".capabilities = [ c r u d l ];
-      "pki/roles/admin".capabilities = [ r ];
 
       "auth/token/create/*".capabilities = [ c r u d l ];
       "auth/token/roles/*".capabilities = [ c r u d l ];
+      "auth/token/lookup".capabilities = [ c r u d l ];
       "auth/token/lookup-self".capabilities = [ r ];
       "auth/token/renew-self".capabilities = [ u ];
       "sys/capabilities-self".capabilities = [ s ];
       "sys/policy".capabilities = [ c r u d l ];
-      "auth/token/lookup".capabilities = [ c r u d l ];
+      "sys/policy/*".capabilities = [ c r u d l ];
+      "sys/policies/*".capabilities = [ c r u d l ];
+      "identity/*".capabilities = [ c r u d l ];
     };
 
     core.path = {

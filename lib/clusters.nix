@@ -34,7 +34,12 @@ in listToAttrs (forEach clusterFiles (file:
   let
     proto = self.inputs.nixpkgs.lib.nixosSystem {
       inherit pkgs system;
-      modules = [ ../modules/default.nix ../profiles/nix.nix file ];
+      modules = [
+        ../modules/default.nix
+        ../profiles/nix.nix
+        ../profiles/consul/policies.nix
+        file
+      ];
       specialArgs = { inherit self; };
     };
 

@@ -36,15 +36,20 @@ let
     ];
   };
 
+  cors = {
+    access-control-allow-headers =
+      "keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,custom-header-1,x-accept-content-transfer-encoding,x-accept-response-streaming,x-user-agent,x-grpc-web,grpc-timeout,userid,userId,requestNonce,did,didKeyId,didSignature";
+    access-control-allow-methods = "GET, PUT, DELETE, POST, OPTIONS";
+    access-control-allow-origin = "*";
+    access-control-expose-headers = "grpc-status,grpc-message,userid,userId";
+    access-control-max-age = "1728000";
+  };
+
   corsHeaders = concatStringsSep " "
-    (mapAttrsToList (name: value: ''hdr ${name} "${value}"'') {
-      access-control-allow-headers =
-        "keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,custom-header-1,x-accept-content-transfer-encoding,x-accept-response-streaming,x-user-agent,x-grpc-web,grpc-timeout,userid,userId,requestNonce,did,didKeyId,didSignature";
-      access-control-allow-methods = "GET, PUT, DELETE, POST, OPTIONS";
-      access-control-allow-origin = "*";
-      access-control-expose-headers = "grpc-status,grpc-message,userid,userId";
-      access-control-max-age = "1728000";
-    });
+    (mapAttrsToList (name: value: ''hdr ${name} "${value}"'') cors);
+
+  corsSetHeaders = concatStringsSep "\n" (mapAttrsToList
+    (name: value: ''http-after-response set-header ${name} "${value}"'') cors);
 
   haproxyTemplate = pkgs.writeText "haproxy.conf.tmpl" ''
     global
@@ -75,11 +80,7 @@ let
 
     backend connector
       http-request return status 200 ${corsHeaders} if { method OPTIONS }
-      http-after-response set-header access-control-allow-headers "keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,custom-header-1,x-accept-content-transfer-encoding,x-accept-response-streaming,x-user-agent,x-grpc-web,grpc-timeout,userid,userId,requestNonce,did,didKeyId,didSignature"
-      http-after-response set-header access-control-allow-methods "GET, PUT, DELETE, POST, OPTIONS"
-      http-after-response set-header access-control-allow-origin "*"
-      http-after-response set-header access-control-expose-headers "grpc-status,grpc-message,userid,userId"
-      http-after-response set-header access-control-max-age "1728000"
+      ${corsSetHeaders}
       timeout connect 5000000
       timeout server 5000000
       default-server ssl verify required ca-file ca.crt crt certs.pem maxconn 200000 alpn h2

@@ -28,8 +28,8 @@ in final: prev: {
 
   consul = prev.callPackage ./pkgs/consul { };
 
-  terraform-with-plugins = prev.terraform.withPlugins
-    (plugins: lib.attrVals [ "null" "local" "aws" "tls" "sops" ] plugins);
+  terraform-with-plugins = prev.terraform.withPlugins (plugins:
+    lib.attrVals [ "null" "local" "aws" "tls" "sops" "consul" ] plugins);
 
   mkShellNoCC = prev.mkShell.override { stdenv = prev.stdenvNoCC; };
 
@@ -38,6 +38,8 @@ in final: prev: {
   recImport = prev.callPackage ./lib/rec-import.nix { };
 
   escapeUserData = prev.callPackage ./lib/escape-user-data.nix { };
+
+  snakeCase = prev.callPackage ./lib/snake-case.nix { };
 
   inherit (self.inputs.inclusive.lib) inclusive;
 
@@ -60,6 +62,8 @@ in final: prev: {
   haproxy = prev.callPackage ./pkgs/haproxy.nix { };
 
   consul-template = prev.callPackage ./pkgs/consul-template.nix { };
+
+  nomad-autoscaler = prev.callPackage ./pkgs/nomad-autoscaler.nix { };
 
   toPrettyJSON = prev.callPackage ./lib/to-pretty-json.nix { };
 

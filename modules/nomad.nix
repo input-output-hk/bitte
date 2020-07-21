@@ -9,6 +9,7 @@ let
     toLower;
   inherit (lib.types)
     attrs nullOr attrsOf path package str submodule bool listOf enum port ints;
+  inherit (pkgs) snakeCase;
 
   # TODO: put this in lib
   sanitize = obj:
@@ -30,12 +31,6 @@ let
             (name: value: nameValuePair (snakeCase name) (sanitize value)))
         ];
     };
-
-  snakeCase = flip pipe [
-    (split "([^a-z])")
-    (concatMapStrings (s: if isList s then "_${toString s}" else s))
-    toLower
-  ];
 
   serverJoinType = submodule {
     options = {

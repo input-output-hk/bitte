@@ -7,6 +7,7 @@ let
   inherit (lib.types)
     package str enum ints submodule listOf nullOr port path attrsOf attrs;
   inherit (builtins) toJSON length attrNames split typeOf;
+  inherit (pkgs) snakeCase;
 
   sanitize = obj:
     lib.getAttr (typeOf obj) {
@@ -27,12 +28,6 @@ let
             (name: value: nameValuePair (snakeCase name) (sanitize value)))
         ];
     };
-
-  snakeCase = flip pipe [
-    (split "([^a-z])")
-    (concatMapStrings (s: if isList s then "_${toString s}" else s))
-    toLower
-  ];
 
 in {
   options = {

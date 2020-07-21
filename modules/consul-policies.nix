@@ -8,11 +8,11 @@ let
 
   consulIntentionsType = submodule {
     options = {
-      SourceName = mkOption { type = str; };
+      sourceName = mkOption { type = str; };
 
-      DestinationName = mkOption { type = str; };
+      destinationName = mkOption { type = str; };
 
-      Action = mkOption {
+      action = mkOption {
         type = enum [ "allow" "deny" ];
         default = "allow";
       };
@@ -66,11 +66,25 @@ let
     policyValueType = enum [ "read" "write" "deny" "list" ];
 
     consulSinglePolicyType = submodule ({ name, ... }: {
-      options = { policy = mkOption { type = policyValueType; }; };
+      options = {
+        policy = mkOption { type = policyValueType; };
+
+        intentions = mkOption {
+          type = policyValueType;
+          default = "deny";
+        };
+      };
     });
 
     consulMultiPolicyType = attrsOf (submodule ({ name, ... }: {
-      options = { policy = mkOption { type = policyValueType; }; };
+      options = {
+        policy = mkOption { type = policyValueType; };
+
+        intentions = mkOption {
+          type = policyValueType;
+          default = "deny";
+        };
+      };
     }));
 
     compute = set:
@@ -79,7 +93,7 @@ let
       else if set == null then
         set
       else
-        mapAttrs (kname: kvalue: { inherit (kvalue) policy; }) set;
+        mapAttrs (kname: kvalue: { inherit (kvalue) policy intentions; }) set;
 
     computeValues = set:
       let computed = mapAttrs (k: v: compute v) set;

@@ -22,5 +22,6 @@
     tree
     vim
     envoy
+    nomad-autoscaler
   ];
 }

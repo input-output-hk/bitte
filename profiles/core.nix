@@ -3,7 +3,6 @@
     ./common.nix
     ./consul/server.nix
     ./haproxy.nix
-    ./nginx.nix
     ./nomad/server.nix
     ./vault/server.nix
   ];

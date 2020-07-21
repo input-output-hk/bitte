@@ -660,6 +660,11 @@ in {
   config = {
     terraform = {
       provider = {
+        consul = {
+          address = "https://consul.${cfg.domain}";
+          datacenter = cfg.region;
+        };
+
         aws = let
           regions = [
             "ap-east-1"
@@ -686,6 +691,14 @@ in {
           alias = replaceStrings [ "-" ] [ "_" ] region;
         }));
       };
+
+      resource.consul_intention = listToAttrs
+        (forEach config.services.consul.intentions (intention:
+          nameValuePair "${intention.sourceName}_${intention.destinationName}" {
+            source_name = intention.sourceName;
+            destination_name = intention.destinationName;
+            action = intention.action;
+          }));
 
       resource.local_file = {
         "ssh-${cfg.name}" = mkIf cfg.generateSSHKey {

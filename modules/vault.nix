@@ -1,7 +1,7 @@
 { lib, config, pkgs, nodeName, ... }:
 let
   inherit (builtins) split typeOf length attrNames;
-  inherit (pkgs) ensureDependencies;
+  inherit (pkgs) ensureDependencies snakeCase;
   inherit (lib)
     mkIf mkEnableOption mkOption flip pipe concatMapStrings isList toLower
     mapAttrs' nameValuePair fileContents filterAttrs hasPrefix mapAttrsToList
@@ -27,12 +27,6 @@ let
             (name: value: nameValuePair (snakeCase name) (sanitize value)))
         ];
     };
-
-  snakeCase = flip pipe [
-    (split "([^a-z])")
-    (concatMapStrings (s: if isList s then "_${toString s}" else s))
-    toLower
-  ];
 
   storageRaftType = submodule {
     options = {

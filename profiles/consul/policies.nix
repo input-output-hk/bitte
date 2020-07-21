@@ -1,39 +1,15 @@
-{ config, ... }: {
+{ config, lib, ... }: {
   services.consul = {
-    intentions = [
-      {
-        SourceName = "connector";
-        DestinationName = "node";
-      }
-      {
-        SourceName = "connector";
-        DestinationName = "postgres";
-      }
-      {
-        SourceName = "count-dashboard";
-        DestinationName = "count-api";
-      }
-      {
-        SourceName = "haproxy";
-        DestinationName = "connector";
-      }
-      {
-        SourceName = "haproxy";
-        DestinationName = "landing";
-      }
-      {
-        SourceName = "haproxy";
-        DestinationName = "web";
-      }
-      {
-        SourceName = "node";
-        DestinationName = "bitcoind";
-      }
-      {
-        SourceName = "node";
-        DestinationName = "postgres";
-      }
-    ];
+    intentions = lib.flatten (lib.mapAttrsToList (source: destinations:
+      lib.forEach destinations (destination: {
+        sourceName = source;
+        destinationName = destination;
+      })) {
+        connector = [ "node" "postgres" ];
+        haproxy = [ "connector" "web" "landing" ];
+        node = [ "bitcoind" "postgres" ];
+        count-dashboard = [ "count-api" ];
+      });
 
     roles = with config.services.consul.policies; {
       consul-agent.policyNames = [ consul-agent.name ];
@@ -58,7 +34,12 @@
         eventPrefix = allWrite;
         keyPrefix = allWrite;
         queryPrefix = allWrite;
-        servicePrefix = allWrite;
+        servicePrefix = {
+          "" = {
+            policy = "write";
+            intentions = "write";
+          };
+        };
         sessionPrefix = allWrite;
 
         acl = "write";
