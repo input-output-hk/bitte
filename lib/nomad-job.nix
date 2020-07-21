@@ -3,7 +3,8 @@ let
   cfg = config.job;
   inherit (lib) mkOption mkEnableOption attrValues;
   inherit (lib.types)
-    nullOr submodule str enum ints listOf attrsOf attrs bool coercedTo float;
+    nullOr submodule str enum ints listOf attrsOf attrs bool coercedTo float
+    port;
 
   nullMap = f: input: if input == null then null else map f input;
 
@@ -141,6 +142,11 @@ let
         '';
       };
 
+      networks = mkOption {
+        type = listOf networkType;
+        default = [{ mode = "bridge"; }];
+      };
+
       meta = mkOption {
         type = nullOr (attrsOf str);
         default = null;
@@ -163,6 +169,65 @@ let
         '';
       };
 
+      services = mkOption {
+        apply = attrValues;
+        type = attrsOf (submodule ({ name, ... }: {
+          options = {
+            name = mkOption {
+              type = str;
+              default = name;
+            };
+
+            portLabel = mkOption {
+              type = nullOr str;
+              default = null;
+            };
+
+            connect = mkOption {
+              type = submodule {
+                options = {
+                  sidecarService = mkOption {
+                    type = submodule {
+                      options = {
+                        proxy = mkOption {
+                          default = null;
+                          type = nullOr (submodule {
+                            options = {
+                              config = mkOption {
+                                default = null;
+                                type = nullOr (submodule {
+                                  options = {
+                                    protocol = mkOption {
+                                      type = nullOr
+                                        (enum [ "tcp" "http" "http2" "grpc" ]);
+                                      default = null;
+                                    };
+                                  };
+                                });
+                              };
+
+                              upstreams = mkOption {
+                                type = listOf (submodule {
+                                  options = {
+                                    destinationName = mkOption { type = str; };
+
+                                    localBindPort = mkOption { type = port; };
+                                  };
+                                });
+                              };
+                            };
+                          });
+                        };
+                      };
+                    };
+                  };
+                };
+              };
+            };
+          };
+        }));
+      };
+
       shutdownDelay = mkOption {
         type = nullOr nanoseconds;
         default = null;
@@ -176,6 +241,18 @@ let
         '';
       };
 
+      update = mkOption {
+        default = null;
+        type = nullOr (submodule {
+          options = {
+            maxParallel = mkOption {
+              type = ints.positive;
+              default = 1;
+            };
+          };
+        });
+      };
+
       # stop_after_client_disconnect (string: "") - Specifies a duration after which a Nomad client that cannot communicate with the servers will stop allocations based on this task group. By default, a client will not stop an allocation until explicitly told to by a server. A client that fails to heartbeat to a server within the hearbeat_grace window and any allocations running on it will be marked "lost" and Nomad will schedule replacement allocations. However, these replaced allocations will continue to run on the non-responsive client; an operator may desire that these replaced allocations are also stopped in this case — for example, allocations requiring exclusive access to an external resource. When specified, the Nomad client will stop them after this duration. The Nomad client process must be running for this to occur.
 
       # task (Task: <required>) - Specifies one or more tasks to run within this group. This can be specified multiple times, to add a task as part of the group.
@@ -185,6 +262,15 @@ let
       # volume (Volume: nil) - Specifies the volumes that are required by tasks within the group.
     };
   });
+
+  networkType = submodule {
+    options = {
+      mode = mkOption {
+        type = str;
+        default = "bridge";
+      };
+    };
+  };
 
   restartPolicyType = submodule {
     options = {
@@ -411,6 +497,23 @@ let
           SIGINT. Note that this is only supported for drivers which accept
           sending signals (currently docker, exec, raw_exec, and java drivers).
         '';
+      };
+
+      resources = mkOption {
+        default = null;
+        type = nullOr (submodule {
+          options = {
+            cpu = mkOption {
+              type = ints.positive;
+              default = 100;
+            };
+
+            memoryMB = mkOption {
+              type = ints.positive;
+              default = 300;
+            };
+          };
+        });
       };
 
       user = mkOption {

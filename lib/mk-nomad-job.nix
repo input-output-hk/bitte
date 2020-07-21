@@ -1,4 +1,4 @@
-{ writeText, lib, pkgs, callPackage }:
+{ writeText, lib, pkgs, toPrettyJSON, callPackage }:
 name: configuration:
 let
   inherit (builtins) length mapAttrs attrNames typeOf;
@@ -6,7 +6,18 @@ let
 
   pp = v: __trace (__toJSON v) v;
 
-  specialUpper = { id = "ID"; };
+  # TODO: fix properly
+  specialUpper = {
+    id = "ID";
+    serverAddress = "server_address";
+    server_address = "server_address";
+    protocol = "protocol";
+    auth = "auth";
+    image = "image";
+    volumes = "volumes";
+    args="args";
+    memoryMB = "MemoryMB";
+  };
 
   capitalizeString = s:
     specialUpper.${s} or ((lib.toUpper (lib.substring 0 1 s))
@@ -50,7 +61,7 @@ let
 
   evaluateConfiguration = configuration:
     evalModules {
-      modules = [ { imports = [ ./job.nix ]; } configuration ];
+      modules = [ { imports = [ ./nomad-job.nix ]; } configuration ];
       specialArgs = { inherit pkgs name; };
     };
 
@@ -60,7 +71,7 @@ let
 
   evaluated = { Job = nomadix configuration; };
 
-  json = writeText "${name}.json" (builtins.toJSON evaluated);
+  json = toPrettyJSON name evaluated;
 
   run = callPackage ./run-nomad-job.nix { inherit json name; };
 in { inherit json evaluated run; }

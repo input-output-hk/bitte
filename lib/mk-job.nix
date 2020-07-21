@@ -1,165 +1,143 @@
 { config, pkgs, ... }:
 let
-  inherit (pkgs) toPrettyJSON writeShellScriptBin;
+  inherit (pkgs) writeShellScriptBin;
   inherit (config) cluster;
   inherit (cluster) region domain;
 
-  env = ''
-    vault login -method aws -no-print
-
-    NOMAD_TOKEN="$(vault read -field secret_id nomad/creds/admin)"
-    export NOMAD_TOKEN
-
-    CONSUL_HTTP_TOKEN="$(vault read -field token consul/creds/nomad-client)"
-    export CONSUL_HTTP_TOKEN
-
-    export AWS_DEFAULT_REGION="${region}"
-    export BITTE_CLUSTER="${cluster.name}"
-    export AWS_PROFILE=atala
-    export VAULT_ADDR="https://vault.${domain}"
-    export NOMAD_ADDR="https://nomad.${domain}"
-  '';
-
-  upstreams = {
-    bitcoind = {
-      destinationName = "bitcoind";
-      localBindPort = 18333;
-    };
-    postgres = {
-      destinationName = "postgres";
-      localBindPort = 5432;
-    };
-  };
-
-  lcoalhost = "127.0.0.1";
+  mkNomadJob = pkgs.callPackage ./mk-nomad-job.nix { };
+  nomadJob = pkgs.callPackage ./nomad-job.nix { };
 
   ecr = "895947072537.dkr.ecr.us-east-2.amazonaws.com";
-  tag = "develop-2586-a9d768cf";
+  tag = "develop-2598-1980ac7a";
 
-  ecrImage = name: "${ecr}/${name}:${tag}";
+  ecrImage = imageName: "${ecr}/${imageName}:${tag}";
 
-  jobdef = {
-    Name = name;
-    id = name;
-    Datacenters = [ region ];
-    taskGroups = [
-      {
-        name = "prism";
-        networks = [{ mode = "bridge"; }];
-        services = [{
-          name = "node";
+  name = "atala-${tag}";
+
+  jobdef = mkNomadJob name {
+    datacenters = [ region ];
+
+    update = {
+      maxParallel = 1;
+      healthCheck = "checks";
+      minHealthyTime = "10s";
+      healthyDeadline = "5m";
+      progressDeadline = "10m";
+      autoRevert = true;
+      autoPromote = true;
+      canary = 1;
+      stagger = "30s";
+    };
+
+    taskGroups = {
+      "prism-${tag}" = {
+        services."node-${tag}" = {
           connect.sidecarService = {
             proxy = {
-              upstreams = with upstreams; [ bitcoind postgres ];
-              config.protocol = "http";
-              localServicePort = 50053;
+              upstreams = [
+                {
+                  destinationName = "postgres-${tag}";
+                  localBindPort = 5432;
+                }
+                {
+                  destinationName = "bitcoind-${tag}";
+                  localBindPort = 18333;
+                }
+              ];
             };
           };
-        }];
+        };
 
-        tasks = [{
-          node = {
-            driver = "docker";
-            config.image = ecrImage "node";
-            env = {
-              GEUD_NODE_PSQL_HOST = "127.0.0.1";
-              GEUD_NODE_PSQL_DATABASE = "node";
-              GEUD_NODE_PSQL_USERNAME = "node";
-              GEUD_NODE_PSQL_PASSWORD = "node";
-              GEUD_NODE_BITCOIND_HOST = "127.0.0.1";
-              GEUD_NODE_BITCOIND_PORT = upstreams.bitcoind.localBindPort;
-              GEUD_NODE_BITCOIND_USERNAME = "bitcoin";
-              GEUD_NODE_BITCOIND_PASSWORD = "bitcoin";
-            };
-          };
-        }];
-      }
-
-      {
-        name = "landing";
-        networks = [{ mode = "bridge"; }];
-
-        service = [{
-          name = "landing";
-          tags = [ "http" ];
-          port = "http";
-
-          connect.sidecarService = {
-            proxy = {
-              config.protocol = "http";
-              localServicePort = 80;
-            };
-          };
-
-          checks = [{
-            type = "http";
-            path = "/";
-            interval = "10s";
-            timeout = "1s";
-          }];
-        }];
-
-        tasks = [{
-          landing = {
-            driver = "docker";
-            config.image = ecrImage "landing";
-            env.REACT_APP_GRPC_CLIENT = "https://${domain}:4433";
-          };
-        }];
-      }
-
-      {
-        name = "web";
-        networks = [{ mode = "bridge"; }];
-
-        services = [{
-          name = "web";
-          tags = [ "http" ];
-          port = "http";
-
-          connect.sidecarService = {
-            proxy = {
-              config.protocol = "http";
-              localServicePort = 80;
-            };
-          };
-
-          checks = [{
-            type = "http";
-            path = "/";
-            interval = "10s";
-            timeout = "1s";
-          }];
-        }];
-
-        tasks = [{
-          web = {
-            driver = "docker";
-            config.image = ecrImage "web";
-            env = {
-              REACT_APP_GRPC_CLIENT = "https://${domain}:10000";
-              REACT_APP_WALLET_GRPC_CLIENT = "http://${domain}:10000";
-              REACT_APP_ISSUER = "c8834532-eade-11e9-a88d-d8f2ca059830";
-              REACT_APP_VERIFIER = "f424f42c-2097-4b66-932d-b5e53c734eff";
-            };
-          };
-        }];
-      }
-
-      {
-        name = "connector";
-        networks = [{ mode = "bridge"; }];
-
-        services = [{
-          name = "connector";
-          connect.sidecarService = {
-            proxy = { upstreams = [ upstreams.postgres ]; };
-          };
-        }];
-
-        task.connector = {
+        tasks."node-${tag}" = {
           driver = "docker";
-          config.image = ecrImage "connector";
+
+          env = {
+            GEUD_NODE_PSQL_HOST = "127.0.0.1";
+            GEUD_NODE_PSQL_DATABASE = "node";
+            GEUD_NODE_PSQL_USERNAME = "node";
+            GEUD_NODE_PSQL_PASSWORD = "node";
+            GEUD_NODE_BITCOIND_HOST = "127.0.0.1";
+            GEUD_NODE_BITCOIND_PORT = toString 18333;
+            GEUD_NODE_BITCOIND_USERNAME = "bitcoin";
+            GEUD_NODE_BITCOIND_PASSWORD = "bitcoin";
+          };
+
+          config.image = ecrImage "node";
+        };
+      };
+
+      "landing-${tag}" = {
+        count = 1;
+        update.maxParallel = 1;
+
+        services."landing-${tag}" = {
+          portLabel = "80";
+          connect.sidecarService = { };
+        };
+
+        tasks."landing-${tag}" = {
+          driver = "docker";
+
+          resources = {
+            cpu = 20;
+            memoryMB = 15;
+          };
+
+          env = {
+            REACT_APP_GRPC_CLIENT = "https://connector.${domain}:4422";
+            REACT_APP_WALLET_GRPC_CLIENT = "https://connector.${domain}:4422";
+            REACT_APP_ISSUER = "c8834532-eade-11e9-a88d-d8f2ca059830";
+            REACT_APP_VERIFIER = "f424f42c-2097-4b66-932d-b5e53c734eff";
+          };
+
+          config.image = ecrImage "landing";
+        };
+      };
+
+      "web-${tag}" = {
+        services."web-${tag}" = {
+          portLabel = "80";
+          connect.sidecarService = { };
+        };
+
+        tasks."web-${tag}" = {
+          driver = "docker";
+
+          resources = {
+            cpu = 20;
+            memoryMB = 15;
+          };
+
+          env = {
+            REACT_APP_GRPC_CLIENT = "https://connector.${domain}:4422";
+            REACT_APP_WALLET_GRPC_CLIENT = "https://connector.${domain}:4422";
+            REACT_APP_ISSUER = "c8834532-eade-11e9-a88d-d8f2ca059830";
+            REACT_APP_VERIFIER = "f424f42c-2097-4b66-932d-b5e53c734eff";
+          };
+
+          config.image = ecrImage "web";
+        };
+      };
+
+      "connector-${tag}" = {
+        services."connector-${tag}" = {
+          portLabel = "50051";
+          connect.sidecarService.proxy = {
+            config.protocol = "grpc";
+            upstreams = [{
+              destinationName = "postgres-${tag}";
+              localBindPort = 5432;
+            }];
+          };
+        };
+
+        tasks."connector-${tag}" = {
+          driver = "docker";
+
+          resources = {
+            cpu = 20;
+            memoryMB = 260;
+          };
 
           env = {
             GEUD_CONNECTOR_PSQL_HOST = "127.0.0.1";
@@ -169,87 +147,95 @@ let
             PRISM_CONNECTOR_NODE_HOST = "127.0.0.1";
             PRISM_CONNECTOR_NODE_PORT = "50053";
           };
+
+          config.image = ecrImage "connector";
         };
-      }
+      };
 
-      {
-        name = "bitcoind";
-        networks = [{ mode = "bridge"; }];
+      "bitcoind-${tag}" = {
+        count = 1;
 
-        services = [{
-          name = "bitcoind";
-          port = upstreams.bitcoind.localBindPort;
-          connect.sidecarService = [ { } ];
-        }];
+        services."bitcoind-${tag}" = {
+          portLabel = "18333";
+          connect.sidecarService = { };
+        };
 
-        tasks = [{
-          bitcoind = {
-            driver = "docker";
+        tasks."bitcoind-${tag}" = {
+          driver = "docker";
 
-            config = {
-              image = "ruimarinho/bitcoin-core";
-              auth.server_address = "hub.docker.com:443";
-
-              args = [
-                "-printtoconsole"
-                "-regtest=1"
-                "-rpcallowip=0.0.0.0/0"
-                "-rpcuser=bitcoin"
-                "-rpcpassword=bitcoin"
-                "-rpcbind=0.0.0.0:18333"
-              ];
-            };
+          resources = {
+            cpu = 20;
+            memoryMB = 140;
           };
-        }];
-      }
 
-      {
-        name = "db";
-        networks = [{ mode = "bridge"; }];
+          config = {
+            image = "ruimarinho/bitcoin-core";
 
-        services = [{
-          name = "postgres";
-          port = upstreams.postgres.localBindPort;
-          connect.sidecarService = [ { } ];
-        }];
+            args = [
+              "-printtoconsole"
+              "-regtest=1"
+              "-rpcallowip=0.0.0.0/0"
+              "-rpcuser=bitcoin"
+              "-rpcpassword=bitcoin"
+              "-rpcbind=0.0.0.0:18333"
+            ];
 
-        tasks = [{
-          postgres = {
-            driver = "docker";
-
-            env = { POSTGRES_PASSWORD = "postgres"; };
-
-            config = {
-              image = "postgres:12";
-              auth.server_address = "hub.docker.com:443";
-              volumes = let
-                pgInit = pkgs.writeTextDir "entrypoint/pg.sql" ''
-                  CREATE DATABASE connector;
-                  CREATE USER connector WITH ENCRYPTED PASSWORD 'connector';
-                  GRANT ALL PRIVILEGES ON DATABASE connector TO connector;
-
-                  CREATE DATABASE node;
-                  CREATE USER node WITH ENCRYPTED PASSWORD 'node';
-                  GRANT ALL PRIVILEGES ON DATABASE node TO node;
-
-                  CREATE DATABASE demo;
-                  CREATE USER demo WITH ENCRYPTED PASSWORD 'demo';
-                  GRANT ALL PRIVILEGES ON DATABASE demo TO demo;
-                '';
-              in [ "${pgInit}/entrypoint:/docker-entrypoint-initdb.d" ];
-            };
+            auth.server_address = "hub.docker.com:443";
           };
-        }];
-      }
-    ];
+        };
+      };
+
+      "postgres-${tag}" = {
+        update.maxParallel = 1;
+
+        services."postgres-${tag}" = {
+          portLabel = "5432";
+
+          connect.sidecarService = { };
+        };
+
+        tasks."postgres-${tag}" = {
+          driver = "docker";
+
+          env = { POSTGRES_PASSWORD = "postgres"; };
+
+          config = {
+            image = "postgres:12";
+
+            volumes = [ "/etc/docker-mounts/db:/docker-entrypoint-initdb.d" ];
+
+            auth.server_address = "hub.docker.com:443";
+          };
+        };
+      };
+    };
   };
 
-  name = "atala-${tag}";
-  jobFile = toPrettyJSON name { Job = jobdef; };
-in writeShellScriptBin name ''
-  set -euo pipefail
+  jobFile = jobdef.json;
+in {
+  job = jobdef.json;
+  run = writeShellScriptBin name ''
+    set -euo pipefail
 
-  ${env}
+    vault login -method aws -no-print
 
-  nomad job run ${jobFile}
-''
+    NOMAD_TOKEN="$(vault read -field secret_id nomad/creds/admin)"
+    export NOMAD_TOKEN
+
+    CONSUL_HTTP_TOKEN="$(vault read -field token consul/creds/admin)"
+    export CONSUL_HTTP_TOKEN
+
+    export AWS_DEFAULT_REGION="${region}"
+    export BITTE_CLUSTER="${cluster.name}"
+    export AWS_PROFILE=atala
+    export VAULT_ADDR="https://vault.${domain}"
+    export NOMAD_ADDR="https://nomad.${domain}"
+
+    jq --arg token "$CONSUL_HTTP_TOKEN" '.Job.ConsulToken = $token' < ${jobFile} \
+    | curl -f \
+        -X POST \
+        -H "X-Nomad-Token: $NOMAD_TOKEN" \
+        -d @- \
+        "$NOMAD_ADDR/v1/jobs"
+  '';
+}

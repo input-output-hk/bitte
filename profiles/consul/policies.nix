@@ -6,9 +6,20 @@
         destinationName = destination;
       })) {
         connector = [ "node" "postgres" ];
-        haproxy = [ "connector" "web" "landing" ];
+        haproxy = [
+          "connector"
+          "web"
+          "landing"
+          "connector-develop-2598-1980ac7a"
+          "web-develop-2598-1980ac7a"
+          "landing-develop-2598-1980ac7a"
+        ];
         node = [ "bitcoind" "postgres" ];
         count-dashboard = [ "count-api" ];
+        connector-develop-2598-1980ac7a =
+          [ "node-develop-2598-1980ac7a" "postgres-develop-2598-1980ac7a" ];
+        node-develop-2598-1980ac7a =
+          [ "bitcoind-develop-2598-1980ac7a" "postgres-develop-2598-1980ac7a" ];
       });
 
     roles = with config.services.consul.policies; {
