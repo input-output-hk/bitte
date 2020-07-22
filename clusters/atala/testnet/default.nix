@@ -2,19 +2,11 @@
 let
   inherit (pkgs.terralib) sops2kms sops2region cidrsOf;
   inherit (builtins) readFile replaceStrings;
-  inherit (lib) mapAttrs' nameValuePair flip;
+  inherit (lib) mapAttrs' nameValuePair flip attrValues;
   inherit (config) cluster;
   inherit (cluster.vpc) subnets;
   inherit (import ./security-group-rules.nix { inherit config pkgs; })
     securityGroupRules;
-
-  nixosAmis =
-    import (self.inputs.nixpkgs + "/nixos/modules/virtualisation/ec2-amis.nix");
-
-  amis = {
-    nixos = mapAttrs' (name: value: nameValuePair name value.hvm-ebs)
-      nixosAmis."20.03";
-  };
 
   availableKms = {
     atala.us-east-2 =
@@ -35,19 +27,6 @@ in {
     kms = availableKms.atala.eu-central-1;
     domain = "testnet.atalaprism.io";
     s3-bucket = "atala-cvp";
-    route53 = true;
-    certificate.organization = "IOHK";
-    generateSSHKey = true;
-
-    vpc = {
-      cidr = "10.0.0.0/16";
-
-      subnets = {
-        prv-1.cidr = "10.0.0.0/19";
-        prv-2.cidr = "10.0.32.0/19";
-        prv-3.cidr = "10.0.64.0/19";
-      };
-    };
 
     autoscalingGroups = (flip mapAttrs' { "t3a.medium" = 3; }
       (instanceType: desiredCapacity:
@@ -56,11 +35,10 @@ in {
           inherit desiredCapacity instanceType;
           associatePublicIP = true;
           maxInstanceLifetime = 604800;
-          ami = amis.nixos.${cluster.region};
           iam.role = cluster.iam.roles.client;
           iam.instanceProfile.role = cluster.iam.roles.client;
 
-          subnets = [ subnets.prv-1 subnets.prv-2 subnets.prv-3 ];
+          subnets = attrValues subnets;
 
           modules = [ ../../../profiles/client.nix ];
 
@@ -74,8 +52,6 @@ in {
         instanceType = "t3a.medium";
         privateIP = "10.0.0.10";
         subnet = subnets.prv-1;
-        iam.role = cluster.iam.roles.core;
-        iam.instanceProfile.role = cluster.iam.roles.core;
         route53.domains =
           [ "consul" "vault" "nomad" "web" "landing" "connector" ];
 
@@ -92,8 +68,6 @@ in {
         instanceType = "t3a.medium";
         privateIP = "10.0.32.10";
         subnet = subnets.prv-2;
-        iam.role = cluster.iam.roles.core;
-        iam.instanceProfile.role = cluster.iam.roles.core;
         route53.domains = [ "landing" ];
 
         modules = [ ../../../profiles/core.nix ];
@@ -107,14 +81,25 @@ in {
         instanceType = "t3a.medium";
         privateIP = "10.0.64.10";
         subnet = subnets.prv-3;
-        iam.role = cluster.iam.roles.core;
-        iam.instanceProfile.role = cluster.iam.roles.core;
         route53.domains = [ "landing" ];
 
         modules = [ ../../../profiles/core.nix ];
 
         securityGroupRules = {
           inherit (securityGroupRules) internet internal ssh;
+        };
+      };
+
+      monitoring = {
+        instanceType = "t3a.large";
+        privateIP = "10.0.0.20";
+        subnet = subnets.prv-1;
+        route53.domains = [ "monitoring" ];
+
+        modules = [ ../../../profiles/monitoring.nix ];
+
+        securityGroupRules = {
+          inherit (securityGroupRules) internet internal ssh http;
         };
       };
     };

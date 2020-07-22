@@ -5,7 +5,7 @@ let
     mkIf pipe filterAttrs mapAttrs' nameValuePair flip concatMapStrings isList
     toLower mapAttrsToList hasPrefix mkEnableOption mkOption makeBinPath;
   inherit (lib.types)
-    package str enum ints submodule listOf nullOr port path attrsOf attrs;
+    package str enum ints submodule listOf nullOr port path attrsOf attrs bool;
   inherit (builtins) toJSON length attrNames split typeOf;
   inherit (pkgs) snakeCase;
 
@@ -340,6 +340,22 @@ in {
         default = { };
       };
 
+      telemetry = mkOption {
+        default = { };
+        type = submodule {
+          options = {
+            dogstatsdAddr = mkOption {
+              type = nullOr str;
+              default = null;
+            };
+
+            disableHostname = mkOption {
+              type = nullOr bool;
+              default = null;
+            };
+          };
+        };
+      };
     };
   };
 
@@ -365,7 +381,7 @@ in {
           clientAddr encrypt addresses retryJoin primaryDatacenter acl connect
           caFile certFile keyFile autoEncrypt verifyServerHostname
           verifyOutgoing verifyIncoming dataDir tlsMinVersion ports
-          enableLocalScriptChecks nodeMeta;
+          enableLocalScriptChecks nodeMeta telemetry;
       });
 
     environment.etc."/${cfg.configDir}/extra-config.json".source =

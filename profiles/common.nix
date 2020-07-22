@@ -4,7 +4,6 @@
   services = {
     s3-download.enable = true;
     amazon-ssm-agent.enable = true;
-    nomad.enable = true;
     vault.enable = true;
     consul.enable = true;
   };

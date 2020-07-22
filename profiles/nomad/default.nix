@@ -47,6 +47,11 @@ in {
       keyFile = key;
       allowUnauthenticated = false;
     };
+
+    telemetry = {
+      datadogAddress = "localhost:8125";
+      datadogTags = [ "region:${region}" "role:nomad" ];
+    };
   };
 
   # Used for Consul Connect and requires reboot?

@@ -292,6 +292,22 @@ in {
       });
       default = null;
     };
+
+    telemetry = mkOption {
+      type = submodule {
+        options = {
+          dogstatsdAddr  = mkOption {
+            type = nullOr str;
+            default = null;
+          };
+
+          dogstatsdTags = mkOption {
+            type = nullOr (listOf str);
+            default = null;
+          };
+        };
+      };
+    };
   };
 
   config = mkIf cfg.enable {
@@ -301,7 +317,7 @@ in {
       pkgs.toPrettyJSON "config" (sanitize {
         inherit (cfg)
           serviceRegistration ui logLevel disableMlock apiAddr clusterAddr seal
-          listener storage;
+          listener storage telemetry;
       });
 
     environment.etc."${cfg.configDir}/extra-config.json".source =

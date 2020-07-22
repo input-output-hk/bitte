@@ -1,11 +1,19 @@
 { self, pkgs, config, ... }: {
   imports = [
     ./common.nix
-    ./docker.nix
     ./consul/client.nix
-    ./vault/client.nix
+    ./docker.nix
     ./nomad/client.nix
+    ./telegraf.nix
+    ./vault/client.nix
   ];
+
+  services = {
+    amazon-ssm-agent.enable = true;
+    vault-agent-client.enable = true;
+    nomad.enable = true;
+    telegraf.extraConfig.global_tags.role = "consul-client";
+  };
 
   boot.cleanTmpDir = true;
 
@@ -13,6 +21,4 @@
   security.pki.certificates = [ ];
   time.timeZone = "UTC";
   networking.firewall.enable = false;
-  services.amazon-ssm-agent.enable = true;
-  services.vault-agent-client.enable = true;
 }

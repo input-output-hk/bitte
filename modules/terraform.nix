@@ -17,6 +17,14 @@ let
 
   kms2region = kms: elemAt (splitString ":" kms) 3;
 
+  amis = let
+    nixosAmis = import
+      (self.inputs.nixpkgs + "/nixos/modules/virtualisation/ec2-amis.nix");
+  in {
+    nixos = mapAttrs' (name: value: nameValuePair name value.hvm-ebs)
+      nixosAmis."20.03";
+  };
+
   cfg = config.cluster;
   resources = config.terraform.resource;
 
@@ -38,14 +46,15 @@ let
         default = { };
       };
 
-      route53 = mkEnableOption "Enable route53 registrations";
+      route53 = mkOption {
+        type = bool;
+        default = true;
+        description = "Enable route53 registrations";
+      };
 
       ami = mkOption {
         type = str;
-        default = let
-          amis = import (self.inputs.nixpkgs
-            + "/nixos/modules/virtualisation/ec2-amis.nix");
-        in amis."20.03".${cfg.region}.hvm-ebs;
+        default = amis.nixos.${cfg.region};
       };
 
       iam = mkOption {
@@ -59,7 +68,7 @@ let
 
       generateSSHKey = mkOption {
         type = bool;
-        default = false;
+        default = true;
       };
 
       region = mkOption {
@@ -69,7 +78,15 @@ let
 
       vpc = mkOption {
         type = vpcType;
-        default = { };
+        default = {
+          cidr = "10.0.0.0/16";
+
+          subnets = {
+            prv-1.cidr = "10.0.0.0/19";
+            prv-2.cidr = "10.0.32.0/19";
+            prv-3.cidr = "10.0.64.0/19";
+          };
+        };
       };
 
       certificate = mkOption {
@@ -183,11 +200,16 @@ let
 
   certificateType = submodule ({ ... }@this: {
     options = {
-      organization = mkOption { type = str; };
+      organization = mkOption {
+        type = str;
+        default = "IOHK";
+      };
+
       commonName = mkOption {
         type = str;
         default = this.config.organization;
       };
+
       validityPeriodHours = mkOption {
         type = ints.positive;
         default = 8760;
@@ -277,6 +299,7 @@ let
         type = str;
         default = name;
       };
+
       cidr = mkOption { type = str; };
 
       id = mkOption {
@@ -353,7 +376,13 @@ let
         default = config.cluster.ami;
       };
 
-      iam = mkOption { type = serverIamType this.config.name; };
+      iam = mkOption {
+        type = serverIamType this.config.name;
+        default = {
+          role = cfg.iam.roles.core;
+          instanceProfile.role = cfg.iam.roles.core;
+        };
+      };
 
       route53 = mkOption {
         default = { domains = [ ]; };

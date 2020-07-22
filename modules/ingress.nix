@@ -88,11 +88,19 @@ let
       server {{.ID}} {{.Address}}:{{.Port}}
     {{- end }}
 
+    {{ range safeLs "deploy-tags" }}
+    backend landing_{{ .Key }}
+      default-server ssl verify required ca-file ca.crt crt certs.pem check check-ssl maxconn 200000
+    {{ range connect (printf "landing-%s" .Key) }}
+      server {{.ID}} {{.Address}}:{{.Port}}
+    {{- end }}{{- end }}
+
     backend landing
       default-server ssl verify required ca-file ca.crt crt certs.pem check check-ssl maxconn 200000
     {{ range connect "landing" }}
       server {{.ID}} {{.Address}}:{{.Port}}
     {{- end }}
+
 
     backend nomad
       default-server ssl verify required ca-file consul-ca.pem crt consul-crt.pem check check-ssl maxconn 2000 
@@ -131,6 +139,11 @@ let
 
     frontend app
       bind *:443 ssl crt acme-full.pem alpn h2,http/1.1
+
+      {{ range safeLs "deploy-tags" }}
+      acl host_landing_{{ .Key }} hdr(host) -i {{.Key}}-landing.${domain}
+      use_backend landing_{{ .Key }} if host_landing_{{ .Key }}
+      {{- end }}
 
       acl host_landing hdr(host) -i landing.${domain}
       use_backend landing if host_landing

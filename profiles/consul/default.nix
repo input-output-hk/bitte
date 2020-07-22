@@ -20,6 +20,11 @@ in {
     certFile = "/etc/ssl/certs/cert.pem";
     keyFile = "/var/lib/consul/cert-key.pem";
 
+    telemetry = {
+      dogstatsdAddr = "localhost:8125";
+      disableHostname = true;
+    };
+
     nodeMeta = {
       inherit region;
       inherit nodeName;

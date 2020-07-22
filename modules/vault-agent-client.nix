@@ -35,7 +35,7 @@ let
 
   vaultAgentConfig = pkgs.toPrettyJSON "vault-agent" {
     pid_file = "./vault-agent.pid";
-    vault.address = "https://vault.${domain}:8200";
+    vault.address = "https://10.0.0.10:8200";
     # exit_after_auth = true;
     auto_auth = {
       method = [{

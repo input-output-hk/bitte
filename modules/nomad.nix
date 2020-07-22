@@ -927,6 +927,22 @@ in {
       };
     };
 
+    telemetry = mkOption {
+      type = submodule {
+        options = {
+          datadogAddress = mkOption {
+            type = nullOr str;
+            default = null;
+          };
+
+          datadogTags = mkOption {
+            type = nullOr (listOf str);
+            default = null;
+          };
+        };
+      };
+    };
+
     # TODO: refactor this, no clue why it's so convoluted.
     plugin = let
       rawExecType = submodule {
@@ -987,7 +1003,7 @@ in {
       (sanitize {
         inherit (cfg)
           dataDir logLevel datacenter name acl ports tls consul server client
-          plugin;
+          plugin telemetry;
       });
 
     environment.systemPackages = [ pkgs.nomad ];

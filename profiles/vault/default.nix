@@ -49,6 +49,11 @@ in {
         tlsKeyFile = key;
       };
 
+      telemetry = {
+        dogstatsdAddr = "localhost:8125";
+        dogstatsdTags = [ "region:${region}" "role:vault" ];
+      };
+
       # storage.raft = {
       #   retryJoin = mapAttrsToList (_: v: {
       #     leaderApiAddr = "https://${v.privateIP}:8200";

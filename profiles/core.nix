@@ -4,12 +4,15 @@
     ./consul/server.nix
     ./haproxy.nix
     ./nomad/server.nix
+    ./telegraf.nix
     ./vault/server.nix
   ];
 
   services = {
     vault-agent-core.enable = true;
+    nomad.enable = true;
     ingress.enable = true;
+    telegraf.extraConfig.global_tags.role = "consul-server";
   };
 
   environment.etc."consul.d/.keep.json".text = "{}";
