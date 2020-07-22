@@ -105,29 +105,13 @@
         "type": "github"
       }
     },
-    "nixpkgs-master": {
-      "locked": {
-        "lastModified": 1593423095,
-        "narHash": "sha256-129DxIaT50Hmt8uOpZD+Fbs+74WaDEEeGRYj2967hPQ=",
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "e0f4ee72bc08beb30b840d662b2ded5a9b0888a3",
-        "type": "github"
-      },
-      "original": {
-        "owner": "NixOS",
-        "ref": "master",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1593506545,
-        "narHash": "sha256-E3YQM2ZJeAZ9mKLVhX6ykDhOgtTBmmN7fkbePLTncBs=",
+        "lastModified": 1595323341,
+        "narHash": "sha256-0i1ud8Jcm30nUUHZ1I7NyTxbXRg/r4YtQWGWTpyar0Y=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "7db146538e49ad4bee4b5c4fea073c38586df7e2",
+        "rev": "55079328c219fb53f3120a34fdba3a80d3be601b",
         "type": "github"
       },
       "original": {
@@ -159,7 +143,6 @@
         "inclusive": "inclusive_2",
         "nixpkgs": "nixpkgs_2",
         "nixpkgs-crystal": "nixpkgs-crystal_2",
-        "nixpkgs-master": "nixpkgs-master",
         "ops-lib": "ops-lib",
         "terranix": "terranix",
         "utils": "utils_2"

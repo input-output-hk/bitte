@@ -4,7 +4,6 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     nixpkgs-crystal.url = "github:manveru/nixpkgs/crystal-0.35";
-    nixpkgs-master.url = "github:NixOS/nixpkgs/master";
     inclusive.url = "github:manveru/nix-inclusive";
     utils.url = "github:numtide/flake-utils";
     bitte-cli.url = "github:input-output-hk/bitte-cli";
