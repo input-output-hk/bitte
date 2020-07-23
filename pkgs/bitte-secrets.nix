@@ -278,11 +278,6 @@ let
     set -exuo pipefail
 
     bitte terraform
-    terraform plan -out ${cluster.name}.plan
-    until terraform apply ${cluster.name}.plan; do
-      terraform plan -out ${cluster.name}.plan
-      sleep 1
-    done
 
     IP="$(terraform output -json cluster | jq -e -r '.instances."core-1".public_ip')"
     export IP
@@ -293,7 +288,7 @@ let
     acmedir="secrets/certs/${cluster.name}/${kms}/acme/"
     if [ -d "$acmedir" ]; then
       rsync -e 'ssh -i ./secrets/ssh-${cluster.name}' -rP "$acmedir" "root@$IP:/var/lib/acme/"
-      bitte ssh core-1 chown nginx:nginx -R /var/lib/acme
+      bitte ssh core-1 chown haproxy:haproxy -R /var/lib/acme
     fi
 
     bitte rebuild --dirty

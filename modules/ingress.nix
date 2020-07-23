@@ -18,7 +18,7 @@ let
     {{with caLeaf "haproxy"}}{{.PrivateKeyPEM}}{{.CertPEM}}{{end}}
   '';
 
-  haproxyIngress = pkgs.toPrettyJSON "haproxy.json" {
+  haproxyIngress = pkgs.toPrettyJSON "haproxy" {
     exec = [{ command = "${pkgs.haproxy}/bin/haproxy -f haproxy.conf"; }];
     template = [
       {
@@ -72,36 +72,6 @@ let
       accepted_payload_size 8192
       hold valid 5s
 
-    backend web
-      default-server ssl verify required ca-file ca.crt crt certs.pem check check-ssl maxconn 200000
-    {{ range connect "web" }}
-      server {{.ID}} {{.Address}}:{{.Port}}
-    {{- end }}
-
-    backend connector
-      http-request return status 200 ${corsHeaders} if { method OPTIONS }
-      ${corsSetHeaders}
-      timeout connect 5000000
-      timeout server 5000000
-      default-server ssl verify required ca-file ca.crt crt certs.pem maxconn 200000 alpn h2
-    {{ range connect "connector" }}
-      server {{.ID}} {{.Address}}:{{.Port}}
-    {{- end }}
-
-    {{ range safeLs "deploy-tags" }}
-    backend landing_{{ .Key }}
-      default-server ssl verify required ca-file ca.crt crt certs.pem check check-ssl maxconn 200000
-    {{ range connect (printf "landing-%s" .Key) }}
-      server {{.ID}} {{.Address}}:{{.Port}}
-    {{- end }}{{- end }}
-
-    backend landing
-      default-server ssl verify required ca-file ca.crt crt certs.pem check check-ssl maxconn 200000
-    {{ range connect "landing" }}
-      server {{.ID}} {{.Address}}:{{.Port}}
-    {{- end }}
-
-
     backend nomad
       default-server ssl verify required ca-file consul-ca.pem crt consul-crt.pem check check-ssl maxconn 2000 
     {{ range service "http.nomad" }}
@@ -132,24 +102,8 @@ let
       acl http ssl_fc,not
       http-request redirect scheme https if http
 
-    frontend grpc
-      bind *:4422 ssl crt acme-full.pem alpn h2
-      timeout client 5000000
-      default_backend connector
-
     frontend app
       bind *:443 ssl crt acme-full.pem alpn h2,http/1.1
-
-      {{ range safeLs "deploy-tags" }}
-      acl host_landing_{{ .Key }} hdr(host) -i {{.Key}}-landing.${domain}
-      use_backend landing_{{ .Key }} if host_landing_{{ .Key }}
-      {{- end }}
-
-      acl host_landing hdr(host) -i landing.${domain}
-      use_backend landing if host_landing
-
-      acl host_web hdr(host) -i web.${domain}
-      use_backend web if host_web
 
       acl host_nomad hdr(host) -i nomad.${domain}
       use_backend nomad if host_nomad
@@ -159,8 +113,6 @@ let
 
       acl host_consul hdr(host) -i consul.${domain}
       use_backend consul if host_consul
-
-      default_backend landing
   '';
 
 in {
@@ -226,6 +178,7 @@ in {
         CONSUL_CLIENT_KEY = "consul-key.pem";
         CONSUL_HTTP_ADDR = "https://127.0.0.1:8501";
         CONSUL_HTTP_SSL = "true";
+        inherit (config.environment.variables) VAULT_CACERT;
       };
 
       script = ''
@@ -240,7 +193,7 @@ in {
 
         consul services register ${haproxyService}
 
-        exec consul-template -config ${haproxyIngress}
+        exec consul-template -log-level debug -config ${haproxyIngress}
       '';
     };
   };

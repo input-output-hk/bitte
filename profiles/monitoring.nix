@@ -1,8 +1,13 @@
 { pkgs, config, ... }:
 let inherit (config.cluster) domain region instances;
 in {
-  imports =
-    [ ./common.nix ./consul/client.nix ./vault/client.nix ./telegraf.nix ];
+  imports = [
+    ./common.nix
+    ./consul/client.nix
+    ./loki.nix
+    ./telegraf.nix
+    ./vault/client.nix
+  ];
 
   services = {
     nomad.enable = false;
@@ -38,10 +43,10 @@ in {
 
     victoriametrics = {
       enable = true;
-      retentionPeriod = 12;
+      retentionPeriod = 12; # months
     };
 
-    influxdb = { enable = true; };
+    loki = { enable = true; };
 
     grafana = {
       enable = true;
@@ -55,15 +60,15 @@ in {
 
         datasources = [
           {
-            type = "prometheus";
-            name = "victoriametrics";
-            url = "http://localhost:8428";
+            type = "loki";
+            name = "Loki";
+            url = "http://localhost:3100";
+            jsonData.maxLines = 1000;
           }
           {
-            type = "influxdb";
-            name = "telegraf";
-            database = "telegraf";
-            url = "http://localhost:8086";
+            type = "prometheus";
+            name = "VictoriaMetrics";
+            url = "http://localhost:8428";
           }
         ];
       };

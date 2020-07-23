@@ -2,8 +2,8 @@
 
 let
   inherit (pkgs) ensureDependencies;
-  inherit (lib) mkOverride mkIf attrNames concatStringsSep optional;
-  inherit (config.cluster) domain kms region;
+  inherit (lib) mkOverride mkIf attrNames concatStringsSep optional forEach;
+  inherit (config.cluster) domain kms region adminNames;
   inherit (config.instance) privateIP;
 
   exportConsulMaster = ''
@@ -137,7 +137,8 @@ in {
 
       environment = {
         inherit (config.environment.variables)
-          AWS_DEFAULT_REGION VAULT_CACERT VAULT_ADDR VAULT_FORMAT;
+          AWS_DEFAULT_REGION VAULT_CACERT VAULT_FORMAT;
+        VAULT_ADDR = "https://127.0.0.1:8200";
       };
 
       path = with pkgs; [ sops vault-bin glibc gawk consul nomad coreutils jq ];
@@ -402,11 +403,13 @@ in {
           policies=default,client \
           max_ttl=1h
 
-        vault write auth/aws/role/vault \
-          auth_type=iam \
-          bound_iam_principal_arn="$arn:user/vault" \
-          policies=default,admin \
-          max_ttl=12h
+        ${concatStringsSep "\n" (forEach adminNames (name: ''
+          vault write "auth/aws/role/${name}" \
+            auth_type=iam \
+            bound_iam_principal_arn="$arn:user/${name}" \
+            policies=default,admin \
+            max_ttl=12h
+        ''))}
 
         touch .bootstrap-done
       '';

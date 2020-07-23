@@ -1,5 +1,5 @@
 { config, ... }: {
-  imports = [ ./nix.nix ./ssh.nix ./slim.nix ];
+  imports = [ ./nix.nix ./ssh.nix ./slim.nix ./promtail.nix ];
 
   services = {
     s3-download.enable = true;
@@ -7,9 +7,6 @@
     vault.enable = true;
     consul.enable = true;
   };
-
-  disabledModules =
-    [ "services/security/vault.nix" "services/networking/consul.nix" ];
 
   environment.variables = { AWS_DEFAULT_REGION = config.cluster.region; };
 

@@ -1,5 +1,7 @@
-{ pkgs, config, ... }:
-let inherit (config.cluster) region instances;
+{ pkgs, config, lib, ... }:
+let
+  inherit (config.cluster) region instances;
+  inherit (lib) optionalAttrs;
 in {
   systemd.services.telegraf.path = with pkgs; [ procps ];
 
@@ -30,6 +32,11 @@ in {
           percentile_limit = 1000;
         };
 
+        prometheus = {
+          urls = ["http://127.0.0.1:3101/metrics"];
+          metric_version = 2;
+        };
+
         cpu = {
           percpu = true;
           totalcpu = true;
@@ -44,6 +51,14 @@ in {
         # devices = ["sda", "sdb"]
         # skip_serial_number = false
 
+        systemd_units = {
+          unittype = "service";
+        };
+
+        x509_cert = {
+          sources = ["/etc/ssl/certs/cert.pem"];
+        };
+
         kernel = { };
         linux_sysctl_fs = { };
         mem = { };
@@ -57,12 +72,15 @@ in {
           address = "localhost:8500";
           scheme = "http";
         };
-      };
+      } // (optionalAttrs config.services.ingress.enable {
+        haproxy = { servers = [ "http://127.0.0.1:1936/haproxy?stats" ]; };
+      });
 
+      # Store data in VictoriaMetrics
       outputs = {
         influxdb = {
           database = "telegraf";
-          urls = [ "http://${instances.monitoring.privateIP}:8086" ];
+          urls = [ "http://${instances.monitoring.privateIP}:8428" ];
         };
       };
     };

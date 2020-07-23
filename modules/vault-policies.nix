@@ -3,9 +3,10 @@ let
   inherit (builtins) toJSON typeOf toFile attrNames;
   inherit (lib)
     mkOption mkIf mkEnableOption mapAttrsToList concatStringsSep remove
-    listToAttrs flip;
+    listToAttrs flip forEach;
   inherit (lib.types) listOf enum attrsOf str submodule nullOr;
   inherit (pkgs) ensureDependencies;
+  inherit (config.cluster) adminNames;
 
   rmModules = arg:
     let
@@ -142,12 +143,6 @@ in {
         | sed 's/:instance.*//'
       )"
 
-      vault write auth/aws/role/vault \
-        auth_type=iam \
-        bound_iam_principal_arn="$arn:user/vault" \
-        policies=default,admin \
-        max_ttl=12h
-
       vault write auth/aws/role/core-iam \
         auth_type=iam \
         bound_iam_principal_arn="$arn:role/${config.cluster.name}-core" \
@@ -165,6 +160,14 @@ in {
         bound_iam_principal_arn="$arn:role/${config.cluster.name}-client" \
         policies=default,client \
         max_ttl=1h
+
+      ${concatStringsSep "\n" (forEach adminNames (name: ''
+        vault write "auth/aws/role/${name}" \
+          auth_type=iam \
+          bound_iam_principal_arn="$arn:user/${name}" \
+          policies=default,admin \
+          max_ttl=12h
+      ''))}
     '';
   };
 }

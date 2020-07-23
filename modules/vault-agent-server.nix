@@ -58,6 +58,7 @@ let
         ${pkgs.systemd}/bin/systemctl reload consul.service
         ${pkgs.systemd}/bin/systemctl restart nomad.service
         ${pkgs.systemd}/bin/systemctl reload vault.service
+        ${pkgs.systemd}/bin/systemctl restart ingress.service
 
         vault write nomad/config/access \
           ca_cert=@/etc/ssl/certs/full.pem \

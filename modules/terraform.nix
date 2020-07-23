@@ -66,6 +66,8 @@ let
 
       s3-bucket = mkOption { type = str; };
 
+      adminNames = mkOption { type = listOf str; default = []; };
+
       generateSSHKey = mkOption {
         type = bool;
         default = true;
@@ -721,13 +723,13 @@ in {
         }));
       };
 
-      resource.consul_intention = listToAttrs
-        (forEach config.services.consul.intentions (intention:
-          nameValuePair "${intention.sourceName}_${intention.destinationName}" {
-            source_name = intention.sourceName;
-            destination_name = intention.destinationName;
-            action = intention.action;
-          }));
+      # resource.consul_intention = listToAttrs
+      #   (forEach config.services.consul.intentions (intention:
+      #     nameValuePair "${intention.sourceName}_${intention.destinationName}" {
+      #       source_name = intention.sourceName;
+      #       destination_name = intention.destinationName;
+      #       action = intention.action;
+      #     }));
 
       resource.local_file = {
         "ssh-${cfg.name}" = mkIf cfg.generateSSHKey {
@@ -826,6 +828,7 @@ in {
             instance_type =
               var "aws_launch_configuration.${group.uid}.instance_type";
             uid = group.uid;
+            arn = var "aws_autoscaling_group.${group.uid}.arn";
           });
         };
       };
@@ -1134,27 +1137,11 @@ in {
           route_table_id = id "aws_route_table.${cfg.name}";
         }) cfg.vpc.subnets;
 
-      # data.aws_acm_certificate.testnet-atalaprism = {
-      #   provider = "aws.us_east_2";
-      #   domain = "atalaprism.io";
-      #   types = [ "AMAZON_ISSUED" ];
-      #   statuses = [ "ISSUED" ];
-      #   most_recent = true;
-      # };
-      #
-      # output.certs = {
-      #   value = {
-      #     testnet-atalaprism =
-      #       var "data.aws_acm_certificate.testnet-atalaprism.arn";
-      #   };
-      # };
-
       data.aws_route53_zone.selected = mkIf cfg.route53 {
         provider = "aws.us_east_2";
         name = "${cfg.domain}.";
       };
 
-      # TODO: merge records
       resource.aws_route53_record = mkIf cfg.route53 (let
         domains = (flatten (flip mapAttrsToList cfg.instances
           (instanceName: instance:
