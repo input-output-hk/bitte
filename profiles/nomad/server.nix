@@ -19,6 +19,14 @@ in {
         retryJoin = (mapAttrsToList (_: v: v.privateIP) instances)
           ++ [ "provider=aws region=${region} tag_key=Nomad tag_value=server" ];
       };
+
+      defaultSchedulerConfig = {
+        preemptionConfig = {
+          batchSchedulerEnabled = true;
+          systemSchedulerEnabled = true;
+          serviceSchedulerEnabled = true;
+        };
+      };
     };
   };
 }

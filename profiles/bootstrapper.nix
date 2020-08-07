@@ -5,7 +5,7 @@ let
   inherit (config) cluster;
   inherit (cluster) instances domain;
 in {
-  imports = [ ./bootstrap.nix ./acme.nix ];
+  imports = [ ./bootstrap.nix ];
 
   services = {
     s3-upload.enable = true;

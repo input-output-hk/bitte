@@ -58,6 +58,7 @@ in {
       "consul/creds/consul-agent".capabilities = [ r ];
       "consul/creds/consul-default".capabilities = [ r ];
       "consul/creds/vault-client".capabilities = [ r ];
+      "consul/creds/consul-register".capabilities = [ r ];
       "pki/roles/client".capabilities = [ r ];
       "pki/issue/client".capabilities = [ c u ];
       "kv/data/bootstrap/*".capabilities = [ r ];

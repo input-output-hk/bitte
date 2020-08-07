@@ -3,13 +3,6 @@ let
   inherit (lib) mkIf mkEnableOption makeBinPath concatStringsSep mapAttrsToList;
   inherit (config.cluster) domain;
 
-  haproxyService = pkgs.toPrettyJSON "haproxy-service" {
-    service = {
-      name = "haproxy";
-      port = 443;
-    };
-  };
-
   caTmpl = pkgs.writeText "ca.crt.tmpl" ''
     {{range caRoots}}{{.RootCertPEM}}{{end}}
   '';
@@ -73,14 +66,16 @@ let
       hold valid 5s
 
     backend nomad
-      default-server ssl verify required ca-file consul-ca.pem crt consul-crt.pem check check-ssl maxconn 2000 
+      default-server ssl ca-file consul-ca.pem crt consul-crt.pem check check-ssl maxconn 2000 
     {{ range service "http.nomad" }}
       server {{.ID}} {{.Address}}:{{.Port}}
     {{- end }}
 
     backend vault
-      default-server ssl verify required ca-file consul-ca.pem crt consul-crt.pem check check-ssl maxconn 2000 resolve-opts allow-dup-ip resolve-prefer ipv4 resolvers consul
-      server-template vault 3 _vault._tcp.service.consul
+      default-server ssl ca-file consul-ca.pem crt consul-crt.pem check check-ssl maxconn 2000 resolve-opts allow-dup-ip resolve-prefer ipv4 resolvers consul
+    {{ range service "active.vault" }}
+      server {{.ID}} {{.Address}}:{{.Port}}
+    {{- end }}
 
     backend consul
       default-server check maxconn 2000
@@ -121,26 +116,18 @@ in {
   };
 
   config = mkIf config.services.ingress.enable {
+    systemd.services.register-ingress = (pkgs.consulRegister {
+      service = {
+        name = "ingress";
+        port = 443;
+      };
+    }).systemdService;
+
     systemd.services.ingress = {
       wantedBy = [ "multi-user.target" ];
       after = [ "consul.service" ];
 
       serviceConfig = let
-        stopPost = pkgs.writeShellScriptBin "ingress-stop-post" ''
-          set -euo pipefail
-
-          PATH="${lib.makeBinPath (with pkgs; [ consul vault-bin glibc gawk ])}"
-
-          VAULT_TOKEN="$(vault login -method aws -no-store -token-only)"
-          export VAULT_TOKEN
-          CONSUL_HTTP_TOKEN="$(vault read -field token consul/creds/consul-server-default)"
-          export CONSUL_HTTP_TOKEN
-
-          set -x
-
-          consul services deregister ${haproxyService}
-        '';
-
         preScript = pkgs.writeShellScriptBin "ingress-start-pre" ''
           export PATH="${makeBinPath [ pkgs.coreutils ]}"
           set -exuo pipefail
@@ -148,8 +135,10 @@ in {
           cp /etc/ssl/certs/full.pem consul-ca.pem
           cat consul-ca.pem consul-key.pem > consul-crt.pem
 
-          cp /var/lib/acme/${domain}/full.pem acme-full.pem
-          cp /var/lib/acme/${domain}/chain.pem acme-chain.pem
+          cat /etc/ssl/certs/${config.cluster.domain}-{cert,key}.pem \
+            ${../lib/letsencrypt.pem} \
+          > acme-full.pem
+
           chown --reference . --recursive .
         '';
       in {
@@ -166,7 +155,6 @@ in {
         StartLimitInterval = "20s";
         StartLimitBurst = 10;
         ExecStartPre = "!${preScript}/bin/ingress-start-pre";
-        ExecStopPost = "${stopPost}/bin/ingress-stop-post";
         AmbientCapabilities = "CAP_NET_BIND_SERVICE";
       };
 
@@ -190,8 +178,6 @@ in {
         export CONSUL_HTTP_TOKEN
 
         set -x
-
-        consul services register ${haproxyService}
 
         exec consul-template -log-level debug -config ${haproxyIngress}
       '';

@@ -6,7 +6,7 @@
         destinationName = destination;
       })) {
         connector = [ "node" "postgres" ];
-        haproxy = [
+        ingress = [
           "connector"
           "web"
           "landing"
@@ -94,6 +94,11 @@
       consul-server-agent = {
         nodePrefix = allWrite;
         servicePrefix = allRead;
+      };
+
+      consul-register = {
+        nodePrefix = allWrite;
+        servicePrefix = allWrite;
       };
 
       vault-server = {

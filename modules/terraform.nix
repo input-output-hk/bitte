@@ -4,18 +4,20 @@ let
     system = "x86_64-linux";
     overlays = [ self.overlay.x86_64-linux ];
   };
-  inherit (builtins) toJSON attrNames elemAt;
+  inherit (builtins) toJSON attrNames elemAt attrValues;
   inherit (pkgs.lib)
     mkOption mkIf replaceStrings readFile optionalAttrs mapAttrs mkMerge
     mapAttrsToList mapAttrs' nameValuePair flip foldl' recursiveUpdate
     listToAttrs flatten optional mkOptionType imap0 mkEnableOption forEach
-    remove reverseList head tail splitString zipAttrs;
+    remove reverseList head tail splitString zipAttrs unique;
   inherit (pkgs.lib.types)
     attrs submodule str attrsOf bool ints path enum port listof nullOr listOf
     oneOf list package;
   inherit (pkgs.terralib) var id pp;
 
   kms2region = kms: elemAt (splitString ":" kms) 3;
+
+  merge = foldl' recursiveUpdate { };
 
   amis = let
     nixosAmis = import
@@ -66,7 +68,10 @@ let
 
       s3-bucket = mkOption { type = str; };
 
-      adminNames = mkOption { type = listOf str; default = []; };
+      adminNames = mkOption {
+        type = listOf str;
+        default = [ ];
+      };
 
       generateSSHKey = mkOption {
         type = bool;
@@ -79,14 +84,16 @@ let
       };
 
       vpc = mkOption {
-        type = vpcType;
+        type = vpcType cfg.name;
         default = {
-          cidr = "10.0.0.0/16";
+          region = cfg.region;
+
+          cidr = "172.16.0.0/16";
 
           subnets = {
-            prv-1.cidr = "10.0.0.0/19";
-            prv-2.cidr = "10.0.32.0/19";
-            prv-3.cidr = "10.0.64.0/19";
+            prv-1.cidr = "172.16.0.0/24";
+            prv-2.cidr = "172.16.1.0/24";
+            prv-3.cidr = "172.16.2.0/24";
           };
         };
       };
@@ -127,6 +134,11 @@ let
       tfName = mkOption {
         type = str;
         default = var "aws_iam_role.${this.config.uid}.name";
+      };
+
+      tfDataName = mkOption {
+        type = str;
+        default = var "data.aws_iam_role.${this.config.uid}.name";
       };
 
       assumePolicy = mkOption {
@@ -274,18 +286,22 @@ let
       };
     });
 
-  vpcType = submodule {
+  vpcType = prefix: ( submodule ({ ... }@this: {
     options = {
       name = mkOption {
         type = str;
-        default = cfg.name;
+        default = "${prefix}-${this.config.region}";
       };
 
       cidr = mkOption { type = str; };
 
       id = mkOption {
         type = str;
-        default = id "aws_vpc.${cfg.name}";
+        default = id "aws_vpc.${this.config.name}";
+      };
+
+      region = mkOption {
+        type = enum regions;
       };
 
       subnets = mkOption {
@@ -293,9 +309,9 @@ let
         default = { };
       };
     };
-  };
+  } ));
 
-  subnetType = submodule ({ name, ... }: {
+  subnetType = submodule ({ name, ... }@this: {
     options = {
       name = mkOption {
         type = str;
@@ -306,7 +322,7 @@ let
 
       id = mkOption {
         type = str;
-        default = id "aws_subnet.${cfg.name}-${name}";
+        default = id "aws_subnet.${this.config.name}";
       };
     };
   });
@@ -422,7 +438,10 @@ let
             };
 
             # Needed to give backed up certs the right permissions
-            services.nginx.enable = true;
+            services.haproxy = {
+              enable = true;
+              config = "";
+            };
 
             environment.etc.ready.text = "true";
           }
@@ -443,6 +462,10 @@ let
             cfg.name
             "--ip"
             ip
+            "--flake"
+            self.outPath
+            "--attr"
+            "${cfg.name}-${this.config.name}"
           ];
           rev = reverseList args;
           command = head rev;
@@ -501,9 +524,14 @@ let
         default = 30;
       };
 
+      securityGroupName = mkOption {
+        type = str;
+        default = "aws_security_group.${cfg.name}";
+      };
+
       securityGroupId = mkOption {
         type = str;
-        default = id "aws_security_group.${cfg.name}-core";
+        default = id this.config.securityGroupName;
       };
 
       securityGroupRules = mkOption {
@@ -543,6 +571,11 @@ let
         default = name;
       };
 
+      uid = mkOption {
+        type = str;
+        default = "${cfg.name}-${this.config.name}";
+      };
+
       modules = mkOption {
         type = listOf path;
         default = [ ];
@@ -550,10 +583,27 @@ let
 
       ami = mkOption {
         type = str;
-        default = config.cluster.ami;
+        default = amis.nixos.${this.config.region};
       };
 
+      region = mkOption { type = str; };
+
       iam = mkOption { type = serverIamType this.config.name; };
+
+      vpc = mkOption {
+        type = vpcType this.config.uid;
+        default = {
+          region = this.config.region;
+
+          cidr = "10.0.0.0/8";
+
+          subnets = {
+            "${this.config.name}-1".cidr = "10.0.0.0/18";
+            "${this.config.name}-2".cidr = "10.0.1.0/18";
+            "${this.config.name}-3".cidr = "10.0.2.0/18";
+          };
+        };
+      };
 
       userData = mkOption {
         type = nullOr str;
@@ -581,7 +631,7 @@ let
             systemd.services.install = {
               wantedBy = ["multi-user.target"];
               after = ["network-online.target"];
-              path = with pkgs; [ config.system.build.nixos-rebuild awscli coreutils gnutar curl xz ];
+              path = with pkgs; [ config.system.build.nixos-rebuild nixFlakes awscli coreutils gnutar curl xz ];
               restartIfChanged = false;
               unitConfig.X-StopOnRemoval = false;
               serviceConfig = {
@@ -598,6 +648,7 @@ let
                   source.tar.xz
                 mkdir -p source
                 tar xvf source.tar.xz -C source
+                nix build ./source#nixosConfigurations.${cfg.name}-${this.config.name}.config.system.build.toplevel
                 nixos-rebuild --flake ./source#${cfg.name}-${this.config.name} boot
                 booted="$(readlink /run/booted-system/{initrd,kernel,kernel-modules})"
                 built="$(readlink /nix/var/nix/profiles/system/{initrd,kernel,kernel-modules})"
@@ -647,14 +698,9 @@ let
         default = false;
       };
 
-      uid = mkOption {
-        type = str;
-        default = "${cfg.name}-${name}";
-      };
-
       subnets = mkOption {
         type = listOf subnetType;
-        default = [ ];
+        default = attrValues this.config.vpc.subnets;
       };
 
       securityGroupId = mkOption {
@@ -670,6 +716,30 @@ let
       };
     };
   });
+
+  regions = [
+    "ap-east-1"
+    "ap-northeast-1"
+    "ap-northeast-2"
+    "ap-south-1"
+    "ap-southeast-1"
+    "ap-southeast-2"
+    "ca-central-1"
+    "eu-central-1"
+    "eu-north-1"
+    "eu-west-1"
+    "eu-west-2"
+    "eu-west-3"
+    "me-south-1"
+    "sa-east-1"
+    "us-east-1"
+    "us-east-2"
+    "us-west-1"
+    "us-west-2"
+  ];
+
+  awsProviderNameFor = region: replaceStrings [ "-" ] [ "_" ] region;
+  awsProviderFor = region: "aws.${awsProviderNameFor region}";
 in {
   options = {
     cluster = mkOption {
@@ -696,30 +766,9 @@ in {
           datacenter = cfg.region;
         };
 
-        aws = let
-          regions = [
-            "ap-east-1"
-            "ap-northeast-1"
-            "ap-northeast-2"
-            "ap-south-1"
-            "ap-southeast-1"
-            "ap-southeast-2"
-            "ca-central-1"
-            "eu-central-1"
-            "eu-north-1"
-            "eu-west-1"
-            "eu-west-2"
-            "eu-west-3"
-            "me-south-1"
-            "sa-east-1"
-            "us-east-1"
-            "us-east-2"
-            "us-west-1"
-            "us-west-2"
-          ];
-        in [{ region = cfg.region; }] ++ (forEach regions (region: {
+        aws = [{ region = cfg.region; }] ++ (forEach regions (region: {
           inherit region;
-          alias = replaceStrings [ "-" ] [ "_" ] region;
+          alias = awsProviderNameFor region;
         }));
       };
 
@@ -748,12 +797,16 @@ in {
         rsa_bits = 4096;
       };
 
-      resource.aws_key_pair = mkIf (cfg.generateSSHKey) {
-        ${cfg.name} = {
-          key_name = cfg.name;
+      resource.aws_key_pair = mkIf (cfg.generateSSHKey) (listToAttrs ((let
+        usedRegions = unique
+          ((forEach (attrValues cfg.autoscalingGroups) (group: group.region))
+            ++ [ cfg.region ]);
+      in forEach usedRegions (region:
+        nameValuePair region {
+          provider = awsProviderFor region;
+          key_name = "${cfg.name}-${region}";
           public_key = var "tls_private_key.${cfg.name}.public_key_openssh";
-        };
-      };
+        }))));
 
       resource.aws_iam_instance_profile = mkMerge ([
         (flip mapAttrs' cfg.instances (name: instance:
@@ -829,198 +882,57 @@ in {
               var "aws_launch_configuration.${group.uid}.instance_type";
             uid = group.uid;
             arn = var "aws_autoscaling_group.${group.uid}.arn";
+            region = group.region;
+            count = group.desiredCapacity;
           });
         };
       };
 
-      resource.aws_instance = mapAttrs (name: server:
-        mkMerge [
-          (mkIf server.enable {
-            ami = server.ami;
-            instance_type = server.instanceType;
-            monitoring = true;
-
-            tags = {
-              Cluster = cfg.name;
-              Name = name;
-              UID = server.uid;
-              Consul = "server";
-              Vault = "server";
-              Nomad = "server";
-              # Flake = server.flake;
-            } // server.tags;
-
-            root_block_device = {
-              volume_type = "gp2";
-              volume_size = server.volumeSize;
-              delete_on_termination = true;
-            };
-
-            iam_instance_profile = server.iam.instanceProfile.tfName;
-
-            network_interface = {
-              network_interface_id = id "aws_network_interface.${server.uid}";
-              device_index = 0;
-            };
-
-            user_data = server.userData;
-
-            provisioner = [{
-              local-exec = {
-                inherit (server.localProvisioner)
-                  interpreter command environment;
-                working_dir = server.localProvisioner.workingDir;
-              };
-            }];
-
-            # provisioner = let
-            #   connection = {
-            #     type = "ssh";
-            #     host = var "self.public_ip";
-            #     private_key = var "tls_private_key.${cfg.name}.private_key_pem";
-            #     agent = false;
-            #   };
-            # in
-            # [
-            #   {
-            #     file = {
-            #       content = var "file(./encrypted/core-1/vault.enc.json.json)";
-            #       destination = "/run/keys/ca.crt.pem";
-            #       inherit connection;
-            #     };
-            #   }
-            # ];
-
-            #   {
-            #     file = {
-            #       content = var "tls_locally_signed_cert.cert.cert_pem";
-            #       destination = "/run/keys/vault.crt.pem";
-            #       inherit connection;
-            #     };
-            #   }
-            #   {
-            #     file = {
-            #       content = var "tls_private_key.cert.private_key_pem";
-            #       destination = "/run/keys/vault.key.pem";
-            #       inherit connection;
-            #     };
-            #   }
-            #   {
-            #     local-exec = {
-            #       inherit (server.localProvisioner)
-            #         interpreter command environment;
-            #       working_dir = server.localProvisioner.workingDir;
-            #     };
-            #   }
-            # ];
-
-          })
-
-          (mkIf cfg.generateSSHKey {
-            key_name = var "aws_key_pair.${cfg.name}.key_name";
-          })
-        ]) cfg.instances;
-
-      resource.aws_autoscaling_group = mapAttrs' (name: group:
-        nameValuePair group.uid {
-          launch_configuration =
-            var "aws_launch_configuration.${group.uid}.name";
-          name_prefix = group.uid;
-
-          vpc_zone_identifier = forEach group.subnets (subnet: subnet.id);
-
-          availability_zones = imap0 (idx: _:
-            var "data.aws_availability_zones.available.names[${toString idx}]")
-            group.subnets;
-
-          min_size = group.minSize;
-          max_size = group.maxSize;
-          desired_capacity = group.desiredCapacity;
-
-          health_check_type = "EC2";
-          health_check_grace_period = 300;
-          wait_for_capacity_timeout = "2m";
-          termination_policies = [ "OldestLaunchTemplate" ];
-          max_instance_lifetime = group.maxInstanceLifetime;
-
-          tag = let
-            tags = {
-              Cluster = cfg.name;
-              Name = group.name;
-              UID = group.uid;
-              Consul = "client";
-              Vault = "client";
-              Nomad = "client";
-            } // group.tags;
-          in mapAttrsToList (key: value: {
-            inherit key value;
-            propagate_at_launch = true;
-          }) tags;
-
-          lifecycle = [{ create_before_destroy = true; }];
-        }) cfg.autoscalingGroups;
-
-      resource.aws_launch_configuration = mapAttrs' (name: group:
-        nameValuePair group.uid (mkMerge [
-          {
-            name_prefix = "${group.uid}-";
-            image_id = group.ami;
-            instance_type = group.instanceType;
-
-            iam_instance_profile = group.iam.instanceProfile.tfName;
-
-            security_groups = [ group.securityGroupId ];
-            placement_tenancy = "default";
-            # TODO: switch this to false for production
-            associate_public_ip_address = group.associatePublicIP;
-
-            ebs_optimized = false;
-
-            root_block_device = {
-              volume_type = "gp2";
-              volume_size = 100;
-              delete_on_termination = true;
-            };
-
-            lifecycle = [{ create_before_destroy = true; }];
-          }
-
-          (mkIf cfg.generateSSHKey {
-            key_name = var "aws_key_pair.${cfg.name}.key_name";
-          })
-
-          (mkIf (group.userData != null) { user_data = group.userData; })
-        ])) cfg.autoscalingGroups;
-
       resource.aws_security_group = mkMerge ([{
-        "${cfg.name}-core" = {
+        "${cfg.name}" = {
+          provider = awsProviderFor cfg.region;
           name_prefix = "${cfg.name}-core-";
           description = "Security group for Core in ${cfg.name}";
           vpc_id = cfg.vpc.id;
           lifecycle = [{ create_before_destroy = true; }];
         };
-      }] ++ (mapAttrsToList (name: group: {
-        ${group.uid} = {
+      }] ++ (flip mapAttrsToList cfg.autoscalingGroups (name: group: {
+        "${group.uid}" = {
+          provider = awsProviderFor group.region;
           name_prefix = "${group.uid}-";
           description = "Security group for ASG in ${group.uid}";
-          vpc_id = cfg.vpc.id;
+          vpc_id = group.vpc.id;
           lifecycle = [{ create_before_destroy = true; }];
         };
-      }) cfg.autoscalingGroups));
+      })));
 
-      resource.aws_vpc.${cfg.name} = {
-        cidr_block = cfg.vpc.cidr;
-        enable_dns_hostnames = true;
-        tags = {
-          Cluster = cfg.name;
-          Name = cfg.name;
+      resource.aws_vpc = {
+        "${cfg.vpc.name}" = {
+          provider = awsProviderFor cfg.region;
+          cidr_block = cfg.vpc.cidr;
+          enable_dns_hostnames = true;
+          tags = {
+            Cluster = cfg.name;
+            Name = cfg.name;
+            Region = cfg.region;
+          };
         };
-      };
+      } // (flip mapAttrs' cfg.autoscalingGroups (_: group:
+        nameValuePair group.vpc.name {
+          provider = awsProviderFor group.region;
+          cidr_block = group.vpc.cidr;
+          enable_dns_hostnames = true;
+          tags = {
+            Cluster = cfg.name;
+            Name = group.vpc.name;
+            Region = group.region;
+          };
+        }));
 
       resource.aws_network_interface = mapAttrs' (name: server:
         nameValuePair server.uid {
           subnet_id = server.subnet.id;
-          security_groups = [ (id "aws_security_group.${cfg.name}-core") ];
+          security_groups = [ server.securityGroupId ];
           private_ips = [ server.privateIP ];
           tags = {
             Cluster = cfg.name;
@@ -1091,16 +1003,25 @@ in {
           lifecycle = [{ create_before_destroy = true; }];
         }) cfg.instances;
 
-      resource.aws_subnet = mapAttrs' (name: subnet:
-        nameValuePair "${cfg.name}-${name}" {
-          vpc_id = cfg.vpc.id;
-          cidr_block = subnet.cidr;
-          tags = {
-            Cluster = cfg.name;
-            Name = "${cfg.name}-${name}";
+      resource.aws_subnet = let
+        mkSubnet = vpc: subnetName: subnet:
+          nameValuePair subnet.name {
+            provider = awsProviderFor vpc.region;
+            vpc_id = vpc.id;
+            cidr_block = subnet.cidr;
+            tags = {
+              Cluster = cfg.name;
+              Name = subnet.name;
+            };
+            lifecycle = [{ create_before_destroy = true; }];
           };
-          lifecycle = [{ create_before_destroy = true; }];
-        }) cfg.vpc.subnets;
+
+        coreSubnets = flip mapAttrs' cfg.vpc.subnets (mkSubnet cfg.vpc);
+
+        asgsSubnets = listToAttrs (flatten
+          (flip mapAttrsToList cfg.autoscalingGroups
+            (_: group: flip mapAttrsToList group.vpc.subnets (mkSubnet group.vpc))));
+      in merge [coreSubnets asgsSubnets];
 
       resource.aws_internet_gateway.${cfg.name} = {
         vpc_id = cfg.vpc.id;
@@ -1157,14 +1078,18 @@ in {
           records = forEach instanceUids (uid: var "aws_eip.${uid}.public_ip");
         }));
 
-      data.aws_availability_zones.available.state = "available";
+      data.aws_availability_zones = listToAttrs (flatten
+        (flip mapAttrsToList cfg.autoscalingGroups (_: group:
+          nameValuePair "available_in_${group.region}" {
+            provider = awsProviderFor group.region;
+            state = "available";
+          })));
 
       resource.aws_security_group_rule = let
-        merge = foldl' recursiveUpdate { };
-
-        mkRule = ({ prefix, rule, protocol }:
+        mkRule = ({ region, prefix, rule, protocol }:
           let
             common = {
+              provider = awsProviderFor region;
               type = rule.type;
               from_port = rule.from;
               to_port = rule.to;
@@ -1195,6 +1120,7 @@ in {
             listToAttrs (flatten (flip map rule.protocols (protocol:
               mkRule {
                 prefix = group.uid;
+                inherit (group) region;
                 inherit rule protocol;
               })))));
 
@@ -1203,6 +1129,7 @@ in {
             listToAttrs (flatten (flip map rule.protocols (protocol:
               mkRule {
                 prefix = cfg.name;
+                inherit (cfg) region;
                 inherit rule protocol;
               })))));
 

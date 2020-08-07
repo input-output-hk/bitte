@@ -8,7 +8,7 @@ let
 
   vaultAgentConfig = pkgs.toPrettyJSON "vault-agent" {
     pid_file = "./vault-agent.pid";
-    vault.address = "https://10.0.0.10:8200";
+    vault.address = "https://vault.${domain}:8200";
     # exit_after_auth = true;
     auto_auth = {
       method = [{
@@ -154,7 +154,8 @@ in {
       wantedBy = [ "multi-user.target" ];
 
       environment = {
-        inherit (config.environment.variables) AWS_DEFAULT_REGION VAULT_FORMAT;
+        inherit (config.environment.variables)
+          AWS_DEFAULT_REGION VAULT_FORMAT VAULT_ADDR;
         VAULT_CACERT = "/etc/ssl/certs/full.pem";
         CONSUL_HTTP_ADDR = "127.0.0.1:8500";
         CONSUL_CACERT = "/etc/ssl/certs/full.pem";

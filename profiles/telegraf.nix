@@ -33,7 +33,7 @@ in {
         };
 
         prometheus = {
-          urls = ["http://127.0.0.1:3101/metrics"];
+          urls = [ "http://127.0.0.1:3101/metrics" ];
           metric_version = 2;
         };
 
@@ -51,13 +51,9 @@ in {
         # devices = ["sda", "sdb"]
         # skip_serial_number = false
 
-        systemd_units = {
-          unittype = "service";
-        };
+        systemd_units = { unittype = "service"; };
 
-        x509_cert = {
-          sources = ["/etc/ssl/certs/cert.pem"];
-        };
+        x509_cert = { sources = [ "/etc/ssl/certs/cert.pem" ]; };
 
         kernel = { };
         linux_sysctl_fs = { };
@@ -85,4 +81,11 @@ in {
       };
     };
   };
+
+  systemd.services.register-telegraf = (pkgs.consulRegister {
+    service = {
+      name = "telegraf";
+      port = 8125;
+    };
+  }).systemdService;
 }

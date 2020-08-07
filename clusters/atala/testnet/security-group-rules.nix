@@ -1,8 +1,12 @@
-{ pkgs, config, ... }:
+{ pkgs, lib, config, ... }:
 let
   inherit (pkgs.terralib) cidrsOf;
   inherit (config.cluster.vpc) subnets;
-  global = "0.0.0.0/0";
+  vpcs = pkgs.terralib.vpcs config.cluster;
+
+  global = [ "0.0.0.0/0" ];
+  internal = [ config.cluster.vpc.cidr ]
+    ++ (lib.flip lib.mapAttrsToList vpcs (region: vpc: vpc.cidr_block));
 in {
   # TODO: derive needed security groups from networking.firewall?
   securityGroupRules = {
@@ -10,73 +14,80 @@ in {
       type = "egress";
       port = 0;
       protocols = [ "-1" ];
-      cidrs = [ global ];
+      cidrs = global;
     };
 
     internal = {
       type = "ingress";
       port = 0;
       protocols = [ "-1" ];
-      cidrs = cidrsOf subnets;
+      cidrs = internal;
     };
 
     ssh = {
       port = 22;
-      cidrs = [ global ];
+      cidrs = global;
     };
 
     http = {
       port = 80;
-      cidrs = [ global ];
+      cidrs = global;
     };
 
     https = {
       port = 443;
-      cidrs = [ global ];
+      cidrs = global;
     };
 
     grpc = {
       port = 4422;
-      cidrs = [ global ];
+      cidrs = global;
     };
 
     haproxyStats = {
       port = 1936;
-      cidrs = [ global ];
+      cidrs = global;
     };
 
     vault-http = {
       port = 8200;
-      cidrs = [ global ];
+      cidrs = global;
     };
 
     consul-serf-lan = {
       port = 8301;
       protocols = [ "tcp" "udp" ];
       self = true;
-      cidrs = cidrsOf subnets;
+      cidrs = internal;
+    };
+
+    consul-serf-wan = {
+      port = 8302;
+      protocols = [ "udp" ];
+      self = true;
+      cidrs = internal;
     };
 
     consul-grpc = {
       port = 8502;
       protocols = [ "tcp" "udp" ];
-      cidrs = cidrsOf subnets;
+      cidrs = internal;
     };
 
     nomad-serf-lan = {
       port = 4648;
       protocols = [ "tcp" "udp" ];
-      cidrs = cidrsOf subnets;
+      cidrs = internal;
     };
 
     nomad-rpc = {
       port = 4647;
-      cidrs = cidrsOf subnets;
+      cidrs = internal;
     };
 
     nomad-http = {
       port = 4646;
-      cidrs = cidrsOf subnets;
+      cidrs = internal;
     };
   };
 }

@@ -1,6 +1,6 @@
 { self, cluster, lib, awscli, sops, jq, coreutils, cfssl, consul, toybox
 , vault-bin, glibc, gawk, toPrettyJSON, writeShellScriptBin, bitte
-, terraform-with-plugins, rsync, openssh, gnused, curl, cacert }:
+, terraform-with-plugins, rsync, openssh, gnused, curl, cacert, nixFlakes }:
 let
   inherit (cluster) kms region s3-bucket domain instances autoscalingGroups;
   inherit (lib)
@@ -64,11 +64,24 @@ let
   generate = writeShellScriptBin "bitte-secrets-generate" ''
     set -exuo pipefail
     export PATH="${
-      makeBinPath [ awscli sops jq coreutils cfssl consul toybox ]
+      makeBinPath [
+        awscli
+        sops
+        jq
+        coreutils
+        cfssl
+        consul
+        toybox
+        terraform-with-plugins
+      ]
     }"
 
     root="$PWD/secrets/certs/${cluster.name}/${kms}"
     ship="$root/ship"
+
+    terraform workspace select ${cluster.name}.core
+    IP="$(terraform output -json cluster | jq -e -r '.instances."core-1".public_ip')"
+    export IP
 
     mkdir -p "$root/original" "$root/ship"
     cd "$root/original"
@@ -203,54 +216,49 @@ let
 
         cdir="/etc/ssl/certs"
 
-        if [ ! -s "$cdir/ca.pem" ]; then
-          sops --decrypt cert.enc.json \
-          | cfssljson -bare cert
+        sops --decrypt cert.enc.json \
+        | cfssljson -bare cert
 
-          cp cert.pem     "$cdir/cert.pem"
-          cp cert-key.pem "$cdir/cert-key.pem"
+        cp cert.pem     "$cdir/cert.pem"
+        cp cert-key.pem "$cdir/cert-key.pem"
 
-          sops --decrypt --extract '["ca"]' cert.enc.json \
-          > "$cdir/ca.pem.new"
+        sops --decrypt --extract '["ca"]' cert.enc.json \
+        > "$cdir/ca.pem.new"
 
-          [ -s "$cdir/ca.pem.new" ]
+        [ -s "$cdir/ca.pem.new" ]
 
-          mv "$cdir/ca.pem.new" "$cdir/ca.pem"
+        mv "$cdir/ca.pem.new" "$cdir/ca.pem"
 
-          echo "\n" \
-          | cat "$cdir/ca.pem" - "$cdir/cert.pem" \
-          > /etc/ssl/certs/full.pem
-        fi
+        cat "$cdir/ca.pem" <(echo) "$cdir/cert.pem" \
+        > /etc/ssl/certs/full.pem
       ;;
       client)
         mkdir -p /etc/consul.d
         sops --decrypt consul-client.enc.json \
         > /etc/consul.d/secrets.json
 
-        if [ ! -s /etc/ssl/certs/ca.pem ]; then
-          unset VAULT_CACERT
-          export VAULT_ADDR=https://vault.${domain}
-          export VAULT_FORMAT=json
-          vault login -method aws header_value=${domain}
+        unset VAULT_CACERT
+        export VAULT_ADDR=https://vault.${domain}
+        export VAULT_FORMAT=json
+        vault login -method aws header_value=${domain}
 
-          ip="$(curl -f -s http://169.254.169.254/latest/meta-data/local-ipv4)"
+        ip="$(curl -f -s http://169.254.169.254/latest/meta-data/local-ipv4)"
 
-          cert="$(
-            vault write pki/issue/client \
-              common_name=server.${region}.consul \
-              ip_sans="127.0.0.1,$ip" \
-              alt_names=vault.service.consul,consul.service.consul,nomad.service.consul
-          )"
+        cert="$(
+          vault write pki/issue/client \
+            common_name=server.${region}.consul \
+            ip_sans="127.0.0.1,$ip" \
+            alt_names=vault.service.consul,consul.service.consul,nomad.service.consul
+        )"
 
-          mkdir -p certs
+        mkdir -p certs
 
-          echo "$cert" | jq -e -r .data.private_key  > /etc/ssl/certs/cert-key.pem
-          echo "$cert" | jq -e -r .data.certificate  > /etc/ssl/certs/cert.pem
-          echo "$cert" | jq -e -r .data.certificate  > /etc/ssl/certs/full.pem
-          echo "$cert" | jq -e -r .data.issuing_ca  >> /etc/ssl/certs/full.pem
-          cat ca.pem                                >> /etc/ssl/certs/full.pem
-          cp ca.pem                                    /etc/ssl/certs/ca.pem
-        fi
+        echo "$cert" | jq -e -r .data.private_key  > /etc/ssl/certs/cert-key.pem
+        echo "$cert" | jq -e -r .data.certificate  > /etc/ssl/certs/cert.pem
+        echo "$cert" | jq -e -r .data.certificate  > /etc/ssl/certs/full.pem
+        echo "$cert" | jq -e -r .data.issuing_ca  >> /etc/ssl/certs/full.pem
+        cat ca.pem                                >> /etc/ssl/certs/full.pem
+        cp ca.pem                                    /etc/ssl/certs/ca.pem
       ;;
       *)
         echo "pass 'client' or 'server' as arguments"
@@ -277,7 +285,9 @@ let
 
     set -exuo pipefail
 
-    bitte terraform
+    bitte terraform core
+
+    terraform workspace select ${cluster.name}.core
 
     IP="$(terraform output -json cluster | jq -e -r '.instances."core-1".public_ip')"
     export IP
@@ -285,16 +295,8 @@ let
     bitte-secrets-generate
     bitte-secrets-upload
 
-    acmedir="secrets/certs/${cluster.name}/${kms}/acme/"
-    if [ -d "$acmedir" ]; then
-      rsync -e 'ssh -i ./secrets/ssh-${cluster.name}' -rP "$acmedir" "root@$IP:/var/lib/acme/"
-      bitte ssh core-1 chown haproxy:haproxy -R /var/lib/acme
-    fi
-
     bitte rebuild --dirty
     bitte-secrets-switch
-
-    VAULT_ADDR="https://$IP:8200" vault status
   '';
 
   switch = writeShellScriptBin "bitte-secrets-switch" ''
@@ -389,7 +391,6 @@ let
     > issuing.pem
 
     cat ca.pem >> issuing.pem
-    cat issuing.pem
 
     vault write pki/intermediate/set-signed certificate=@issuing.pem
 
@@ -421,10 +422,47 @@ let
     bitte pssh 'systemctl restart vault'
     bitte pssh 'systemctl restart nomad'
   '';
+
+  repair = writeShellScriptBin "bitte-secrets-repair" ''
+    set -exuo pipefail
+
+    export PATH="${makeBinPath [ coreutils awscli sops jq cfssl ]}"
+
+    dir=/run/keys/bitte-secrets-download
+    mkdir -p "$dir"
+    cd "$dir"
+
+    aws s3 sync --delete "${s3dir}/$1" .
+
+    mkdir -p /etc/consul.d
+    sops --decrypt consul-server.enc.json \
+    > /etc/consul.d/secrets.json
+
+    cdir="/etc/ssl/certs"
+
+    sops --decrypt cert.enc.json \
+    | cfssljson -bare cert
+
+    cp cert.pem     "$cdir/cert.pem"
+    cp cert-key.pem "$cdir/cert-key.pem"
+
+    sops --decrypt --extract '["ca"]' cert.enc.json \
+    > "$cdir/ca.pem.new"
+
+    [ -s "$cdir/ca.pem.new" ] && mv "$cdir/ca.pem.new" "$cdir/ca.pem"
+
+    cat "$cdir/ca.pem" <(echo) "$cdir/cert.pem" \
+    > /etc/ssl/certs/full.pem
+
+    for s in consul vault nomad vault-agent ingress; do
+      /run/current-system/sw/bin/systemctl restart "$s.service"
+    done
+  '';
 in {
-  bitte-secrets-generate = generate;
-  bitte-secrets-install = install;
   bitte-secrets-orchestrate = orchestrate;
-  bitte-secrets-switch = switch;
+  bitte-secrets-generate = generate;
   bitte-secrets-upload = upload;
+  bitte-secrets-switch = switch;
+  bitte-secrets-install = install;
+  bitte-secrets-repair = repair;
 }

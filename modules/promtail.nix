@@ -104,5 +104,17 @@ in {
         # Group = "promtail";
       };
     };
+
+    systemd.services.register-promtail = (pkgs.consulRegister {
+      service = {
+        name = "promtail";
+        port = 3101;
+
+        checks."Promtail Status" = {
+          http = "http://127.0.0.1:3101";
+          interval = "10s";
+        };
+      };
+    }).systemdService;
   };
 }

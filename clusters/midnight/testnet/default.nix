@@ -2,7 +2,7 @@
 let
   inherit (pkgs.terralib) sops2kms sops2region cidrsOf;
   inherit (builtins) readFile replaceStrings;
-  inherit (lib) mapAttrs' nameValuePair flip attrValues;
+  inherit (lib) mapAttrs' nameValuePair flip attrValues listToAttrs forEach;
   inherit (config) cluster;
   inherit (cluster.vpc) subnets;
   inherit (import ./security-group-rules.nix { inherit config pkgs; })
@@ -29,26 +29,29 @@ in {
     kms = availableKms.midnight.eu-central-1;
     domain = "bitte.project42.iohkdev.io";
     s3-bucket = "iohk-midnight-bitte";
-    adminNames = [ "shay.bergmann" ];
+    adminNames = [ "shay.bergmann" "manveru" ];
 
-    autoscalingGroups = (flip mapAttrs' { "t3a.medium" = 2; }
-      (instanceType: desiredCapacity:
-        let saneName = "client-${replaceStrings [ "." ] [ "-" ] instanceType}";
-        in nameValuePair saneName {
-          inherit desiredCapacity instanceType;
-          associatePublicIP = true;
-          maxInstanceLifetime = 604800;
-          iam.role = cluster.iam.roles.client;
-          iam.instanceProfile.role = cluster.iam.roles.client;
+    autoscalingGroups = listToAttrs
+      (forEach [ { region = "eu-central-1"; } { region = "us-east-2"; } ] (args:
+        let
+          attrs = ({
+            desiredCapacity = 1;
+            instanceType = "t3a.medium";
+            associatePublicIP = true;
+            maxInstanceLifetime = 604800;
+            iam.role = cluster.iam.roles.client;
+            iam.instanceProfile.role = cluster.iam.roles.client;
 
-          subnets = attrValues subnets;
+            modules = [ ../../../profiles/client.nix ];
 
-          modules = [ ../../../profiles/client.nix ];
-
-          securityGroupRules = {
-            inherit (securityGroupRules) internet internal ssh;
-          };
-        }));
+            securityGroupRules = {
+              inherit (securityGroupRules) internet internal ssh;
+            };
+          } // args);
+          asgName = "client-${attrs.region}-${
+              replaceStrings [ "." ] [ "-" ] attrs.instanceType
+            }";
+        in nameValuePair asgName attrs));
 
     instances = {
       core-1 = {

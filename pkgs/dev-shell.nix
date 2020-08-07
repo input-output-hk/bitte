@@ -14,28 +14,21 @@ mkShellNoCC {
   buildInputs = [
     awscli
     bitte
+    cachix
+    cfssl
     consul
     consul-template
-    crystal
-    crystal2nix
+    dnsutils
+    ipcalc
     nixFlakes
+    nixfmt
     nixos-rebuild
     nomad
+    openssl
     python38Packages.pyhcl
     sops
-    terraform-with-plugins
-    cfssl
     ssm-session-manager-plugin
+    terraform-with-plugins
     vault-bin
-    cachix
-    nixfmt
-    dnsutils
-
-    # nodejs-slim-10_x
-    # mill
-    # jre
-    # scala_2_12
-    # dbeaver
-    # asciinema
   ];
 }

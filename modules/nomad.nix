@@ -559,6 +559,32 @@ in {
               recommended for production use cases.
             '';
           };
+
+          defaultSchedulerConfig = mkOption {
+            default = {};
+            type = submodule {
+              options = {
+                schedulerAlgorithm = mkOption {
+                  type = enum [ "binpack" "spread" ];
+                  default = "binpack";
+                };
+
+                preemptionConfig = mkOption {
+                  default ={};
+                  type = submodule {
+                    options = {
+                      batchSchedulerEnabled =
+                        mkEnableOption "Enable preemption for batch tasks";
+                      systemSchedulerEnabled =
+                        mkEnableOption "Enable preemption for system tasks";
+                      serviceSchedulerEnabled =
+                        mkEnableOption "Enable preemption for service tasks";
+                    };
+                  };
+                };
+              };
+            };
+          };
         };
       };
     };
@@ -996,6 +1022,7 @@ in {
           flip mapAttrsToList top
           (name: value: { ${name} = [{ config = [ value ]; }]; });
     };
+
   };
 
   config = mkIf cfg.enable {

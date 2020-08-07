@@ -32,11 +32,9 @@ in {
       inherit (instances.${nodeName}) instanceType domain;
     });
 
-    bindAddr = ''
-      {{ GetPrivateInterfaces | include "network" "10.0.0.0/8" | attr "address" }}'';
+    bindAddr = ''{{ GetInterfaceIP "ens5" }}'';
 
-    advertiseAddr = ''
-      {{ GetPrivateInterfaces | include "network" "10.0.0.0/8" | attr "address" }}'';
+    advertiseAddr = ''{{ GetInterfaceIP "ens5" }}'';
 
     retryJoin = (mapAttrsToList (_: v: v.privateIP) instances)
       ++ [ "provider=aws region=${region} tag_key=Consul tag_value=server" ];

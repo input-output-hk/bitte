@@ -399,26 +399,26 @@ in {
         set -exuo pipefail
 
         [ -s /etc/vault.d/consul-tokens.json ] && exit
+        [ ! -s /etc/consul.d/secrets.json ] || exit
+        jq -e .acl.tokens.master /etc/consul.d/secrets.json || exit
 
-        if [ -s /etc/consul.d/secrets.json ]; then
-          CONSUL_HTTP_TOKEN="$(jq -e -r .acl.tokens.master /etc/consul.d/secrets.json)"
-          export CONSUL_HTTP_TOKEN
+        CONSUL_HTTP_TOKEN="$(jq -e -r .acl.tokens.master /etc/consul.d/secrets.json)"
+        export CONSUL_HTTP_TOKEN
 
-          vaultToken="$(
-            consul acl token create \
-              -policy-name=vault-server \
-              -description "vault-server ${nodeName} $(date +%Y-%m-%d-%H-%M-%S)" \
-              -format json \
-            | jq -e -r .SecretID
-          )"
+        vaultToken="$(
+          consul acl token create \
+            -policy-name=vault-server \
+            -description "vault-server ${nodeName} $(date +%Y-%m-%d-%H-%M-%S)" \
+            -format json \
+          | jq -e -r .SecretID
+        )"
 
-          echo '{}' \
-          | jq --arg token "$vaultToken" '.storage.consul.token = $token' \
-          | jq --arg token "$vaultToken" '.service_registration.consul.token = $token' \
-          > /etc/vault.d/consul-tokens.json.new
+        echo '{}' \
+        | jq --arg token "$vaultToken" '.storage.consul.token = $token' \
+        | jq --arg token "$vaultToken" '.service_registration.consul.token = $token' \
+        > /etc/vault.d/consul-tokens.json.new
 
-          mv /etc/vault.d/consul-tokens.json.new /etc/vault.d/consul-tokens.json
-        fi
+        mv /etc/vault.d/consul-tokens.json.new /etc/vault.d/consul-tokens.json
       '';
     };
 

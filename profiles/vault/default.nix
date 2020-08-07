@@ -12,7 +12,7 @@ in {
   config = mkIf cfg.enable {
     environment.variables = {
       VAULT_FORMAT = "json";
-      VAULT_ADDR = "https://vault.service.consul:8200/";
+      VAULT_ADDR = "https://127.0.0.1:8200";
       VAULT_CACERT = "/etc/ssl/certs/full.pem";
     };
 
