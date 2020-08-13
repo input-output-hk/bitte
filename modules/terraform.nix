@@ -295,7 +295,7 @@ let
 
         id = mkOption {
           type = str;
-          default = id "aws_vpc.${this.config.name}";
+          default = id "data.aws_vpc.${this.config.name}";
         };
 
         region = mkOption { type = enum regions; };

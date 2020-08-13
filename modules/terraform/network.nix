@@ -8,7 +8,6 @@ let
   tags = { Cluster = config.cluster.name; };
 in {
   tf.network.configuration = {
-
     terraform.backend.remote = {
       organization = "iohk-midnight";
       workspaces = [{ prefix = "${config.cluster.name}_"; }];

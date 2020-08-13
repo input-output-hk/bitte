@@ -5,6 +5,11 @@ let
   vpcs = pkgs.terralib.vpcs config.cluster;
 in {
   tf.clients.configuration = {
+    terraform.backend.remote = {
+      organization = "iohk-midnight";
+      workspaces = [{ prefix = "${config.cluster.name}_"; }];
+    };
+
     output.cluster = {
       value = {
         flake = self.outPath;

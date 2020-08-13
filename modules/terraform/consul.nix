@@ -1,5 +1,10 @@
 { config, lib, ... }: {
   tf.consul.configuration = {
+    terraform.backend.remote = {
+      organization = "iohk-midnight";
+      workspaces = [{ prefix = "${config.cluster.name}_"; }];
+    };
+
     provider.consul = {
       address = "https://consul.${config.cluster.domain}";
       datacenter = "eu-central-1";

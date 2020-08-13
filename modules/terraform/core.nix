@@ -37,6 +37,11 @@ in {
   config = {
     tf = {
       core.configuration = {
+        terraform.backend.remote = {
+          organization = "iohk-midnight";
+          workspaces = [{ prefix = "${config.cluster.name}_"; }];
+        };
+
         output.cluster = {
           value = {
             flake = self.outPath;
@@ -148,6 +153,23 @@ in {
         #     values = [ config.cluster.vpc.name ];
         #   };
         # };
+
+        data.aws_vpc = (lib.flip lib.mapAttrs' vpcs (region: vpc:
+          lib.nameValuePair vpc.name {
+            inherit (vpc) provider;
+            filter = {
+              name = "tag:Name";
+              values = [ vpc.name ];
+            };
+          })) // {
+            core = {
+              provider = awsProviderFor config.cluster.region;
+              filter = {
+                name = "tag:Name";
+                values = [ config.cluster.vpc.name ];
+              };
+            };
+          };
 
         resource.aws_security_group = {
           "${config.cluster.name}" = {
