@@ -1,0 +1,10 @@
+/secrets
+/.terraform
+/terraform.*
+/*.plan
+/encrypted
+/result
+/.lego
+/.direnv
+/.envrc
+.#*
