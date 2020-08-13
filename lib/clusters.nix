@@ -23,8 +23,10 @@ let
   mkSystem = nodeName: modules:
     self.inputs.nixpkgs.lib.nixosSystem {
       inherit pkgs system;
-      modules = [ ../modules/default.nix self.nixosModules.amazon-image ]
-        ++ modules;
+      modules = [
+        ../modules/default.nix
+        (self.inputs.nixpkgs + "/nixos/modules/virtualisation/amazon-image.nix")
+      ] ++ modules;
       specialArgs = { inherit nodeName self; };
     };
 
@@ -71,6 +73,5 @@ in listToAttrs (forEach clusterFiles (file:
     mkJob = import ./mk-job.nix proto;
 
   in nameValuePair proto.config.cluster.name ({
-    inherit proto tf-output tf nodes groups topology bitte-secrets
-      mkJob;
+    inherit proto tf-output tf nodes groups topology bitte-secrets mkJob;
   } // bitte-secrets)))

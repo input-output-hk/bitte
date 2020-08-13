@@ -1,4 +1,8 @@
-{ pkgs, ... }: {
+{ config, pkgs, ... }:
+let
+  bitte-secrets =
+    pkgs.callPackage ../pkgs/bitte-secrets.nix { inherit (config) cluster; };
+in {
   documentation.man.enable = false;
   documentation.nixos.enable = false;
   documentation.info.enable = false;
@@ -10,7 +14,9 @@
   environment.systemPackages = with pkgs; [
     bat
     bind
+    bitte-secrets.bitte-secrets-repair
     di
+    envoy
     fd
     file
     gitMinimal
@@ -18,12 +24,11 @@
     jq
     lsof
     ncdu
+    nomad-autoscaler
     openssl
     ripgrep
     tmux
     tree
     vim
-    envoy
-    nomad-autoscaler
   ];
 }

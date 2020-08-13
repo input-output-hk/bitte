@@ -1,4 +1,4 @@
-{ system, self }:
+{ system, self }@toplevel:
 let
   inherit (self.inputs) nixpkgs nix ops-lib;
   inherit (builtins) fromJSON toJSON trace mapAttrs genList foldl';
@@ -70,18 +70,24 @@ in final: prev: {
 
   toPrettyJSON = prev.callPackage ./lib/to-pretty-json.nix { };
 
-  clusters = final.callPackage ./lib/clusters.nix { inherit self system; } {
-    root = ./clusters;
-  };
+  clusters = final.mkClusters { root = ./clusters; };
 
-  nixosConfigurations = lib.pipe final.clusters [
-    (lib.mapAttrsToList (clusterName: cluster:
-      lib.mapAttrsToList
-      (name: value: lib.nameValuePair "${clusterName}-${name}" value)
-      (cluster.nodes // cluster.groups)))
-    lib.flatten
-    lib.listToAttrs
-  ];
+  mkClusters = { root, self ? toplevel.self, system ? toplevel.system }:
+    final.callPackage ./lib/clusters.nix { inherit self system; } {
+      inherit root;
+    };
+
+  nixosConfigurations = final.mkNixosConfigurations final.clusters;
+
+  mkNixosConfigurations = clusters:
+    lib.pipe clusters [
+      (lib.mapAttrsToList (clusterName: cluster:
+        lib.mapAttrsToList
+        (name: value: lib.nameValuePair "${clusterName}-${name}" value)
+        (cluster.nodes // cluster.groups)))
+      lib.flatten
+      lib.listToAttrs
+    ];
 
   terralib = rec {
     amis = import (nixpkgs + "/nixos/modules/virtualisation/ec2-amis.nix");
@@ -196,7 +202,6 @@ in final: prev: {
       in (lib.optional (rule.self != false) from-self)
       ++ (lib.optional (rule.cidrs != [ ]) from-cidr)
       ++ (lib.optional (rule.sourceSecurityGroupId != null) from-ssgi));
-
   };
 
   # systemd will not try to restart services whose dependencies have failed.

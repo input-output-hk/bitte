@@ -27,7 +27,7 @@ in {
                       imports = [ this.config.configuration ];
                     };
                   };
-              in pkgs.toPrettyJSON "${name}.tf.json" compiledConfig.config;
+              in pkgs.toPrettyJSON "${name}.tf" compiledConfig.config;
           };
         };
       }));
@@ -61,18 +61,6 @@ in {
               });
 
             asgs = { };
-
-            # asgs = lib.flip lib.mapAttrs config.cluster.autoscalingGroups
-            #   (name: group: {
-            #     flake_attr =
-            #       "nixosConfigurations.${group.uid}.config.system.build.toplevel";
-            #     instance_type = var
-            #       "data.aws_launch_configuration.${group.uid}.instance_type";
-            #     uid = group.uid;
-            #     arn = var "data.aws_autoscaling_group.${group.uid}.arn";
-            #     region = group.region;
-            #     count = group.desiredCapacity;
-            #   });
           };
         };
 
@@ -153,18 +141,13 @@ in {
                 });
               }))));
 
-        resource.aws_vpc = {
-          "${config.cluster.vpc.name}" = {
-            provider = awsProviderFor config.cluster.region;
-            cidr_block = config.cluster.vpc.cidr;
-            enable_dns_hostnames = true;
-            tags = {
-              Cluster = config.cluster.name;
-              Name = config.cluster.vpc.name;
-              Region = config.cluster.region;
-            };
-          };
-        };
+        # data.aws_vpc.core = {
+        #   provider = awsProviderFor config.cluster.region;
+        #   filter = {
+        #     name = "tag:Name";
+        #     values = [ config.cluster.vpc.name ];
+        #   };
+        # };
 
         resource.aws_security_group = {
           "${config.cluster.name}" = {

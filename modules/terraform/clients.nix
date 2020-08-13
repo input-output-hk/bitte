@@ -7,7 +7,6 @@ in {
   tf.clients.configuration = {
     output.cluster = {
       value = {
-
         flake = self.outPath;
         nix = pkgs.nixFlakes;
         kms = config.cluster.kms;
@@ -17,7 +16,18 @@ in {
         roles = lib.flip lib.mapAttrs config.cluster.iam.roles
           (name: role: { arn = var "data.aws_iam_role.${role.uid}.arn"; });
 
-        instances = { };
+        instances = lib.flip lib.mapAttrs config.cluster.instances
+          (name: server: {
+            flake_attr =
+              "nixosConfigurations.${server.uid}.config.system.build.toplevel";
+            instance_type =
+              var "data.aws_instance.${server.name}.instance_type";
+            name = server.name;
+            private_ip = var "data.aws_instance.${server.name}.private_ip";
+            public_ip = var "data.aws_instance.${server.name}.public_ip";
+            tags = server.tags;
+            uid = server.uid;
+          });
 
         asgs = lib.flip lib.mapAttrs config.cluster.autoscalingGroups
           (name: group: {
@@ -32,6 +42,14 @@ in {
           });
       };
     };
+
+    data.aws_instance = lib.flip lib.mapAttrs config.cluster.instances
+      (name: server: {
+        filter = [{
+          name = "tag:UID";
+          values = [ server.uid ];
+        }];
+      });
 
     provider.aws = [{ region = config.cluster.region; }] ++ (lib.forEach regions
       (region: {

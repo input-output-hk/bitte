@@ -12,8 +12,6 @@ in {
       enabled = true;
 
       bootstrapExpect = 3;
-      # TODO: make dynamic
-      encrypt = "abv4BWoClT47x7Kwh6U9EQ==";
 
       serverJoin = {
         retryJoin = (mapAttrsToList (_: v: v.privateIP) instances)

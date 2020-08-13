@@ -18,7 +18,6 @@ let
     atala-testnet.eu-central-1 =
       "arn:aws:kms:eu-central-1:276730534310:key/5193b747-7449-40f6-976a-67d91257abdb";
   };
-
 in {
   imports = [ ./iam.nix ];
 

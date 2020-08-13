@@ -8,7 +8,7 @@ let
 
   vaultAgentConfig = pkgs.toPrettyJSON "vault-agent" {
     pid_file = "./vault-agent.pid";
-    vault.address = "https://vault.${domain}:8200";
+    vault.address = "https://active.vault.service.consul:8200";
     # exit_after_auth = true;
     auto_auth = {
       method = [{
@@ -154,11 +154,16 @@ in {
       wantedBy = [ "multi-user.target" ];
 
       environment = {
-        inherit (config.environment.variables)
-          AWS_DEFAULT_REGION VAULT_FORMAT VAULT_ADDR;
+        inherit (config.environment.variables) AWS_DEFAULT_REGION VAULT_FORMAT;
         VAULT_CACERT = "/etc/ssl/certs/full.pem";
+        VAULT_ADDR = "https://active.vault.service.consul:8200";
         CONSUL_HTTP_ADDR = "127.0.0.1:8500";
         CONSUL_CACERT = "/etc/ssl/certs/full.pem";
+
+        # TODO: figure out why we sometimes cannot renew the certificate.
+        # Is it related to IAM session length?
+        # This should definitely verify, but is too fragile right now.
+        VAULT_SKIP_VERIFY = "true";
       };
 
       path = with pkgs; [ vault-bin glibc gawk ];

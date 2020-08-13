@@ -1,12 +1,19 @@
 { self, config, pkgs, lib, ... }:
 let
   inherit (pkgs.terralib)
-    id var regions awsProviderNameFor awsProviderFor merge mkSecurityGroupRule nullRoute;
+    id var regions awsProviderNameFor awsProviderFor merge mkSecurityGroupRule
+    nullRoute;
   vpcs = pkgs.terralib.vpcs config.cluster;
 
   tags = { Cluster = config.cluster.name; };
 in {
   tf.network.configuration = {
+
+    terraform.backend.remote = {
+      organization = "iohk-midnight";
+      workspaces = [{ prefix = "${config.cluster.name}_"; }];
+    };
+
     provider.aws = [{ region = config.cluster.region; }] ++ (lib.forEach regions
       (region: {
         inherit region;
@@ -17,15 +24,7 @@ in {
       provider = awsProviderFor config.cluster.region;
     };
 
-    data.aws_vpc.core = {
-      provider = awsProviderFor config.cluster.region;
-      filter = {
-        name = "tag:Name";
-        values = [ config.cluster.vpc.name ];
-      };
-    };
-
-    resource.aws_vpc = lib.flip lib.mapAttrs' vpcs (region: vpc:
+    resource.aws_vpc = (lib.flip lib.mapAttrs' vpcs (region: vpc:
       lib.nameValuePair region {
         inherit (vpc) provider cidr_block;
         enable_dns_hostnames = true;
@@ -34,7 +33,18 @@ in {
           Name = vpc.name;
           Region = region;
         };
-      });
+      })) // {
+        core = {
+          provider = awsProviderFor config.cluster.region;
+          cidr_block = config.cluster.vpc.cidr;
+          enable_dns_hostnames = true;
+          tags = {
+            Cluster = config.cluster.name;
+            Name = config.cluster.vpc.name;
+            Region = config.cluster.region;
+          };
+        };
+      };
 
     resource.aws_internet_gateway = lib.flip lib.mapAttrs' vpcs (region: vpc:
       lib.nameValuePair region {
@@ -78,7 +88,7 @@ in {
       (region: vpc:
         lib.nameValuePair region {
           inherit (vpc) provider vpc_id;
-          peer_vpc_id = id "data.aws_vpc.core";
+          peer_vpc_id = id "aws_vpc.core";
           peer_owner_id = var "data.aws_caller_identity.core.account_id";
           peer_region = config.cluster.region;
           auto_accept = false;

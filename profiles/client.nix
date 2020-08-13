@@ -17,8 +17,6 @@
 
   boot.cleanTmpDir = true;
 
-  # TODO: put our CA cert here.
-  security.pki.certificates = [ ];
   time.timeZone = "UTC";
   networking.firewall.enable = false;
 }

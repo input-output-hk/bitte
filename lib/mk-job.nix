@@ -5,7 +5,6 @@ let
   inherit (cluster) region domain;
 
   mkNomadJob = pkgs.callPackage ./mk-nomad-job.nix { };
-  nomadJob = pkgs.callPackage ./nomad-job.nix { };
 
   ecr = "895947072537.dkr.ecr.us-east-2.amazonaws.com";
   tag = "develop-2598-1980ac7a";

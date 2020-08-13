@@ -1,6 +1,7 @@
 { self, cluster, lib, awscli, sops, jq, coreutils, cfssl, consul, toybox
 , vault-bin, glibc, gawk, toPrettyJSON, writeShellScriptBin, bitte
-, terraform-with-plugins, rsync, openssh, gnused, curl, cacert, nixFlakes }:
+, terraform-with-plugins, rsync, openssh, gnused, curl, cacert, nixFlakes, nomad
+}:
 let
   inherit (cluster) kms region s3-bucket domain instances autoscalingGroups;
   inherit (lib)
@@ -73,15 +74,16 @@ let
         consul
         toybox
         terraform-with-plugins
+        nomad
       ]
     }"
 
     root="$PWD/secrets/certs/${cluster.name}/${kms}"
     ship="$root/ship"
 
-    terraform workspace select ${cluster.name}.core
+    terraform workspace select ${cluster.name}_core
+
     IP="$(terraform output -json cluster | jq -e -r '.instances."core-1".public_ip')"
-    export IP
 
     mkdir -p "$root/original" "$root/ship"
     cd "$root/original"
@@ -130,6 +132,8 @@ let
     echo "$cert" \
     | cfssljson -bare cert
 
+    cp ca.pem "$ship/client/ca.pem"
+
     echo "$cert" \
     | jq --arg ca "$(< ca.pem)" '.ca = $ca' \
     | sops --encrypt --kms "${kms}" --input-type json --output-type json /dev/stdin \
@@ -137,9 +141,10 @@ let
 
     [ -s "$enc.new" ] && mv "$enc.new" "$enc"
 
+
     # Consul
 
-    encrypt="$(consul keygen)"
+    consulEncrypt="$(consul keygen)"
 
     ## Consul server ACL master token and encrypt secret
 
@@ -151,7 +156,7 @@ let
 
       echo '{}' \
       | jq --arg token "$(uuidgen)" '.acl.tokens.master = $token' \
-      | jq --arg encrypt "$encrypt" '.encrypt = $encrypt' \
+      | jq --arg encrypt "$consulEncrypt" '.encrypt = $encrypt' \
       | sops --encrypt --kms "${kms}" --input-type json --output-type json /dev/stdin \
       > "$enc.new"
 
@@ -165,14 +170,43 @@ let
 
     if [ ! -s "$enc" ]; then
       echo '{}' \
-      | jq --arg encrypt "$encrypt" '.encrypt = $encrypt' \
+      | jq --arg encrypt "$consulEncrypt" '.encrypt = $encrypt' \
       | sops --encrypt --kms "${kms}" --input-type json --output-type json /dev/stdin \
       > "$enc.new"
 
       [ -s "$enc.new" ] && mv "$enc.new" "$enc"
     fi
 
-    cp ca.pem "$ship/client/ca.pem"
+
+    ## Nomad
+
+    nomadEncrypt="$(nomad operator keygen)"
+
+    ## Nomad Client
+
+    enc="$ship/client/nomad-client.enc.json"
+    mkdir -p "$(dirname "$enc")"
+
+    if [ ! -s "$enc" ]; then
+      echo '{}' \
+      | jq --arg encrypt "$nomadEncrypt" '.encrypt = $encrypt' \
+      | sops --encrypt --kms "${kms}" --input-type json --output-type json /dev/stdin \
+      > "$enc.new"
+      [ -s "$enc.new" ] && mv "$enc.new" "$enc"
+    fi
+
+    ## Nomad Server
+
+    enc="$ship/server/nomad-server.enc.json"
+    mkdir -p "$(dirname "$enc")"
+
+    if [ ! -s "$enc" ]; then
+      echo '{}' \
+      | jq --arg encrypt "$nomadEncrypt" '.encrypt = $encrypt' \
+      | sops --encrypt --kms "${kms}" --input-type json --output-type json /dev/stdin \
+      > "$enc.new"
+      [ -s "$enc.new" ] && mv "$enc.new" "$enc"
+    fi
   '';
 
   upload = writeShellScriptBin "bitte-secrets-upload" ''
@@ -214,6 +248,10 @@ let
         sops --decrypt consul-server.enc.json \
         > /etc/consul.d/secrets.json
 
+        mkdir -p /etc/nomad.d
+        sops --decrypt nomad-server.enc.json \
+        > /etc/nomad.d/secrets.json
+
         cdir="/etc/ssl/certs"
 
         sops --decrypt cert.enc.json \
@@ -236,6 +274,10 @@ let
         mkdir -p /etc/consul.d
         sops --decrypt consul-client.enc.json \
         > /etc/consul.d/secrets.json
+
+        mkdir -p /etc/nomad.d
+        sops --decrypt nomad-client.enc.json \
+        > /etc/nomad.d/secrets.json
 
         unset VAULT_CACERT
         export VAULT_ADDR=https://vault.${domain}
@@ -285,12 +327,8 @@ let
 
     set -exuo pipefail
 
-    bitte terraform core
-
-    terraform workspace select ${cluster.name}.core
-
-    IP="$(terraform output -json cluster | jq -e -r '.instances."core-1".public_ip')"
-    export IP
+    nix build .#clusters.atala-testnet.tf.network.output && rm -f config.tf.json; cp $(readlink -f ./result) config.tf.json
+    terraform workspace select ${cluster.name}_core
 
     bitte-secrets-generate
     bitte-secrets-upload
@@ -343,7 +381,6 @@ let
 
     ips=($(terraform output -json cluster | jq -e -r '.instances | map(.public_ip) | .[]'))
     IP="$(terraform output -json cluster | jq -e -r '.instances."core-1".public_ip')"
-    export IP
 
     export VAULT_ADDR="https://$IP:8200"
     export VAULT_FORMAT=json
