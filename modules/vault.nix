@@ -296,7 +296,7 @@ in {
     telemetry = mkOption {
       type = submodule {
         options = {
-          dogstatsdAddr  = mkOption {
+          dogstatsdAddr = mkOption {
             type = nullOr str;
             default = null;
           };

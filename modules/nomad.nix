@@ -561,7 +561,7 @@ in {
           };
 
           defaultSchedulerConfig = mkOption {
-            default = {};
+            default = { };
             type = submodule {
               options = {
                 schedulerAlgorithm = mkOption {
@@ -570,7 +570,7 @@ in {
                 };
 
                 preemptionConfig = mkOption {
-                  default ={};
+                  default = { };
                   type = submodule {
                     options = {
                       batchSchedulerEnabled =

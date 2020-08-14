@@ -58,8 +58,13 @@ let
     toPrettyJSON name {
       CN = "${domain}";
       inherit names key;
-      hosts = [ "consul.service.consul" "vault.service.consul" "nomad.service.consul" "server.${region}.consul" "127.0.0.1" ]
-        ++ extraHosts;
+      hosts = [
+        "consul.service.consul"
+        "vault.service.consul"
+        "nomad.service.consul"
+        "server.${region}.consul"
+        "127.0.0.1"
+      ] ++ extraHosts;
     };
 
   generate = writeShellScriptBin "bitte-secrets-generate" ''

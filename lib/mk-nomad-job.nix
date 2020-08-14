@@ -15,7 +15,7 @@ let
     auth = "auth";
     image = "image";
     volumes = "volumes";
-    args="args";
+    args = "args";
     memoryMB = "MemoryMB";
   };
 

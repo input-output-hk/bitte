@@ -1,4 +1,5 @@
-{ name, json, writeShellScriptBin }: writeShellScriptBin "nomad-run" ''
+{ name, json, writeShellScriptBin }:
+writeShellScriptBin "nomad-run" ''
   echo running ${json}
 
   curl $NOMAD_ADDR/v1/status/peers

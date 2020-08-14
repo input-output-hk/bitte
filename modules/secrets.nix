@@ -31,8 +31,7 @@ in {
         };
 
         path = with pkgs; [ sops jq cfssl coreutils ];
-      }
-    );
+      });
 
     secrets."consul" = {
       generate = ''
