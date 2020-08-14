@@ -81,7 +81,8 @@ let
     root="$PWD/secrets/certs/${cluster.name}/${kms}"
     ship="$root/ship"
 
-    terraform workspace select ${cluster.name}_core
+    terraform workspace select core
+    terraform init
 
     IP="$(terraform output -json cluster | jq -e -r '.instances."core-1".public_ip')"
 
