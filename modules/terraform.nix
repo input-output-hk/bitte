@@ -99,6 +99,11 @@ let
         type = certificateType;
         default = { };
       };
+
+      flakePath = mkOption {
+        type = path;
+        default = self.outPath;
+      };
     };
   });
 
@@ -459,7 +464,7 @@ let
             "--ip"
             ip
             "--flake"
-            self.outPath
+            cfg.flakePath
             "--attr"
             "${cfg.name}-${this.config.name}"
           ];

@@ -12,7 +12,7 @@ in {
 
     output.cluster = {
       value = {
-        flake = self.outPath;
+        flake = config.cluster.flakePath;
         nix = pkgs.nixFlakes;
         kms = config.cluster.kms;
         region = config.cluster.region;
