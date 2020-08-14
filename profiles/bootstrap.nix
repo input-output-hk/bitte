@@ -32,8 +32,7 @@ in {
           RemainAfterExit = true;
           Restart = "on-failure";
           RestartSec = "20s";
-          inherit (config.systemd.services.consul.serviceConfig)
-            WorkingDirectory;
+          WorkingDirectory = "/run/keys";
           ExecStartPre = ensureDependencies [ "consul" "consul-policies" ];
         };
 
@@ -90,34 +89,6 @@ in {
             > /etc/nomad.d/consul-token.json.new
 
             mv /etc/nomad.d/consul-token.json.new /etc/nomad.d/consul-token.json
-          fi
-
-          # # # # #
-          # Vault #
-          # # # # #
-
-          if [ ! -s /var/lib/nginx/vault.enc.json ]; then
-            mkdir -p /var/lib/nginx
-
-            vaultToken="$(
-              consul acl token create \
-                -policy-name=vault-client \
-                -description "vault-client $(date +%Y-%m-%d-%H-%M-%S)" \
-                -format json \
-              | jq -e -r .SecretID
-            )"
-
-            echo '{}' \
-            | jq --arg token "$vaultToken" '.storage.consul.token = $token' \
-            | jq --arg token "$vaultToken" '.service_registration.consul.token = $token' \
-            | sops \
-              --input-type json \
-              --output-type json \
-              --kms "${kms}" \
-              --encrypt \
-              /dev/stdin > /var/lib/nginx/vault.enc.json.new
-
-            mv /var/lib/nginx/vault.enc.json.new /var/lib/nginx/vault.enc.json
           fi
         '';
       };
