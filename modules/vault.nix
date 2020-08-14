@@ -399,7 +399,7 @@ in {
         set -exuo pipefail
 
         [ -s /etc/vault.d/consul-tokens.json ] && exit
-        [ ! -s /etc/consul.d/secrets.json ] || exit
+        [ -s /etc/consul.d/secrets.json ]
         jq -e .acl.tokens.master /etc/consul.d/secrets.json || exit
 
         CONSUL_HTTP_TOKEN="$(jq -e -r .acl.tokens.master /etc/consul.d/secrets.json)"
