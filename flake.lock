@@ -8,11 +8,11 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1597389429,
-        "narHash": "sha256-mGmlTtWeJ9l5NRgsF7HQv0w7oNCFVRzsXhcox9ZXY0Q=",
+        "lastModified": 1597390287,
+        "narHash": "sha256-RI6+b6gMGWpfR7DfYORz75bl/owL2faKpE/pW2neWj4=",
         "owner": "input-output-hk",
         "repo": "bitte-cli",
-        "rev": "7db47ef0d7e6d0db73f222a197320239a469a894",
+        "rev": "8877c6167c3e5444c062f480818d3e0101093e06",
         "type": "github"
       },
       "original": {
