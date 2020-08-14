@@ -133,6 +133,7 @@ let
     echo "$cert" \
     | cfssljson -bare cert
 
+    mkdir -p "$ship/client"
     cp ca.pem "$ship/client/ca.pem"
 
     echo "$cert" \
