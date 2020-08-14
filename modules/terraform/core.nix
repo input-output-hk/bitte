@@ -69,20 +69,6 @@ in {
           };
         };
 
-        # data.aws_autoscaling_group =
-        #   lib.flip lib.mapAttrs' config.cluster.autoscalingGroups (name: group:
-        #     lib.nameValuePair group.uid {
-        #       provider = awsProviderFor group.region;
-        #       name = group.uid;
-        #     });
-
-        # data.aws_launch_configuration =
-        #   lib.flip lib.mapAttrs' config.cluster.autoscalingGroups (name: group:
-        #     lib.nameValuePair group.uid {
-        #       provider = awsProviderFor group.region;
-        #       name = group.uid;
-        #     });
-
         provider = {
           aws = [{ region = config.cluster.region; }] ++ (lib.forEach regions
             (region: {
@@ -146,16 +132,8 @@ in {
                 });
               }))));
 
-        # data.aws_vpc.core = {
-        #   provider = awsProviderFor config.cluster.region;
-        #   filter = {
-        #     name = "tag:Name";
-        #     values = [ config.cluster.vpc.name ];
-        #   };
-        # };
-
         data.aws_vpc = (lib.flip lib.mapAttrs' vpcs (region: vpc:
-          lib.nameValuePair vpc.name {
+          lib.nameValuePair region {
             inherit (vpc) provider;
             filter = {
               name = "tag:Name";
@@ -176,7 +154,7 @@ in {
             provider = awsProviderFor config.cluster.region;
             name_prefix = "${config.cluster.name}-";
             description = "Security group for Core in ${config.cluster.name}";
-            vpc_id = config.cluster.vpc.id;
+            vpc_id = id "data.aws_vpc.core";
             lifecycle = [{ create_before_destroy = true; }];
           };
         };
@@ -220,25 +198,21 @@ in {
             lifecycle = [{ create_before_destroy = true; }];
           }) config.cluster.instances;
 
-        resource.aws_subnet = let
-          mkSubnet = vpc: subnetName: subnet:
+        resource.aws_subnet = lib.flip lib.mapAttrs' config.cluster.vpc.subnets
+          (name: subnet:
             lib.nameValuePair subnet.name {
-              provider = awsProviderFor vpc.region;
-              vpc_id = vpc.id;
+              provider = awsProviderFor config.cluster.vpc.region;
+              vpc_id = id "data.aws_vpc.core";
               cidr_block = subnet.cidr;
               tags = {
                 Cluster = config.cluster.name;
                 Name = subnet.name;
               };
               lifecycle = [{ create_before_destroy = true; }];
-            };
-
-          coreSubnets = lib.flip lib.mapAttrs' config.cluster.vpc.subnets
-            (mkSubnet config.cluster.vpc);
-        in merge [ coreSubnets ];
+            });
 
         resource.aws_internet_gateway.${config.cluster.name} = {
-          vpc_id = config.cluster.vpc.id;
+          vpc_id = id "data.aws_vpc.core";
           tags = {
             Cluster = config.cluster.name;
             Name = config.cluster.name;
@@ -251,7 +225,7 @@ in {
             lib.nameValuePair region { tags = { Name = vpc.name; }; });
 
         resource.aws_route_table.${config.cluster.name} = {
-          vpc_id = config.cluster.vpc.id;
+          vpc_id = id "data.aws_vpc.core";
           route = [{
             cidr_block = "0.0.0.0/0";
             gateway_id = id "aws_internet_gateway.${config.cluster.name}";
@@ -268,26 +242,6 @@ in {
               vpc_peering_connection_id =
                 id "data.aws_vpc_peering_connection.${innerRegion}";
             }));
-
-          #  ++ (lib.flip lib.mapAttrsToList (region: vpc:
-          #   nullRoute // {
-          #     inherit (vpc) cidr_block;
-          #     vpc_peering_connection_id =
-          #       id "aws_vpc_peering_connection.${region}";
-          #   }));
-
-          #  ++ (lib.flip lib.mapAttrsToList config.cluster.autoscalingGroups
-          #   (_: group: { cidr_block = group.vpc.cidr;
-          #     gateway_id = null;
-          #     egress_only_gateway_id = null;
-          #     instance_id = null;
-          #     ipv6_cidr_block = null;
-          #     nat_gateway_id = null;
-          #     network_interface_id = null;
-          #     transit_gateway_id = null;
-          #     vpc_peering_connection_id =
-          #       id "aws_vpc_peering_connection.${group.vpc.name}";
-          #   }));
 
           tags = {
             Cluster = config.cluster.name;
