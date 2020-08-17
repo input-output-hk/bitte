@@ -2,7 +2,6 @@
   imports = [ ./nix.nix ./ssh.nix ./slim.nix ./promtail.nix ];
 
   services = {
-    s3-download.enable = true;
     amazon-ssm-agent.enable = true;
     vault.enable = true;
     consul.enable = true;
