@@ -80,6 +80,7 @@ in {
           RemainAfterExit = true;
           Restart = "on-failure";
           RestartSec = "30s";
+          WorkingDirectory = "/run/keys";
         };
         path = with pkgs; [ sops coreutils ];
         script = ''
