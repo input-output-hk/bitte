@@ -88,10 +88,10 @@ in {
     target = /etc/consul.d/secrets.json;
   };
 
-  secrets.install.consul-clients = {
-    source = self + /bitte/encrypted/consul-clients.json;
-    target = /etc/consul.d/secrets.json;
-  };
+  # secrets.install.consul-clients = {
+  #   source = self + /bitte/encrypted/consul-clients.json;
+  #   target = /etc/consul.d/secrets.json;
+  # };
 
   secrets.generate.nomad = ''
     export PATH="${lib.makeBinPath (with pkgs; [ nomad jq ])}"
