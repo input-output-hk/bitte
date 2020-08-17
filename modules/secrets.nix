@@ -1,7 +1,7 @@
 { lib, config, pkgs, ... }:
 let
   inherit (lib) mkOption;
-  inherit (lib.types) str enum submodule attrsOf;
+  inherit (lib.types) str enum submodule attrsOf nullOr;
   inherit (config.cluster) kms;
 
   installType = submodule {
