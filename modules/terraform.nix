@@ -214,6 +214,18 @@ let
   iamRolePrincipalsType =
     submodule { options = { service = mkOption { type = str; }; }; };
 
+  initialVaultSecretsType = submodule ({ ... }@this: {
+    options = {
+      consul = mkOption {
+        type = str;
+      };
+
+      nomad = mkOption {
+        type = str;
+      };
+    };
+  });
+
   certificateType = submodule ({ ... }@this: {
     options = {
       organization = mkOption {
@@ -539,6 +551,11 @@ let
         type = attrsOf (securityGroupRuleType {
           defaultSecurityGroupId = this.config.securityGroupId;
         });
+        default = { };
+      };
+
+      initialVaultSecrets = mkOption {
+        type = initialVaultSecretsType;
         default = { };
       };
     };

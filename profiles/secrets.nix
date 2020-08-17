@@ -6,7 +6,7 @@ let
   sopsEncrypt =
     "${pkgs.sops}/bin/sops --encrypt --input-type json --kms '${kms}' /dev/stdin";
 
-  sopsDecrypt = "${pkgs.sops}/bin/sops --decrypt --input-type json";
+  sopsDecrypt = path: "${pkgs.sops}/bin/sops --decrypt --input-type json ${path}";
 
   names = [{
     O = "IOHK";
@@ -142,8 +142,12 @@ in {
   '';
 
   # Only install new certs if they're actually newer.
-  secrets.install.certs = ''
-    cert="$(sops -d encrypted/cert.json)"
+  secrets.install.certs.script = ''
+    export PATH="${
+      lib.makeBinPath
+      (with pkgs; [ cfssl jq coreutils ])
+    }"
+    cert="$(${sopsDecrypt ./encrypted/cert.json})"
     echo "$cert" | cfssljson -bare cert
     echo "$cert" | jq -r -e .ca  > "ca.pem"
     echo "$cert" | jq -r -e .full  > "full.pem"

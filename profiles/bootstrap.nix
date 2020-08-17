@@ -348,6 +348,9 @@ in {
 
         vault kv put kv/bootstrap/ca cert=@/etc/ssl/certs/ca.pem
 
+        ${config.instance.initialVaultSecrets.consul}
+        ${config.instance.initialVaultSecrets.nomad}
+
         # Finally allow IAM roles to login to Vault
 
         arn="$(
