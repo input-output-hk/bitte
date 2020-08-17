@@ -1,7 +1,7 @@
 { lib, config, pkgs, ... }:
 let
   inherit (lib) mkOption;
-  inherit (lib.types) str enum submodule attrsOf nullOr;
+  inherit (lib.types) str enum submodule attrsOf nullOr path;
   inherit (config.cluster) kms;
 
   installType = submodule {
@@ -11,11 +11,11 @@ let
         default = "";
       };
       source = mkOption {
-        type = nullOr str;
+        type = nullOr path;
         default = null;
       };
       target = mkOption {
-        type = nullOr str;
+        type = nullOr path;
         default = null;
       };
     };
