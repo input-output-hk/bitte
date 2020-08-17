@@ -84,12 +84,12 @@ in {
   '';
 
   secrets.install.consul-server = {
-    source = self + /encrypted/consul-core.json;
+    source = self + /bitte/encrypted/consul-core.json;
     target = /etc/consul.d/secrets.json;
   };
 
   secrets.install.consul-clients = {
-    source = self + /encrypted/consul-clients.json;
+    source = self + /bitte/encrypted/consul-clients.json;
     target = /etc/consul.d/secrets.json;
   };
 
@@ -105,7 +105,7 @@ in {
   '';
 
   secrets.install.nomad-server = {
-    source = self + /encrypted/nomad-server.json;
+    source = self + /bitte/encrypted/nomad-server.json;
     target = /etc/nomad.d/secrets.json;
   };
 
@@ -147,7 +147,7 @@ in {
       lib.makeBinPath
       (with pkgs; [ cfssl jq coreutils ])
     }"
-    cert="$(${sopsDecrypt (self + /encrypted/cert.json)})"
+    cert="$(${sopsDecrypt (self + /bitte/encrypted/cert.json)})"
     echo "$cert" | cfssljson -bare cert
     echo "$cert" | jq -r -e .ca  > "ca.pem"
     echo "$cert" | jq -r -e .full  > "full.pem"
