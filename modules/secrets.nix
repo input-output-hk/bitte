@@ -66,7 +66,7 @@ in {
       message = ''secrets: source path "${cfg.source}" must exist.'';
     });
 
-  config.systemd.service = lib.flip lib.mapAttrs' config.secrets.install
+  config.systemd.services = lib.flip lib.mapAttrs' config.secrets.install
     (name: cfg:
       lib.nameValuePair "secret-${name}" {
         wantedBy = [
