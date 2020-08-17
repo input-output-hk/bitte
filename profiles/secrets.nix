@@ -155,11 +155,9 @@ in {
     old="$(cfssl certinfo -cert /etc/ssl/certs/cert.pem | jq -e -r .not_after)"
     new="$(cfssl certinfo -cert cert.pem | jq -e -r .not_after)"
 
-    if [[ "$old" < "$new" ]]; then
-      for pem in *.pem; do
-        [ -s "$pem" ]
-        cp "$pem" "/etc/ssl/certs/$pem"
-      done
-    fi
+    for pem in *.pem; do
+      [ -s "$pem" ]
+      cp "$pem" "/etc/ssl/certs/$pem"
+    done
   '';
 }
