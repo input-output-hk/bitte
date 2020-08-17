@@ -61,6 +61,11 @@ in {
   };
 
   config = {
+    assertions = [{
+        assertion = cfg.source == null || builtins.pathExists cfg.source;
+        message = "secrets: source path \"${cfg.source}\" must exist.";
+    }];
+
     systemd.services = lib.flip lib.mapAttrs' config.secrets.install (name: cfg:
       lib.nameValuePair "secret-${name}" {
         wantedBy = [
