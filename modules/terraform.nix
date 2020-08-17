@@ -742,8 +742,8 @@ in {
     };
 
     instance = mkOption {
-      type = attrs;
-      default = cfg.instances.${nodeName};
+      type = nullOr attrs;
+      default = cfg.instances.${nodeName} or null;
     };
   };
 }

@@ -1,20 +1,21 @@
 { lib, config, pkgs, ... }:
 let
-  inherit (lib) mkOption;
   inherit (lib.types) str enum submodule attrsOf nullOr path;
   inherit (config.cluster) kms;
 
   installType = submodule {
     options = {
-      script = mkOption {
+      script = lib.mkOption {
         type = str;
         default = "";
       };
-      source = mkOption {
+
+      source = lib.mkOption {
         type = nullOr path;
         default = null;
       };
-      target = mkOption {
+
+      target = lib.mkOption {
         type = nullOr path;
         default = null;
       };
@@ -23,7 +24,10 @@ let
 
   secretType = submodule {
     options = {
+      encryptedRoot = lib.mkOption { type = path; };
+
       generate = lib.mkOption { type = attrsOf str; };
+
       install = lib.mkOption {
         type = attrsOf installType;
         default = { };

@@ -1,12 +1,12 @@
-{ lib, pkgs, config, self, ... }:
+{ self, lib, pkgs, config, ... }:
 let
-  inherit (lib) mkOption;
-  inherit (config.cluster) kms;
+  inherit (config.cluster) instances domain region kms;
 
   sopsEncrypt =
     "${pkgs.sops}/bin/sops --encrypt --input-type json --kms '${kms}' /dev/stdin";
 
-  sopsDecrypt = path: "${pkgs.sops}/bin/sops --decrypt --input-type json ${path}";
+  sopsDecrypt = path:
+    "${pkgs.sops}/bin/sops --decrypt --input-type json ${path}";
 
   names = [{
     O = "IOHK";
@@ -52,22 +52,20 @@ let
   };
 
   certConfig = pkgs.toPrettyJSON "core" {
-    CN = "${config.cluster.domain}";
+    CN = "${domain}";
     inherit names key;
     hosts = [
       "consul.service.consul"
       "vault.service.consul"
       "nomad.service.consul"
-      "server.${config.cluster.region}.consul"
+      "server.${region}.consul"
       "127.0.0.1"
-    ] ++ (lib.mapAttrsToList (_: i: i.privateIP) config.cluster.instances);
+    ] ++ (lib.mapAttrsToList (_: i: i.privateIP) instances);
   };
 
 in {
-    secrets.generate.consul = ''
-    export PATH="${
-      lib.makeBinPath (with pkgs; [ consul toybox jq coreutils ])
-    }"
+  secrets.generate.consul = ''
+    export PATH="${lib.makeBinPath (with pkgs; [ consul toybox jq coreutils ])}"
 
     encrypt="$(consul keygen)"
 
@@ -83,15 +81,21 @@ in {
     > encrypted/consul-clients.json
   '';
 
-  secrets.install.consul-server = {
-    source = self + /bitte/encrypted/consul-core.json;
+  secrets.install.nomad-server = {
+    source = config.secrets.encryptedRoot + /nomad.json;
+    target = /etc/nomad.d/secrets.json;
+  };
+
+  secrets.install.consul-server = lib.mkIf (config.instance != null) {
+    source = config.secrets.encryptedRoot + /consul-core.json;
     target = /etc/consul.d/secrets.json;
   };
 
-  # secrets.install.consul-clients = {
-  #   source = self + /bitte/encrypted/consul-clients.json;
-  #   target = /etc/consul.d/secrets.json;
-  # };
+  secrets.install.consul-clients = lib.mkIf (config.instance == null) {
+    source = config.secrets.encryptedRoot
+      + /consul-clients.json;
+    target = /etc/consul.d/secrets.json;
+  };
 
   secrets.generate.nomad = ''
     export PATH="${lib.makeBinPath (with pkgs; [ nomad jq ])}"
@@ -104,15 +108,9 @@ in {
     > encrypted/nomad.json
   '';
 
-  secrets.install.nomad-server = {
-    source = self + /bitte/encrypted/nomad.json;
-    target = /etc/nomad.d/secrets.json;
-  };
-
   secrets.generate.ca = ''
     export PATH="${
-      lib.makeBinPath
-      (with pkgs; [ cfssl jq coreutils terraform-with-plugins ])
+      lib.makeBinPath (with pkgs; [ cfssl jq coreutils terraform-with-plugins ])
     }"
 
     if [ ! -s secrets/ca.pem ]; then
@@ -145,10 +143,7 @@ in {
 
   # Only install new certs if they're actually newer.
   secrets.install.certs.script = ''
-    export PATH="${
-      lib.makeBinPath
-      (with pkgs; [ cfssl jq coreutils ])
-    }"
+    export PATH="${lib.makeBinPath (with pkgs; [ cfssl jq coreutils ])}"
     cert="$(${sopsDecrypt (self + /bitte/encrypted/cert.json)})"
     echo "$cert" | cfssljson -bare cert
     echo "$cert" | jq -r -e .ca  > "ca.pem"
