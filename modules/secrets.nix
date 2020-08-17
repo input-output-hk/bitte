@@ -55,7 +55,7 @@ in {
   };
 
   config = {
-    services = lib.flip lib.mapAttrs' config.secrets.install (name: cfg:
+    systemd.services = lib.flip lib.mapAttrs' config.secrets.install (name: cfg:
       lib.nameValuePair "secret-${name}" {
         wantedBy = [
           "multi-user.target"
