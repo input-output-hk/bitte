@@ -356,6 +356,11 @@ in {
           };
         };
       };
+
+      nodeId = mkOption {
+        type = nullOr str;
+        default = null;
+      };
     };
   };
 

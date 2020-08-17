@@ -82,18 +82,17 @@ in {
   '';
 
   secrets.install.nomad-server = {
-    source = config.secrets.encryptedRoot + /nomad.json;
+    source = config.secrets.encryptedRoot + "/nomad.json";
     target = /etc/nomad.d/secrets.json;
   };
 
   secrets.install.consul-server = lib.mkIf (config.instance != null) {
-    source = config.secrets.encryptedRoot + /consul-core.json;
+    source = config.secrets.encryptedRoot + "/consul-core.json";
     target = /etc/consul.d/secrets.json;
   };
 
   secrets.install.consul-clients = lib.mkIf (config.instance == null) {
-    source = config.secrets.encryptedRoot
-      + /consul-clients.json;
+    source = config.secrets.encryptedRoot + "/consul-clients.json";
     target = /etc/consul.d/secrets.json;
   };
 

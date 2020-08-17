@@ -216,13 +216,9 @@ let
 
   initialVaultSecretsType = submodule ({ ... }@this: {
     options = {
-      consul = mkOption {
-        type = str;
-      };
+      consul = mkOption { type = str; };
 
-      nomad = mkOption {
-        type = str;
-      };
+      nomad = mkOption { type = str; };
     };
   });
 

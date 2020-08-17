@@ -19,7 +19,7 @@ in {
     ui = true;
 
     # generate deterministic UUIDs for each node so they can rejoin.
-    node_id = lib.fileContents
+    nodeId = lib.fileContents
       (pkgs.runCommand "node-id" { buildInputs = [ pkgs.utillinux ]; }
         "uuidgen -s -n ab8c189c-e764-4103-a1a8-d355b7f2c814 -N ${nodeName} > $out");
   };
