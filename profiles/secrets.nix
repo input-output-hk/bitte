@@ -115,9 +115,11 @@ in {
       (with pkgs; [ cfssl jq coreutils terraform-with-plugins ])
     }"
 
-    ca="$(cfssl gencert -initca ${caJson})"
-    echo "$ca" | cfssljson -bare secrets/ca
-    echo "$ca" | ${sopsEncrypt} > encrypted/ca.json
+    if [ ! -s secrets/ca.pem ]; then
+      ca="$(cfssl gencert -initca ${caJson})"
+      echo "$ca" | cfssljson -bare secrets/ca
+      echo "$ca" | ${sopsEncrypt} > encrypted/ca.json
+    fi
 
     IP="$(terraform output -json cluster | jq -e -r '.instances."core-1".public_ip')"
 
