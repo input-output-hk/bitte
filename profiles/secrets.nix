@@ -84,7 +84,7 @@ in {
   '';
 
   secrets.install.consul-server = {
-    source = self + /bitte/encrypted/consul-core.json;
+    source = self + /b/encrypted/consul-core.json;
     target = /etc/consul.d/secrets.json;
   };
 

@@ -60,40 +60,39 @@ in {
     };
   };
 
-  config = {
+  config = lib.mkMerge (lib.flip lib.mapAttrsToList config.secrets.install (name: cfg: {
     assertions = [{
-        assertion = cfg.source == null || builtins.pathExists cfg.source;
-        message = "secrets: source path \"${cfg.source}\" must exist.";
+      assertion = cfg.source == null || builtins.pathExists cfg.source;
+      message = ''secrets: source path "${cfg.source}" must exist.'';
     }];
 
-    systemd.services = lib.flip lib.mapAttrs' config.secrets.install (name: cfg:
-      lib.nameValuePair "secret-${name}" {
-        wantedBy = [
-          "multi-user.target"
-          "consul.service"
-          "vault.service"
-          "nomad.service"
-        ];
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = true;
-          Restart = "on-failure";
-          RestartSec = "30s";
-        };
-        path = with pkgs; [ sops coreutils ];
-        script = ''
-          set -euxo pipefail
+    systemd.services."secret-${name}" = {
+      wantedBy = [
+        "multi-user.target"
+        "consul.service"
+        "vault.service"
+        "nomad.service"
+      ];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        Restart = "on-failure";
+        RestartSec = "30s";
+      };
+      path = with pkgs; [ sops coreutils ];
+      script = ''
+        set -euxo pipefail
 
-          ${lib.optionalString (cfg.target != null && cfg.source != null) ''
-            target="${toString cfg.target}"
-            mkdir -p "$(dirname "$target")"
-            sops --decrypt --input-type json ${cfg.source} > "$target.new"
-            test -s "$target.new"
-            mv "$target.new" "$target"
-          ''}
+        ${lib.optionalString (cfg.target != null && cfg.source != null) ''
+          target="${toString cfg.target}"
+          mkdir -p "$(dirname "$target")"
+          sops --decrypt --input-type json ${cfg.source} > "$target.new"
+          test -s "$target.new"
+          mv "$target.new" "$target"
+        ''}
 
-          ${cfg.script}
-        '';
-      });
-  };
+        ${cfg.script}
+      '';
+    };
+  }));
 }
