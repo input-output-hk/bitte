@@ -10,8 +10,14 @@ let
         type = str;
         default = "";
       };
-      source = mkOption { type = nullOr str; };
-      target = mkOption { type = nullOr str; };
+      source = mkOption {
+        type = nullOr str;
+        default = null;
+      };
+      target = mkOption {
+        type = nullOr str;
+        default = null;
+      };
     };
   };
 
