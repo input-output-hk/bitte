@@ -130,3 +130,59 @@ Nomad jobs should be stored in the jobs directory.
 
 Secure, store and tightly control access to tokens, passwords, certificates,
 encryption keys for protecting secrets and other sensitive data.
+
+
+secrets:
+
+/etc/ssl/certs/ca.pem
+
+    cfssl gencert -initca | cfssljson -bare ca
+
+    /etc/ssl/certs/cert.pem
+
+/etc/ssl/certs/cert-key.pem
+
+      cfssl gencert \
+        -ca ca.pem \
+        -ca-key ca-key.pem \
+        -config "${caConfigJson}" \
+        -profile bootstrap \
+        cert.config
+
+/etc/ssl/certs/full.pem
+
+/etc/consul.d/secrets.json
+
+    {
+        "acl": {
+            "tokens": {
+                "master": "uuid"
+            }
+        },
+        "encrypt": "consul keygen"
+    }
+
+/etc/consul.d/tokens.json
+
+    {
+      "acl": {
+        "tokens": {
+          "default": "consul generated",
+          "agent": "consul generated"
+        }
+      }
+    }
+
+/etc/nomad.d/consul-token.json
+
+    {
+      "consul": {
+        "token": "consul generated"
+      }
+    }
+
+/etc/nomad.d/secrets.json
+
+    {
+      "encrypt": "nomad operator keygen"
+    }

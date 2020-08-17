@@ -10,6 +10,7 @@
     ./promtail.nix
     ./s3-download.nix
     ./s3-upload.nix
+    ./secrets.nix
     ./terraform.nix
     ./terraform/core.nix
     ./terraform/clients.nix

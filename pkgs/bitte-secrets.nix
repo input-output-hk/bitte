@@ -54,18 +54,17 @@ let
     };
   };
 
-  certConfig = name: extraHosts:
-    toPrettyJSON name {
-      CN = "${domain}";
-      inherit names key;
-      hosts = [
-        "consul.service.consul"
-        "vault.service.consul"
-        "nomad.service.consul"
-        "server.${region}.consul"
-        "127.0.0.1"
-      ] ++ extraHosts;
-    };
+  certConfig = toPrettyJSON "core" {
+    CN = "${domain}";
+    inherit names key;
+    hosts = [
+      "consul.service.consul"
+      "vault.service.consul"
+      "nomad.service.consul"
+      "server.${region}.consul"
+      "127.0.0.1"
+    ] ++ (mapAttrsToList (_: i: i.privateIP) instances);
+  };
 
   generate = writeShellScriptBin "bitte-secrets-generate" ''
     set -exuo pipefail
@@ -120,9 +119,7 @@ let
     enc="$ship/server/cert.enc.json"
     mkdir -p "$(dirname "$enc")"
 
-    certConfigJson="${
-      certConfig "core" (mapAttrsToList (_: i: i.privateIP) instances)
-    }"
+    certConfigJson="${certConfig}"
     jq --arg ip "$IP" '.hosts += [$ip]' < "$certConfigJson" \
     > cert.config
 
