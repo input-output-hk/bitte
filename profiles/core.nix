@@ -6,6 +6,7 @@
     ./nomad/server.nix
     ./telegraf.nix
     ./vault/server.nix
+    ./secrets.nix
   ];
 
   services = {

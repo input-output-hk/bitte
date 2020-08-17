@@ -18,7 +18,10 @@ let
   secretType = submodule {
     options = {
       generate = lib.mkOption { type = attrsOf str; };
-      install = lib.mkOption { type = attrsOf installType; };
+      install = lib.mkOption {
+        type = attrsOf installType;
+        default = { };
+      };
 
       generateScript = lib.mkOption {
         type = str;
