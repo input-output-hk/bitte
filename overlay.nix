@@ -1,4 +1,4 @@
-{ system, self }@toplevel:
+{ system, self }:
 let
   inherit (self.inputs) nixpkgs nix ops-lib;
   inherit (builtins) fromJSON toJSON trace mapAttrs genList foldl';
@@ -70,12 +70,16 @@ in final: prev: {
 
   toPrettyJSON = prev.callPackage ./lib/to-pretty-json.nix { };
 
-  clusters = final.mkClusters { root = ./clusters; };
+  clusters = final.mkClusters {
+    root = ./clusters;
+    inherit self system;
+  };
 
-  mkClusters = { root, self ? toplevel.self, system ? toplevel.system }:
-    final.callPackage ./lib/clusters.nix { inherit self system; } {
-      inherit root;
-    };
+  mkClusters = args:
+    import ./lib/clusters.nix ({
+      pkgs = final;
+      lib = final.lib;
+    } // args);
 
   nixosConfigurations = final.mkNixosConfigurations final.clusters;
 
