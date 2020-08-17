@@ -303,6 +303,7 @@ in {
                   var "acme_certificate.certificate.private_key_pem";
                 cert_pem = var "acme_certificate.certificate.certificate_pem";
                 issuer_pem = var "acme_certificate.certificate.issuer_pem";
+                target_arn = var "aws_instance.${name}.arn";
               };
 
               connection = {
