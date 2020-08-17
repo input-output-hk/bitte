@@ -105,7 +105,7 @@ in {
   '';
 
   secrets.install.nomad-server = {
-    source = self + /bitte/encrypted/nomad-server.json;
+    source = self + /bitte/encrypted/nomad.json;
     target = /etc/nomad.d/secrets.json;
   };
 
