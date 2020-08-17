@@ -1,4 +1,4 @@
-{ lib, pkgs, ... }: {
+{ lib, pkgs, ... }:
 let
   inherit (lib) mkOption;
   inherit (config.cluster) kms;
