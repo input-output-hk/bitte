@@ -379,7 +379,7 @@ in {
       CONSUL_HTTP_SSL = "true";
     };
 
-    environment.etc."/${cfg.configDir}/config.json".source =
+    environment.etc."${cfg.configDir}/config.json".source =
       pkgs.toPrettyJSON "config" (sanitize {
         inherit (cfg)
           ui datacenter bootstrapExpect bindAddr advertiseAddr server logLevel
@@ -389,7 +389,7 @@ in {
           enableLocalScriptChecks nodeMeta telemetry;
       });
 
-    environment.etc."/${cfg.configDir}/extra-config.json".source =
+    environment.etc."${cfg.configDir}/extra-config.json".source =
       mkIf (cfg.extraConfig != null)
       (pkgs.toPrettyJSON "config" (sanitize cfg.extraConfig));
 
@@ -398,7 +398,7 @@ in {
       after = [ "network.target" ];
 
       restartTriggers = mapAttrsToList (_: d: d.source)
-        (filterAttrs (n: _: hasPrefix "/${cfg.configDir}/" n)
+        (filterAttrs (n: _: hasPrefix "${cfg.configDir}/" n)
           config.environment.etc);
 
       path = with pkgs; [ envoy ];

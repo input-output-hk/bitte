@@ -16,7 +16,5 @@
     telegraf.extraConfig.global_tags.role = "consul-server";
   };
 
-  environment.etc."consul.d/.keep.json".text = "{}";
-
   environment.systemPackages = with pkgs; [ sops awscli cachix cfssl ];
 }
