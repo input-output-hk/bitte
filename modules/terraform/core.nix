@@ -44,7 +44,7 @@ in {
 
         output.cluster = {
           value = {
-            flake = config.cluster.flakePath;
+            flake = toString config.cluster.flakePath;
             nix = pkgs.nixFlakes;
             kms = config.cluster.kms;
             region = config.cluster.region;
