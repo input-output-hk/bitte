@@ -143,7 +143,7 @@ in {
   # Only install new certs if they're actually newer.
   secrets.install.certs.script = ''
     export PATH="${lib.makeBinPath (with pkgs; [ cfssl jq coreutils ])}"
-    cert="$(${sopsDecrypt (self + /bitte/encrypted/cert.json)})"
+    cert="$(${sopsDecrypt (config.secrets.encryptedRoot + "cert.json")})"
     echo "$cert" | cfssljson -bare cert
     echo "$cert" | jq -r -e .ca  > "ca.pem"
     echo "$cert" | jq -r -e .full  > "full.pem"
