@@ -158,7 +158,7 @@ in {
         AmbientCapabilities = "CAP_NET_BIND_SERVICE";
       };
 
-      path = with pkgs; [ consul consul-template vault-bin gawk glibc ];
+      path = with pkgs; [ consul consul-template vault-bin ];
 
       environment = {
         CONSUL_CACERT = "/etc/ssl/certs/full.pem";

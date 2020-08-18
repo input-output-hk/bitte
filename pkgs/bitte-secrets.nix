@@ -1,5 +1,5 @@
 { self, cluster, lib, awscli, sops, jq, coreutils, cfssl, consul, toybox
-, vault-bin, glibc, gawk, toPrettyJSON, writeShellScriptBin, bitte
+, vault-bin, toPrettyJSON, writeShellScriptBin, bitte
 , terraform-with-plugins, rsync, openssh, gnused, curl, cacert, nixFlakes, nomad
 }:
 let
@@ -233,8 +233,6 @@ let
         coreutils
         cfssl
         vault-bin
-        glibc
-        gawk
         curl
         cacert
       ]
@@ -316,9 +314,7 @@ let
       makeBinPath [
         bitte
         coreutils
-        gawk
         generate
-        glibc
         rsync
         openssh
         switch
@@ -349,8 +345,6 @@ let
         awscli
         bitte
         coreutils
-        gawk
-        glibc
         gnused
         jq
         rsync

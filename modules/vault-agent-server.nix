@@ -166,7 +166,7 @@ in {
         VAULT_SKIP_VERIFY = "true";
       };
 
-      path = with pkgs; [ vault-bin glibc gawk ];
+      path = with pkgs; [ vault-bin ];
 
       serviceConfig = {
         Restart = "always";

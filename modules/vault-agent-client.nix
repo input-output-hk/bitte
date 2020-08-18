@@ -168,7 +168,7 @@ in {
         # CONSUL_CACERT = "/etc/ssl/certs/full.pem";
       };
 
-      path = with pkgs; [ vault-bin glibc gawk ];
+      path = with pkgs; [ vault-bin ];
 
       serviceConfig = {
         Restart = "always";

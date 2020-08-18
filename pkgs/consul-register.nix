@@ -1,4 +1,4 @@
-{ lib, consul, vault-bin, glibc, gawk, coreutils, writeShellScriptBin
+{ lib, consul, vault-bin, coreutils, writeShellScriptBin
 , toPrettyJSON }:
 { creds ? "consul-register", extraServiceConfig ? { }, service }:
 let
@@ -14,7 +14,7 @@ let
     });
   };
 
-  PATH = lib.makeBinPath [ coreutils consul vault-bin glibc gawk ];
+  PATH = lib.makeBinPath [ coreutils consul vault-bin ];
 
   common = ''
     set -euo pipefail

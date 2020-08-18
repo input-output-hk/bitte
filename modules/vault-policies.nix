@@ -80,7 +80,7 @@ in {
         AWS_DEFAULT_REGION VAULT_CACERT VAULT_ADDR VAULT_FORMAT NOMAD_ADDR;
     };
 
-    path = with pkgs; [ vault-bin glibc gawk sops jq nomad curl cacert ];
+    path = with pkgs; [ vault-bin sops jq nomad curl cacert ];
 
     script = ''
       set -euo pipefail

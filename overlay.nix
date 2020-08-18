@@ -19,11 +19,17 @@ in final: prev: {
 
   vault-bin = prev.vault-bin.overrideAttrs (old: rec {
     version = "1.5.0-rc";
+
     src = prev.fetchurl {
       url =
         "https://releases.hashicorp.com/vault/${version}/vault_${version}_linux_amd64.zip";
       sha256 = "sha256-HAfRENfGbcrwrszmfCSCNlYVR6Ha5kM88k6efMnOCic=";
     };
+
+    postInstall = ''
+      wrapProgram $out/bin/vault \
+        --set PATH ${lib.makeBinPath [ final.gawk final.glibc ]}
+    '';
   });
 
   consul = prev.callPackage ./pkgs/consul { };

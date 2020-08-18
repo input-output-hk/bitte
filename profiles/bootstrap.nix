@@ -112,7 +112,7 @@ in {
         VAULT_ADDR = "https://127.0.0.1:8200";
       };
 
-      path = with pkgs; [ sops vault-bin glibc gawk consul nomad coreutils jq ];
+      path = with pkgs; [ sops vault-bin consul nomad coreutils jq ];
 
       script = let
         consulPolicies =
@@ -150,7 +150,7 @@ in {
         CURL_CA_BUNDLE = "/etc/ssl/certs/full.pem";
       };
 
-      path = with pkgs; [ curl sops coreutils jq nomad gawk glibc vault-bin ];
+      path = with pkgs; [ curl sops coreutils jq nomad vault-bin ];
 
       script = ''
         set -euo pipefail
@@ -226,8 +226,6 @@ in {
       path = with pkgs; [
         consul
         vault-bin
-        glibc
-        gawk
         sops
         coreutils
         jq
