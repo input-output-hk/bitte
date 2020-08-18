@@ -81,7 +81,7 @@ in {
     > encrypted/consul-clients.json
   '';
 
-  secrets.install.nomad-server = {
+  secrets.install.nomad-server = lib.mkIf (config.instance != null) {
     source = config.secrets.encryptedRoot + "/nomad.json";
     target = /etc/nomad.d/secrets.json;
   };
@@ -102,7 +102,7 @@ in {
     encrypt="$(nomad operator keygen)"
 
     echo '{}' \
-    | jq --arg encrypt "$encrypt" '.encrypt = $encrypt' \
+    | jq --arg encrypt "$encrypt" '.server.encrypt = $encrypt' \
     | ${sopsEncrypt} \
     > encrypted/nomad.json
   '';
