@@ -143,13 +143,10 @@ in {
   # Only install new certs if they're actually newer.
   secrets.install.certs.script = ''
     export PATH="${lib.makeBinPath (with pkgs; [ cfssl jq coreutils ])}"
-    cert="$(${sopsDecrypt (config.secrets.encryptedRoot + "cert.json")})"
+    cert="$(${sopsDecrypt (config.secrets.encryptedRoot + "/cert.json")})"
     echo "$cert" | cfssljson -bare cert
     echo "$cert" | jq -r -e .ca  > "ca.pem"
     echo "$cert" | jq -r -e .full  > "full.pem"
-
-    old="$(cfssl certinfo -cert /etc/ssl/certs/cert.pem | jq -e -r .not_after)"
-    new="$(cfssl certinfo -cert cert.pem | jq -e -r .not_after)"
 
     for pem in *.pem; do
       [ -s "$pem" ]
