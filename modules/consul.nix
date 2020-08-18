@@ -386,7 +386,7 @@ in {
           clientAddr encrypt addresses retryJoin primaryDatacenter acl connect
           caFile certFile keyFile autoEncrypt verifyServerHostname
           verifyOutgoing verifyIncoming dataDir tlsMinVersion ports
-          enableLocalScriptChecks nodeMeta telemetry;
+          enableLocalScriptChecks nodeMeta telemetry nodeId;
       });
 
     environment.etc."${cfg.configDir}/extra-config.json".source =
