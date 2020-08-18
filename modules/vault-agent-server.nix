@@ -150,7 +150,7 @@ in {
   config = mkIf config.services.vault-agent-core.enable {
     systemd.services.vault-agent = {
       after = [ "vault.service" "consul.service" ];
-      requires = [ "vault.service" "consul.service" ];
+      wants = [ "vault.service" "consul.service" ];
       wantedBy = [ "multi-user.target" ];
 
       environment = {

@@ -190,7 +190,7 @@ in {
   config = mkIf config.services.consul-policies.enable {
     systemd.services.consul-policies = {
       after = [ "consul.service" ];
-      requires = [ "consul.service" ];
+      wants = [ "consul.service" ];
       wantedBy = [ "multi-user.target" ];
       description = "Service that creates all Consul policies and tokens.";
 

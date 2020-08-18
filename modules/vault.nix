@@ -381,7 +381,7 @@ in {
 
     systemd.services.vault-consul-token = {
       after = [ "consul.service" ];
-      requires = [ "consul.service" ];
+      wants = [ "consul.service" ];
       wantedBy = [ "vault.service" ];
       before = [ "vault.service" ];
 

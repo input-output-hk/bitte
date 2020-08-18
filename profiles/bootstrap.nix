@@ -134,7 +134,7 @@ in {
 
     systemd.services.nomad-bootstrap = mkIf config.services.nomad.enable {
       after = [ "vault.service" "nomad.service" "network-online.target" ];
-      requires = [ "vault.service" "nomad.service" "network-online.target" ];
+      wants = [ "vault.service" "nomad.service" "network-online.target" ];
       wantedBy = [ "multi-user.target" ];
 
       serviceConfig = {
