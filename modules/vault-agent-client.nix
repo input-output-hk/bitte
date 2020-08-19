@@ -63,7 +63,7 @@ let
           command = "${pkgs.systemd}/bin/systemctl reload consul.service";
           contents = ''
             {
-              "encrypt": "{{ with secret "secret/bootstrap/clients/consul" }}{{ .Data.encrypt }}{{ end }}",
+              "encrypt": "{{ with secret "kv/bootstrap/clients/consul" }}{{ .Data.encrypt }}{{ end }}",
               "acl": {
                 "tokens": {
                   "default": "{{ with secret "consul/creds/consul-default" }}{{ .Data.token }}{{ end }}",
