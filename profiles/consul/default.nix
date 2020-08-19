@@ -1,7 +1,7 @@
 { lib, pkgs, config, nodeName, ... }:
 let
   inherit (lib) mapAttrsToList mkIf mkDefault;
-  inherit (config.cluster) instances region;
+  inherit (config.cluster) instances instance region;
 in {
   services.consul = mkIf config.services.consul.enable {
     addresses = { http = mkDefault "127.0.0.1"; };
@@ -31,6 +31,11 @@ in {
     } // (lib.optionalAttrs ((instances.${nodeName} or null) != null) {
       inherit (instances.${nodeName}) instanceType domain;
     });
+
+    # generate deterministic UUIDs for each node so they can rejoin.
+    nodeId = lib.mkIf (instance != null) (lib.fileContents
+      (pkgs.runCommand "node-id" { buildInputs = [ pkgs.utillinux ]; }
+        "uuidgen -s -n ab8c189c-e764-4103-a1a8-d355b7f2c814 -N ${nodeName} > $out"));
 
     bindAddr = ''{{ GetInterfaceIP "ens5" }}'';
 
