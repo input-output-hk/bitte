@@ -8,7 +8,7 @@ let
 
   vaultAgentConfig = pkgs.toPrettyJSON "vault-agent" {
     pid_file = "./vault-agent.pid";
-    vault.address = "https://active.vault.service.consul:8200";
+    vault.address = "https://127.0.0.1:8200";
     # exit_after_auth = true;
     auto_auth = {
       method = [{
@@ -103,41 +103,6 @@ let
         };
       } else
         null)
-
-      (if config.services.vault.enable then {
-        template = {
-          command = "${reload-cvn}/bin/reload-cvn";
-          destination = "/etc/ssl/certs/full.pem";
-          contents = ''
-            {{ with secret ${pkiSecret} }}{{ .Data.certificate }}
-            {{ range .Data.ca_chain }}{{ . }}
-            {{ end }}{{ end }}
-          '';
-        };
-      } else
-        null)
-
-      (if config.services.vault.enable then {
-        template = {
-          command = "${reload-cvn}/bin/reload-cvn";
-          destination = "/etc/ssl/certs/cert.pem";
-          contents = ''
-            {{ with secret ${pkiSecret} }}{{ .Data.certificate }}{{ end }}
-          '';
-        };
-      } else
-        null)
-
-      (if config.services.vault.enable then {
-        template = {
-          command = "${reload-cvn}/bin/reload-cvn";
-          destination = "/etc/ssl/certs/cert-key.pem";
-          contents = ''
-            {{ with secret ${pkiSecret} }}{{ .Data.private_key }}{{ end }}
-          '';
-        };
-      } else
-        null)
     ];
   };
 
@@ -156,7 +121,6 @@ in {
       environment = {
         inherit (config.environment.variables) AWS_DEFAULT_REGION VAULT_FORMAT;
         VAULT_CACERT = "/etc/ssl/certs/full.pem";
-        VAULT_ADDR = "https://active.vault.service.consul:8200";
         CONSUL_HTTP_ADDR = "127.0.0.1:8500";
         CONSUL_CACERT = "/etc/ssl/certs/full.pem";
 

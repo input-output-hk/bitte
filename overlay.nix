@@ -17,20 +17,7 @@ in final: prev: {
 
   ssm-agent = prev.callPackage ./pkgs/ssm-agent { };
 
-  vault-bin = prev.vault-bin.overrideAttrs (old: rec {
-    version = "1.5.0-rc";
-
-    src = prev.fetchurl {
-      url =
-        "https://releases.hashicorp.com/vault/${version}/vault_${version}_linux_amd64.zip";
-      sha256 = "sha256-HAfRENfGbcrwrszmfCSCNlYVR6Ha5kM88k6efMnOCic=";
-    };
-
-    postInstall = ''
-      wrapProgram $out/bin/vault \
-        --set PATH ${lib.makeBinPath [ final.gawk final.glibc ]}
-    '';
-  });
+  vault-bin = prev.callPackage ./pkgs/vault-bin.nix { };
 
   consul = prev.callPackage ./pkgs/consul { };
 

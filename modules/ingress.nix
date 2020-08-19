@@ -3,30 +3,12 @@ let
   inherit (lib) mkIf mkEnableOption makeBinPath concatStringsSep mapAttrsToList;
   inherit (config.cluster) domain;
 
-  caTmpl = pkgs.writeText "ca.crt.tmpl" ''
-    {{range caRoots}}{{.RootCertPEM}}{{end}}
-  '';
-
-  certsTmpl = pkgs.writeText "certs.pem.tmpl" ''
-    {{with caLeaf "haproxy"}}{{.PrivateKeyPEM}}{{.CertPEM}}{{end}}
-  '';
-
   haproxyIngress = pkgs.toPrettyJSON "haproxy" {
     exec = [{ command = "${pkgs.haproxy}/bin/haproxy -f haproxy.conf"; }];
-    template = [
-      {
-        source = caTmpl;
-        destination = "ca.crt";
-      }
-      {
-        source = certsTmpl;
-        destination = "certs.pem";
-      }
-      {
-        source = haproxyTemplate;
-        destination = "haproxy.conf";
-      }
-    ];
+    template = [{
+      source = haproxyTemplate;
+      destination = "haproxy.conf";
+    }];
   };
 
   cors = {
@@ -66,13 +48,13 @@ let
       hold valid 5s
 
     backend nomad
-      default-server ssl ca-file consul-ca.pem crt consul-crt.pem check check-ssl maxconn 2000 
+      default-server ssl ca-file consul-ca.pem check check-ssl maxconn 2000 
     {{ range service "http.nomad" }}
       server {{.ID}} {{.Address}}:{{.Port}}
     {{- end }}
 
     backend vault
-      default-server ssl ca-file consul-ca.pem crt consul-crt.pem check check-ssl maxconn 2000 resolve-opts allow-dup-ip resolve-prefer ipv4 resolvers consul
+      default-server ssl ca-file consul-ca.pem check check-ssl maxconn 2000 resolve-opts allow-dup-ip resolve-prefer ipv4 resolvers consul
     {{ range service "active.vault" }}
       server {{.ID}} {{.Address}}:{{.Port}}
     {{- end }}
@@ -133,7 +115,7 @@ in {
           set -exuo pipefail
           cp /etc/ssl/certs/cert-key.pem consul-key.pem
           cp /etc/ssl/certs/full.pem consul-ca.pem
-          cat consul-ca.pem consul-key.pem > consul-crt.pem
+          cat /etc/ssl/certs/{ca,cert,cert-key}.pem > consul-crt.pem
 
           cat /etc/ssl/certs/${config.cluster.domain}-{cert,key}.pem \
             ${../lib/letsencrypt.pem} \
