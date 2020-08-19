@@ -23,7 +23,7 @@ in {
       path = with pkgs; [ awscli xz gnutar coreutils ];
 
       script = ''
-        tar cvf source.tar.xz -C ${self.outPath} .
+        tar cvf source.tar.xz -C ${config.cluster.flakePath} .
         aws s3 cp \
           source.tar.xz \
           "s3://${s3-bucket}/infra/secrets/${cluster.name}/${kms}/source/source.tar.xz"
