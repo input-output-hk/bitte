@@ -393,7 +393,7 @@ in {
                 {
                   local-exec = {
                     command = "${
-                        self.nixosConfigurations."${config.cluster.name}-${name}".config.instance.secrets.generateScript
+                        self.nixosConfigurations."${config.cluster.name}-${name}".config.secrets.generateScript
                       }/bin/generate-secrets";
                   };
                 }
