@@ -26,7 +26,10 @@ let
     options = {
       encryptedRoot = lib.mkOption { type = path; };
 
-      generate = lib.mkOption { type = attrsOf str; };
+      generate = lib.mkOption {
+        type = attrsOf str;
+        default = { };
+      };
 
       install = lib.mkOption {
         type = attrsOf installType;
