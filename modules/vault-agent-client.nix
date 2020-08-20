@@ -119,8 +119,9 @@ let
           command = "${reload-cvn}/bin/reload-cvn";
           destination = "/etc/ssl/certs/full.pem";
           contents = ''
-            {{ with secret ${pkiSecret} }}{{ range .Data.ca_chain }}{{ . }}{{ end }}
-            {{ .Data.certificate }}{{ end }}
+            {{ with secret ${pkiSecret} }}{{ .Data.certificate }}
+            {{ range .Data.ca_chain }}{{ . }}
+            {{ end }}{{ end }}
           '';
         };
       }
@@ -130,7 +131,9 @@ let
           command = "${reload-cvn}/bin/reload-cvn";
           destination = "/etc/ssl/certs/cert.pem";
           contents = ''
-            {{ with secret ${pkiSecret} }}{{ .Data.certificate }}{{ end }}
+            {{ with secret ${pkiSecret} }}{{ .Data.certificate }}
+            {{ range .Data.ca_chain }}{{ . }}
+            {{ end }}{{ end }}
           '';
         };
       }

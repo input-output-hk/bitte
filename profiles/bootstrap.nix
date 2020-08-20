@@ -150,7 +150,7 @@ in {
         CURL_CA_BUNDLE = "/etc/ssl/certs/full.pem";
       };
 
-      path = with pkgs; [ curl sops coreutils jq nomad vault-bin ];
+      path = with pkgs; [ curl sops coreutils jq nomad vault-bin gawk ];
 
       script = ''
         set -euo pipefail

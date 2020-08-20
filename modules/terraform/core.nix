@@ -299,8 +299,6 @@ in {
           (name: server:
             lib.nameValuePair "${name}-files" {
               triggers = {
-                private_key =
-                  var "acme_certificate.certificate.private_key_pem";
                 cert_pem = var "acme_certificate.certificate.certificate_pem";
                 issuer_pem = var "acme_certificate.certificate.issuer_pem";
                 target_arn = var "aws_instance.${name}.arn";
@@ -336,6 +334,20 @@ in {
                     content = var "acme_certificate.certificate.issuer_pem";
                     destination =
                       "/etc/ssl/certs/${config.cluster.domain}-ca.pem";
+                  };
+                }
+                {
+                  file = {
+                    content = var ''
+                      join("\n", [
+                        acme_certificate.certificate.certificate_pem,
+                        acme_certificate.certificate.issuer_pem,
+                        acme_certificate.certificate.private_key_pem
+                      ])
+                    '';
+
+                    destination =
+                      "/etc/ssl/certs/${config.cluster.domain}-full.pem";
                   };
                 }
               ];
@@ -396,9 +408,7 @@ in {
                         self.nixosConfigurations."${config.cluster.name}-${name}".config.secrets.generateScript
                       }/bin/generate-secrets";
 
-                    environment = {
-                      IP = var "self.public_ip";
-                    };
+                    environment = { IP = var "self.public_ip"; };
                   };
                 }
                 {

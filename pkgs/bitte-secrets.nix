@@ -425,7 +425,7 @@ let
         ip_sans="127.0.0.1,${
           concatStringsSep "," (mapAttrsToList (_: i: i.privateIP) instances)
         }" \
-        alt_names="vault.service.consul,conusl.service.consul,nomad.service.consul"
+        alt_names="vault.service.consul,consul.service.consul,nomad.service.consul"
     )"
 
     mkdir -p certs
