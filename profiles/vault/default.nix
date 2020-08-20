@@ -21,7 +21,7 @@ in {
 
       serviceRegistration.consul = {
         scheme = "https";
-        address = "consul.service.consul:8501";
+        address = "127.0.0.1:8501";
         tlsClientCaFile = full;
         tlsCertFile = cert;
         tlsKeyFile = key;
@@ -43,7 +43,7 @@ in {
       };
 
       storage.consul = {
-        address = "consul.service.consul:8500";
+        address = "127.0.0.1:8500";
         tlsCaFile = full;
         tlsCertFile = cert;
         tlsKeyFile = key;
@@ -53,16 +53,6 @@ in {
         dogstatsdAddr = "localhost:8125";
         dogstatsdTags = [ "region:${region}" "role:vault" ];
       };
-
-      # storage.raft = {
-      #   retryJoin = mapAttrsToList (_: v: {
-      #     leaderApiAddr = "https://${v.privateIP}:8200";
-      #     leaderCaCertFile = "/var/lib/vault/certs/${v.name}.pem";
-      #     # leaderCaCertFile = "/etc/ssl/certs/ca.pem";
-      #     leaderClientCertFile = config.services.vault.listener.tcp.tlsCertFile;
-      #     leaderClientKeyFile = config.services.vault.listener.tcp.tlsKeyFile;
-      #   }) instances;
-      # };
     };
   };
 }
