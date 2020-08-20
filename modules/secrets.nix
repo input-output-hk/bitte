@@ -53,6 +53,9 @@ let
                 in "${script}/bin/${name}") config.secrets.generate);
           in pkgs.writeShellScriptBin "generate-secrets" ''
             set -exuo pipefail
+
+            export PATH="$PATH:${lib.makeBinPath (with pkgs; [ utillinux ])}
+
             mkdir -p secrets encrypted
 
             echo "aquiring secrets/generate.lock ..."
