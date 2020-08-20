@@ -223,15 +223,7 @@ in {
         VAULT_ADDR = "https://127.0.0.1:8200/";
       };
 
-      path = with pkgs; [
-        consul
-        vault-bin
-        sops
-        coreutils
-        jq
-        gnused
-        curl
-      ];
+      path = with pkgs; [ consul vault-bin sops coreutils jq gnused curl ];
 
       script = ''
         set -exuo pipefail

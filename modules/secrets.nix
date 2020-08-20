@@ -51,6 +51,16 @@ let
           in pkgs.writeShellScriptBin "generate-secrets" ''
             set -exuo pipefail
             mkdir -p secrets encrypted
+
+            echo "aquiring secrets/generate.lock ..."
+
+            exec 100>secrets/generate.lock || exit 1
+            flock -n 100 || (
+              echo "secrets/generate.lock exists, not generating secrets!"
+              exit
+            )
+            trap 'rm -f secrets/generate.lock' EXIT
+
             ${scripts}
           '';
       };

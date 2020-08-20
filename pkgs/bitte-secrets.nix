@@ -1,7 +1,6 @@
 { self, cluster, lib, awscli, sops, jq, coreutils, cfssl, consul, toybox
-, vault-bin, toPrettyJSON, writeShellScriptBin, bitte
-, terraform-with-plugins, rsync, openssh, gnused, curl, cacert, nixFlakes, nomad
-}:
+, vault-bin, toPrettyJSON, writeShellScriptBin, bitte, terraform-with-plugins
+, rsync, openssh, gnused, curl, cacert, nixFlakes, nomad }:
 let
   inherit (cluster) kms region s3-bucket domain instances autoscalingGroups;
   inherit (lib)
@@ -226,16 +225,7 @@ let
     set -exuo pipefail
 
     export PATH="${
-      makeBinPath [
-        awscli
-        sops
-        jq
-        coreutils
-        cfssl
-        vault-bin
-        curl
-        cacert
-      ]
+      makeBinPath [ awscli sops jq coreutils cfssl vault-bin curl cacert ]
     }"
 
     dir=/run/keys/bitte-secrets-download

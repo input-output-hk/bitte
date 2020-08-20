@@ -389,13 +389,22 @@ in {
 
               user_data = server.userData;
 
-              provisioner = [{
-                local-exec = {
-                  inherit (server.localProvisioner)
-                    interpreter command environment;
-                  working_dir = server.localProvisioner.workingDir;
-                };
-              }];
+              provisioner = [
+                {
+                  local-exec = {
+                    command = "${
+                        self.nixosConfigurations."${config.cluster.name}-${name}".config.instance.secrets.generateScript
+                      }/bin/generate-secrets";
+                  };
+                }
+                {
+                  local-exec = {
+                    inherit (server.localProvisioner)
+                      interpreter command environment;
+                    working_dir = server.localProvisioner.workingDir;
+                  };
+                }
+              ];
 
               # provisioner = let
               #   connection = {

@@ -1,5 +1,4 @@
-{ lib, consul, vault-bin, coreutils, writeShellScriptBin
-, toPrettyJSON }:
+{ lib, consul, vault-bin, coreutils, writeShellScriptBin, toPrettyJSON }:
 { creds ? "consul-register", extraServiceConfig ? { }, service }:
 let
   serviceJson = toPrettyJSON service.name {
