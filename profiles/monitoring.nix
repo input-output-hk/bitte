@@ -105,27 +105,27 @@ in {
 
   systemd.services.haproxy.serviceConfig.RestartSec = "15s";
 
-  systemd.services.haproxy-cert = lib.mkIf config.services.haproxy.enable {
-    wantedBy = [ "haproxy.service" ];
-    before = [ "haproxy.service" ];
-    after = [ "network-online.target" ];
+  # systemd.services.haproxy-cert = lib.mkIf config.services.haproxy.enable {
+  #   wantedBy = [ "haproxy.service" ];
+  #   before = [ "haproxy.service" ];
+  #   after = [ "network-online.target" ];
 
-    path = with pkgs; [ acl coreutils ];
+  #   path = with pkgs; [ acl coreutils ];
 
-    serviceConfig = let
-      execStart = pkgs.writeShellScriptBin "haproxy-cert" ''
-        set -exuo pipefail
+  #   serviceConfig = let
+  #     execStart = pkgs.writeShellScriptBin "haproxy-cert" ''
+  #       set -exuo pipefail
 
-        cat /etc/ssl/certs/${config.cluster.domain}-{cert,key}.pem > "${acme-full}.new"
-        setfacl -m u:haproxy:r "${acme-full}.new"
-        mv "${acme-full}.new" "${acme-full}"
-      '';
-    in {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      Restart = "on-failure";
-      RestartSec = "10s";
-      ExecStart = "!${execStart}/bin/haproxy-cert";
-    };
-  };
+  #       cat /etc/ssl/certs/${config.cluster.domain}-{cert,key}.pem > "${acme-full}.new"
+  #       setfacl -m u:haproxy:r "${acme-full}.new"
+  #       mv "${acme-full}.new" "${acme-full}"
+  #     '';
+  #   in {
+  #     Type = "oneshot";
+  #     RemainAfterExit = true;
+  #     Restart = "on-failure";
+  #     RestartSec = "10s";
+  #     ExecStart = "!${execStart}/bin/haproxy-cert";
+  #   };
+  # };
 }

@@ -446,12 +446,6 @@ let
               ];
             };
 
-            # Needed to give backed up certs the right permissions
-            services.haproxy = {
-              enable = true;
-              config = "";
-            };
-
             environment.etc.ready.text = "true";
           }
         '';
