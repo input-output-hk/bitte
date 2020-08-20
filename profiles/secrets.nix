@@ -59,6 +59,10 @@ let
       "vault.service.consul"
       "nomad.service.consul"
       "server.${region}.consul"
+      "vault.${domain}"
+      "consul.${domain}"
+      "nomad.${domain}"
+      "monitoring.${domain}"
       "127.0.0.1"
     ] ++ (lib.mapAttrsToList (_: i: i.privateIP) instances);
   };

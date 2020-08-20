@@ -37,7 +37,12 @@ let
           "vault.service.consul"
           "consul.service.consul"
           "nomad.service.consul"
+          "server.${region}.consul"
           "vault.${domain}"
+          "consul.${domain}"
+          "nomad.${domain}"
+          "monitoring.${domain}"
+          "127.0.0.1"
         ];
         ttl = "322h";
       };
