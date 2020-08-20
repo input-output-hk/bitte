@@ -395,6 +395,10 @@ in {
                     command = "${
                         self.nixosConfigurations."${config.cluster.name}-${name}".config.secrets.generateScript
                       }/bin/generate-secrets";
+
+                    environment = {
+                      IP = var "self.public_ip";
+                    };
                   };
                 }
                 {

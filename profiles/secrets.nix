@@ -118,12 +118,9 @@ in {
       echo "$ca" | ${sopsEncrypt} > encrypted/ca.json
     fi
 
-    IP="$(terraform output -json cluster | jq -e -r '.instances."core-1".public_ip')"
-
     certConfigJson="${certConfig}"
     jq --arg ip "$IP" '.hosts += [$ip]' < "$certConfigJson" \
     > cert.config
-
 
     cert="$(
       cfssl gencert \
