@@ -119,9 +119,8 @@ let
           command = "${reload-cvn}/bin/reload-cvn";
           destination = "/etc/ssl/certs/full.pem";
           contents = ''
-            {{ with secret ${pkiSecret} }}{{ .Data.certificate }}
-            {{ range .Data.ca_chain }}{{ . }}
-            {{ end }}{{ end }}
+            {{ with secret ${pkiSecret} }}{{ range .Data.ca_chain }}{{ . }}{{ end }}
+            {{ .Data.certificate }}{{ end }}
           '';
         };
       }
@@ -167,6 +166,7 @@ in {
         # VAULT_CACERT = "/etc/ssl/certs/full.pem";
         CONSUL_HTTP_ADDR = "127.0.0.1:8500";
         # CONSUL_CACERT = "/etc/ssl/certs/full.pem";
+        VAULT_SKIP_VERIFY = "true";
       };
 
       path = with pkgs; [ vault-bin ];

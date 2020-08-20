@@ -61,7 +61,7 @@ in {
       "consul/creds/consul-register".capabilities = [ r ];
       "pki/roles/client".capabilities = [ r ];
       "pki/issue/client".capabilities = [ c u ];
-      "kv/data/bootstrap/*".capabilities = [ r ];
+      "kv/data/bootstrap/clients/*".capabilities = [ r ];
       # TODO: add nomad creds here
     };
   };

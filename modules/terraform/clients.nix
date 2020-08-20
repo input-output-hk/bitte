@@ -23,22 +23,22 @@ in {
 
         instances = lib.flip lib.mapAttrs config.cluster.instances
           (name: server: {
-            flake_attr =
+            flake-attr =
               "nixosConfigurations.${server.uid}.config.system.build.toplevel";
-            instance_type =
+            instance-type =
               var "data.aws_instance.${server.name}.instance_type";
             name = server.name;
-            private_ip = var "data.aws_instance.${server.name}.private_ip";
-            public_ip = var "data.aws_instance.${server.name}.public_ip";
+            private-ip = var "data.aws_instance.${server.name}.private_ip";
+            public-ip = var "data.aws_instance.${server.name}.public_ip";
             tags = server.tags;
             uid = server.uid;
           });
 
         asgs = lib.flip lib.mapAttrs config.cluster.autoscalingGroups
           (name: group: {
-            flake_attr =
+            flake-attr =
               "nixosConfigurations.${group.uid}.config.system.build.toplevel";
-            instance_type =
+            instance-type =
               var "aws_launch_configuration.${group.uid}.instance_type";
             uid = group.uid;
             arn = var "aws_autoscaling_group.${group.uid}.arn";

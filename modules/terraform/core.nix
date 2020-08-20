@@ -55,12 +55,12 @@ in {
 
             instances = lib.flip lib.mapAttrs config.cluster.instances
               (name: server: {
-                flake_attr =
+                flake-attr =
                   "nixosConfigurations.${server.uid}.config.system.build.toplevel";
-                instance_type = var "aws_instance.${server.name}.instance_type";
+                instance-type = var "aws_instance.${server.name}.instance_type";
                 name = server.name;
-                private_ip = var "aws_instance.${server.name}.private_ip";
-                public_ip = var "aws_instance.${server.name}.public_ip";
+                private-ip = var "aws_instance.${server.name}.private_ip";
+                public-ip = var "aws_instance.${server.name}.public_ip";
                 tags = server.tags;
                 uid = server.uid;
               });
