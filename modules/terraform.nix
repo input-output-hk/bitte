@@ -472,7 +472,7 @@ let
             "--ip"
             ip
             "--flake"
-            (toString cfg.flakePath)
+            "."
             "--attr"
             "${cfg.name}-${this.config.name}"
           ];
