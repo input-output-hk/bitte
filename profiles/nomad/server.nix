@@ -8,6 +8,8 @@ in {
   services.nomad = {
     enable = true;
 
+    datacenter = config.cluster.region;
+
     server = {
       enabled = true;
 

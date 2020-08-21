@@ -44,8 +44,6 @@ in listToAttrs (forEach clusterFiles (file:
       specialArgs = { inherit self; };
     };
 
-    tf-output = proto.config.tf.core.output;
-    tf = proto.config.tf;
 
     nodes = mapAttrs (name: instance:
       mkSystem name
@@ -72,5 +70,5 @@ in listToAttrs (forEach clusterFiles (file:
     mkJob = import ./mk-job.nix proto;
 
   in nameValuePair proto.config.cluster.name ({
-    inherit proto tf-output tf nodes groups topology bitte-secrets mkJob;
+    inherit proto nodes groups topology bitte-secrets mkJob;
   } // bitte-secrets)))

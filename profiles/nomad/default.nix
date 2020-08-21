@@ -16,7 +16,6 @@ in {
   services.nomad = {
     dataDir = /var/lib/nomad;
     logLevel = "DEBUG";
-    datacenter = config.cluster.region;
     name = if (instances.${nodeName} or null) != null then
       "nomad-${nodeName}"
     else

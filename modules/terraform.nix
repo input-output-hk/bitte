@@ -1,11 +1,5 @@
 { self, config, pkgs, nodeName, ... }:
 let
-  # Needed to prevent infinite recursion.
-  # pkgs = import self.inputs.nixpkgs {
-  #   system = "x86_64-linux";
-  #   overlays = [ self.overlay.x86_64-linux ];
-  # };
-
   inherit (pkgs) lib terralib;
   inherit (lib) mkOption reverseList;
   inherit (lib.types)
@@ -734,6 +728,11 @@ in {
     instance = mkOption {
       type = nullOr attrs;
       default = cfg.instances.${nodeName} or null;
+    };
+
+    asg = mkOption {
+      type = nullOr attrs;
+      default = cfg.autoscalingGroups.${nodeName} or null;
     };
   };
 }
