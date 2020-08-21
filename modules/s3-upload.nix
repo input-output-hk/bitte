@@ -2,7 +2,7 @@
 let
   inherit (lib) mkIf mkEnableOption;
   inherit (config) cluster;
-  inherit (config.cluster) s3-bucket kms;
+  inherit (config.cluster) s3Bucket kms;
 in {
   options = {
     services.s3-upload.enable = mkEnableOption "Upload flake to S3";
@@ -26,7 +26,7 @@ in {
         tar cvf source.tar.xz -C ${config.cluster.flakePath} .
         aws s3 cp \
           source.tar.xz \
-          "s3://${s3-bucket}/infra/secrets/${cluster.name}/${kms}/source/source.tar.xz"
+          "s3://${s3Bucket}/infra/secrets/${cluster.name}/${kms}/source/source.tar.xz"
       '';
     };
   };

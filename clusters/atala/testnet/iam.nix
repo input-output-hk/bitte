@@ -4,8 +4,8 @@ let
   inherit (pkgs.terralib) sops2kms sops2region cidrsOf;
   inherit (lib) splitString forEach unique flatten;
   inherit (config) cluster;
-  inherit (cluster) s3-bucket kms;
-  bucketArn = "arn:aws:s3:::${s3-bucket}";
+  inherit (cluster) s3Bucket kms;
+  bucketArn = "arn:aws:s3:::${s3Bucket}";
   bucketRootDir = "infra/secrets/${cluster.name}/${kms}";
 in {
   cluster.iam = {

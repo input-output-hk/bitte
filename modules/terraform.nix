@@ -63,7 +63,7 @@ let
 
       kms = mkOption { type = str; };
 
-      s3-bucket = mkOption { type = str; };
+      s3Bucket = mkOption { type = str; };
 
       adminNames = mkOption {
         type = listOf str;
@@ -652,7 +652,7 @@ let
                 pushd /run/keys
 
                 aws s3 cp \
-                  "s3://${cfg.s3-bucket}/infra/secrets/${cfg.name}/${cfg.kms}/source/source.tar.xz" \
+                  "s3://${cfg.s3Bucket}/infra/secrets/${cfg.name}/${cfg.kms}/source/source.tar.xz" \
                   source.tar.xz
                 mkdir -p source
                 tar xvf source.tar.xz -C source

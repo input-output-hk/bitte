@@ -25,7 +25,7 @@ in {
     name = "atala-testnet";
     kms = availableKms.atala.eu-central-1;
     domain = "testnet.atalaprism.io";
-    s3-bucket = "atala-cvp";
+    s3Bucket = "atala-cvp";
 
     autoscalingGroups = listToAttrs (forEach [
       {

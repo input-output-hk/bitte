@@ -2,11 +2,11 @@
 , vault-bin, toPrettyJSON, writeShellScriptBin, bitte, terraform-with-plugins
 , rsync, openssh, gnused, curl, cacert, nixFlakes, nomad }:
 let
-  inherit (cluster) kms region s3-bucket domain instances autoscalingGroups;
+  inherit (cluster) kms region s3Bucket domain instances autoscalingGroups;
   inherit (lib)
     mkOverride mkIf attrNames concatStringsSep optional flip mapAttrsToList
     forEach makeBinPath;
-  s3dir = "s3://${s3-bucket}/infra/secrets/${cluster.name}/${kms}";
+  s3dir = "s3://${s3Bucket}/infra/secrets/${cluster.name}/${kms}";
 
   # TODO: check: https://technedigitale.com/archives/639
 

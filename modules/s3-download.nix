@@ -2,7 +2,7 @@
 let
   inherit (builtins) attrNames;
   inherit (lib) mkIf mkEnableOption;
-  inherit (config.cluster) domain kms s3-bucket region instances;
+  inherit (config.cluster) domain kms s3Bucket region instances;
   inherit (self.clusters.${config.cluster.name}) bitte-secrets-install;
 in {
   options = {

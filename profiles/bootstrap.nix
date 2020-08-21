@@ -380,24 +380,3 @@ in {
     };
   };
 }
-
-# vault write pki_int/issue/server \
-#   common_name="initial cert" \
-# > initial_cert.json
-#
-# sops --encrypt --kms "${kms}" --input-type json --output-type json initial_cert.json \
-# > initial_cert.enc.json
-# aws s3 cp initial_cert.enc.json s3://${s3-bucket}/infra/secrets/${cluster.name}/${kms}/server/initial_cert.enc.json
-#
-# # The great switcheroo
-# # It's vital that we do not create any leases before this, or we won't
-# # be able to revoke them again.
-#
-# jq -e -r .Data.private_key < initial_cert.json  > /etc/ssl/certs/cert-key.pem
-# jq -e -r .Data.certificate < initial_cert.json  > /etc/ssl/certs/cert.pem
-# jq -e -r .Data.issuing_ca  < initial_cert.json  > /etc/ssl/certs/ca.pem
-# jq -e -r .Data.certificate < initial_cert.json  > /etc/ssl/certs/full.pem
-# jq -e -r .Data.issuing_ca  < initial_cert.json >> /etc/ssl/certs/full.pem
-#
-# systemctl restart consul
-# systemctl restart vault
