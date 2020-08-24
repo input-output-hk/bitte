@@ -102,8 +102,9 @@ in {
 
   driver = "raw_exec";
 
+  inherit resources;
+
   config = {
-    inherit resources;
     command = "${bash}/bin/bash";
     args = [
       "-c"
