@@ -1020,7 +1020,7 @@ in {
           null
         else
           flip mapAttrsToList top (name: value: {
-            ${name} = if value == null then [ ] else [{ config = [ value ]; }];
+            ${name} = if value == null then null else [{ config = [ value ]; }];
           });
     };
 
