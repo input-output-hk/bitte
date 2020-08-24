@@ -1019,11 +1019,12 @@ in {
         if top == null then
           null
         else
-          flip mapAttrsToList top (name: value: {
-            ${name} = if value == null then null else [{ config = [ value ]; }];
-          });
+          lib.filter (elem: elem != null) (flip mapAttrsToList top
+            (name: value: {
+              ${name} =
+                if value == null then null else [{ config = [ value ]; }];
+            }));
     };
-
   };
 
   config = mkIf cfg.enable {
