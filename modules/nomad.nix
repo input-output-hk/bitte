@@ -994,7 +994,7 @@ in {
           auth = mkOption {
             type = nullOr dockerAuthType;
             default = null;
-            apply = value: [ value ];
+            apply = value: if value == null then [] else [ value ];
           };
         };
       };
