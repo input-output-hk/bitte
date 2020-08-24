@@ -47,8 +47,6 @@ in final: prev: {
 
   nixosModules = import ./pkgs/nixos-modules.nix { inherit nixpkgs lib; };
 
-  sops-add = prev.callPackage ./pkgs/sops-add.nix { };
-
   consulRegister = prev.callPackage ./pkgs/consul-register.nix { };
 
   envoy = prev.callPackage ./pkgs/envoy.nix { };
@@ -62,6 +60,10 @@ in final: prev: {
   nomad-autoscaler = prev.callPackage ./pkgs/nomad-autoscaler.nix { };
 
   toPrettyJSON = prev.callPackage ./lib/to-pretty-json.nix { };
+
+  mkNomadJob = final.callPackage ./lib/mk-nomad-job.nix { };
+
+  mkNomadTaskSandbox = final.callPackage ./lib/mk-nomad-task-sandbox.nix { };
 
   clusters = final.mkClusters {
     root = ./clusters;

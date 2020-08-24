@@ -33,7 +33,7 @@
       packages = {
         inherit (legacyPackages)
           bitte nixos-rebuild nixFlakes sops crystal terraform-with-plugins
-          sops-add ssm-agent cfssl consul;
+          ssm-agent cfssl consul nomadJobs;
       };
 
       apps.bitte = utils.lib.mkApp { drv = legacyPackages.bitte; };
@@ -42,5 +42,5 @@
         overlays = [ self.overlay.x86_64-linux ];
         system = "x86_64-linux";
       };
-    in { inherit (pkgs) nixosModules nixosConfigurations clusters; });
+    in { inherit (pkgs) nixosModules nixosConfigurations clusters nomadJobs; });
 }

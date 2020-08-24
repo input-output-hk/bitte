@@ -19,7 +19,8 @@ let
       "arn:aws:kms:eu-central-1:276730534310:key/5193b747-7449-40f6-976a-67d91257abdb";
   };
 in {
-  imports = [ ./iam.nix ];
+  # TODO: make sure nomad.nix is in all instances
+  imports = [ ./iam.nix ./nomad.nix ];
 
   cluster = {
     name = "atala-testnet";

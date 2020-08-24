@@ -2,7 +2,22 @@
 writeShellScriptBin "nomad-run" ''
   echo running ${json}
 
-  curl $NOMAD_ADDR/v1/status/peers
+  set -xeuo pipefail
 
-  curl -XPUT -d @${json} http://127.0.0.1/v1/job/${name}
+  vault login -method aws -no-print
+
+  NOMAD_TOKEN="$(vault read -field secret_id nomad/creds/admin)"
+  export NOMAD_TOKEN
+
+  CONSUL_HTTP_TOKEN="$(vault read -field token consul/creds/admin)"
+  export CONSUL_HTTP_TOKEN
+
+  cachix push manveru ${json}
+
+  jq --arg token "$CONSUL_HTTP_TOKEN" '.Job.ConsulToken = $token' < ${json} \
+  | curl -f \
+      -X POST \
+      -H "X-Nomad-Token: $NOMAD_TOKEN" \
+      -d @- \
+      "$NOMAD_ADDR/v1/jobs"
 ''

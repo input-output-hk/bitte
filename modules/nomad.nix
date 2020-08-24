@@ -1099,16 +1099,5 @@ in {
         StateDirectory = "nomad";
       };
     };
-
-    # TODO: Possibly replace this with DOCKER_CONFIG
-    systemd.tmpfiles.rules = let
-      dockerConfig = pkgs.toPrettyJSON "config" {
-        credHelpers = {
-          "895947072537.dkr.ecr.us-east-2.amazonaws.com" = "ecr-login";
-          # TODO: this ain't working
-          "hub.docker.com" = "";
-        };
-      };
-    in [ "L+ /var/lib/nomad/.docker/config.json - - - - ${dockerConfig}" ];
   };
 }

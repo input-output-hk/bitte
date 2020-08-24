@@ -184,10 +184,12 @@ let
             };
 
             connect = mkOption {
-              type = submodule {
+              default = null;
+              type = nullOr (submodule {
                 options = {
                   sidecarService = mkOption {
-                    type = submodule {
+                    default = null;
+                    type = nullOr (submodule {
                       options = {
                         proxy = mkOption {
                           default = null;
@@ -219,10 +221,10 @@ let
                           });
                         };
                       };
-                    };
+                    });
                   };
                 };
-              };
+              });
             };
           };
         }));
