@@ -994,7 +994,7 @@ in {
           auth = mkOption {
             type = nullOr dockerAuthType;
             default = null;
-            apply = value: if value == null then [] else [ value ];
+            apply = value: if value == null then [ ] else [ value ];
           };
         };
       };
@@ -1019,8 +1019,9 @@ in {
         if top == null then
           null
         else
-          flip mapAttrsToList top
-          (name: value: { ${name} = [{ config = [ value ]; }]; });
+          flip mapAttrsToList top (name: value: {
+            ${name} = if value == null then [ ] else [{ config = [ value ]; }];
+          });
     };
 
   };
