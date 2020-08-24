@@ -1,5 +1,7 @@
-{ writeShellScriptBin, writeReferencesToFile, writeText, bash, lib, systemd, nixFlakes }:
-{ name, command, args ? [ ], env ? { }, extraSystemdProperties ? { } }:
+{ writeShellScriptBin, writeReferencesToFile, writeText, bash, lib, systemd
+, nixFlakes }:
+{ name, command, args ? [ ], env ? { }, extraSystemdProperties ? { }
+, resources ? { } }:
 let
   inherit (builtins) foldl' typeOf attrNames attrValues;
   inherit (lib) flatten pathHasContext isDerivation;
@@ -8,8 +10,7 @@ let
     let type = typeOf input;
     in sum ++ {
       string = if pathHasContext input then [ input ] else [ ];
-      list =
-        (foldl' (s: v: s ++ (onlyStringsWithContext [ ] v)) [ ] input);
+      list = (foldl' (s: v: s ++ (onlyStringsWithContext [ ] v)) [ ] input);
       set = if isDerivation input then
         [ input ]
       else
@@ -102,12 +103,12 @@ in {
   driver = "raw_exec";
 
   config = {
+    inherit resources;
     command = "${bash}/bin/bash";
     args = [
       "-c"
       ''
         set -exuo pipefail
-        env
         ${nixFlakes}/bin/nix-store -r ${runner}
         exec ${runner}/bin/systemd-runner ${toString command} ${toString args}
       ''

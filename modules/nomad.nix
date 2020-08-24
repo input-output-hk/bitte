@@ -1019,8 +1019,7 @@ in {
         if top == null then
           null
         else
-          lib.filter (elem: elem != null)
-          (flip mapAttrsToList top (name: value:
+          lib.filter (elem: elem != null) (flip mapAttrsToList top (name: value:
             if value == null then
               null
             else {
