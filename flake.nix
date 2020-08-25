@@ -33,7 +33,7 @@
       packages = {
         inherit (legacyPackages)
           bitte nixos-rebuild nixFlakes sops crystal terraform-with-plugins
-          ssm-agent cfssl consul nomadJobs;
+          ssm-agent cfssl consul;
       };
 
       apps.bitte = utils.lib.mkApp { drv = legacyPackages.bitte; };
