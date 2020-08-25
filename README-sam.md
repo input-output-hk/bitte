@@ -101,7 +101,7 @@ The client machines run the Nomad jobs.
 
 ## Tutorial
 
-Let's create a test cluster:
+Let's create a test cluster.
 
 ### Prerequisites
 
@@ -119,20 +119,27 @@ From [Tweag](https://www.tweag.io/blog/2020-05-25-flakes):
   > containing a file named `flake.nix` that provides a standardized
   > interface to Nix artifacts such as packages or NixOS modules.
 
+Although it is optional, you'll probably also want to add our binary
+cache to `~/.config/nix/nix.conf`:
+
+    substituters = https://manveru.cachix.org
+    trusted-public-keys = manveru.cachix.org-1:L5nJHSinfA2K5dDCG3KAEadwf/e3qqhuBr7yCwSksXo=
+
 ### Getting started
+
+#### Setup
 
     mkdir bitte-tutorial
     cd bitte-tutorial
+    git init
     
 Now, chances are you're not using a version of Nix that supports
-flakes, so let's take a quick diversion and bootstrap an environment
+flakes, so let's indulge a quick diversion and bootstrap an environment
 with flakes support:
     
     vi shell.nix
 
     let
-      inherit (builtins) readFile fromJSON;
-      
       src = fetchTarball {
         # This is just a known "good enough" nixpkgs commit, we'll un-hardcode
         # this later
@@ -143,4 +150,112 @@ with flakes support:
 Then we can get back to initializing our project:
 
     nix-shell --run "nix flake init"
+
+This will create a `flake.nix` file that we should edit to look like
+this:
+
+    {
+      description = "My bitte testnet";
     
+      # These inputs will pull bitte and some needed tools
+      inputs = {
+        bitte.url         = "github:input-output-hk/bitte";
+        bitte-cli.follows = "bitte/bitte-cli";
+        inclusive.url     = "github:manveru/nix-inclusive";
+        nixpkgs.follows   = "bitte/nixpkgs";
+        terranix.follows  = "bitte/terranix";
+        utils.url         = "github:numtide/flake-utils";
+      };
+    
+      outputs = { self, nixpkgs, utils, ... }: 
+        # For each system supported by nixpkgs and built by hydra (see
+        # https://github.com/numtide/flake-utils#defaultsystems---system)
+        (utils.lib.eachDefaultSystem (system: rec {
+          # Expose an overlay
+          overlay = import ./overlay.nix { inherit system self; };
+          
+          # Expose nixpkgs with the overlay
+          legacyPackages = import nixpkgs {
+            inherit system;
+            config.allowUnfree = true; # ssm-session-manager-plugin for AWS CLI
+            overlays = [ overlay ];
+          };
+          
+          # Expose a development shell
+          inherit (legacyPackages) devShell;
+        }));
+    }
+
+The `overlay.nix` should like this:
+  
+    { system, self }:
+    final: prev: {
+      # Bitte itself
+      bitte = let
+        bitte-nixpkgs = import self.inputs.nixpkgs {
+          inherit system;
+          overlays = [
+            (final: prev: {
+              vault-bin = self.inputs.bitte.legacyPackages.${system}.vault-bin;
+            })
+            self.inputs.bitte-cli.overlay.${system}
+          ];
+        };
+      in bitte-nixpkgs.bitte;
+    
+      # Tools needed for development
+      devShell = prev.mkShell {
+        LOG_LEVEL = "debug";
+    
+        buildInputs = [
+          final.bitte
+          final.terraform-with-plugins
+          prev.sops
+          final.vault-bin
+          final.glibc
+          final.gawk
+          final.openssl
+          final.cfssl
+        ];
+      };
+
+      inherit (self.inputs.bitte.legacyPackages.${system})
+        vault-bin terraform-with-plugins;
+    }
+
+We then need to add these files to git. Nix flakes don't recognize
+files outside of version control (for reproducibility reasons):
+
+    git add flake.nix overlay.nix shell.nix
+
+We can then enter a development shell:
+
+    nix-shell --run "nix develop"
+
+This command bootstraps us into an environment that has flake support,
+then runs `nix develop` which will find the `devShell` output listed
+in our `flake.nix` and enter a development shell. If you're already in
+an environment with flake support, you can just run `nix develop`.
+
+You should now be able to run `bitte`!
+
+    bitte --help
+
+Attempting to build any output of a flake (which we did when we
+entered the development shell) will also generate a `flake.lock` lock
+file. We can use this lock file to un-hardcode our `shell.nix`:
+
+    let
+      inherit (builtins) readFile fromJSON;
+    
+      lock = fromJSON (readFile ./flake.lock);
+      pkgsInfo = lock.nodes.nixpkgs.locked;
+      src = fetchTarball {
+        url = "https://github.com/NixOS/nixpkgs/archive/${pkgsInfo.rev}.tar.gz";
+      };
+    in with import src {}; mkShell { buildInputs = [ nixFlakes ]; }
+
+This change just pulls the version of Nixpkgs specified in our lock
+file.
+    
+#### Building a cluster
