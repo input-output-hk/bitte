@@ -45,14 +45,16 @@ let
     # unit = "figure-out-a-way-to-name-it-nicely";
     service-type = "exec";
     collect = true;
-    wait = true;
+    scope = true;
+    # wait = true;
     pipe = true;
     setenv = transformAttrs toString env;
     property = transformAttrs toSystemd ({
       MemoryMax = "1G";
-      CPUWeight = "50";
-      CPUQuota = "20%";
+      # CPUWeight = "50";
+      # CPUQuota = "20%";
       # DynamicUser = true;
+      KillMode = "mixed";
       PrivateDevices = true;
       ProtectSystem = true;
       PrivateMounts = true;
@@ -72,10 +74,8 @@ let
   runner = writeShellScriptBin "systemd-runner" ''
     set -exuo pipefail
 
-    echo entering ${placeholder "out"}/bin/runner
-    for dep in ${toString cleanLines}; do
-      ${nixFlakes}/bin/nix-store -r $dep
-    done
+    echo "entering ${placeholder "out"}/bin/runner"
+    echo "dependencies: ${toString cleanLines}"
 
     exec ${systemd}/bin/systemd-run \
       --setenv "INVOCATION_ID=$INVOCATION_ID" \
@@ -95,7 +95,7 @@ let
       --setenv "NOMAD_TASK_NAME=$NOMAD_TASK_NAME" \
       --setenv "HOME=$NOMAD_TASK_DIR" \
       --property BindPaths="$NOMAD_ALLOC_DIR:$NOMAD_ALLOC_DIR $NOMAD_SECRETS_DIR:$NOMAD_SECRETS_DIR $NOMAD_TASK_DIR:$NOMAD_TASK_DIR" \
-      ${systemdRunFlags} -- "$@"
+      ${systemdRunFlags} --  ${toString command} ${toString args}
   '';
 in {
   inherit name env;
@@ -111,7 +111,7 @@ in {
       ''
         set -exuo pipefail
         ${nixFlakes}/bin/nix-store -r ${runner}
-        exec ${runner}/bin/systemd-runner ${toString command} ${toString args}
+        exec ${runner}/bin/systemd-runner
       ''
     ];
   };
