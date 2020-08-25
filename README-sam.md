@@ -257,5 +257,132 @@ file. We can use this lock file to un-hardcode our `shell.nix`:
 
 This change just pulls the version of Nixpkgs specified in our lock
 file.
+
+#### AWS
+
+Next we'll need to setup our AWS environment. Firstly, we need to
+configure the credentials and profile for our AWS user:
+
+    cat ~/.aws/config
+    [profile bitte]
+    region = ap-southeast-2
+
+    cat ~/.aws/credentials
+    [bitte]
+    aws_access_key_id=XXXXXXXXXXXXXXXXXXXX
+    aws_secret_access_key=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+Finally, for convenience we'll want to setup a few environment
+variables. `direnv` is recommended.
+
+    vi .envrc
+    
+    export BITTE_CLUSTER=testnet
+    export AWS_PROFILE=bitte
+    export AWS_DEFAULT_REGION=ap-southeast-2
+    export LOG_LEVEL=debug
     
 #### Building a cluster
+
+Let's build ourselves an example cluster: 
+
+    mkdir -p clusters/testnet
+    vi clusters/testnet/default.nix
+    
+    { self, lib, pkgs, config, ... }:
+    {
+      cluster = {
+        name = "testnet";
+        domain = "bitte-tutorial.iohkdev.io";
+        
+        flakePath = ../..;
+        
+        instances = {
+          core-1 = {
+            instanceType = "t2.small";
+            privateIP = "172.16.0.10";
+          };
+
+          securityGroupRules = let
+            vpcs = pkgs.terralib.vpcs config.cluster;
+          
+            global = [ "0.0.0.0/0" ];
+            internal = [ config.cluster.vpc.cidr ]
+              ++ (lib.flip lib.mapAttrsToList vpcs (region: vpc: vpc.cidr_block));
+          in {
+            internet = {
+              type = "egress";
+              port = 0;
+              protocols = [ "-1" ];
+              cidrs = global;
+            };
+  
+            internal = {
+              type = "ingress";
+              port = 0;
+              protocols = [ "-1" ];
+              cidrs = internal;
+            };
+            
+            ssh = {
+              port = 22;
+              cidrs = global;
+            };
+          };
+        };   
+      };
+    }
+    
+`mkClusters` is a Nix function exposed by bitte. It reads all
+`default.nix` files in the given `root` directory recursively. From
+each of these files it creates a cluster configuration.
+
+We'll need to add the following attributes to our overlay:
+
+    vi overlay.nix
+    
+    {
+      ...
+
+      nixosConfigurations =
+        self.inputs.bitte.legacyPackages.${system}.mkNixosConfigurations
+        final.clusters;
+    
+      clusters = self.inputs.bitte.legacyPackages.${system}.mkClusters {
+        root = ./clusters;
+        inherit self system;
+      };
+    }
+
+and the following outputs to our flake:
+
+    vi flake.nix
+    
+    {
+      description = "My bitte testnet";
+    
+      ... 
+
+      outputs = { self, nixpkgs, utils, ... }: 
+        # For each system supported by nixpkgs and built by hydra (see
+        # https://github.com/numtide/flake-utils#defaultsystems---system)
+        (utils.lib.eachDefaultSystem (system: rec {
+          # Expose an overlay
+          overlay = import ./overlay.nix { inherit system self; };
+          
+          # Expose nixpkgs with the overlay
+          legacyPackages = import nixpkgs {
+            inherit system;
+            config.allowUnfree = true; # ssm-session-manager-plugin for AWS CLI
+            overlays = [ overlay ];
+          };
+          
+          # Expose a development shell
+          inherit (legacyPackages) devShell;
+        })) // (let
+          pkgs = import nixpkgs {
+            overlays = [ self.overlay.x86_64-linux ];
+            system = "x86_64-linux";
+          };
+        in { inherit (pkgs) nixosConfigurations clusters; });
+    }

@@ -31,4 +31,13 @@ final: prev: {
 
   inherit (self.inputs.bitte.legacyPackages.${system})
     vault-bin terraform-with-plugins;
+
+  nixosConfigurations =
+    self.inputs.bitte.legacyPackages.${system}.mkNixosConfigurations
+    final.clusters;
+  
+  clusters = self.inputs.bitte.legacyPackages.${system}.mkClusters {
+    root = ./clusters;
+    inherit self system;
+  };
 }

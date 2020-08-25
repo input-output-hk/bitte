@@ -27,5 +27,16 @@
       
       # Expose a development shell
       inherit (legacyPackages) devShell;
-    }));
+
+      packages = {
+        inherit (legacyPackages) bitte nixFlakes sops;
+        inherit (self.inputs.bitte.packages.${system})
+          terraform-with-plugins cfssl consul;
+      };
+    })) // (let
+      pkgs = import nixpkgs {
+        overlays = [ self.overlay.x86_64-linux ];
+        system = "x86_64-linux";
+      };
+    in { inherit (pkgs) nixosConfigurations clusters; });
 }
