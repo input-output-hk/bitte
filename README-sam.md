@@ -5,11 +5,12 @@ Schedule jobs to be run across compute fleets.
 ## Overview
 
 Bitte is a tool designed to provision and deploy "compute fleets": a
-cluster of machines that we can run abstract workloads on.
+cluster of machines that workloads can be run on, abstract of the
+machine the workload is running on.
 
 It was created to address the lack of fleet support in NixOps. NixOps
 works in terms of individual machines, and doesn't support the more
-abstract idea of "pools of machines".
+abstract idea of clusters.
 
 A cluster consists of core nodes and a number of machines in
 auto-scaling groups spread across regions and availability zones (we
@@ -105,11 +106,13 @@ Let's create a test cluster.
 
 ### Prerequisites
 
-First you'll need to have [Nix](https://nixos.org/) installed.
-We're using an experimental feature called `flakes` which increases speed of
-development and deployment drastically, but still requires a bit of preparation.
+First you'll need to have [Nix](https://nixos.org/) installed. We're
+using an experimental feature called `flakes` which increases speed of
+development and deployment drastically, but still requires a bit of
+preparation.
 
-To enable flake support, add the following line to `~/.config/nix/nix.conf`:
+To enable flake support, add the following line to
+`~/.config/nix/nix.conf`:
 
     experimental-features = nix-command flakes
 
@@ -272,35 +275,95 @@ configure the credentials and profile for our AWS user:
     aws_access_key_id=XXXXXXXXXXXXXXXXXXXX
     aws_secret_access_key=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
+Unfortunately, there are still some provisioning steps that we need to
+do manually.
+
+##### KMS
+
+Navigate to the KMS console and create a new "Customer managed key".
+
+Use the following settings:
+  Key type                       : Symmetric
+  Key material origin            : KMS
+  Alias                          : any name
+  Key administrative permissions : at least yourself
+  Key usage permissions          : at least yourself
+
+Note the ARN.
+
+#### VPCs
+
+Navigate to the "VPC Management Console" and "Create VPC" with the
+parameters:
+
+Name tag        : bitte-tutorial-ap-southeast-1
+IPv4 CIDR block : 172.17.0.0/16
+IPv6 CIDR block : None
+Tenancy         : default
+
+#### Subnets
+
+Navigate to "Subnets" and create three subnets with the parameters:
+
+Name tag          : prv-{1,2,3}
+VPC               : Previously created VPC
+Availability zone : No preference
+IPv4 CIDR block   : {172.17.0.0/24,172.17.1.0/24,172.17.2.0/24}
+
+##### S3
+
+Navigate to the S3 console and create a new S3 Bucket. I named mine
+"iohk-bitte-tutorial".
+
+##### Route53
+
+#### Environment variabales
+
 Finally, for convenience we'll want to setup a few environment
 variables. `direnv` is recommended.
 
     vi .envrc
     
-    export BITTE_CLUSTER=testnet
+    export BITTE_CLUSTER=tutorial-testnet
     export AWS_PROFILE=bitte
     export AWS_DEFAULT_REGION=ap-southeast-2
     export LOG_LEVEL=debug
     
 #### Building a cluster
 
+    mkdir -p clusters/testnet
+
+- Copy over the `iam.nix` file.
+- Copy over the `security-group-rules.nix` file
+- Create a `secrets.nix` file:
+
+    vi clusters/testnet/secrets.nix
+    
+    { ... }:    
+      secrets.encryptedRoot = ../../encrypted;
+    }
+
 Let's build ourselves an example cluster: 
 
-    mkdir -p clusters/testnet
     vi clusters/testnet/default.nix
     
     { self, lib, pkgs, config, ... }:
     {
+      imports = [ ./iam.nix ];
+
       cluster = {
-        name = "testnet";
+        name = "tutorial-testnet";
         domain = "bitte-tutorial.iohkdev.io";
+        s3Bucket = "iohk-bitte-tutorial";
+        kms = "arn:aws:kms:eu-central-1:596662952274:key/f20d4160-a7f3-4cc9-9676-d589bba0caf8";
+        adminNames = [ "samuel.evans-powell" ];
         
         flakePath = ../..;
         
         instances = {
           core-1 = {
             instanceType = "t2.small";
-            privateIP = "172.16.0.10";
+            privateIP = "172.17.0.10";
           };
 
           securityGroupRules = let
@@ -332,6 +395,10 @@ Let's build ourselves an example cluster:
         };   
       };
     }
+    
+Remember to add the files to git
+
+    git add clusters/testnet/{iam,default,security-group-rules,secrets}.nix
     
 `mkClusters` is a Nix function exposed by bitte. It reads all
 `default.nix` files in the given `root` directory recursively. From
@@ -386,3 +453,8 @@ and the following outputs to our flake:
           };
         in { inherit (pkgs) nixosConfigurations clusters; });
     }
+
+
+    terraform login
+    terraform init
+    bitte terraform core

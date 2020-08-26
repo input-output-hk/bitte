@@ -1,0 +1,1486 @@
+{
+  "data": {
+    "aws_iam_policy_document": {
+      "tutorial-testnet-client-consul": {
+        "statement": {
+          "actions": [
+            "ec2:DescribeInstances",
+            "ec2:DescribeTags",
+            "autoscaling:DescribeAutoScalingGroups"
+          ],
+          "effect": "Allow",
+          "resources": [
+            "*"
+          ]
+        }
+      },
+      "tutorial-testnet-client-ecr": {
+        "statement": {
+          "actions": [
+            "ecr:GetAuthorizationToken",
+            "ecr:BatchCheckLayerAvailability",
+            "ecr:GetDownloadUrlForLayer",
+            "ecr:GetRepositoryPolicy",
+            "ecr:DescribeRepositories",
+            "ecr:ListImages",
+            "ecr:DescribeImages",
+            "ecr:BatchGetImage",
+            "ecr:GetLifecyclePolicy",
+            "ecr:GetLifecyclePolicyPreview",
+            "ecr:ListTagsForResource",
+            "ecr:DescribeImageScanFindings"
+          ],
+          "effect": "Allow",
+          "resources": [
+            "*"
+          ]
+        }
+      },
+      "tutorial-testnet-client-kms": {
+        "statement": {
+          "actions": [
+            "kms:Encrypt",
+            "kms:Decrypt",
+            "kms:DescribeKey"
+          ],
+          "effect": "Allow",
+          "resources": [
+            "arn:aws:kms:ap-southeast-2:596662952274:key/0984e3ae-62dd-42c1-a946-9ebff2373289"
+          ]
+        }
+      },
+      "tutorial-testnet-client-nomad": {
+        "statement": {
+          "actions": [
+            "autoscaling:SetInstanceHealth"
+          ],
+          "effect": "Allow",
+          "resources": [
+            "*"
+          ]
+        }
+      },
+      "tutorial-testnet-client-s3-bucket-console": {
+        "statement": {
+          "actions": [
+            "s3:ListAllMyBuckets",
+            "s3:GetBucketLocation"
+          ],
+          "effect": "Allow",
+          "resources": [
+            "arn:aws:s3:::*"
+          ]
+        }
+      },
+      "tutorial-testnet-client-s3-bucket-listing": {
+        "statement": {
+          "actions": [
+            "s3:ListBucket"
+          ],
+          "condition": [
+            {
+              "test": "StringLike",
+              "values": [
+                "",
+                "infra/",
+                "infra/secrets/",
+                "infra/secrets/tutorial-testnet/",
+                "infra/secrets/tutorial-testnet/arn:aws:kms:ap-southeast-2:596662952274:key/",
+                "infra/secrets/tutorial-testnet/arn:aws:kms:ap-southeast-2:596662952274:key/0984e3ae-62dd-42c1-a946-9ebff2373289/",
+                "infra/secrets/tutorial-testnet/arn:aws:kms:ap-southeast-2:596662952274:key/0984e3ae-62dd-42c1-a946-9ebff2373289/client/"
+              ],
+              "variable": "s3:prefix"
+            },
+            {
+              "test": "StringLike",
+              "values": [
+                "",
+                "infra/",
+                "infra/secrets/",
+                "infra/secrets/tutorial-testnet/",
+                "infra/secrets/tutorial-testnet/arn:aws:kms:ap-southeast-2:596662952274:key/",
+                "infra/secrets/tutorial-testnet/arn:aws:kms:ap-southeast-2:596662952274:key/0984e3ae-62dd-42c1-a946-9ebff2373289/",
+                "infra/secrets/tutorial-testnet/arn:aws:kms:ap-southeast-2:596662952274:key/0984e3ae-62dd-42c1-a946-9ebff2373289/source/"
+              ],
+              "variable": "s3:prefix"
+            }
+          ],
+          "effect": "Allow",
+          "resources": [
+            "arn:aws:s3:::iohk-bitte-tutorial"
+          ]
+        }
+      },
+      "tutorial-testnet-client-s3-directory-actions": {
+        "statement": {
+          "actions": [
+            "s3:*"
+          ],
+          "effect": "Allow",
+          "resources": [
+            "arn:aws:s3:::iohk-bitte-tutorial/infra/secrets/tutorial-testnet/arn:aws:kms:ap-southeast-2:596662952274:key/0984e3ae-62dd-42c1-a946-9ebff2373289/client/*",
+            "arn:aws:s3:::iohk-bitte-tutorial/infra/secrets/tutorial-testnet/arn:aws:kms:ap-southeast-2:596662952274:key/0984e3ae-62dd-42c1-a946-9ebff2373289/client",
+            "arn:aws:s3:::iohk-bitte-tutorial/infra/secrets/tutorial-testnet/arn:aws:kms:ap-southeast-2:596662952274:key/0984e3ae-62dd-42c1-a946-9ebff2373289/source/*",
+            "arn:aws:s3:::iohk-bitte-tutorial/infra/secrets/tutorial-testnet/arn:aws:kms:ap-southeast-2:596662952274:key/0984e3ae-62dd-42c1-a946-9ebff2373289/source"
+          ]
+        }
+      },
+      "tutorial-testnet-client-ssm": {
+        "statement": {
+          "actions": [
+            "ec2:ReportInstanceStatus",
+            "ec2messages:AcknowledgeMessage",
+            "ec2messages:DeleteMessage",
+            "ec2messages:FailMessage",
+            "ec2messages:GetEndpoint",
+            "ec2messages:GetMessages",
+            "ec2messages:SendReply",
+            "ssmmessages:CreateControlChannel",
+            "ssmmessages:CreateDataChannel",
+            "ssmmessages:OpenControlChannel",
+            "ssmmessages:OpenDataChannel",
+            "ssm:DescribeAssociation",
+            "ssm:GetDeployablePatchSnapshotForInstance",
+            "ssm:GetDocument",
+            "ssm:DescribeDocument",
+            "ssm:GetManifest",
+            "ssm:GetParameter",
+            "ssm:GetParameters",
+            "ssm:ListAssociations",
+            "ssm:ListInstanceAssociations",
+            "ssm:PutInventory",
+            "ssm:PutComplianceItems",
+            "ssm:PutConfigurePackageResult",
+            "ssm:UpdateAssociationStatus",
+            "ssm:UpdateInstanceAssociationStatus",
+            "ssm:UpdateInstanceInformation"
+          ],
+          "effect": "Allow",
+          "resources": [
+            "*"
+          ]
+        }
+      },
+      "tutorial-testnet-client-vault": {
+        "statement": {
+          "actions": [
+            "ec2:DescribeInstances",
+            "iam:GetInstanceProfile",
+            "iam:GetUser",
+            "iam:GetRole",
+            "logs:CreateLogStream",
+            "logs:PutLogEvents"
+          ],
+          "effect": "Allow",
+          "resources": [
+            "*"
+          ]
+        }
+      },
+      "tutorial-testnet-core-assumeRole": {
+        "statement": {
+          "actions": [
+            "sts:AssumeRole"
+          ],
+          "effect": "Allow",
+          "resources": [
+            "${aws_iam_instance_profile.tutorial-testnet-core-1.arn}",
+            "${aws_iam_instance_profile.tutorial-testnet-core-2.arn}",
+            "${aws_iam_instance_profile.tutorial-testnet-core-3.arn}"
+          ]
+        }
+      },
+      "tutorial-testnet-core-change-route53": {
+        "statement": {
+          "actions": [
+            "route53:GetChange",
+            "route53:ChangeResourceRecordSets",
+            "route53:ListResourceRecordSets"
+          ],
+          "effect": "Allow",
+          "resources": [
+            "arn:aws:route53:::hostedzone/*",
+            "arn:aws:route53:::change/*"
+          ]
+        }
+      },
+      "tutorial-testnet-core-consul": {
+        "statement": {
+          "actions": [
+            "ec2:DescribeInstances",
+            "ec2:DescribeTags",
+            "autoscaling:DescribeAutoScalingGroups"
+          ],
+          "effect": "Allow",
+          "resources": [
+            "*"
+          ]
+        }
+      },
+      "tutorial-testnet-core-kms": {
+        "statement": {
+          "actions": [
+            "kms:Encrypt",
+            "kms:Decrypt",
+            "kms:DescribeKey"
+          ],
+          "effect": "Allow",
+          "resources": [
+            "arn:aws:kms:ap-southeast-2:596662952274:key/0984e3ae-62dd-42c1-a946-9ebff2373289"
+          ]
+        }
+      },
+      "tutorial-testnet-core-list-route53": {
+        "statement": {
+          "actions": [
+            "route53:ListHostedZonesByName"
+          ],
+          "effect": "Allow",
+          "resources": [
+            "*"
+          ]
+        }
+      },
+      "tutorial-testnet-core-nomad": {
+        "statement": {
+          "actions": [
+            "autoscaling:SetInstanceHealth"
+          ],
+          "effect": "Allow",
+          "resources": [
+            "*"
+          ]
+        }
+      },
+      "tutorial-testnet-core-s3-bucket-console": {
+        "statement": {
+          "actions": [
+            "s3:ListAllMyBuckets",
+            "s3:GetBucketLocation"
+          ],
+          "effect": "Allow",
+          "resources": [
+            "arn:aws:s3:::*"
+          ]
+        }
+      },
+      "tutorial-testnet-core-s3-bucket-listing": {
+        "statement": {
+          "actions": [
+            "s3:ListBucket"
+          ],
+          "condition": [
+            {
+              "test": "StringLike",
+              "values": [
+                "",
+                "infra/",
+                "infra/secrets/",
+                "infra/secrets/tutorial-testnet/",
+                "infra/secrets/tutorial-testnet/arn:aws:kms:ap-southeast-2:596662952274:key/",
+                "infra/secrets/tutorial-testnet/arn:aws:kms:ap-southeast-2:596662952274:key/0984e3ae-62dd-42c1-a946-9ebff2373289/",
+                "infra/secrets/tutorial-testnet/arn:aws:kms:ap-southeast-2:596662952274:key/0984e3ae-62dd-42c1-a946-9ebff2373289/server/"
+              ],
+              "variable": "s3:prefix"
+            },
+            {
+              "test": "StringLike",
+              "values": [
+                "",
+                "infra/",
+                "infra/secrets/",
+                "infra/secrets/tutorial-testnet/",
+                "infra/secrets/tutorial-testnet/arn:aws:kms:ap-southeast-2:596662952274:key/",
+                "infra/secrets/tutorial-testnet/arn:aws:kms:ap-southeast-2:596662952274:key/0984e3ae-62dd-42c1-a946-9ebff2373289/",
+                "infra/secrets/tutorial-testnet/arn:aws:kms:ap-southeast-2:596662952274:key/0984e3ae-62dd-42c1-a946-9ebff2373289/client/"
+              ],
+              "variable": "s3:prefix"
+            },
+            {
+              "test": "StringLike",
+              "values": [
+                "",
+                "infra/",
+                "infra/secrets/",
+                "infra/secrets/tutorial-testnet/",
+                "infra/secrets/tutorial-testnet/arn:aws:kms:ap-southeast-2:596662952274:key/",
+                "infra/secrets/tutorial-testnet/arn:aws:kms:ap-southeast-2:596662952274:key/0984e3ae-62dd-42c1-a946-9ebff2373289/",
+                "infra/secrets/tutorial-testnet/arn:aws:kms:ap-southeast-2:596662952274:key/0984e3ae-62dd-42c1-a946-9ebff2373289/source/"
+              ],
+              "variable": "s3:prefix"
+            }
+          ],
+          "effect": "Allow",
+          "resources": [
+            "arn:aws:s3:::iohk-bitte-tutorial"
+          ]
+        }
+      },
+      "tutorial-testnet-core-s3-directory-actions": {
+        "statement": {
+          "actions": [
+            "s3:*"
+          ],
+          "effect": "Allow",
+          "resources": [
+            "arn:aws:s3:::iohk-bitte-tutorial/infra/secrets/tutorial-testnet/arn:aws:kms:ap-southeast-2:596662952274:key/0984e3ae-62dd-42c1-a946-9ebff2373289/server/*",
+            "arn:aws:s3:::iohk-bitte-tutorial/infra/secrets/tutorial-testnet/arn:aws:kms:ap-southeast-2:596662952274:key/0984e3ae-62dd-42c1-a946-9ebff2373289/server",
+            "arn:aws:s3:::iohk-bitte-tutorial/infra/secrets/tutorial-testnet/arn:aws:kms:ap-southeast-2:596662952274:key/0984e3ae-62dd-42c1-a946-9ebff2373289/client/*",
+            "arn:aws:s3:::iohk-bitte-tutorial/infra/secrets/tutorial-testnet/arn:aws:kms:ap-southeast-2:596662952274:key/0984e3ae-62dd-42c1-a946-9ebff2373289/client",
+            "arn:aws:s3:::iohk-bitte-tutorial/infra/secrets/tutorial-testnet/arn:aws:kms:ap-southeast-2:596662952274:key/0984e3ae-62dd-42c1-a946-9ebff2373289/source/*",
+            "arn:aws:s3:::iohk-bitte-tutorial/infra/secrets/tutorial-testnet/arn:aws:kms:ap-southeast-2:596662952274:key/0984e3ae-62dd-42c1-a946-9ebff2373289/source"
+          ]
+        }
+      },
+      "tutorial-testnet-core-ssm": {
+        "statement": {
+          "actions": [
+            "ec2:ReportInstanceStatus",
+            "ec2messages:AcknowledgeMessage",
+            "ec2messages:DeleteMessage",
+            "ec2messages:FailMessage",
+            "ec2messages:GetEndpoint",
+            "ec2messages:GetMessages",
+            "ec2messages:SendReply",
+            "ssmmessages:CreateControlChannel",
+            "ssmmessages:CreateDataChannel",
+            "ssmmessages:OpenControlChannel",
+            "ssmmessages:OpenDataChannel",
+            "ssm:DescribeAssociation",
+            "ssm:GetDeployablePatchSnapshotForInstance",
+            "ssm:GetDocument",
+            "ssm:DescribeDocument",
+            "ssm:GetManifest",
+            "ssm:GetParameter",
+            "ssm:GetParameters",
+            "ssm:ListAssociations",
+            "ssm:ListInstanceAssociations",
+            "ssm:PutInventory",
+            "ssm:PutComplianceItems",
+            "ssm:PutConfigurePackageResult",
+            "ssm:UpdateAssociationStatus",
+            "ssm:UpdateInstanceAssociationStatus",
+            "ssm:UpdateInstanceInformation"
+          ],
+          "effect": "Allow",
+          "resources": [
+            "*"
+          ]
+        }
+      },
+      "tutorial-testnet-core-vault": {
+        "statement": {
+          "actions": [
+            "ec2:DescribeInstances",
+            "iam:GetInstanceProfile",
+            "iam:GetUser",
+            "iam:GetRole",
+            "logs:CreateLogStream",
+            "logs:PutLogEvents"
+          ],
+          "effect": "Allow",
+          "resources": [
+            "*"
+          ]
+        }
+      }
+    },
+    "aws_route53_zone": {
+      "selected": {
+        "name": "bitte-tutorial.iohkdev.io.",
+        "provider": "aws.us_east_2"
+      }
+    },
+    "aws_vpc": {
+      "ap-northeast-1": {
+        "filter": {
+          "name": "tag:Name",
+          "values": [
+            "tutorial-testnet-ap-northeast-1-asgs"
+          ]
+        },
+        "provider": "aws.ap_northeast_1"
+      },
+      "ap-northeast-2": {
+        "filter": {
+          "name": "tag:Name",
+          "values": [
+            "tutorial-testnet-ap-northeast-2-asgs"
+          ]
+        },
+        "provider": "aws.ap_northeast_2"
+      },
+      "core": {
+        "filter": {
+          "name": "tag:Name",
+          "values": [
+            "tutorial-testnet-ap-southeast-2"
+          ]
+        },
+        "provider": "aws.ap_southeast_2"
+      },
+      "eu-central-1": {
+        "filter": {
+          "name": "tag:Name",
+          "values": [
+            "tutorial-testnet-eu-central-1-asgs"
+          ]
+        },
+        "provider": "aws.eu_central_1"
+      },
+      "us-east-2": {
+        "filter": {
+          "name": "tag:Name",
+          "values": [
+            "tutorial-testnet-us-east-2-asgs"
+          ]
+        },
+        "provider": "aws.us_east_2"
+      }
+    },
+    "aws_vpc_peering_connection": {
+      "ap-northeast-1": {
+        "tags": {
+          "Name": "tutorial-testnet-ap-northeast-1-asgs"
+        }
+      },
+      "ap-northeast-2": {
+        "tags": {
+          "Name": "tutorial-testnet-ap-northeast-2-asgs"
+        }
+      },
+      "eu-central-1": {
+        "tags": {
+          "Name": "tutorial-testnet-eu-central-1-asgs"
+        }
+      },
+      "us-east-2": {
+        "tags": {
+          "Name": "tutorial-testnet-us-east-2-asgs"
+        }
+      }
+    }
+  },
+  "output": {
+    "cluster": {
+      "value": {
+        "asgs": null,
+        "flake": "/nix/store/asmgfqr2ba54fszlpsk8p04iv901cfwm-source",
+        "instances": {
+          "core-1": {
+            "flake-attr": "nixosConfigurations.tutorial-testnet-core-1.config.system.build.toplevel",
+            "instance-type": "${aws_instance.core-1.instance_type}",
+            "name": "core-1",
+            "private-ip": "${aws_instance.core-1.private_ip}",
+            "public-ip": "${aws_instance.core-1.public_ip}",
+            "tags": {
+              "Cluster": "tutorial-testnet",
+              "Consul": "server",
+              "Name": "core-1",
+              "Nomad": "server",
+              "UID": "tutorial-testnet-core-1",
+              "Vault": "server"
+            },
+            "uid": "tutorial-testnet-core-1"
+          },
+          "core-2": {
+            "flake-attr": "nixosConfigurations.tutorial-testnet-core-2.config.system.build.toplevel",
+            "instance-type": "${aws_instance.core-2.instance_type}",
+            "name": "core-2",
+            "private-ip": "${aws_instance.core-2.private_ip}",
+            "public-ip": "${aws_instance.core-2.public_ip}",
+            "tags": {
+              "Cluster": "tutorial-testnet",
+              "Consul": "server",
+              "Name": "core-2",
+              "Nomad": "server",
+              "UID": "tutorial-testnet-core-2",
+              "Vault": "server"
+            },
+            "uid": "tutorial-testnet-core-2"
+          },
+          "core-3": {
+            "flake-attr": "nixosConfigurations.tutorial-testnet-core-3.config.system.build.toplevel",
+            "instance-type": "${aws_instance.core-3.instance_type}",
+            "name": "core-3",
+            "private-ip": "${aws_instance.core-3.private_ip}",
+            "public-ip": "${aws_instance.core-3.public_ip}",
+            "tags": {
+              "Cluster": "tutorial-testnet",
+              "Consul": "server",
+              "Name": "core-3",
+              "Nomad": "server",
+              "UID": "tutorial-testnet-core-3",
+              "Vault": "server"
+            },
+            "uid": "tutorial-testnet-core-3"
+          }
+        },
+        "kms": "arn:aws:kms:ap-southeast-2:596662952274:key/0984e3ae-62dd-42c1-a946-9ebff2373289",
+        "name": "tutorial-testnet",
+        "nix": "/nix/store/2vljifr6d0vm52l13sjangk3pzdkfl1x-nix-2.4pre20200719_a79b6dd",
+        "region": "ap-southeast-2",
+        "roles": {
+          "client": {
+            "arn": "${aws_iam_role.tutorial-testnet-client.arn}"
+          },
+          "core": {
+            "arn": "${aws_iam_role.tutorial-testnet-core.arn}"
+          }
+        }
+      }
+    }
+  },
+  "provider": {
+    "acme": {
+      "server_url": "https://acme-v02.api.letsencrypt.org/directory"
+    },
+    "aws": [
+      {
+        "region": "ap-southeast-2"
+      },
+      {
+        "alias": "ap_northeast_1",
+        "region": "ap-northeast-1"
+      },
+      {
+        "alias": "ap_northeast_2",
+        "region": "ap-northeast-2"
+      },
+      {
+        "alias": "ap_south_1",
+        "region": "ap-south-1"
+      },
+      {
+        "alias": "ap_southeast_1",
+        "region": "ap-southeast-1"
+      },
+      {
+        "alias": "ap_southeast_2",
+        "region": "ap-southeast-2"
+      },
+      {
+        "alias": "ca_central_1",
+        "region": "ca-central-1"
+      },
+      {
+        "alias": "eu_central_1",
+        "region": "eu-central-1"
+      },
+      {
+        "alias": "eu_north_1",
+        "region": "eu-north-1"
+      },
+      {
+        "alias": "eu_west_1",
+        "region": "eu-west-1"
+      },
+      {
+        "alias": "eu_west_2",
+        "region": "eu-west-2"
+      },
+      {
+        "alias": "eu_west_3",
+        "region": "eu-west-3"
+      },
+      {
+        "alias": "sa_east_1",
+        "region": "sa-east-1"
+      },
+      {
+        "alias": "us_east_1",
+        "region": "us-east-1"
+      },
+      {
+        "alias": "us_east_2",
+        "region": "us-east-2"
+      },
+      {
+        "alias": "us_west_1",
+        "region": "us-west-1"
+      },
+      {
+        "alias": "us_west_2",
+        "region": "us-west-2"
+      }
+    ]
+  },
+  "resource": {
+    "acme_certificate": {
+      "certificate": {
+        "account_key_pem": "${acme_registration.reg.account_key_pem}",
+        "common_name": "bitte-tutorial.iohkdev.io",
+        "dns_challenge": {
+          "provider": "route53"
+        },
+        "subject_alternative_names": [
+          "*.bitte-tutorial.iohkdev.io"
+        ]
+      }
+    },
+    "acme_registration": {
+      "reg": {
+        "account_key_pem": "${tls_private_key.private_key.private_key_pem}",
+        "email_address": "michael.fellinger@iohk.io"
+      }
+    },
+    "aws_eip": {
+      "tutorial-testnet-core-1": {
+        "associate_with_private_ip": "172.17.0.10",
+        "lifecycle": [
+          {
+            "create_before_destroy": true
+          }
+        ],
+        "network_interface": "${aws_network_interface.tutorial-testnet-core-1.id}",
+        "tags": {
+          "Cluster": "tutorial-testnet",
+          "Name": "core-1"
+        },
+        "vpc": true
+      },
+      "tutorial-testnet-core-2": {
+        "associate_with_private_ip": "172.17.1.10",
+        "lifecycle": [
+          {
+            "create_before_destroy": true
+          }
+        ],
+        "network_interface": "${aws_network_interface.tutorial-testnet-core-2.id}",
+        "tags": {
+          "Cluster": "tutorial-testnet",
+          "Name": "core-2"
+        },
+        "vpc": true
+      },
+      "tutorial-testnet-core-3": {
+        "associate_with_private_ip": "172.17.2.10",
+        "lifecycle": [
+          {
+            "create_before_destroy": true
+          }
+        ],
+        "network_interface": "${aws_network_interface.tutorial-testnet-core-3.id}",
+        "tags": {
+          "Cluster": "tutorial-testnet",
+          "Name": "core-3"
+        },
+        "vpc": true
+      }
+    },
+    "aws_iam_instance_profile": {
+      "tutorial-testnet-core-1": {
+        "lifecycle": [
+          {
+            "create_before_destroy": true
+          }
+        ],
+        "name": "tutorial-testnet-core-1",
+        "path": "/",
+        "role": "${aws_iam_role.tutorial-testnet-core.name}"
+      },
+      "tutorial-testnet-core-2": {
+        "lifecycle": [
+          {
+            "create_before_destroy": true
+          }
+        ],
+        "name": "tutorial-testnet-core-2",
+        "path": "/",
+        "role": "${aws_iam_role.tutorial-testnet-core.name}"
+      },
+      "tutorial-testnet-core-3": {
+        "lifecycle": [
+          {
+            "create_before_destroy": true
+          }
+        ],
+        "name": "tutorial-testnet-core-3",
+        "path": "/",
+        "role": "${aws_iam_role.tutorial-testnet-core.name}"
+      }
+    },
+    "aws_iam_role": {
+      "tutorial-testnet-client": {
+        "assume_role_policy": "{\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Sid\":\"\"}],\"Version\":\"2012-10-17\"}",
+        "lifecycle": [
+          {
+            "create_before_destroy": true
+          }
+        ],
+        "name": "tutorial-testnet-client"
+      },
+      "tutorial-testnet-core": {
+        "assume_role_policy": "{\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Sid\":\"\"}],\"Version\":\"2012-10-17\"}",
+        "lifecycle": [
+          {
+            "create_before_destroy": true
+          }
+        ],
+        "name": "tutorial-testnet-core"
+      }
+    },
+    "aws_iam_role_policy": {
+      "tutorial-testnet-client-consul": {
+        "name": "tutorial-testnet-client-consul",
+        "policy": "${data.aws_iam_policy_document.tutorial-testnet-client-consul.json}",
+        "role": "${aws_iam_role.tutorial-testnet-client.id}"
+      },
+      "tutorial-testnet-client-ecr": {
+        "name": "tutorial-testnet-client-ecr",
+        "policy": "${data.aws_iam_policy_document.tutorial-testnet-client-ecr.json}",
+        "role": "${aws_iam_role.tutorial-testnet-client.id}"
+      },
+      "tutorial-testnet-client-kms": {
+        "name": "tutorial-testnet-client-kms",
+        "policy": "${data.aws_iam_policy_document.tutorial-testnet-client-kms.json}",
+        "role": "${aws_iam_role.tutorial-testnet-client.id}"
+      },
+      "tutorial-testnet-client-nomad": {
+        "name": "tutorial-testnet-client-nomad",
+        "policy": "${data.aws_iam_policy_document.tutorial-testnet-client-nomad.json}",
+        "role": "${aws_iam_role.tutorial-testnet-client.id}"
+      },
+      "tutorial-testnet-client-s3-bucket-console": {
+        "name": "tutorial-testnet-client-s3-bucket-console",
+        "policy": "${data.aws_iam_policy_document.tutorial-testnet-client-s3-bucket-console.json}",
+        "role": "${aws_iam_role.tutorial-testnet-client.id}"
+      },
+      "tutorial-testnet-client-s3-bucket-listing": {
+        "name": "tutorial-testnet-client-s3-bucket-listing",
+        "policy": "${data.aws_iam_policy_document.tutorial-testnet-client-s3-bucket-listing.json}",
+        "role": "${aws_iam_role.tutorial-testnet-client.id}"
+      },
+      "tutorial-testnet-client-s3-directory-actions": {
+        "name": "tutorial-testnet-client-s3-directory-actions",
+        "policy": "${data.aws_iam_policy_document.tutorial-testnet-client-s3-directory-actions.json}",
+        "role": "${aws_iam_role.tutorial-testnet-client.id}"
+      },
+      "tutorial-testnet-client-ssm": {
+        "name": "tutorial-testnet-client-ssm",
+        "policy": "${data.aws_iam_policy_document.tutorial-testnet-client-ssm.json}",
+        "role": "${aws_iam_role.tutorial-testnet-client.id}"
+      },
+      "tutorial-testnet-client-vault": {
+        "name": "tutorial-testnet-client-vault",
+        "policy": "${data.aws_iam_policy_document.tutorial-testnet-client-vault.json}",
+        "role": "${aws_iam_role.tutorial-testnet-client.id}"
+      },
+      "tutorial-testnet-core-assumeRole": {
+        "name": "tutorial-testnet-core-assumeRole",
+        "policy": "${data.aws_iam_policy_document.tutorial-testnet-core-assumeRole.json}",
+        "role": "${aws_iam_role.tutorial-testnet-core.id}"
+      },
+      "tutorial-testnet-core-change-route53": {
+        "name": "tutorial-testnet-core-change-route53",
+        "policy": "${data.aws_iam_policy_document.tutorial-testnet-core-change-route53.json}",
+        "role": "${aws_iam_role.tutorial-testnet-core.id}"
+      },
+      "tutorial-testnet-core-consul": {
+        "name": "tutorial-testnet-core-consul",
+        "policy": "${data.aws_iam_policy_document.tutorial-testnet-core-consul.json}",
+        "role": "${aws_iam_role.tutorial-testnet-core.id}"
+      },
+      "tutorial-testnet-core-kms": {
+        "name": "tutorial-testnet-core-kms",
+        "policy": "${data.aws_iam_policy_document.tutorial-testnet-core-kms.json}",
+        "role": "${aws_iam_role.tutorial-testnet-core.id}"
+      },
+      "tutorial-testnet-core-list-route53": {
+        "name": "tutorial-testnet-core-list-route53",
+        "policy": "${data.aws_iam_policy_document.tutorial-testnet-core-list-route53.json}",
+        "role": "${aws_iam_role.tutorial-testnet-core.id}"
+      },
+      "tutorial-testnet-core-nomad": {
+        "name": "tutorial-testnet-core-nomad",
+        "policy": "${data.aws_iam_policy_document.tutorial-testnet-core-nomad.json}",
+        "role": "${aws_iam_role.tutorial-testnet-core.id}"
+      },
+      "tutorial-testnet-core-s3-bucket-console": {
+        "name": "tutorial-testnet-core-s3-bucket-console",
+        "policy": "${data.aws_iam_policy_document.tutorial-testnet-core-s3-bucket-console.json}",
+        "role": "${aws_iam_role.tutorial-testnet-core.id}"
+      },
+      "tutorial-testnet-core-s3-bucket-listing": {
+        "name": "tutorial-testnet-core-s3-bucket-listing",
+        "policy": "${data.aws_iam_policy_document.tutorial-testnet-core-s3-bucket-listing.json}",
+        "role": "${aws_iam_role.tutorial-testnet-core.id}"
+      },
+      "tutorial-testnet-core-s3-directory-actions": {
+        "name": "tutorial-testnet-core-s3-directory-actions",
+        "policy": "${data.aws_iam_policy_document.tutorial-testnet-core-s3-directory-actions.json}",
+        "role": "${aws_iam_role.tutorial-testnet-core.id}"
+      },
+      "tutorial-testnet-core-ssm": {
+        "name": "tutorial-testnet-core-ssm",
+        "policy": "${data.aws_iam_policy_document.tutorial-testnet-core-ssm.json}",
+        "role": "${aws_iam_role.tutorial-testnet-core.id}"
+      },
+      "tutorial-testnet-core-vault": {
+        "name": "tutorial-testnet-core-vault",
+        "policy": "${data.aws_iam_policy_document.tutorial-testnet-core-vault.json}",
+        "role": "${aws_iam_role.tutorial-testnet-core.id}"
+      }
+    },
+    "aws_instance": {
+      "core-1": {
+        "ami": "ami-04c0f3a75f63daddd",
+        "iam_instance_profile": "${aws_iam_instance_profile.tutorial-testnet-core-1.name}",
+        "instance_type": "t3a.medium",
+        "key_name": "${aws_key_pair.core.key_name}",
+        "monitoring": true,
+        "network_interface": {
+          "device_index": 0,
+          "network_interface_id": "${aws_network_interface.tutorial-testnet-core-1.id}"
+        },
+        "provisioner": [
+          {
+            "local-exec": {
+              "command": "/nix/store/66s4adwjfxfksk6czz9ai28kq8rl0ggd-generate-secrets/bin/generate-secrets",
+              "environment": {
+                "IP": "${self.public_ip}"
+              }
+            }
+          },
+          {
+            "local-exec": {
+              "command": "tutorial-testnet-core-1",
+              "environment": null,
+              "interpreter": [
+                "/nix/store/iydb2z464mm2wy3y773wdhmp9brh7yy3-bitte-cli-0.1.0/bin/bitte",
+                "provision",
+                "--name",
+                "core-1",
+                "--cluster",
+                "tutorial-testnet",
+                "--ip",
+                "${aws_eip.tutorial-testnet-core-1.public_ip}",
+                "--flake",
+                ".",
+                "--attr"
+              ],
+              "working_dir": null
+            }
+          }
+        ],
+        "root_block_device": {
+          "delete_on_termination": true,
+          "volume_size": 30,
+          "volume_type": "gp2"
+        },
+        "tags": {
+          "Cluster": "tutorial-testnet",
+          "Consul": "server",
+          "Name": "core-1",
+          "Nomad": "server",
+          "UID": "tutorial-testnet-core-1",
+          "Vault": "server"
+        },
+        "user_data": "### https://nixos.org/channels/nixpkgs-unstable nixos\n{ pkgs, config, ... }: {\n  imports = [ <nixpkgs/nixos/modules/virtualisation/amazon-image.nix> ];\n\n  nix = {\n    package = pkgs.nixFlakes;\n    extraOptions = ''\n      show-trace = true\n      experimental-features = nix-command flakes ca-references\n    '';\n    binaryCaches = [\n      \"https://hydra.iohk.io\"\n      \"https://manveru.cachix.org\"\n    ];\n    binaryCachePublicKeys = [\n      \"hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=\"\n      \"manveru.cachix.org-1:L5nJHSinfA2K5dDCG3KAEadwf/e3qqhuBr7yCwSksXo=\"\n    ];\n  };\n\n  environment.etc.ready.text = \"true\";\n}\n"
+      },
+      "core-2": {
+        "ami": "ami-04c0f3a75f63daddd",
+        "iam_instance_profile": "${aws_iam_instance_profile.tutorial-testnet-core-2.name}",
+        "instance_type": "t3a.medium",
+        "key_name": "${aws_key_pair.core.key_name}",
+        "monitoring": true,
+        "network_interface": {
+          "device_index": 0,
+          "network_interface_id": "${aws_network_interface.tutorial-testnet-core-2.id}"
+        },
+        "provisioner": [
+          {
+            "local-exec": {
+              "command": "/nix/store/66s4adwjfxfksk6czz9ai28kq8rl0ggd-generate-secrets/bin/generate-secrets",
+              "environment": {
+                "IP": "${self.public_ip}"
+              }
+            }
+          },
+          {
+            "local-exec": {
+              "command": "tutorial-testnet-core-2",
+              "environment": null,
+              "interpreter": [
+                "/nix/store/iydb2z464mm2wy3y773wdhmp9brh7yy3-bitte-cli-0.1.0/bin/bitte",
+                "provision",
+                "--name",
+                "core-2",
+                "--cluster",
+                "tutorial-testnet",
+                "--ip",
+                "${aws_eip.tutorial-testnet-core-2.public_ip}",
+                "--flake",
+                ".",
+                "--attr"
+              ],
+              "working_dir": null
+            }
+          }
+        ],
+        "root_block_device": {
+          "delete_on_termination": true,
+          "volume_size": 30,
+          "volume_type": "gp2"
+        },
+        "tags": {
+          "Cluster": "tutorial-testnet",
+          "Consul": "server",
+          "Name": "core-2",
+          "Nomad": "server",
+          "UID": "tutorial-testnet-core-2",
+          "Vault": "server"
+        },
+        "user_data": "### https://nixos.org/channels/nixpkgs-unstable nixos\n{ pkgs, config, ... }: {\n  imports = [ <nixpkgs/nixos/modules/virtualisation/amazon-image.nix> ];\n\n  nix = {\n    package = pkgs.nixFlakes;\n    extraOptions = ''\n      show-trace = true\n      experimental-features = nix-command flakes ca-references\n    '';\n    binaryCaches = [\n      \"https://hydra.iohk.io\"\n      \"https://manveru.cachix.org\"\n    ];\n    binaryCachePublicKeys = [\n      \"hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=\"\n      \"manveru.cachix.org-1:L5nJHSinfA2K5dDCG3KAEadwf/e3qqhuBr7yCwSksXo=\"\n    ];\n  };\n\n  environment.etc.ready.text = \"true\";\n}\n"
+      },
+      "core-3": {
+        "ami": "ami-04c0f3a75f63daddd",
+        "iam_instance_profile": "${aws_iam_instance_profile.tutorial-testnet-core-3.name}",
+        "instance_type": "t3a.medium",
+        "key_name": "${aws_key_pair.core.key_name}",
+        "monitoring": true,
+        "network_interface": {
+          "device_index": 0,
+          "network_interface_id": "${aws_network_interface.tutorial-testnet-core-3.id}"
+        },
+        "provisioner": [
+          {
+            "local-exec": {
+              "command": "/nix/store/66s4adwjfxfksk6czz9ai28kq8rl0ggd-generate-secrets/bin/generate-secrets",
+              "environment": {
+                "IP": "${self.public_ip}"
+              }
+            }
+          },
+          {
+            "local-exec": {
+              "command": "tutorial-testnet-core-3",
+              "environment": null,
+              "interpreter": [
+                "/nix/store/iydb2z464mm2wy3y773wdhmp9brh7yy3-bitte-cli-0.1.0/bin/bitte",
+                "provision",
+                "--name",
+                "core-3",
+                "--cluster",
+                "tutorial-testnet",
+                "--ip",
+                "${aws_eip.tutorial-testnet-core-3.public_ip}",
+                "--flake",
+                ".",
+                "--attr"
+              ],
+              "working_dir": null
+            }
+          }
+        ],
+        "root_block_device": {
+          "delete_on_termination": true,
+          "volume_size": 30,
+          "volume_type": "gp2"
+        },
+        "tags": {
+          "Cluster": "tutorial-testnet",
+          "Consul": "server",
+          "Name": "core-3",
+          "Nomad": "server",
+          "UID": "tutorial-testnet-core-3",
+          "Vault": "server"
+        },
+        "user_data": "### https://nixos.org/channels/nixpkgs-unstable nixos\n{ pkgs, config, ... }: {\n  imports = [ <nixpkgs/nixos/modules/virtualisation/amazon-image.nix> ];\n\n  nix = {\n    package = pkgs.nixFlakes;\n    extraOptions = ''\n      show-trace = true\n      experimental-features = nix-command flakes ca-references\n    '';\n    binaryCaches = [\n      \"https://hydra.iohk.io\"\n      \"https://manveru.cachix.org\"\n    ];\n    binaryCachePublicKeys = [\n      \"hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=\"\n      \"manveru.cachix.org-1:L5nJHSinfA2K5dDCG3KAEadwf/e3qqhuBr7yCwSksXo=\"\n    ];\n  };\n\n  environment.etc.ready.text = \"true\";\n}\n"
+      }
+    },
+    "aws_internet_gateway": {
+      "tutorial-testnet": {
+        "lifecycle": [
+          {
+            "create_before_destroy": true
+          }
+        ],
+        "tags": {
+          "Cluster": "tutorial-testnet",
+          "Name": "tutorial-testnet"
+        },
+        "vpc_id": "${data.aws_vpc.core.id}"
+      }
+    },
+    "aws_key_pair": {
+      "core": {
+        "key_name": "tutorial-testnet-core",
+        "provider": "aws.ap_southeast_2",
+        "public_key": "${tls_private_key.tutorial-testnet.public_key_openssh}"
+      }
+    },
+    "aws_network_interface": {
+      "tutorial-testnet-core-1": {
+        "lifecycle": [
+          {
+            "create_before_destroy": true
+          }
+        ],
+        "private_ips": [
+          "172.17.0.10"
+        ],
+        "security_groups": [
+          "${aws_security_group.tutorial-testnet.id}"
+        ],
+        "subnet_id": "${aws_subnet.prv-1.id}",
+        "tags": {
+          "Cluster": "tutorial-testnet",
+          "Name": "core-1"
+        }
+      },
+      "tutorial-testnet-core-2": {
+        "lifecycle": [
+          {
+            "create_before_destroy": true
+          }
+        ],
+        "private_ips": [
+          "172.17.1.10"
+        ],
+        "security_groups": [
+          "${aws_security_group.tutorial-testnet.id}"
+        ],
+        "subnet_id": "${aws_subnet.prv-2.id}",
+        "tags": {
+          "Cluster": "tutorial-testnet",
+          "Name": "core-2"
+        }
+      },
+      "tutorial-testnet-core-3": {
+        "lifecycle": [
+          {
+            "create_before_destroy": true
+          }
+        ],
+        "private_ips": [
+          "172.17.2.10"
+        ],
+        "security_groups": [
+          "${aws_security_group.tutorial-testnet.id}"
+        ],
+        "subnet_id": "${aws_subnet.prv-3.id}",
+        "tags": {
+          "Cluster": "tutorial-testnet",
+          "Name": "core-3"
+        }
+      }
+    },
+    "aws_route53_record": {
+      "tutorial-testnet-consul": {
+        "name": "consul.bitte-tutorial.iohkdev.io",
+        "records": [
+          "${aws_eip.tutorial-testnet-core-1.public_ip}"
+        ],
+        "ttl": "60",
+        "type": "A",
+        "zone_id": "${data.aws_route53_zone.selected.id}"
+      },
+      "tutorial-testnet-nomad": {
+        "name": "nomad.bitte-tutorial.iohkdev.io",
+        "records": [
+          "${aws_eip.tutorial-testnet-core-1.public_ip}"
+        ],
+        "ttl": "60",
+        "type": "A",
+        "zone_id": "${data.aws_route53_zone.selected.id}"
+      },
+      "tutorial-testnet-vault": {
+        "name": "vault.bitte-tutorial.iohkdev.io",
+        "records": [
+          "${aws_eip.tutorial-testnet-core-1.public_ip}"
+        ],
+        "ttl": "60",
+        "type": "A",
+        "zone_id": "${data.aws_route53_zone.selected.id}"
+      }
+    },
+    "aws_route_table": {
+      "tutorial-testnet": {
+        "lifecycle": [
+          {
+            "create_before_destroy": true
+          }
+        ],
+        "route": [
+          {
+            "cidr_block": "0.0.0.0/0",
+            "egress_only_gateway_id": null,
+            "gateway_id": "${aws_internet_gateway.tutorial-testnet.id}",
+            "instance_id": null,
+            "ipv6_cidr_block": null,
+            "nat_gateway_id": null,
+            "network_interface_id": null,
+            "transit_gateway_id": null,
+            "vpc_peering_connection_id": null
+          },
+          {
+            "cidr_block": "10.0.0.0/16",
+            "egress_only_gateway_id": null,
+            "gateway_id": null,
+            "instance_id": null,
+            "ipv6_cidr_block": null,
+            "nat_gateway_id": null,
+            "network_interface_id": null,
+            "transit_gateway_id": null,
+            "vpc_peering_connection_id": "${data.aws_vpc_peering_connection.ap-northeast-1.id}"
+          },
+          {
+            "cidr_block": "10.1.0.0/16",
+            "egress_only_gateway_id": null,
+            "gateway_id": null,
+            "instance_id": null,
+            "ipv6_cidr_block": null,
+            "nat_gateway_id": null,
+            "network_interface_id": null,
+            "transit_gateway_id": null,
+            "vpc_peering_connection_id": "${data.aws_vpc_peering_connection.ap-northeast-2.id}"
+          },
+          {
+            "cidr_block": "10.2.0.0/16",
+            "egress_only_gateway_id": null,
+            "gateway_id": null,
+            "instance_id": null,
+            "ipv6_cidr_block": null,
+            "nat_gateway_id": null,
+            "network_interface_id": null,
+            "transit_gateway_id": null,
+            "vpc_peering_connection_id": "${data.aws_vpc_peering_connection.eu-central-1.id}"
+          },
+          {
+            "cidr_block": "10.3.0.0/16",
+            "egress_only_gateway_id": null,
+            "gateway_id": null,
+            "instance_id": null,
+            "ipv6_cidr_block": null,
+            "nat_gateway_id": null,
+            "network_interface_id": null,
+            "transit_gateway_id": null,
+            "vpc_peering_connection_id": "${data.aws_vpc_peering_connection.us-east-2.id}"
+          }
+        ],
+        "tags": {
+          "Cluster": "tutorial-testnet",
+          "Name": "tutorial-testnet"
+        },
+        "vpc_id": "${data.aws_vpc.core.id}"
+      }
+    },
+    "aws_route_table_association": {
+      "tutorial-testnet-prv-1-internet": {
+        "route_table_id": "${aws_route_table.tutorial-testnet.id}",
+        "subnet_id": "${aws_subnet.prv-1.id}"
+      },
+      "tutorial-testnet-prv-2-internet": {
+        "route_table_id": "${aws_route_table.tutorial-testnet.id}",
+        "subnet_id": "${aws_subnet.prv-2.id}"
+      },
+      "tutorial-testnet-prv-3-internet": {
+        "route_table_id": "${aws_route_table.tutorial-testnet.id}",
+        "subnet_id": "${aws_subnet.prv-3.id}"
+      }
+    },
+    "aws_security_group": {
+      "tutorial-testnet": {
+        "description": "Security group for Core in tutorial-testnet",
+        "lifecycle": [
+          {
+            "create_before_destroy": true
+          }
+        ],
+        "name_prefix": "tutorial-testnet-",
+        "provider": "aws.ap_southeast_2",
+        "vpc_id": "${data.aws_vpc.core.id}"
+      }
+    },
+    "aws_security_group_rule": {
+      "tutorial-testnet-egress--1-internet-cidr": {
+        "cidr_blocks": [
+          "0.0.0.0/0"
+        ],
+        "from_port": 0,
+        "protocol": "-1",
+        "provider": "aws.ap_southeast_2",
+        "security_group_id": "${aws_security_group.tutorial-testnet.id}",
+        "to_port": 0,
+        "type": "egress"
+      },
+      "tutorial-testnet-ingress--1-internal-cidr": {
+        "cidr_blocks": [
+          "172.16.0.0/16",
+          "10.0.0.0/16",
+          "10.1.0.0/16",
+          "10.2.0.0/16",
+          "10.3.0.0/16"
+        ],
+        "from_port": 0,
+        "protocol": "-1",
+        "provider": "aws.ap_southeast_2",
+        "security_group_id": "${aws_security_group.tutorial-testnet.id}",
+        "to_port": 0,
+        "type": "ingress"
+      },
+      "tutorial-testnet-ingress-tcp-grpc-cidr": {
+        "cidr_blocks": [
+          "0.0.0.0/0"
+        ],
+        "from_port": 4422,
+        "protocol": "tcp",
+        "provider": "aws.ap_southeast_2",
+        "security_group_id": "${aws_security_group.tutorial-testnet.id}",
+        "to_port": 4422,
+        "type": "ingress"
+      },
+      "tutorial-testnet-ingress-tcp-haproxyStats-cidr": {
+        "cidr_blocks": [
+          "0.0.0.0/0"
+        ],
+        "from_port": 1936,
+        "protocol": "tcp",
+        "provider": "aws.ap_southeast_2",
+        "security_group_id": "${aws_security_group.tutorial-testnet.id}",
+        "to_port": 1936,
+        "type": "ingress"
+      },
+      "tutorial-testnet-ingress-tcp-http-cidr": {
+        "cidr_blocks": [
+          "0.0.0.0/0"
+        ],
+        "from_port": 80,
+        "protocol": "tcp",
+        "provider": "aws.ap_southeast_2",
+        "security_group_id": "${aws_security_group.tutorial-testnet.id}",
+        "to_port": 80,
+        "type": "ingress"
+      },
+      "tutorial-testnet-ingress-tcp-https-cidr": {
+        "cidr_blocks": [
+          "0.0.0.0/0"
+        ],
+        "from_port": 443,
+        "protocol": "tcp",
+        "provider": "aws.ap_southeast_2",
+        "security_group_id": "${aws_security_group.tutorial-testnet.id}",
+        "to_port": 443,
+        "type": "ingress"
+      },
+      "tutorial-testnet-ingress-tcp-ssh-cidr": {
+        "cidr_blocks": [
+          "0.0.0.0/0"
+        ],
+        "from_port": 22,
+        "protocol": "tcp",
+        "provider": "aws.ap_southeast_2",
+        "security_group_id": "${aws_security_group.tutorial-testnet.id}",
+        "to_port": 22,
+        "type": "ingress"
+      },
+      "tutorial-testnet-ingress-tcp-vault-http-cidr": {
+        "cidr_blocks": [
+          "0.0.0.0/0"
+        ],
+        "from_port": 8200,
+        "protocol": "tcp",
+        "provider": "aws.ap_southeast_2",
+        "security_group_id": "${aws_security_group.tutorial-testnet.id}",
+        "to_port": 8200,
+        "type": "ingress"
+      }
+    },
+    "aws_subnet": {
+      "prv-1": {
+        "cidr_block": "172.16.0.0/24",
+        "lifecycle": [
+          {
+            "create_before_destroy": true
+          }
+        ],
+        "provider": "aws.ap_southeast_2",
+        "tags": {
+          "Cluster": "tutorial-testnet",
+          "Name": "prv-1"
+        },
+        "vpc_id": "${data.aws_vpc.core.id}"
+      },
+      "prv-2": {
+        "cidr_block": "172.16.1.0/24",
+        "lifecycle": [
+          {
+            "create_before_destroy": true
+          }
+        ],
+        "provider": "aws.ap_southeast_2",
+        "tags": {
+          "Cluster": "tutorial-testnet",
+          "Name": "prv-2"
+        },
+        "vpc_id": "${data.aws_vpc.core.id}"
+      },
+      "prv-3": {
+        "cidr_block": "172.16.2.0/24",
+        "lifecycle": [
+          {
+            "create_before_destroy": true
+          }
+        ],
+        "provider": "aws.ap_southeast_2",
+        "tags": {
+          "Cluster": "tutorial-testnet",
+          "Name": "prv-3"
+        },
+        "vpc_id": "${data.aws_vpc.core.id}"
+      }
+    },
+    "local_file": {
+      "ssh-tutorial-testnet": {
+        "file_permission": "0600",
+        "filename": "secrets/ssh-tutorial-testnet",
+        "sensitive_content": "${tls_private_key.tutorial-testnet.private_key_pem}"
+      },
+      "ssh-tutorial-testnet-pub": {
+        "content": "${tls_private_key.tutorial-testnet.public_key_openssh}",
+        "filename": "secrets/ssh-tutorial-testnet.pub"
+      }
+    },
+    "null_resource": {
+      "core-1-files": {
+        "connection": {
+          "agent": false,
+          "host": "${aws_instance.core-1.public_ip}",
+          "private_key": "${tls_private_key.tutorial-testnet.private_key_pem}",
+          "type": "ssh"
+        },
+        "provisioner": [
+          {
+            "file": {
+              "content": "${acme_certificate.certificate.private_key_pem}",
+              "destination": "/etc/ssl/certs/bitte-tutorial.iohkdev.io-key.pem"
+            }
+          },
+          {
+            "file": {
+              "content": "${acme_certificate.certificate.certificate_pem}",
+              "destination": "/etc/ssl/certs/bitte-tutorial.iohkdev.io-cert.pem"
+            }
+          },
+          {
+            "file": {
+              "content": "${acme_certificate.certificate.issuer_pem}",
+              "destination": "/etc/ssl/certs/bitte-tutorial.iohkdev.io-ca.pem"
+            }
+          },
+          {
+            "file": {
+              "content": "${join(\"\\n\", [\n  acme_certificate.certificate.certificate_pem,\n  acme_certificate.certificate.issuer_pem,\n  acme_certificate.certificate.private_key_pem\n])\n}",
+              "destination": "/etc/ssl/certs/bitte-tutorial.iohkdev.io-full.pem"
+            }
+          }
+        ],
+        "triggers": {
+          "cert_pem": "${acme_certificate.certificate.certificate_pem}",
+          "issuer_pem": "${acme_certificate.certificate.issuer_pem}",
+          "target_arn": "${aws_instance.core-1.arn}"
+        }
+      },
+      "core-2-files": {
+        "connection": {
+          "agent": false,
+          "host": "${aws_instance.core-2.public_ip}",
+          "private_key": "${tls_private_key.tutorial-testnet.private_key_pem}",
+          "type": "ssh"
+        },
+        "provisioner": [
+          {
+            "file": {
+              "content": "${acme_certificate.certificate.private_key_pem}",
+              "destination": "/etc/ssl/certs/bitte-tutorial.iohkdev.io-key.pem"
+            }
+          },
+          {
+            "file": {
+              "content": "${acme_certificate.certificate.certificate_pem}",
+              "destination": "/etc/ssl/certs/bitte-tutorial.iohkdev.io-cert.pem"
+            }
+          },
+          {
+            "file": {
+              "content": "${acme_certificate.certificate.issuer_pem}",
+              "destination": "/etc/ssl/certs/bitte-tutorial.iohkdev.io-ca.pem"
+            }
+          },
+          {
+            "file": {
+              "content": "${join(\"\\n\", [\n  acme_certificate.certificate.certificate_pem,\n  acme_certificate.certificate.issuer_pem,\n  acme_certificate.certificate.private_key_pem\n])\n}",
+              "destination": "/etc/ssl/certs/bitte-tutorial.iohkdev.io-full.pem"
+            }
+          }
+        ],
+        "triggers": {
+          "cert_pem": "${acme_certificate.certificate.certificate_pem}",
+          "issuer_pem": "${acme_certificate.certificate.issuer_pem}",
+          "target_arn": "${aws_instance.core-2.arn}"
+        }
+      },
+      "core-3-files": {
+        "connection": {
+          "agent": false,
+          "host": "${aws_instance.core-3.public_ip}",
+          "private_key": "${tls_private_key.tutorial-testnet.private_key_pem}",
+          "type": "ssh"
+        },
+        "provisioner": [
+          {
+            "file": {
+              "content": "${acme_certificate.certificate.private_key_pem}",
+              "destination": "/etc/ssl/certs/bitte-tutorial.iohkdev.io-key.pem"
+            }
+          },
+          {
+            "file": {
+              "content": "${acme_certificate.certificate.certificate_pem}",
+              "destination": "/etc/ssl/certs/bitte-tutorial.iohkdev.io-cert.pem"
+            }
+          },
+          {
+            "file": {
+              "content": "${acme_certificate.certificate.issuer_pem}",
+              "destination": "/etc/ssl/certs/bitte-tutorial.iohkdev.io-ca.pem"
+            }
+          },
+          {
+            "file": {
+              "content": "${join(\"\\n\", [\n  acme_certificate.certificate.certificate_pem,\n  acme_certificate.certificate.issuer_pem,\n  acme_certificate.certificate.private_key_pem\n])\n}",
+              "destination": "/etc/ssl/certs/bitte-tutorial.iohkdev.io-full.pem"
+            }
+          }
+        ],
+        "triggers": {
+          "cert_pem": "${acme_certificate.certificate.certificate_pem}",
+          "issuer_pem": "${acme_certificate.certificate.issuer_pem}",
+          "target_arn": "${aws_instance.core-3.arn}"
+        }
+      }
+    },
+    "tls_private_key": {
+      "private_key": {
+        "algorithm": "RSA"
+      },
+      "tutorial-testnet": {
+        "algorithm": "RSA",
+        "rsa_bits": 4096
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "remote": {
+        "organization": "iohk-midnight",
+        "workspaces": [
+          {
+            "prefix": "tutorial-testnet_"
+          }
+        ]
+      }
+    }
+  }
+}
