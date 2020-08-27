@@ -28,7 +28,7 @@ let
   reload-cvn = writeShellScriptBin "reload-cvn" ''
     set -x
     ${pkgs.systemd}/bin/systemctl reload consul.service
-    ${pkgs.systemd}/bin/systemctl restart nomad.service
+    ${pkgs.systemd}/bin/systemctl reload nomad.service
     ${pkgs.systemd}/bin/systemctl reload vault.service
     exit 0
   '';
@@ -77,7 +77,7 @@ let
 
       (runIf config.services.nomad.enable {
         template = {
-          command = "${pkgs.systemd}/bin/systemctl restart nomad.service";
+          command = "${pkgs.systemd}/bin/systemctl reload nomad.service";
           destination = "/etc/nomad.d/consul-token.json";
           contents = ''
             {{ with secret "consul/creds/nomad-client" }}

@@ -1070,7 +1070,7 @@ in {
       };
 
       serviceConfig = {
-        # ExecReload = "${pkgs.busybox}/bin/kill -HUP $MAINPID";
+        ExecReload = "${pkgs.busybox}/bin/kill -HUP $MAINPID";
         ExecStartPre = let
           start-pre = pkgs.writeShellScriptBin "nomad-start-pre" ''
             PATH="${makeBinPath [ pkgs.coreutils ]}"
