@@ -28,13 +28,13 @@ let
           (filterAttrs
             (name: value: name != "_module" && name != "_ref" && value != null))
           (mapAttrs'
-            (name: value: nameValuePair (snakeCase name) (sanitize value)))
+            (name: value: nameValuePair name (sanitize value)))
         ];
     };
 
   serverJoinType = submodule {
     options = {
-      retryJoin = mkOption {
+      retry_join = mkOption {
         type = listOf str;
         default = [ ];
         description = ''
@@ -42,7 +42,7 @@ let
         '';
       };
 
-      retryInterval = mkOption {
+      retry_interval = mkOption {
         type = str;
         default = "30s";
         description = ''
@@ -50,7 +50,7 @@ let
         '';
       };
 
-      retryMax = mkOption {
+      retry_max = mkOption {
         type = ints.unsigned;
         default = 0;
         description = ''
@@ -58,7 +58,7 @@ let
         '';
       };
 
-      startJoin = mkOption {
+      start_join = mkOption {
         type = listOf str;
         default = [ ];
         description = ''
@@ -91,7 +91,7 @@ in {
       default = /etc/nomad.d;
     };
 
-    dataDir = mkOption {
+    data_dir = mkOption {
       type = path;
       default = /var/lib/nomad;
       description = ''
@@ -146,7 +146,7 @@ in {
       default = "dc1";
     };
 
-    logLevel = mkOption {
+    log_level = mkOption {
       type = enum [ "DEBUG" "INFO" "warn" ];
       default = "INFO";
     };
@@ -160,15 +160,15 @@ in {
       default = { };
       type = submodule {
         options = {
-          allocDir = mkOption {
+          alloc_dir = mkOption {
             type = path;
-            default = cfg.dataDir + "/alloc";
+            default = cfg.data_dir + "/alloc";
             description = ''
               The directory to use for allocation data. By default, this is the top-level data_dir suffixed with "alloc", like "/var/lib/nomad/alloc". This must be an absolute path.
             '';
           };
 
-          chrootEnv = mkOption {
+          chroot_env = mkOption {
             type = nullOr (attrsOf str);
             default = null;
             example = { "/usr/bin/env" = "/usr/bin/env"; };
@@ -185,7 +185,7 @@ in {
             '';
           };
 
-          maxKillTimeout = mkOption {
+          max_kill_timeout = mkOption {
             type = str;
             default = "30s";
             description = ''
@@ -193,7 +193,7 @@ in {
             '';
           };
 
-          disableRemoteExec = mkOption {
+          disable_remote_exec = mkOption {
             type = bool;
             default = false;
             description = ''
@@ -209,7 +209,7 @@ in {
             '';
           };
 
-          networkInterface = mkOption {
+          network_interface = mkOption {
             type = nullOr str;
             default = null;
             description = ''
@@ -224,7 +224,7 @@ in {
             '';
           };
 
-          networkSpeed = mkOption {
+          network_speed = mkOption {
             type = nullOr ints.unsigned;
             default = null;
             description = ''
@@ -235,7 +235,7 @@ in {
             '';
           };
 
-          cpuTotalCompute = mkOption {
+          cpu_total_compute = mkOption {
             type = nullOr ints.unsigned;
             default = null;
             description = ''
@@ -247,7 +247,7 @@ in {
             '';
           };
 
-          memoryTotalMb = mkOption {
+          memory_total_mb = mkOption {
             type = nullOr ints.unsigned;
             default = null;
             description = ''
@@ -256,7 +256,7 @@ in {
             '';
           };
 
-          nodeClass = mkOption {
+          node_class = mkOption {
             type = nullOr str;
             default = null;
             description = ''
@@ -292,7 +292,7 @@ in {
                     Specifies the amount of disk to reserve, in MB.
                   '';
                 };
-                reservedPorts = mkOption {
+                reserved_ports = mkOption {
                   type = nullOr str;
                   default = null;
                   description = ''
@@ -325,7 +325,7 @@ in {
             '';
           };
 
-          serverJoin = mkOption {
+          server_join = mkOption {
             type = serverJoinType;
             default = { };
             description = ''
@@ -336,9 +336,9 @@ in {
             '';
           };
 
-          stateDir = mkOption {
+          state_dir = mkOption {
             type = path;
-            default = cfg.dataDir + "/client";
+            default = cfg.data_dir + "/client";
             description = ''
               The directory to use to store client state. By default, this is -
               the top-level data_dir suffixed with "client", like
@@ -346,7 +346,7 @@ in {
             '';
           };
 
-          gcInterval = mkOption {
+          gc_interval = mkOption {
             type = str;
             default = "1m";
             description = ''
@@ -355,7 +355,7 @@ in {
             '';
           };
 
-          gcDiskUsageThreshold = mkOption {
+          gc_disk_usage_threshold = mkOption {
             type = ints.positive;
             default = 80;
             description = ''
@@ -364,7 +364,7 @@ in {
             '';
           };
 
-          gcInodeUsageThreshold = mkOption {
+          gc_inode_usage_threshold = mkOption {
             type = ints.positive;
             default = 70;
             description = ''
@@ -373,7 +373,7 @@ in {
             '';
           };
 
-          gcMaxAllocs = mkOption {
+          gc_max_allocs = mkOption {
             type = ints.positive;
             default = 50;
             description = ''
@@ -385,7 +385,7 @@ in {
             '';
           };
 
-          gcParallelDestroys = mkOption {
+          gc_parallel_destroys = mkOption {
             type = ints.positive;
             default = 2;
             description = ''
@@ -395,7 +395,7 @@ in {
             '';
           };
 
-          noHostUuid = mkOption {
+          no_host_uuid = mkOption {
             type = bool;
             default = false;
             description = ''
@@ -405,7 +405,7 @@ in {
             '';
           };
 
-          cniPath = mkOption {
+          cni_path = mkOption {
             type = path;
             default = "${pkgs.cni-plugins}/bin";
             description = ''
@@ -413,7 +413,7 @@ in {
             '';
           };
 
-          bridgeNetworkName = mkOption {
+          bridge_network_name = mkOption {
             type = str;
             default = "nomad";
             description = ''
@@ -422,7 +422,7 @@ in {
             '';
           };
 
-          bridgeNetworkSubnet = mkOption {
+          bridge_network_subnet = mkOption {
             type = str;
             default = "172.26.66.0/23";
             description = ''
@@ -434,7 +434,7 @@ in {
           template = mkOption {
             type = submodule {
               options = {
-                functionBlacklist = mkOption {
+                function_blacklist = mkOption {
                   type = listOf str;
                   default = [ "plugin" ];
                   description = ''
@@ -446,7 +446,7 @@ in {
                   '';
                 };
 
-                disableFileSandbox = mkOption {
+                disable_file_sandbox = mkOption {
                   type = bool;
                   default = false;
                   description = ''
@@ -463,7 +463,7 @@ in {
             '';
           };
 
-          hostVolume = mkOption {
+          host_volume = mkOption {
             default = null;
             description = ''
               Exposes paths from the host as volumes that can be mounted into
@@ -481,7 +481,7 @@ in {
                   '';
                 };
 
-                readOnly = mkOption {
+                read_only = mkOption {
                   type = bool;
                   default = false;
                   description = ''
@@ -500,9 +500,9 @@ in {
       default = { };
       type = submodule {
         options = {
-          dataDir = mkOption {
+          data_dir = mkOption {
             type = path;
-            default = cfg.dataDir + "/server";
+            default = cfg.data_dir + "/server";
             description = ''
               The directory to use for server-specific data, including the
               replicated log. By default, this is - the top-level data_dir suffixed
@@ -516,7 +516,7 @@ in {
             depend on this value being set.
           '';
 
-          serverJoin = mkOption {
+          server_join = mkOption {
             type = serverJoinType;
             default = { };
             description = ''
@@ -547,7 +547,7 @@ in {
             '';
           };
 
-          bootstrapExpect = mkOption {
+          bootstrap_expect = mkOption {
             type = ints.positive;
             default = 1;
             description = ''
@@ -560,24 +560,24 @@ in {
             '';
           };
 
-          defaultSchedulerConfig = mkOption {
+          default_scheduler_config = mkOption {
             default = { };
             type = submodule {
               options = {
-                schedulerAlgorithm = mkOption {
+                scheduler_algorithm = mkOption {
                   type = enum [ "binpack" "spread" ];
                   default = "binpack";
                 };
 
-                preemptionConfig = mkOption {
+                preemption_config = mkOption {
                   default = { };
                   type = submodule {
                     options = {
-                      batchSchedulerEnabled =
+                      batch_scheduler_enabled =
                         mkEnableOption "Enable preemption for batch tasks";
-                      systemSchedulerEnabled =
+                      system_scheduler_enabled =
                         mkEnableOption "Enable preemption for system tasks";
-                      serviceSchedulerEnabled =
+                      service_scheduler_enabled =
                         mkEnableOption "Enable preemption for service tasks";
                     };
                   };
@@ -592,7 +592,7 @@ in {
     tls = mkOption {
       type = submodule {
         options = {
-          caFile = mkOption {
+          ca_file = mkOption {
             type = nullOr path;
             default = null;
             description = ''
@@ -601,7 +601,7 @@ in {
             '';
           };
 
-          certFile = mkOption {
+          cert_file = mkOption {
             type = nullOr path;
             default = null;
             description = ''
@@ -610,7 +610,7 @@ in {
             '';
           };
 
-          keyFile = mkOption {
+          key_file = mkOption {
             type = nullOr str;
             default = path;
             description = ''
@@ -637,7 +637,7 @@ in {
             '';
           };
 
-          rpcUpgradeMode = mkOption {
+          rpc_upgrade_mode = mkOption {
             type = bool;
             default = false;
             description = ''
@@ -647,7 +647,7 @@ in {
             '';
           };
 
-          tlsCipherSuites = mkOption {
+          tls_cipher_suites = mkOption {
             type = nullOr str;
             default = null;
             description = ''
@@ -667,7 +667,7 @@ in {
             '';
           };
 
-          tlsMinVersion = mkOption {
+          tls_min_version = mkOption {
             type = enum [ "tls10" "tls11" "tls12" ];
             default = "tls12";
             description = ''
@@ -675,7 +675,7 @@ in {
             '';
           };
 
-          tlsPreferServerCipherSuites = mkOption {
+          tls_prefer_server_cipher_suites = mkOption {
             type = bool;
             default = false;
             description = ''
@@ -684,7 +684,7 @@ in {
             '';
           };
 
-          verifyHttpsClient = mkOption {
+          verify_https_client = mkOption {
             type = bool;
             default = false;
             description = ''
@@ -694,7 +694,7 @@ in {
             '';
           };
 
-          verifyServerHostname = mkOption {
+          verify_server_hostname = mkOption {
             type = bool;
             default = false;
             description = ''
@@ -713,7 +713,7 @@ in {
             options depend on this value.
           '';
 
-          tokenTtl = mkOption {
+          token_ttl = mkOption {
             type = nullOr str;
             default = null;
             description = ''
@@ -726,7 +726,7 @@ in {
             '';
           };
 
-          policyTtl = mkOption {
+          policy_ttl = mkOption {
             type = nullOr str;
             default = null;
             description = ''
@@ -739,7 +739,7 @@ in {
             '';
           };
 
-          replicationToken = mkOption {
+          replication_token = mkOption {
             type = nullOr str;
             default = null;
             description = ''
@@ -766,7 +766,7 @@ in {
             '';
           };
 
-          allowUnauthenticated = mkOption {
+          allow_unauthenticated = mkOption {
             type = bool;
             default = true;
             description = ''
@@ -787,7 +787,7 @@ in {
             '';
           };
 
-          autoAdvertise = mkOption {
+          auto_advertise = mkOption {
             type = bool;
             default = true;
             description = ''
@@ -799,7 +799,7 @@ in {
             '';
           };
 
-          caFile = mkOption {
+          ca_file = mkOption {
             type = nullOr path;
             default = null;
             description = ''
@@ -809,7 +809,7 @@ in {
             '';
           };
 
-          certFile = mkOption {
+          cert_file = mkOption {
             type = nullOr path;
             default = null;
             description = ''
@@ -818,7 +818,7 @@ in {
             '';
           };
 
-          checksUseAdvertise = mkOption {
+          checks_use_advertise = mkOption {
             type = bool;
             default = false;
             description = ''
@@ -827,7 +827,7 @@ in {
             '';
           };
 
-          clientAutoJoin = mkOption {
+          client_auto_join = mkOption {
             type = bool;
             default = true;
             description = ''
@@ -840,7 +840,7 @@ in {
             '';
           };
 
-          clientServiceName = mkOption {
+          client_service_name = mkOption {
             type = str;
             default = "nomad-client";
             description = ''
@@ -848,7 +848,7 @@ in {
             '';
           };
 
-          clientHttpCheckName = mkOption {
+          client_http_check_name = mkOption {
             type = str;
             default = "Nomad Client HTTP Check";
             description = ''
@@ -856,7 +856,7 @@ in {
             '';
           };
 
-          keyFile = mkOption {
+          key_file = mkOption {
             type = nullOr path;
             default = null;
             description = ''
@@ -865,7 +865,7 @@ in {
             '';
           };
 
-          serverServiceName = mkOption {
+          server_service_name = mkOption {
             type = str;
             default = "nomad";
             description = ''
@@ -873,7 +873,7 @@ in {
             '';
           };
 
-          serverHttpCheckName = mkOption {
+          server_http_check_name = mkOption {
             type = str;
             default = "Nomad Server HTTP Check";
             description = ''
@@ -881,7 +881,7 @@ in {
             '';
           };
 
-          serverSerfCheckName = mkOption {
+          server_serf_check_name = mkOption {
             type = str;
             default = "Nomad Server Serf Check";
             description = ''
@@ -889,7 +889,7 @@ in {
             '';
           };
 
-          serverRpcCheckName = mkOption {
+          server_rpc_check_name = mkOption {
             type = str;
             default = "Nomad Server RPC Check";
             description = ''
@@ -897,7 +897,7 @@ in {
             '';
           };
 
-          serverAutoJoin = mkOption {
+          server_auto_join = mkOption {
             type = bool;
             default = true;
             description = ''
@@ -905,7 +905,7 @@ in {
             '';
           };
 
-          # shareSsl = mkOption {
+          # share_ssl = mkOption {
           #   type = bool;
           #   default = true;
           #   description = ''
@@ -940,7 +940,7 @@ in {
             '';
           };
 
-          verifySsl = mkOption {
+          verify_ssl = mkOption {
             type = bool;
             default = true;
             description = ''
@@ -956,12 +956,12 @@ in {
     telemetry = mkOption {
       type = submodule {
         options = {
-          datadogAddress = mkOption {
+          datadog_address = mkOption {
             type = nullOr str;
             default = null;
           };
 
-          datadogTags = mkOption {
+          datadog_tags = mkOption {
             type = nullOr (listOf str);
             default = null;
           };
@@ -1001,7 +1001,7 @@ in {
 
       pluginType = submodule ({ name, ... }: {
         options = {
-          rawExec = mkOption {
+          raw_exec = mkOption {
             type = nullOr rawExecType;
             default = null;
           };
@@ -1032,7 +1032,7 @@ in {
     environment.etc."nomad.d/config.json".source = pkgs.toPrettyJSON "config"
       (sanitize {
         inherit (cfg)
-          dataDir logLevel datacenter name acl ports tls consul server client
+          data_dir log_level datacenter name acl ports tls consul server client
           plugin telemetry;
       });
 
@@ -1076,7 +1076,7 @@ in {
             PATH="${makeBinPath [ pkgs.coreutils ]}"
             set -exuo pipefail
             cp /etc/ssl/certs/cert-key.pem .
-            chown --reference . --recursive .
+            chown --reference . *.pem
           '';
         in "!${start-pre}/bin/nomad-start-pre";
 

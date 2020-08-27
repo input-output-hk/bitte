@@ -7,6 +7,11 @@
 
     datacenter = config.asg.region;
 
-    plugin.rawExec.enabled = true;
+    plugin.raw_exec.enabled = true;
+
+    client.chroot_env = {
+      "/usr/bin/env" = "/usr/bin/env";
+      "/nix/store" = "/nix/store";
+    };
   };
 }

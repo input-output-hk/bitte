@@ -14,8 +14,8 @@ in {
   };
 
   services.nomad = {
-    dataDir = /var/lib/nomad;
-    logLevel = "DEBUG";
+    data_dir = /var/lib/nomad;
+    log_level = "DEBUG";
     name = if (instances.${nodeName} or null) != null then
       "nomad-${nodeName}"
     else
@@ -32,28 +32,28 @@ in {
     tls = {
       http = true;
       rpc = true;
-      caFile = full;
-      certFile = cert;
-      keyFile = key;
-      tlsMinVersion = "tls12";
+      ca_file = full;
+      cert_file = cert;
+      key_file = key;
+      tls_min_version = "tls12";
     };
 
     consul = {
       address = "127.0.0.1:${toString config.services.consul.ports.https}";
       ssl = true;
-      caFile = full;
-      certFile = cert;
-      keyFile = key;
-      allowUnauthenticated = false;
+      ca_file = full;
+      cert_file = cert;
+      key_file = key;
+      allow_unauthenticated = false;
     };
 
     telemetry = {
-      datadogAddress = "localhost:8125";
-      datadogTags = [ "region:${region}" "role:nomad" ];
+      datadog_address = "localhost:8125";
+      datadog_tags = [ "region:${region}" "role:nomad" ];
     };
   };
 
-  # Used for Consul Connect and requires reboot?
+  # Used for Consul Connect.
   boot.kernel.sysctl = {
     "net.bridge.bridge-nf-call-arptables" = 1;
     "net.bridge.bridge-nf-call-ip6tables" = 1;

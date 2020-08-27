@@ -13,18 +13,18 @@ in {
     server = {
       enabled = true;
 
-      bootstrapExpect = 3;
+      bootstrap_expect = 3;
 
-      serverJoin = {
-        retryJoin = (mapAttrsToList (_: v: v.privateIP) instances)
+      server_join = {
+        retry_join = (mapAttrsToList (_: v: v.privateIP) instances)
           ++ [ "provider=aws region=${region} tag_key=Nomad tag_value=server" ];
       };
 
-      defaultSchedulerConfig = {
-        preemptionConfig = {
-          batchSchedulerEnabled = true;
-          systemSchedulerEnabled = true;
-          serviceSchedulerEnabled = true;
+      default_scheduler_config = {
+        preemption_config = {
+          batch_scheduler_enabled = true;
+          system_scheduler_enabled = true;
+          service_scheduler_enabled = true;
         };
       };
     };

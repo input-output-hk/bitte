@@ -189,9 +189,9 @@ in {
           vault write nomad/config/access \
             address="$NOMAD_ADDR" \
             token="$nomad_vault_token" \
-            ca_cert="$(< ${config.services.nomad.tls.caFile})" \
-            client_cert="$(< ${config.services.nomad.tls.certFile})" \
-            client_key="$(< ${config.services.nomad.tls.keyFile})"
+            ca_cert="$(< ${config.services.nomad.tls.ca_file})" \
+            client_cert="$(< ${config.services.nomad.tls.cert_file})" \
+            client_key="$(< ${config.services.nomad.tls.key_file})"
 
         touch /var/lib/nomad/.bootstrap-done
       '';
