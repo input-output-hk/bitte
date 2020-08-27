@@ -192,9 +192,9 @@ in {
         lib.flip lib.mapAttrsToList vpc.subnets (suffix: cidr:
           lib.nameValuePair "${region}-${suffix}" {
             inherit (vpc) provider;
-            filter = {
-              name = "tag:Name";
-              values = [ "${region}-${suffix}" ];
+            tags = {
+              Cluster = config.cluster.name;
+              Name = "${region}-${suffix}";
             };
           }))));
 

@@ -12,7 +12,10 @@ writeShellScriptBin "nomad-run" ''
   CONSUL_HTTP_TOKEN="$(vault read -field token consul/creds/admin)"
   export CONSUL_HTTP_TOKEN
 
-  cachix push manveru ${json}
+  bucket="$(nix eval ".#clusters.$BITTE_CLUSTER.proto.config.cluster.s3Bucket" --raw)"
+  region="$(nix eval ".#clusters.$BITTE_CLUSTER.proto.config.cluster.region" --raw)"
+
+  nix copy --to "s3://''${bucket}/infra/binary-cache/?region=''${region}&secret-key=secrets/nix-secret-key-file" ${json}
 
   jq --arg token "$CONSUL_HTTP_TOKEN" '.Job.ConsulToken = $token' < ${json} \
   | curl -f \
