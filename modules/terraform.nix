@@ -4,7 +4,7 @@ let
   inherit (lib) mkOption reverseList;
   inherit (lib.types)
     attrs submodule str attrsOf bool ints path enum port listof nullOr listOf
-    oneOf list package;
+    oneOf list package unspecified;
   inherit (terralib) var id regions;
 
   kms2region = kms: builtins.elemAt (lib.splitString ":" kms) 3;
@@ -58,6 +58,14 @@ let
       kms = mkOption { type = str; };
 
       s3Bucket = mkOption { type = str; };
+
+      s3Cache = mkOption {
+        type = str;
+        default =
+          "s3://${cfg.s3Bucket}/infra/binary-cache/?region=${cfg.region}";
+      };
+
+      s3CachePubKey = mkOption { type = str; };
 
       adminNames = mkOption {
         type = listOf str;
@@ -457,6 +465,8 @@ let
             this.config.name
             "--cluster"
             cfg.name
+            "--cache"
+            cfg.s3Cache
             "--ip"
             ip
             "--flake"
@@ -733,6 +743,29 @@ in {
     asg = mkOption {
       type = nullOr attrs;
       default = cfg.autoscalingGroups.${nodeName} or null;
+    };
+
+    tf = lib.mkOption {
+      default = { };
+      type = attrsOf (submodule ({ name, ... }@this: {
+        options = {
+          configuration = lib.mkOption { type = attrsOf unspecified; };
+          output = lib.mkOption {
+            type = lib.mkOptionType { name = "${name}_config.tf.json"; };
+            apply = v:
+              let
+                compiledConfig =
+                  import (self.inputs.terranix + "/core/default.nix") {
+                    pkgs = self.inputs.nixpkgs.legacyPackages.x86_64-linux;
+                    strip_nulls = false;
+                    terranix_config = {
+                      imports = [ this.config.configuration ];
+                    };
+                  };
+              in pkgs.toPrettyJSON "${name}.tf" compiledConfig.config;
+          };
+        };
+      }));
     };
   };
 }

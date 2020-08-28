@@ -12,15 +12,14 @@ writeShellScriptBin "nomad-run" ''
   CONSUL_HTTP_TOKEN="$(vault read -field token consul/creds/admin)"
   export CONSUL_HTTP_TOKEN
 
-  bucket="$(nix eval ".#clusters.$BITTE_CLUSTER.proto.config.cluster.s3Bucket" --raw)"
-  region="$(nix eval ".#clusters.$BITTE_CLUSTER.proto.config.cluster.region" --raw)"
+  cache="$(nix eval ".#clusters.$BITTE_CLUSTER.proto.config.cluster.s3Cache" --raw)"
 
-  nix copy --to "s3://''${bucket}/infra/binary-cache/?region=''${region}&secret-key=secrets/nix-secret-key-file" ${json}
+  nix copy --to "$cache&secret-key=secrets/nix-secret-key-file" ${json}
 
   jq --arg token "$CONSUL_HTTP_TOKEN" '.Job.ConsulToken = $token' < ${json} \
   | curl -f \
-      -X POST \
-      -H "X-Nomad-Token: $NOMAD_TOKEN" \
-      -d @- \
-      "$NOMAD_ADDR/v1/jobs"
+    -X POST \
+    -H "X-Nomad-Token: $NOMAD_TOKEN" \
+    -d @- \
+    "$NOMAD_ADDR/v1/jobs"
 ''

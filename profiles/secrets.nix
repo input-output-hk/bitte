@@ -73,16 +73,20 @@ in {
 
     encrypt="$(consul keygen)"
 
-    echo '{}' \
-    | jq --arg encrypt "$encrypt" '.encrypt = $encrypt' \
-    | jq --arg token "$(uuidgen)" '.acl.tokens.master = $token' \
-    | ${sopsEncrypt} \
-    > encrypted/consul-core.json
+    if [ ! -s encrypted/consul-core.json ]; then
+      echo '{}' \
+      | jq --arg encrypt "$encrypt" '.encrypt = $encrypt' \
+      | jq --arg token "$(uuidgen)" '.acl.tokens.master = $token' \
+      | ${sopsEncrypt} \
+      > encrypted/consul-core.json
+    fi
 
-    echo '{}' \
-    | jq --arg encrypt "$encrypt" '.encrypt = $encrypt' \
-    | ${sopsEncrypt} \
-    > encrypted/consul-clients.json
+    if [ ! -s encrypted/consul-clients.json ]; then
+      echo '{}' \
+      | jq --arg encrypt "$encrypt" '.encrypt = $encrypt' \
+      | ${sopsEncrypt} \
+      > encrypted/consul-clients.json
+    fi
   '';
 
   secrets.install.nomad-server = lib.mkIf (config.instance != null) {
@@ -103,12 +107,14 @@ in {
   secrets.generate.nomad = ''
     export PATH="${lib.makeBinPath (with pkgs; [ nomad jq ])}"
 
-    encrypt="$(nomad operator keygen)"
+    if [ ! -s encrypted/nomad.json ]; then
+      encrypt="$(nomad operator keygen)"
 
-    echo '{}' \
-    | jq --arg encrypt "$encrypt" '.server.encrypt = $encrypt' \
-    | ${sopsEncrypt} \
-    > encrypted/nomad.json
+      echo '{}' \
+      | jq --arg encrypt "$encrypt" '.server.encrypt = $encrypt' \
+      | ${sopsEncrypt} \
+      > encrypted/nomad.json
+    fi
   '';
 
   secrets.generate.ca = ''
@@ -141,7 +147,6 @@ in {
     echo "$cert" | ${sopsEncrypt} > encrypted/cert.json
   '';
 
-  # Only install new certs if they're actually newer.
   secrets.install.certs.script = ''
     export PATH="${lib.makeBinPath (with pkgs; [ cfssl jq coreutils ])}"
     cert="$(${sopsDecrypt (config.secrets.encryptedRoot + "/cert.json")})"
