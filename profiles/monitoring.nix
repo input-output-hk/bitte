@@ -78,6 +78,11 @@ in {
             url = "http://localhost:8428";
           }
         ];
+
+        dashboards = [{
+          name = "provisioned";
+          options.path = ./monitoring;
+        }];
       };
 
       security = {

@@ -440,11 +440,11 @@ let
               ''';
               binaryCaches = [
                 "https://hydra.iohk.io"
-                "https://manveru.cachix.org"
+                "${cfg.s3Cache}"
               ];
               binaryCachePublicKeys = [
                 "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
-                "manveru.cachix.org-1:L5nJHSinfA2K5dDCG3KAEadwf/e3qqhuBr7yCwSksXo="
+                "${cfg.s3CachePubKey}"
               ];
             };
 
@@ -632,11 +632,11 @@ let
               ''';
               binaryCaches = [
                 "https://hydra.iohk.io"
-                "https://manveru.cachix.org"
+                "${cfg.s3Cache}"
               ];
               binaryCachePublicKeys = [
                 "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
-                "manveru.cachix.org-1:L5nJHSinfA2K5dDCG3KAEadwf/e3qqhuBr7yCwSksXo="
+                "${cfg.s3CachePubKey}"
               ];
             };
 

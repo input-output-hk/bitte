@@ -17,8 +17,8 @@ in {
         name = config.cluster.name;
         nix = pkgs.nixFlakes;
         region = config.cluster.region;
-        s3_bucket = config.cluster.s3Bucket;
-        s3_cache = config.cluster.s3Cache;
+        s3-bucket = config.cluster.s3Bucket;
+        s3-cache = config.cluster.s3Cache;
 
         roles = lib.flip lib.mapAttrs config.cluster.iam.roles
           (name: role: { arn = var "data.aws_iam_role.${role.uid}.arn"; });
