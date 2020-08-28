@@ -464,6 +464,8 @@ and the following outputs to our flake:
 
     terraform login
     terraform init
+
+    nix run .#nixosConfigurations.tutorial-testnet-core-1.config.secrets.generateScript
     bitte terraform network
     bitte terraform core
 
@@ -472,3 +474,11 @@ and the following outputs to our flake:
     nix build .#clusters.tutorial-testnet.tf.core.output
     cat result > config.tf.json
     terraform destroy --state .terraform/terraform.tfstate
+
+# Bugs found
+
+- If you've just destroyed a network, then spin another network up,
+  two VPC peering connections will exist: one dead, and one alive. The
+  VPC Peering Connection search terms generated in the terraform
+  config do not distinguish between dead and alive, so terraform
+  fails, as it finds multiple resources that match the query.
