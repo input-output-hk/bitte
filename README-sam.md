@@ -291,24 +291,31 @@ Use the following settings:
 
 Note the ARN.
 
-#### VPCs
+##### VPCs
 
 Navigate to the "VPC Management Console" and "Create VPC" with the
 parameters:
 
 Name tag        : bitte-tutorial-ap-southeast-1
-IPv4 CIDR block : 172.17.0.0/16
+IPv4 CIDR block : 172.16.0.0/16
 IPv6 CIDR block : None
 Tenancy         : default
 
-#### Subnets
+##### Subnets
 
 Navigate to "Subnets" and create three subnets with the parameters:
 
 Name tag          : prv-{1,2,3}
 VPC               : Previously created VPC
 Availability zone : No preference
-IPv4 CIDR block   : {172.17.0.0/24,172.17.1.0/24,172.17.2.0/24}
+IPv4 CIDR block   : {172.16.0.0/24,172.16.1.0/24,172.16.2.0/24}
+
+##### Route53
+
+Navigate to the Route53 console and create a new hosted zone with the parameters:
+
+Domain name : Name of your choice
+Type        : Public
 
 ##### S3
 
@@ -353,7 +360,7 @@ Let's build ourselves an example cluster:
 
       cluster = {
         name = "tutorial-testnet";
-        domain = "bitte-tutorial.iohkdev.io";
+        domain = "bitte-tutorial.project42.iohkdev.io";
         s3Bucket = "iohk-bitte-tutorial";
         kms = "arn:aws:kms:eu-central-1:596662952274:key/f20d4160-a7f3-4cc9-9676-d589bba0caf8";
         adminNames = [ "samuel.evans-powell" ];
@@ -363,7 +370,7 @@ Let's build ourselves an example cluster:
         instances = {
           core-1 = {
             instanceType = "t2.small";
-            privateIP = "172.17.0.10";
+            privateIP = "172.16.0.10";
           };
 
           securityGroupRules = let
@@ -457,4 +464,11 @@ and the following outputs to our flake:
 
     terraform login
     terraform init
+    bitte terraform network
     bitte terraform core
+
+### Debugging
+
+    nix build .#clusters.tutorial-testnet.tf.core.output
+    cat result > config.tf.json
+    terraform destroy --state .terraform/terraform.tfstate
