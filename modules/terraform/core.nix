@@ -194,6 +194,7 @@ in {
 
     data.aws_vpc_peering_connection = lib.flip lib.mapAttrs' vpcs (region: vpc:
       lib.nameValuePair region {
+        status = "active";
         tags = {
           Name = vpc.name;
           Side = "accepter";
