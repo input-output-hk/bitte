@@ -10,7 +10,7 @@ let
 in {
   tf.core.configuration = {
     terraform.backend.remote = {
-      organization = "iohk-midnight";
+      organization = config.cluster.terraformOrganization;
       workspaces = [{ prefix = "${config.cluster.name}_"; }];
     };
 

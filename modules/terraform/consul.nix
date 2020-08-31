@@ -1,7 +1,7 @@
 { config, lib, ... }: {
   tf.consul.configuration = {
     terraform.backend.remote = {
-      organization = "iohk-midnight";
+      organization = config.cluster.terraformOrganization;
       workspaces = [{ prefix = "${config.cluster.name}_"; }];
     };
 

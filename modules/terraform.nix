@@ -29,6 +29,8 @@ let
 
       secrets = mkOption { type = path; };
 
+      terraformOrganization = mkOption { type = str; };
+
       instances = mkOption {
         type = attrsOf serverType;
         default = { };
