@@ -192,8 +192,13 @@ in {
       lifecycle = [{ create_before_destroy = true; }];
     };
 
-    data.aws_vpc_peering_connection = lib.flip lib.mapAttrs' vpcs
-      (region: vpc: lib.nameValuePair region { tags = { Name = vpc.name; }; });
+    data.aws_vpc_peering_connection = lib.flip lib.mapAttrs' vpcs (region: vpc:
+      lib.nameValuePair region {
+        tags = {
+          Name = vpc.name;
+          Side = "accepter";
+        };
+      });
 
     resource.aws_route_table.${config.cluster.name} = {
       vpc_id = id "data.aws_vpc.core";
