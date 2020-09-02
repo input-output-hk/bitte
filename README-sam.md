@@ -236,9 +236,9 @@ We can then enter a development shell:
     nix-shell --run "nix develop"
 
 This command bootstraps us into an environment that has flake support,
-then runs `nix develop` which will find the `devShell` output listed
-in our `flake.nix` and enter a development shell. If you're already in
-an environment with flake support, you can just run `nix develop`.
+then runs `nix develop` which will enter a development shell using the
+`devShell` output listed in our `flake.nix`. If you're already in an
+environment with flake support, you can just run `nix develop`.
 
 You should now be able to run `bitte`!
 
@@ -322,9 +322,7 @@ Type        : Public
 Navigate to the S3 console and create a new S3 Bucket. I named mine
 "iohk-bitte-tutorial".
 
-##### Route53
-
-#### Environment variabales
+#### Environment variables
 
 Finally, for convenience we'll want to setup a few environment
 variables. `direnv` is recommended.
