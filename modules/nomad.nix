@@ -27,8 +27,7 @@ let
         pipe obj [
           (filterAttrs
             (name: value: name != "_module" && name != "_ref" && value != null))
-          (mapAttrs'
-            (name: value: nameValuePair name (sanitize value)))
+          (mapAttrs' (name: value: nameValuePair name (sanitize value)))
         ];
     };
 
@@ -1069,17 +1068,22 @@ in {
         HOME = "/var/lib/nomad";
       };
 
-      serviceConfig = {
-        ExecReload = "${pkgs.busybox}/bin/kill -HUP $MAINPID";
-        ExecStartPre = let
-          start-pre = pkgs.writeShellScriptBin "nomad-start-pre" ''
-            PATH="${makeBinPath [ pkgs.coreutils ]}"
-            set -exuo pipefail
-            cp /etc/ssl/certs/cert-key.pem .
-            chown --reference . *.pem
+      serviceConfig = let
+        start-pre = pkgs.writeShellScript "nomad-start-pre" ''
+          PATH="${makeBinPath [ pkgs.coreutils pkgs.busybox ]}"
+          set -exuo pipefail
+          cp /etc/ssl/certs/cert-key.pem .
+          chown --reference . *.pem
+        '';
+      in {
+        ExecReload = let
+          reload = pkgs.writeShellScript "nomad-reload" ''
+            ${start-pre}
+            kill -HUP $MAINPID
           '';
-        in "!${start-pre}/bin/nomad-start-pre";
+        in "!${reload}";
 
+        ExecStartPre = "!${start-pre}";
         ExecStart = let
           args = [ "@${cfg.package}/bin/nomad" "nomad" "agent" ]
             ++ (lib.optionals (cfg.configDir != null) [
@@ -1090,6 +1094,7 @@ in {
               (toString cfg.pluginDir)
             ]);
         in lib.concatStringsSep " " args;
+
         KillMode = "process";
         LimitNOFILE = "infinity";
         LimitNPROC = "infinity";
