@@ -43,11 +43,9 @@ let
 
   systemdRunFlags = lib.cli.toGNUCommandLineShell { } {
     # unit = "figure-out-a-way-to-name-it-nicely";
-    service-type = "exec";
     collect = true;
-    # scope = true;
     wait = true;
-    pipe = true;
+    pty = true;
     setenv = transformAttrs toString env;
     property = transformAttrs toSystemd ({
       MemoryMax = "1G";
