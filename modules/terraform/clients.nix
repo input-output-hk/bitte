@@ -115,7 +115,7 @@ in {
         lib.nameValuePair group.uid (lib.mkMerge [
           {
             provider = awsProviderFor group.region;
-            name = group.uid;
+            name_prefix = "${group.uid}-";
             image_id = group.ami;
             instance_type = group.instanceType;
 
