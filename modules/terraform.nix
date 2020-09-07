@@ -750,11 +750,17 @@ in {
     tf = lib.mkOption {
       default = { };
       type = attrsOf (submodule ({ name, ... }@this: {
-        options = let writeConfig =
+        options = let prepare =
           ''
-          rm -f config.tf.json
-          cp "${this.config.output}" config.tf.json
-          chmod u+rw config.tf.json
+            export PATH="${lib.makeBinPath [ pkgs.coreutils pkgs.terraform-with-plugins ]}"
+            set -exuo pipefail
+
+            rm -f config.tf.json
+            cp "${this.config.output}" config.tf.json
+            chmod u+rw config.tf.json
+
+            terraform workspace select "${name}"
+            terraform init
           '';
         in
           {
@@ -777,21 +783,13 @@ in {
 
           config = lib.mkOption {
             type = lib.mkOptionType { name = "${name}-config"; };
-            apply = v: pkgs.writeShellScriptBin "${name}-config" ''
-              export PATH="${lib.makeBinPath [ pkgs.coreutils pkgs.terraform-with-plugins ]}"
-              set -exuo pipefail
-
-              ${writeConfig}
-            '';
+            apply = v: pkgs.writeShellScriptBin "${name}-config" prepare;
           };
 
           plan = lib.mkOption {
             type = lib.mkOptionType { name = "${name}-plan"; };
             apply = v: pkgs.writeShellScriptBin "${name}-plan" ''
-              export PATH="${lib.makeBinPath [ pkgs.coreutils pkgs.terraform-with-plugins ]}"
-              set -exuo pipefail
-
-              ${writeConfig}
+              ${prepare}
 
               terraform plan -out ${name}.plan
             '';
@@ -800,10 +798,7 @@ in {
           apply = lib.mkOption {
             type = lib.mkOptionType { name = "${name}-apply"; };
             apply = v: pkgs.writeShellScriptBin "${name}-apply" ''
-              export PATH="${lib.makeBinPath [ pkgs.coreutils pkgs.terraform-with-plugins ]}"
-              set -exuo pipefail
-
-              ${writeConfig}
+              ${prepare}
 
               terraform apply ${name}.plan
             '';
