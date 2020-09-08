@@ -27,9 +27,19 @@ let
 
   reload-cvn = writeShellScriptBin "reload-cvn" ''
     set -x
-    ${pkgs.systemd}/bin/systemctl reload consul.service
-    ${pkgs.systemd}/bin/systemctl reload nomad.service
-    ${pkgs.systemd}/bin/systemctl reload vault.service
+
+    export PATH="$PATH:${pkgs.systemd}/bin"
+
+    systemctl reload consul.service
+
+    if [ "$(systemctl show nomad.service --property ActiveState)" = "ActiveState=active" ]; then
+      systemctl reload nomad.service
+      echo left
+    else
+      systemctl start nomad.service
+    fi
+
+    systemctl reload vault.service
     exit 0
   '';
 

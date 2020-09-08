@@ -85,7 +85,7 @@ in {
 
     resource.aws_vpc_peering_connection = lib.flip lib.mapAttrs' vpcs
       (region: vpc:
-        lib.nameValuePair "${ region }-requester" {
+        lib.nameValuePair "${region}-requester" {
           inherit (vpc) provider vpc_id;
           peer_vpc_id = id "aws_vpc.core";
           peer_owner_id = var "data.aws_caller_identity.core.account_id";
@@ -102,9 +102,10 @@ in {
 
     resource.aws_vpc_peering_connection_accepter = lib.flip lib.mapAttrs' vpcs
       (region: vpc:
-        lib.nameValuePair "${ region }-accepter" {
+        lib.nameValuePair "${region}-accepter" {
           provider = awsProviderFor config.cluster.region;
-          vpc_peering_connection_id = id "aws_vpc_peering_connection.${region}-requester";
+          vpc_peering_connection_id =
+            id "aws_vpc_peering_connection.${region}-requester";
           auto_accept = true;
           lifecycle = [{ create_before_destroy = true; }];
 

@@ -218,13 +218,12 @@ in final: prev: {
   # so we turn that into actual unit failures instead.
   ensureDependencies = services:
     let
-      script = prev.writeShellScriptBin "check" ''
-        set -exuo pipefail
-        for service in ${toString services}; do
-          ${prev.systemd}/bin/systemctl is-active "$service.service"
-        done
-      '';
-    in "${script}/bin/check";
+      checks = lib.concatStringsSep "\n" (lib.forEach services (service:
+        "${prev.systemd}/bin/systemctl is-active '${service}.service'"));
+    in prev.writeShellScript "check" ''
+      set -exuo pipefail
+      ${checks}
+    '';
 
   ssh-keys = let
     authorized_keys = lib.fileContents ../modules/ssh_keys/authorized_keys;
