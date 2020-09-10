@@ -2,7 +2,8 @@
 let
   inherit (pkgs.terralib)
     id var regions awsProviderNameFor awsProviderFor merge mkSecurityGroupRule;
-  vpcs = pkgs.terralib.vpcs config.cluster;
+
+  mapVpcs = pkgs.terralib.mapVpcs config.cluster;
 in {
   tf.clients.configuration = {
     terraform.backend.remote = {
@@ -73,8 +74,7 @@ in {
 
           name = group.uid;
 
-          vpc_zone_identifier =
-            lib.flip lib.mapAttrsToList vpcs.${group.region}.subnets
+          vpc_zone_identifier = lib.flip lib.mapAttrsToList group.vpc.subnets
             (suffix: _: id "data.aws_subnet.${group.region}-${suffix}");
 
           availability_zones = lib.flip lib.imap0 group.subnets (idx: _:
@@ -180,25 +180,24 @@ in {
         };
       });
 
-    data.aws_vpc = lib.flip lib.mapAttrs' vpcs (region: vpc:
-      lib.nameValuePair region {
-        inherit (vpc) provider;
+    data.aws_vpc = mapVpcs (vpc:
+      lib.nameValuePair vpc.region {
+        provider = awsProviderFor vpc.region;
         filter = {
           name = "tag:Name";
           values = [ vpc.name ];
         };
       });
 
-    data.aws_subnet = lib.listToAttrs (lib.flatten
-      (lib.flip lib.mapAttrsToList vpcs (region: vpc:
-        lib.flip lib.mapAttrsToList vpc.subnets (suffix: cidr:
-          lib.nameValuePair "${region}-${suffix}" {
-            inherit (vpc) provider;
-            tags = {
-              Cluster = config.cluster.name;
-              Name = "${region}-${suffix}";
-            };
-          }))));
+    data.aws_subnet = mapVpcs (vpc:
+      lib.flip lib.mapAttrsToList vpc.subnets (suffix: cidr:
+        lib.nameValuePair "${vpc.region}-${suffix}" {
+          provider = awsProviderFor vpc.region;
+          tags = {
+            Cluster = config.cluster.name;
+            Name = "${vpc.region}-${suffix}";
+          };
+        }));
 
     resource.aws_security_group_rule = let
       mapASG = _: group:

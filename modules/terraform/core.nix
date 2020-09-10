@@ -4,7 +4,9 @@ let
   inherit (pkgs.terralib)
     var id pp regions awsProviderNameFor awsProviderFor mkSecurityGroupRule
     nullRoute;
-  vpcs = pkgs.terralib.vpcs config.cluster;
+
+  mapVpcs = pkgs.terralib.mapVpcs config.cluster;
+  mapVpcsToList = pkgs.terralib.mapVpcsToList config.cluster;
 
   merge = lib.foldl' lib.recursiveUpdate { };
 in {
@@ -106,9 +108,9 @@ in {
             });
           }))));
 
-    data.aws_vpc = (lib.flip lib.mapAttrs' vpcs (region: vpc:
-      lib.nameValuePair region {
-        inherit (vpc) provider;
+    data.aws_vpc = (mapVpcs (vpc:
+      lib.nameValuePair vpc.region {
+        provider = awsProviderFor vpc.region;
         filter = {
           name = "tag:Name";
           values = [ vpc.name ];
@@ -192,12 +194,11 @@ in {
       lifecycle = [{ create_before_destroy = true; }];
     };
 
-    data.aws_vpc_peering_connection = lib.flip lib.mapAttrs' vpcs (region: vpc:
-      lib.nameValuePair region {
+    data.aws_vpc_peering_connection = mapVpcs (vpc:
+      lib.nameValuePair vpc.region {
         status = "active";
         tags = {
           Name = vpc.name;
-          Side = "accepter";
         };
       });
 
@@ -213,11 +214,11 @@ in {
         network_interface_id = null;
         transit_gateway_id = null;
         vpc_peering_connection_id = null;
-      }] ++ (lib.flip lib.mapAttrsToList vpcs (innerRegion: vpc:
+      }] ++ (mapVpcsToList (vpc:
         nullRoute // {
-          inherit (vpc) cidr_block;
+          cidr_block = vpc.cidr;
           vpc_peering_connection_id =
-            id "data.aws_vpc_peering_connection.${innerRegion}";
+            id "data.aws_vpc_peering_connection.${vpc.region}";
         }));
 
       tags = {

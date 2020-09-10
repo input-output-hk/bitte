@@ -5,7 +5,7 @@ let
   inherit (lib.types)
     attrs submodule str attrsOf bool ints path enum port listof nullOr listOf
     oneOf list package unspecified;
-  inherit (terralib) var id regions;
+  inherit (terralib) var id regions awsProviderFor;
 
   kms2region = kms: builtins.elemAt (lib.splitString ":" kms) 3;
 
@@ -18,6 +18,25 @@ let
     nixos = lib.mapAttrs' (name: value: lib.nameValuePair name value.hvm-ebs)
       nixosAmis."20.03";
   };
+
+  vpcMap = lib.pipe [
+    "ap-northeast-1"
+    "ap-northeast-2"
+    "ap-south-1"
+    "ap-southeast-1"
+    "ap-southeast-2"
+    "ca-central-1"
+    "eu-central-1"
+    "eu-north-1"
+    "eu-west-1"
+    "eu-west-2"
+    "eu-west-3"
+    "sa-east-1"
+    "us-east-1"
+    "us-east-2"
+    "us-west-1"
+    "us-west-2"
+  ] [ (lib.imap0 (i: v: lib.nameValuePair v i)) builtins.listToAttrs ];
 
   cfg = config.cluster;
 
@@ -92,9 +111,9 @@ let
           cidr = "172.16.0.0/16";
 
           subnets = {
-            prv-1.cidr = "172.16.0.0/24";
-            prv-2.cidr = "172.16.1.0/24";
-            prv-3.cidr = "172.16.2.0/24";
+            core-1.cidr = "172.16.0.0/24";
+            core-2.cidr = "172.16.1.0/24";
+            core-3.cidr = "172.16.2.0/24";
           };
         };
       };
@@ -606,15 +625,18 @@ let
 
       vpc = mkOption {
         type = vpcType this.config.uid;
-        default = {
+        default = let base = toString (vpcMap.${this.config.region} * 4);
+        in {
           region = this.config.region;
 
-          cidr = "10.0.0.0/8";
+          cidr = "10.${base}.0.0/16";
 
+          name = "${cfg.name}-${this.config.region}-asgs";
           subnets = {
-            "${this.config.name}-1".cidr = "10.0.0.0/18";
-            "${this.config.name}-2".cidr = "10.0.1.0/18";
-            "${this.config.name}-3".cidr = "10.0.2.0/18";
+            a.cidr = "10.${base}.0.0/18";
+            b.cidr = "10.${base}.64.0/18";
+            c.cidr = "10.${base}.128.0/18";
+            # d.cidr = "10.${base}.192.0/18";
           };
         };
       };
@@ -751,7 +773,7 @@ in {
       default = { };
       type = attrsOf (submodule ({ name, ... }@this: {
         options = let
-          prepare = ''
+          copy = ''
             export PATH="${
               lib.makeBinPath [ pkgs.coreutils pkgs.terraform-with-plugins ]
             }"
@@ -760,6 +782,10 @@ in {
             rm -f config.tf.json
             cp "${this.config.output}" config.tf.json
             chmod u+rw config.tf.json
+          '';
+
+          prepare = ''
+            ${copy}
 
             terraform workspace select "${name}"
             terraform init
@@ -784,7 +810,7 @@ in {
 
           config = lib.mkOption {
             type = lib.mkOptionType { name = "${name}-config"; };
-            apply = v: pkgs.writeShellScriptBin "${name}-config" prepare;
+            apply = v: pkgs.writeShellScriptBin "${name}-config" copy;
           };
 
           plan = lib.mkOption {
@@ -804,6 +830,16 @@ in {
                 ${prepare}
 
                 terraform apply ${name}.plan
+              '';
+          };
+
+          terraform = lib.mkOption {
+            type = lib.mkOptionType { name = "${name}-apply"; };
+            apply = v:
+              pkgs.writeShellScriptBin "${name}-apply" ''
+                ${prepare}
+
+                terraform $@
               '';
           };
         };
