@@ -34,7 +34,6 @@ let
 
     if [ "$(systemctl show nomad.service --property ActiveState)" = "ActiveState=active" ]; then
       systemctl reload nomad.service
-      echo left
     else
       systemctl start nomad.service
     fi

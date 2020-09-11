@@ -1,5 +1,5 @@
 { writeShellScript, writeReferencesToFile, writeText, bash, lib, systemd
-, nixFlakes }:
+, nixFlakes, cacert }:
 { name, command, args ? [ ], env ? { }, extraSystemdProperties ? { }
 , resources ? { } }:
 let
