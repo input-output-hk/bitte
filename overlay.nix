@@ -76,6 +76,8 @@ in final: prev: {
 
   mkNomadTaskSandbox = final.callPackage ./lib/mk-nomad-task-sandbox.nix { };
 
+  systemdSandbox = final.callPackage ./lib/systemd-sandbox.nix { };
+
   clusters = final.mkClusters {
     root = ./clusters;
     inherit self system;

@@ -117,6 +117,26 @@ in {
     fi
   '';
 
+  secrets.generate.cache = ''
+    export PATH="${
+      lib.makeBinPath (with pkgs; [ coreutils nixFlakes ])
+    }"
+
+    mkdir -p secrets encrypted
+
+    if [ ! -s encrypted/nix-public-key-file ]; then
+      if [ ! -s secrets/nix-secret-key-file ] || [ ! -s secrets/nix-public-key-file ]; then
+        nix-store \
+          --generate-binary-cache-key \
+          "${config.cluster.name}-0" \
+          secrets/nix-secret-key-file \
+          secrets/nix-public-key-file
+      fi
+
+      cp secrets/nix-public-key-file encrypted/nix-public-key-file
+    fi
+  '';
+
   secrets.generate.ca = ''
     export PATH="${
       lib.makeBinPath (with pkgs; [ cfssl jq coreutils terraform-with-plugins ])
