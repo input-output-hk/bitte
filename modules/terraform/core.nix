@@ -197,9 +197,7 @@ in {
     data.aws_vpc_peering_connection = mapVpcs (vpc:
       lib.nameValuePair vpc.region {
         status = "active";
-        tags = {
-          Name = vpc.name;
-        };
+        tags = { Name = vpc.name; };
       });
 
     resource.aws_route_table.${config.cluster.name} = {

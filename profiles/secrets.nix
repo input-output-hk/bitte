@@ -118,9 +118,7 @@ in {
   '';
 
   secrets.generate.cache = ''
-    export PATH="${
-      lib.makeBinPath (with pkgs; [ coreutils nixFlakes ])
-    }"
+    export PATH="${lib.makeBinPath (with pkgs; [ coreutils nixFlakes ])}"
 
     mkdir -p secrets encrypted
 

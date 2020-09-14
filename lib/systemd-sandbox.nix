@@ -48,7 +48,7 @@ let
     pty = true;
     setenv = transformAttrs toString env;
     property = transformAttrs toSystemd ({
-      MemoryMax = "1G";
+      MemoryMax = "${toString (resources.memoryMB or 1024)}M";
       # CPUWeight = "50";
       # CPUQuota = "20%";
       DynamicUser = true;
