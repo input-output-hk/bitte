@@ -44,6 +44,7 @@
         agentPrefix = allWrite;
         eventPrefix = allWrite;
         keyPrefix = allWrite;
+        nodePrefix = allWrite;
         queryPrefix = allWrite;
         servicePrefix = {
           "" = {
