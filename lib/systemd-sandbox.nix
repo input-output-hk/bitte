@@ -51,7 +51,8 @@ let
       MemoryMax = "${toString (resources.memoryMB or 1024)}M";
       # CPUWeight = "50";
       # CPUQuota = "20%";
-      DynamicUser = true;
+      User = "nobody";
+      Group = "nogroup";
       KillMode = "mixed";
       PrivateDevices = true;
       ProtectSystem = true;
