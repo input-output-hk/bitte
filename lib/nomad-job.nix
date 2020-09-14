@@ -4,7 +4,7 @@ let
   inherit (lib) mkOption mkEnableOption attrValues;
   inherit (lib.types)
     nullOr submodule str enum ints listOf attrsOf attrs bool coercedTo float
-    port;
+    port unspecified;
 
   nullMap = f: input: if input == null then null else map f input;
 
@@ -143,8 +143,8 @@ let
       };
 
       networks = mkOption {
-        type = listOf networkType;
-        default = [{ mode = "bridge"; }];
+        type = nullOr (listOf networkType);
+        default = null;
       };
 
       meta = mkOption {
@@ -513,6 +513,11 @@ let
             memoryMB = mkOption {
               type = ints.positive;
               default = 300;
+            };
+
+            networks = mkOption {
+              default = null;
+              type = unspecified;
             };
           };
         });
