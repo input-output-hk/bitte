@@ -9,9 +9,9 @@
 
     plugin.raw_exec.enabled = true;
 
-    client.chroot_env = {
-      "/usr/bin/env" = "/usr/bin/env";
-      "/nix/store" = "/nix/store";
-    };
+    # client.chroot_env = {
+    #   "/usr/bin/env" = "/usr/bin/env";
+    #   "/nix/store" = "/nix/store";
+    # };
   };
 }
