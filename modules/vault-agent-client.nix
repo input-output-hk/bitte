@@ -3,7 +3,7 @@ let
   inherit (builtins) toJSON isList;
   inherit (lib)
     mkIf filter mkEnableOption optional flip mapAttrsToList concatStringsSep;
-  inherit (pkgs) writeShellScriptBin;
+  inherit (pkgs) writeShellScript;
   inherit (config.cluster) region domain;
 
   runIf = cond: value: if cond then value else null;
@@ -25,7 +25,7 @@ let
 
   pkiSecret = ''"pki/issue/client" ${toString pkiArgs}'';
 
-  reload-cvn = writeShellScriptBin "reload-cvn" ''
+  reload-cvn = writeShellScript "reload-cvn" ''
     set -x
 
     export PATH="$PATH:${pkgs.systemd}/bin"
@@ -68,7 +68,7 @@ let
     templates = compact [
       {
         template = {
-          command = "${reload-cvn}/bin/reload-cvn";
+          command = reload-cvn;
           destination = "/etc/ssl/certs/full.pem";
           contents = ''
             {{ with secret ${pkiSecret} }}{{ .Data.certificate }}
@@ -80,7 +80,7 @@ let
 
       {
         template = {
-          command = "${reload-cvn}/bin/reload-cvn";
+          command = reload-cvn;
           destination = "/etc/ssl/certs/cert.pem";
           contents = ''
             {{ with secret ${pkiSecret} }}{{ .Data.certificate }}
@@ -92,7 +92,7 @@ let
 
       {
         template = {
-          command = "${reload-cvn}/bin/reload-cvn";
+          command = reload-cvn;
           destination = "/etc/ssl/certs/cert-key.pem";
           contents = ''
             {{ with secret ${pkiSecret} }}{{ .Data.private_key }}{{ end }}
@@ -103,7 +103,7 @@ let
       (runIf config.services.consul.enable {
         template = {
           destination = "/etc/consul.d/tokens.json";
-          command = "${pkgs.systemd}/bin/systemctl reload consul.service";
+          command = reload-cvn;
           contents = ''
             {
               "encrypt": "{{ with secret "kv/bootstrap/clients/consul" }}{{ .Data.data.encrypt }}{{ end }}",
@@ -120,7 +120,7 @@ let
 
       (runIf config.services.nomad.enable {
         template = {
-          command = "${pkgs.systemd}/bin/systemctl reload nomad.service";
+          command = reload-cvn;
           destination = "/etc/nomad.d/consul-token.json";
           contents = ''
             {{ with secret "consul/creds/nomad-client" }}
@@ -136,7 +136,7 @@ let
 
       (runIf config.services.vault.enable {
         template = {
-          command = "${pkgs.systemd}/bin/systemctl reload vault.service";
+          command = reload-cvn;
           destination = "/etc/vault.d/consul-token.json";
           contents = ''
             {{ with secret "consul/creds/vault-client" }}
