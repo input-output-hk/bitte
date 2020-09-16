@@ -968,6 +968,45 @@ in {
       };
     };
 
+    vault = mkOption {
+      type = submodule {
+        options = {
+          enabled = mkEnableOption "Enable Vault integration";
+
+          address = mkOption {
+            type = nullOr str;
+            default = null;
+          };
+
+          ca_file = mkOption {
+            type = nullOr path;
+            default = null;
+            description = ''
+              The path to the CA certificate to use for Nomad's TLS
+              communication.
+            '';
+          };
+
+          cert_file = mkOption {
+            type = nullOr path;
+            default = null;
+            description = ''
+              The path to the certificate file used for Nomad's TLS
+              communication.
+            '';
+          };
+
+          key_file = mkOption {
+            type = nullOr str;
+            default = path;
+            description = ''
+              The path to the key file to use for Nomad's TLS communication.
+            '';
+          };
+        };
+      };
+    };
+
     # TODO: refactor this, no clue why it's so convoluted.
     plugin = let
       rawExecType = submodule {
@@ -1032,7 +1071,7 @@ in {
       (sanitize {
         inherit (cfg)
           data_dir log_level datacenter name acl ports tls consul server client
-          plugin telemetry;
+          plugin telemetry vault;
       });
 
     environment.systemPackages = [ pkgs.nomad ];

@@ -38,6 +38,13 @@ in {
       tls_min_version = "tls12";
     };
 
+    vault = {
+      enabled = true;
+      ca_file = full;
+      cert_file = cert;
+      key_file = key;
+    };
+
     consul = {
       address = "127.0.0.1:${toString config.services.consul.ports.https}";
       ssl = true;
