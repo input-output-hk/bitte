@@ -30,15 +30,15 @@ let
 
     export PATH="$PATH:${pkgs.systemd}/bin"
 
-    systemctl reload consul.service
+    systemctl reload consul.service || true
 
     if [ "$(systemctl show nomad.service --property ActiveState)" = "ActiveState=active" ]; then
-      systemctl reload nomad.service
+      systemctl reload nomad.service || true
     else
-      systemctl start nomad.service
+      systemctl start nomad.service || true
     fi
 
-    systemctl reload vault.service
+    systemctl reload vault.service || true
     exit 0
   '';
 
@@ -66,6 +66,40 @@ let
     };
 
     templates = compact [
+      {
+        template = {
+          command = "${reload-cvn}/bin/reload-cvn";
+          destination = "/etc/ssl/certs/full.pem";
+          contents = ''
+            {{ with secret ${pkiSecret} }}{{ .Data.certificate }}
+            {{ range .Data.ca_chain }}{{ . }}
+            {{ end }}{{ end }}
+          '';
+        };
+      }
+
+      {
+        template = {
+          command = "${reload-cvn}/bin/reload-cvn";
+          destination = "/etc/ssl/certs/cert.pem";
+          contents = ''
+            {{ with secret ${pkiSecret} }}{{ .Data.certificate }}
+            {{ range .Data.ca_chain }}{{ . }}
+            {{ end }}{{ end }}
+          '';
+        };
+      }
+
+      {
+        template = {
+          command = "${reload-cvn}/bin/reload-cvn";
+          destination = "/etc/ssl/certs/cert-key.pem";
+          contents = ''
+            {{ with secret ${pkiSecret} }}{{ .Data.private_key }}{{ end }}
+          '';
+        };
+      }
+
       (runIf config.services.consul.enable {
         template = {
           destination = "/etc/consul.d/tokens.json";
@@ -123,39 +157,6 @@ let
         };
       })
 
-      {
-        template = {
-          command = "${reload-cvn}/bin/reload-cvn";
-          destination = "/etc/ssl/certs/full.pem";
-          contents = ''
-            {{ with secret ${pkiSecret} }}{{ .Data.certificate }}
-            {{ range .Data.ca_chain }}{{ . }}
-            {{ end }}{{ end }}
-          '';
-        };
-      }
-
-      {
-        template = {
-          command = "${reload-cvn}/bin/reload-cvn";
-          destination = "/etc/ssl/certs/cert.pem";
-          contents = ''
-            {{ with secret ${pkiSecret} }}{{ .Data.certificate }}
-            {{ range .Data.ca_chain }}{{ . }}
-            {{ end }}{{ end }}
-          '';
-        };
-      }
-
-      {
-        template = {
-          command = "${reload-cvn}/bin/reload-cvn";
-          destination = "/etc/ssl/certs/cert-key.pem";
-          contents = ''
-            {{ with secret ${pkiSecret} }}{{ .Data.private_key }}{{ end }}
-          '';
-        };
-      }
     ];
   };
 
