@@ -261,11 +261,25 @@ let
         });
       };
 
+      vault = mkOption {
+        type = nullOr (submodule {
+          options = {
+            policies = mkOption {
+              type = listOf str;
+              default = [];
+            };
+          };
+        });
+        default = null;
+        description = ''
+          Specifies the set of Vault policies required by all tasks in this group.
+          Overrides a vault block set at the job level.
+        '';
+      };
+
       # stop_after_client_disconnect (string: "") - Specifies a duration after which a Nomad client that cannot communicate with the servers will stop allocations based on this task group. By default, a client will not stop an allocation until explicitly told to by a server. A client that fails to heartbeat to a server within the hearbeat_grace window and any allocations running on it will be marked "lost" and Nomad will schedule replacement allocations. However, these replaced allocations will continue to run on the non-responsive client; an operator may desire that these replaced allocations are also stopped in this case — for example, allocations requiring exclusive access to an external resource. When specified, the Nomad client will stop them after this duration. The Nomad client process must be running for this to occur.
 
       # task (Task: <required>) - Specifies one or more tasks to run within this group. This can be specified multiple times, to add a task as part of the group.
-
-      # vault (Vault: nil) - Specifies the set of Vault policies required by all tasks in this group. Overrides a vault block set at the job level.
 
       # volume (Volume: nil) - Specifies the volumes that are required by tasks within the group.
     };
@@ -589,6 +603,23 @@ let
           Set the user that will run the task. It defaults to the same user the
           Nomad client is being run as. This can only be set on Linux
           platforms.
+        '';
+      };
+
+
+      vault = mkOption {
+        type = nullOr (submodule {
+          options = {
+            policies = mkOption {
+              type = listOf str;
+              default = [];
+            };
+          };
+        });
+        default = null;
+        description = ''
+          Specifies the set of Vault policies required by all tasks in this group.
+          Overrides a vault block set at the job level.
         '';
       };
     };
