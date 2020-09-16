@@ -466,7 +466,7 @@ let
 
   taskType = submodule ({ name, ... }: {
     options = {
-      artifact = mkOption {
+      artifacts = mkOption {
         type = nullOr (listOf artifactType);
         default = null;
         apply = mapArtifacts;
@@ -481,7 +481,7 @@ let
         '';
       };
 
-      template = mkOption {
+      templates = mkOption {
         type = nullOr (listOf templateType);
         default = null;
         apply = mapTemplates;
