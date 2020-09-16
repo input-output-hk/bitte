@@ -25,6 +25,12 @@ let
     GetterOptions = value.options;
   });
 
+  mapTemplates = nullMap (value: {
+    DestPath = value.destination or null;
+    EmbeddedTmpl = value.data or "";
+    SourcePath = value.source or null;
+  });
+
   mapConstraints = nullMap (value: {
     LTarget = value.attribute;
     RTarget = value.value;
@@ -423,6 +429,41 @@ let
     };
   };
 
+  templateType = submodule ({ name, ... }: {
+    options = {
+      data = mkOption {
+        type = nullOr str;
+        default = null;
+        description = ''
+          Specifies the raw template to execute.
+          One of source or data must be specified, but not both.
+          This is useful for smaller templates, but we recommend using source for larger templates.
+        '';
+      };
+
+      destination = mkOption {
+        type = nullOr str;
+        default = null;
+        description = ''
+          Specifies the location where the resulting template should be
+          rendered, relative to the task directory.
+        '';
+      };
+
+      source = mkOption {
+        type = nullOr str;
+        default = null;
+        description = ''
+          Specifies the path to the template to be rendered. One of source or
+          data must be specified, but not both. This source can optionally be
+          fetched using an artifact resource. This template must exist on the
+          machine prior to starting the task; it is not possible to reference a
+          template inside of a Docker container, for example.
+        '';
+      };
+    };
+  });
+
   taskType = submodule ({ name, ... }: {
     options = {
       artifact = mkOption {
@@ -430,7 +471,25 @@ let
         default = null;
         apply = mapArtifacts;
         description = ''
-          Nomad downloads artifacts using go-getter. The go-getter library allows downloading of artifacts from various sources using a URL as the input source. The key-value pairs given in the options block map directly to parameters appended to the supplied source URL. These are then used by go-getter to appropriately download the artifact. go-getter also has a CLI tool to validate its URL and can be used to check if the Nomad artifact is valid.
+          Nomad downloads artifacts using go-getter. The go-getter library
+          allows downloading of artifacts from various sources using a URL as
+          the input source. The key-value pairs given in the options block map
+          directly to parameters appended to the supplied source URL. These are
+          then used by go-getter to appropriately download the artifact.
+          go-getter also has a CLI tool to validate its URL and can be used to
+          check if the Nomad artifact is valid.
+        '';
+      };
+
+      template = mkOption {
+        type = nullOr (listOf templateType);
+        default = null;
+        apply = mapTemplates;
+        description = ''
+          The template block instantiates an instance of a template renderer.
+          This creates a convenient way to ship configuration files that are
+          populated from environment variables, Consul data, Vault secrets, or
+          just general configurations within a Nomad task.
         '';
       };
 
