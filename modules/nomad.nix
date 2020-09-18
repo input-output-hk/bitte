@@ -1003,6 +1003,21 @@ in {
               The path to the key file to use for Nomad's TLS communication.
             '';
           };
+
+          create_from_role = mkOption {
+            type = nullOr str;
+            default = null;
+            description = ''
+              Specifies the role to create tokens from. The token given to
+              Nomad does not have to be created from this role but must have
+              "update" capability on "auth/token/create/<create_from_role>"
+              path in Vault. If this value is unset and the token is created
+              from a role, the value is defaulted to the role the token is
+              from. This is largely for backwards compatibility. It is
+              recommended to set the create_from_role field if Nomad is
+              deriving child tokens from a role.
+            '';
+          };
         };
       };
     };
