@@ -1124,7 +1124,7 @@ in {
 
         ExecStartPre = "!${start-pre}";
         ExecStart = let
-          args = [ "@${cfg.package}/bin/nomad" "nomad" "agent" ]
+          args = [ "${cfg.package}/bin/nomad" "agent" ]
             ++ (lib.optionals (cfg.configDir != null) [
               "-config"
               (toString cfg.configDir)
@@ -1132,7 +1132,15 @@ in {
               "-plugin-dir"
               (toString cfg.pluginDir)
             ]);
-        in lib.concatStringsSep " " args;
+        in pkgs.writeShellScript "nomad" ''
+          if [ -s /run/keys/vault-token ]; then
+            export VAULT_TOKEN="$(< /run/keys/vault-token)"
+            exec ${lib.concatStringsSep " " args}
+          else
+            echo "Nomad service failed due to missing Vault token"
+            exit 1
+          fi
+        '';
 
         KillMode = "process";
         LimitNOFILE = "infinity";

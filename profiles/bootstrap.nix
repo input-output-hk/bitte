@@ -112,12 +112,21 @@ in {
         VAULT_ADDR = "https://127.0.0.1:8200";
       };
 
-      path = with pkgs; [ sops vault-bin consul nomad coreutils jq ];
+      path = with pkgs; [ sops vault-bin consul nomad coreutils jq curl ];
 
       script = let
         consulPolicies =
           map (name: ''vault write "consul/roles/${name}" "policies=${name}"'')
           (attrNames config.services.consul.policies);
+
+        nomadClusterRole = pkgs.toPrettyJSON "nomad-cluster-role" {
+          disallowed_policies = "nomad-server,admin,core,client";
+          token_explicit_max_ttl = 0;
+          name = "nomad-cluster";
+          orphan = true;
+          token_period = 259200;
+          renewable = true;
+        };
       in ''
         set -exuo pipefail
 
@@ -129,6 +138,40 @@ in {
         set -x
 
         ${concatStringsSep "\n" consulPolicies}
+
+        vault write /auth/token/roles/nomad-cluster @${nomadClusterRole}
+
+        # Finally allow IAM roles to login to Vault
+
+        arn="$(
+          curl -f -s http://169.254.169.254/latest/meta-data/iam/info \
+          | jq -e -r .InstanceProfileArn \
+          | sed 's/:instance.*//'
+        )"
+
+        vault write auth/aws/role/core-iam \
+          auth_type=iam \
+          bound_iam_principal_arn="$arn:role/${config.cluster.name}-core" \
+          policies=default,core,nomad-server
+
+        vault write auth/aws/role/${config.cluster.name}-core \
+          auth_type=iam \
+          bound_iam_principal_arn="$arn:role/${config.cluster.name}-core" \
+          policies=default,core,nomad-server
+
+        vault write auth/aws/role/${config.cluster.name}-client \
+          auth_type=iam \
+          bound_iam_principal_arn="$arn:role/${config.cluster.name}-client" \
+          policies=default,client \
+          max_ttl=24h
+
+        ${concatStringsSep "\n" (forEach adminNames (name: ''
+          vault write "auth/aws/role/${name}" \
+            auth_type=iam \
+            bound_iam_principal_arn="$arn:user/${name}" \
+            policies=default,admin \
+            max_ttl=24h
+        ''))}
       '';
     };
 
@@ -340,40 +383,6 @@ in {
 
         ${config.instance.initialVaultSecrets.consul}
         ${config.instance.initialVaultSecrets.nomad}
-
-        # Finally allow IAM roles to login to Vault
-
-        arn="$(
-          curl -f -s http://169.254.169.254/latest/meta-data/iam/info \
-          | jq -e -r .InstanceProfileArn \
-          | sed 's/:instance.*//'
-        )"
-
-        vault write auth/aws/role/core-iam \
-          auth_type=iam \
-          bound_iam_principal_arn="$arn:role/${config.cluster.name}-core" \
-          policies=default,core \
-          max_ttl=24h
-
-        vault write auth/aws/role/${config.cluster.name}-core \
-          auth_type=iam \
-          bound_iam_principal_arn="$arn:role/${config.cluster.name}-core" \
-          policies=default,core \
-          max_ttl=12h
-
-        vault write auth/aws/role/${config.cluster.name}-client \
-          auth_type=iam \
-          bound_iam_principal_arn="$arn:role/${config.cluster.name}-client" \
-          policies=default,client \
-          max_ttl=1h
-
-        ${concatStringsSep "\n" (forEach adminNames (name: ''
-          vault write "auth/aws/role/${name}" \
-            auth_type=iam \
-            bound_iam_principal_arn="$arn:user/${name}" \
-            policies=default,admin \
-            max_ttl=12h
-        ''))}
 
         touch .bootstrap-done
       '';

@@ -266,7 +266,7 @@ let
           options = {
             policies = mkOption {
               type = listOf str;
-              default = [];
+              default = [ ];
             };
           };
         });
@@ -606,13 +606,12 @@ let
         '';
       };
 
-
       vault = mkOption {
         type = nullOr (submodule {
           options = {
             policies = mkOption {
               type = listOf str;
-              default = [];
+              default = [ ];
             };
           };
         });

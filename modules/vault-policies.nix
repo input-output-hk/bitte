@@ -134,40 +134,6 @@ in {
           vault delete "nomad/role/$role"
         fi
       done
-
-      # Finally allow IAM roles to login to Vault
-
-      arn="$(
-        curl -f -s http://169.254.169.254/latest/meta-data/iam/info \
-        | jq -e -r .InstanceProfileArn \
-        | sed 's/:instance.*//'
-      )"
-
-      vault write auth/aws/role/core-iam \
-        auth_type=iam \
-        bound_iam_principal_arn="$arn:role/${config.cluster.name}-core" \
-        policies=default,core \
-        max_ttl=24h
-
-      vault write auth/aws/role/${config.cluster.name}-core \
-        auth_type=iam \
-        bound_iam_principal_arn="$arn:role/${config.cluster.name}-core" \
-        policies=default,core \
-        max_ttl=12h
-
-      vault write auth/aws/role/${config.cluster.name}-client \
-        auth_type=iam \
-        bound_iam_principal_arn="$arn:role/${config.cluster.name}-client" \
-        policies=default,client \
-        max_ttl=1h
-
-      ${concatStringsSep "\n" (forEach adminNames (name: ''
-        vault write "auth/aws/role/${name}" \
-          auth_type=iam \
-          bound_iam_principal_arn="$arn:user/${name}" \
-          policies=default,admin \
-          max_ttl=12h
-      ''))}
     '';
   };
 }

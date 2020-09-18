@@ -94,13 +94,14 @@ let
 
       (if config.services.nomad.enable then {
         template = {
-          command = "${pkgs.systemd}/bin/systemctl restart nomad.service";
+          command =
+            "${pkgs.systemd}/bin/systemctl reload nomad.service || ${pkgs.systemd}/bin/systemctl restart nomad.service";
           destination = "/etc/nomad.d/consul-token.json";
           contents = ''
-            {{ with secret "consul/creds/nomad-server" }}
+
             {
               "consul": {
-                "token": "{{ .Data.token }}"
+                "token": "{{ with secret "consul/creds/nomad-server" }}{{ .Data.token }}{{ end }}"
               }
             }
             {{ end }}
