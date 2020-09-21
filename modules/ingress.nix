@@ -48,7 +48,7 @@ let
       hold valid 5s
 
     backend nomad
-      default-server ssl ca-file consul-ca.pem check check-ssl maxconn 2000 
+      default-server ssl ca-file consul-ca.pem check check-ssl maxconn 2000
     {{ range service "http.nomad" }}
       server {{.ID}} {{.Address}}:{{.Port}}
     {{- end }}

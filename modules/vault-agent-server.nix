@@ -127,11 +127,6 @@ in {
         VAULT_CACERT = "/etc/ssl/certs/full.pem";
         CONSUL_HTTP_ADDR = "127.0.0.1:8500";
         CONSUL_CACERT = "/etc/ssl/certs/full.pem";
-
-        # TODO: figure out why we sometimes cannot renew the certificate.
-        # Is it related to IAM session length?
-        # This should definitely verify, but is too fragile right now.
-        VAULT_SKIP_VERIFY = "true";
       };
 
       path = with pkgs; [ vault-bin ];

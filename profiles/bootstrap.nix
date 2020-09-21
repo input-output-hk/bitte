@@ -359,7 +359,7 @@ in {
           allow_any_name=true \
           enforce_hostnames=false \
           generate_lease=true \
-          max_ttl=1h
+          max_ttl=72h
 
         vault write \
           pki/roles/client \
@@ -378,8 +378,6 @@ in {
           enforce_hostnames=false \
           generate_lease=true \
           max_ttl=12h
-
-        vault kv put kv/bootstrap/ca cert=@/etc/ssl/certs/ca.pem
 
         ${config.instance.initialVaultSecrets.consul}
         ${config.instance.initialVaultSecrets.nomad}
