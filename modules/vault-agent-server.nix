@@ -98,13 +98,11 @@ let
             "${pkgs.systemd}/bin/systemctl reload nomad.service || ${pkgs.systemd}/bin/systemctl restart nomad.service";
           destination = "/etc/nomad.d/consul-token.json";
           contents = ''
-
             {
               "consul": {
                 "token": "{{ with secret "consul/creds/nomad-server" }}{{ .Data.token }}{{ end }}"
               }
             }
-            {{ end }}
           '';
         };
       } else
