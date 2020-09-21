@@ -1,6 +1,6 @@
 { lib, pkgs, config, ... }:
 let
-  inherit (config.cluster) domain region instances;
+  inherit (config.cluster) domain region instances kms;
   acme-full = "/etc/ssl/certs/${config.cluster.domain}-full.pem";
 in {
   imports = [
@@ -86,7 +86,7 @@ in {
       };
 
       security = {
-        adminPassword = "finalist superjet unlinked delay stinking hubcap";
+        adminPasswordFile = /var/lib/grafana/password;
       };
     };
 
@@ -109,4 +109,24 @@ in {
   };
 
   systemd.services.haproxy.serviceConfig.RestartSec = "15s";
+
+  secrets.generate.grafana-password = ''
+    export PATH="${lib.makeBinPath (with pkgs; [ coreutils sops xkcdpass ])}"
+
+    if [ ! -s encrypted/grafana-password.json ]; then
+      xkcdpass \
+      | sops --encrypt --kms '${kms}' /dev/stdin \
+      > encrypted/grafana-password.json
+    fi
+  '';
+
+  secrets.install.grafana-password.script = ''
+    export PATH="${lib.makeBinPath (with pkgs; [ sops coreutils ])}"
+
+    mkdir -p /var/lib/grafana
+
+    cat ${config.secrets.encryptedRoot + "/grafana-password.json"} \
+      | sops -d /dev/stdin \
+      > /var/lib/grafana/password
+  '';
 }

@@ -68,6 +68,7 @@ let
             trap 'rm -f secrets/generate.lock' EXIT
 
             ${scripts}
+            git add encrypted/
           '';
       };
     };
