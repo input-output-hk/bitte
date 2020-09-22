@@ -101,7 +101,7 @@ in {
     target = /etc/consul.d/secrets.json;
   };
 
-  secrets.install.consul-clients = lib.mkIf isInstance {
+  secrets.install.consul-clients = lib.mkIf (!isInstance) {
     source = config.secrets.encryptedRoot + "/consul-clients.json";
     target = /etc/consul.d/secrets.json;
   };

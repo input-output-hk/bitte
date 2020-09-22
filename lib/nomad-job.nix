@@ -29,6 +29,7 @@ let
     DestPath = value.destination or null;
     EmbeddedTmpl = value.data or "";
     SourcePath = value.source or null;
+    Envvars = value.env or false;
   });
 
   mapConstraints = nullMap (value: {

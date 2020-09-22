@@ -162,7 +162,7 @@ in {
         vault write auth/aws/role/${config.cluster.name}-client \
           auth_type=iam \
           bound_iam_principal_arn="$arn:role/${config.cluster.name}-client" \
-          policies=default,client \
+          policies=default,client,nomad-server \
           max_ttl=24h
 
         ${concatStringsSep "\n" (forEach adminNames (name: ''

@@ -19,14 +19,6 @@ in {
     services.vault = {
       logLevel = "trace";
 
-      serviceRegistration.consul = {
-        scheme = "https";
-        address = "127.0.0.1:8501";
-        tlsClientCaFile = full;
-        tlsCertFile = cert;
-        tlsKeyFile = key;
-      };
-
       seal.awskms = {
         kmsKeyId = kms;
         inherit region;
@@ -40,13 +32,6 @@ in {
         tlsCertFile = cert;
         tlsKeyFile = key;
         tlsMinVersion = "tls13";
-      };
-
-      storage.consul = {
-        address = "127.0.0.1:8500";
-        tlsCaFile = full;
-        tlsCertFile = cert;
-        tlsKeyFile = key;
       };
 
       telemetry = {

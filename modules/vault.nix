@@ -179,7 +179,8 @@ in {
     };
 
     storage = mkOption {
-      type = submodule {
+      default = null;
+      type = nullOr ( submodule {
         options = {
           raft = mkOption {
             type = nullOr storageRaftType;
@@ -191,7 +192,7 @@ in {
             default = null;
           };
         };
-      };
+      } );
     };
 
     listener = mkOption {
@@ -399,7 +400,7 @@ in {
       script = ''
         set -exuo pipefail
 
-        [ -s /etc/vault.d/consul-tokens.json ] && exit
+        [ -s /etc/vault.d/consul-token.json ] && exit
         [ -s /etc/consul.d/secrets.json ]
         jq -e .acl.tokens.master /etc/consul.d/secrets.json || exit
 
@@ -417,7 +418,7 @@ in {
         echo '{}' \
         | jq --arg token "$vaultToken" '.storage.consul.token = $token' \
         | jq --arg token "$vaultToken" '.service_registration.consul.token = $token' \
-        > /etc/vault.d/consul-tokens.json.new
+        > /etc/vault.d/consul-token.json.new
 
         mv /etc/vault.d/consul-token.json.new /etc/vault.d/consul-token.json
       '';

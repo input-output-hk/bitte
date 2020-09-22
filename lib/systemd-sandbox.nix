@@ -1,10 +1,29 @@
 { writeShellScript, writeReferencesToFile, writeText, bash, lib, systemd
 , nixFlakes, cacert }:
 { name, command, args ? [ ], env ? { }, extraSystemdProperties ? { }
-, resources ? { } }:
+, resources ? { }, templates ? [ ], artifacts ? [ ], vault ? null
+, extraEnvironmentVariables ? [ ] }:
 let
   inherit (builtins) foldl' typeOf attrNames attrValues;
   inherit (lib) flatten pathHasContext isDerivation;
+
+  standardEnvironmentVariables = [
+    "INVOCATION_ID"
+    "NOMAD_ALLOC_DIR"
+    "NOMAD_ALLOC_ID"
+    "NOMAD_ALLOC_INDEX"
+    "NOMAD_ALLOC_NAME"
+    "NOMAD_CPU_LIMIT"
+    "NOMAD_DC"
+    "NOMAD_GROUP_NAME"
+    "NOMAD_JOB_NAME"
+    "NOMAD_MEMORY_LIMIT"
+    "NOMAD_NAMESPACE"
+    "NOMAD_REGION"
+    "NOMAD_SECRETS_DIR"
+    "NOMAD_TASK_DIR"
+    "NOMAD_TASK_NAME"
+  ];
 
   onlyStringsWithContext = sum: input:
     let type = typeOf input;
@@ -77,22 +96,11 @@ let
     echo "dependencies: ${toString cleanLines}"
 
     exec ${systemd}/bin/systemd-run \
-      --setenv "INVOCATION_ID=$INVOCATION_ID" \
-      --setenv "NOMAD_ALLOC_DIR=$NOMAD_ALLOC_DIR" \
-      --setenv "NOMAD_ALLOC_ID=$NOMAD_ALLOC_ID" \
-      --setenv "NOMAD_ALLOC_INDEX=$NOMAD_ALLOC_INDEX" \
-      --setenv "NOMAD_ALLOC_NAME=$NOMAD_ALLOC_NAME" \
-      --setenv "NOMAD_CPU_LIMIT=$NOMAD_CPU_LIMIT" \
-      --setenv "NOMAD_DC=$NOMAD_DC" \
-      --setenv "NOMAD_GROUP_NAME=$NOMAD_GROUP_NAME" \
-      --setenv "NOMAD_JOB_NAME=$NOMAD_JOB_NAME" \
-      --setenv "NOMAD_MEMORY_LIMIT=$NOMAD_MEMORY_LIMIT" \
-      --setenv "NOMAD_NAMESPACE=$NOMAD_NAMESPACE" \
-      --setenv "NOMAD_REGION=$NOMAD_REGION" \
-      --setenv "NOMAD_SECRETS_DIR=$NOMAD_SECRETS_DIR" \
-      --setenv "NOMAD_TASK_DIR=$NOMAD_TASK_DIR" \
-      --setenv "NOMAD_TASK_NAME=$NOMAD_TASK_NAME" \
       --setenv "HOME=$NOMAD_TASK_DIR" \
+      ${
+        lib.concatStringsSep "\n" (map (e: ''--setenv "${e}=''$${e}" \'')
+          (standardEnvironmentVariables ++ extraEnvironmentVariables))
+      }
       --property BindPaths="$NOMAD_ALLOC_DIR:$NOMAD_ALLOC_DIR $NOMAD_SECRETS_DIR:$NOMAD_SECRETS_DIR $NOMAD_TASK_DIR:$NOMAD_TASK_DIR" \
       ${systemdRunFlags} --  ${toString command} ${toString args}
   '';
@@ -101,7 +109,7 @@ in {
 
   driver = "raw_exec";
 
-  inherit resources;
+  inherit resources templates artifacts vault;
 
   config = {
     command = "${bash}/bin/bash";

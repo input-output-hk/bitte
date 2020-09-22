@@ -28,11 +28,11 @@ let
   reload-cvn = writeShellScript "reload-cvn" ''
     set -x
 
-    export PATH="$PATH:${pkgs.systemd}/bin"
+    export PATH="$PATH:${lib.makeBinPath (with pkgs; [ systemd curl ])}"
 
     systemctl reload consul.service || true
 
-    if [ "$(systemctl show nomad.service --property ActiveState)" = "ActiveState=active" ]; then
+    if curl -s -k https://127.0.0.1:4646/v1/status/leader &> /dev/null; then
       systemctl reload nomad.service || true
     else
       systemctl start nomad.service || true
@@ -143,12 +143,14 @@ let
             {
               "storage": {
                 "consul": {
-                  "token": "{{ .Data.token }}"
+                  "token": "{{ .Data.token }}",
+                  "address": "127.0.0.1:8500",
                 }
               },
               "service_registration": {
                 "consul": {
-                  "token": "{{ .Data.token }}"
+                  "token": "{{ .Data.token }}",
+                  "address": "127.0.0.1:8500",
                 }
               }
             }

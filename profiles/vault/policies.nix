@@ -16,9 +16,11 @@ in {
       "nomad/*".capabilities = [ c r u d l ];
       "pki/*".capabilities = [ c r u d l ];
 
-      "auth/token/create".capabilities = [ c r u d l ];
+      "auth/token/create".capabilities = [ c r u d l s ];
       "auth/token/create/*".capabilities = [ c r u d l ];
-      "auth/token/create/nomad-cluster".capabilities = [ c r u d l ];
+      "auth/token/create/nomad-cluster".capabilities = [ c r u d l s ];
+      "auth/token/create/nomad-server".capabilities = [ c r u d l s ];
+      "auth/token/roles/nomad-server".capabilities = [ r ];
       "auth/token/create-orphan".capabilities = [ c r u d l ];
       "auth/token/lookup".capabilities = [ c r u d l ];
       "auth/token/lookup-self".capabilities = [ r ];
@@ -64,16 +66,21 @@ in {
     # TODO: Pull list from config.cluster.iam
 
     client.path = {
+      "auth/token/create".capabilities = [ u ];
+      "auth/token/create/nomad-cluster".capabilities = [ u ];
+      "auth/token/create/nomad-server".capabilities = [ u ];
       "auth/token/lookup-self".capabilities = [ r ];
       "auth/token/renew-self".capabilities = [ u ];
-      "consul/creds/nomad-client".capabilities = [ r ];
+      "auth/token/roles/nomad-cluster".capabilities = [ r ];
+      "auth/token/roles/nomad-server".capabilities = [ r ];
       "consul/creds/consul-agent".capabilities = [ r ];
       "consul/creds/consul-default".capabilities = [ r ];
-      "consul/creds/vault-client".capabilities = [ r ];
       "consul/creds/consul-register".capabilities = [ r ];
-      "pki/roles/client".capabilities = [ r ];
-      "pki/issue/client".capabilities = [ c u ];
+      "consul/creds/nomad-client".capabilities = [ r ];
+      "consul/creds/vault-client".capabilities = [ r ];
       "kv/data/bootstrap/clients/*".capabilities = [ r ];
+      "pki/issue/client".capabilities = [ c u ];
+      "pki/roles/client".capabilities = [ r ];
       # TODO: add nomad creds here
     };
 
