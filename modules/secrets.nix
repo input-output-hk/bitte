@@ -19,6 +19,16 @@ let
         type = nullOr path;
         default = null;
       };
+
+      inputType = lib.mkOption {
+        type = enum [ "json" "yaml" "dotenv" "binary"];
+        default = "json";
+      };
+
+      outputType = lib.mkOption {
+        type = enum [ "json" "yaml" "dotenv" "binary"];
+        default = "json";
+      };
     };
   };
 
@@ -103,14 +113,16 @@ in {
           RestartSec = "30s";
           WorkingDirectory = "/run/keys";
         };
+
         path = with pkgs; [ sops coreutils ];
+
         script = ''
           set -euxo pipefail
 
           ${lib.optionalString (cfg.target != null && cfg.source != null) ''
             target="${toString cfg.target}"
             mkdir -p "$(dirname "$target")"
-            sops --decrypt --input-type json ${cfg.source} > "$target.new"
+            sops --decrypt --input-type ${cfg.inputType} ${cfg.source} > "$target.new"
             test -s "$target.new"
             mv "$target.new" "$target"
           ''}

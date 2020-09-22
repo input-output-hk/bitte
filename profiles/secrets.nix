@@ -8,6 +8,8 @@ let
   sopsDecrypt = path:
     "${pkgs.sops}/bin/sops --decrypt --input-type json ${path}";
 
+  isInstance = config.instance != null;
+
   names = [{
     O = "IOHK";
     C = "JP";
@@ -68,7 +70,7 @@ let
   };
 
 in {
-  secrets.generate.consul = ''
+  secrets.generate.consul = lib.mkIf isInstance ''
     export PATH="${lib.makeBinPath (with pkgs; [ consul toybox jq coreutils ])}"
 
     encrypt="$(consul keygen)"
@@ -89,22 +91,22 @@ in {
     fi
   '';
 
-  secrets.install.nomad-server = lib.mkIf (config.instance != null) {
+  secrets.install.nomad-server = lib.mkIf isInstance {
     source = config.secrets.encryptedRoot + "/nomad.json";
     target = /etc/nomad.d/secrets.json;
   };
 
-  secrets.install.consul-server = lib.mkIf (config.instance != null) {
+  secrets.install.consul-server = lib.mkIf isInstance {
     source = config.secrets.encryptedRoot + "/consul-core.json";
     target = /etc/consul.d/secrets.json;
   };
 
-  secrets.install.consul-clients = lib.mkIf (config.instance == null) {
+  secrets.install.consul-clients = lib.mkIf isInstance {
     source = config.secrets.encryptedRoot + "/consul-clients.json";
     target = /etc/consul.d/secrets.json;
   };
 
-  secrets.generate.nomad = ''
+  secrets.generate.nomad = lib.mkIf isInstance ''
     export PATH="${lib.makeBinPath (with pkgs; [ nomad jq ])}"
 
     if [ ! -s encrypted/nomad.json ]; then
@@ -117,7 +119,7 @@ in {
     fi
   '';
 
-  secrets.generate.cache = ''
+  secrets.generate.cache = lib.mkIf isInstance ''
     export PATH="${lib.makeBinPath (with pkgs; [ coreutils nixFlakes ])}"
 
     mkdir -p secrets encrypted
@@ -135,7 +137,7 @@ in {
     fi
   '';
 
-  secrets.generate.ca = ''
+  secrets.generate.ca = lib.mkIf isInstance ''
     export PATH="${
       lib.makeBinPath (with pkgs; [ cfssl jq coreutils terraform-with-plugins ])
     }"
@@ -150,31 +152,37 @@ in {
     jq --arg ip "$IP" '.hosts += [$ip]' < "$certConfigJson" \
     > cert.config
 
-    cert="$(
-      cfssl gencert \
-        -ca secrets/ca.pem \
-        -ca-key secrets/ca-key.pem \
-        -config "${caConfigJson}" \
-        -profile core \
-        cert.config \
-      | jq --arg ca "$(< secrets/ca.pem)" '.ca = $ca'
-    )"
-    echo "$cert" | cfssljson -bare secrets/cert
-    cat secrets/ca.pem <(echo) secrets/cert.pem > secrets/full.pem
-    cert="$(echo "$cert" | jq --arg full "$(< secrets/full.pem)" '.full = $full')"
-    echo "$cert" | ${sopsEncrypt} > encrypted/cert.json
+    if [ ! -s encrypted/cert.json ]; then
+      cert="$(
+        cfssl gencert \
+          -ca secrets/ca.pem \
+          -ca-key secrets/ca-key.pem \
+          -config "${caConfigJson}" \
+          -profile core \
+          cert.config \
+        | jq --arg ca "$(< secrets/ca.pem)" '.ca = $ca'
+      )"
+      echo "$cert" | cfssljson -bare secrets/cert
+      cat secrets/ca.pem <(echo) secrets/cert.pem > secrets/full.pem
+      cert="$(echo "$cert" | jq --arg full "$(< secrets/full.pem)" '.full = $full')"
+      echo "$cert" | ${sopsEncrypt} > encrypted/cert.json
+    fi
+
+    rm -f cert.config
   '';
 
-  secrets.install.certs.script = ''
-    export PATH="${lib.makeBinPath (with pkgs; [ cfssl jq coreutils ])}"
-    cert="$(${sopsDecrypt (config.secrets.encryptedRoot + "/cert.json")})"
-    echo "$cert" | cfssljson -bare cert
-    echo "$cert" | jq -r -e .ca  > "ca.pem"
-    echo "$cert" | jq -r -e .full  > "full.pem"
+  secrets.install.certs = lib.mkIf isInstance {
+    script = ''
+      export PATH="${lib.makeBinPath (with pkgs; [ cfssl jq coreutils ])}"
+      cert="$(${sopsDecrypt (config.secrets.encryptedRoot + "/cert.json")})"
+      echo "$cert" | cfssljson -bare cert
+      echo "$cert" | jq -r -e .ca  > "ca.pem"
+      echo "$cert" | jq -r -e .full  > "full.pem"
 
-    for pem in *.pem; do
+      for pem in *.pem; do
       [ -s "$pem" ]
       cp "$pem" "/etc/ssl/certs/$pem"
-    done
-  '';
+      done
+    '';
+  };
 }
