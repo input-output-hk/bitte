@@ -475,6 +475,15 @@ let
           template inside of a Docker container, for example.
         '';
       };
+
+      env = mkOption {
+        type = bool;
+        default = false;
+        description = ''
+          Specifies the template should be read back as environment variables
+          for the task.
+        '';
+      };
     };
   });
 

@@ -310,6 +310,8 @@ in {
     };
   };
 
+  options.services.vault-consul-token.enable = mkEnableOption "Enable Vault Consul Token";
+
   config = mkIf cfg.enable {
     environment.systemPackages = [ pkgs.vault-bin ];
 
@@ -379,9 +381,8 @@ in {
       };
     };
 
-    systemd.services.vault-consul-token = {
+    systemd.services.vault-consul-token = mkIf config.services.vault-consul-token.enable {
       after = [ "consul.service" ];
-      wants = [ "consul.service" ];
       wantedBy = [ "vault.service" ];
       before = [ "vault.service" ];
 

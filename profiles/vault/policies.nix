@@ -104,6 +104,12 @@ in {
 
       # Allow our own token to be renewed.
       "auth/token/renew-self".capabilities = [ u ];
+
+      "kv/data/nomad-cluster/*".capabilities = [ r l ];
+    };
+
+    nomad-cluster.path = {
+      "kv/data/nomad-cluster/*".capabilities = [ r l ];
     };
   };
 }

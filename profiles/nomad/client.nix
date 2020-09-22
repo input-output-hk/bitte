@@ -13,5 +13,7 @@
     #   "/usr/bin/env" = "/usr/bin/env";
     #   "/nix/store" = "/nix/store";
     # };
+
+    vault.address = "https://vault.service.consul:8200";
   };
 }

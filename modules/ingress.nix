@@ -61,7 +61,7 @@ let
 
     backend consul
       default-server check maxconn 2000
-    option httpchk HEAD /
+      option httpchk HEAD /
     {{ range $key, $value := service "consul" }}
       server consul{{ $key }} {{.Address}}:8500
     {{- end }}
