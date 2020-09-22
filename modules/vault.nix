@@ -419,7 +419,7 @@ in {
         | jq --arg token "$vaultToken" '.service_registration.consul.token = $token' \
         > /etc/vault.d/consul-tokens.json.new
 
-        mv /etc/vault.d/consul-tokens.json.new /etc/vault.d/consul-tokens.json
+        mv /etc/vault.d/consul-token.json.new /etc/vault.d/consul-token.json
       '';
     };
 
