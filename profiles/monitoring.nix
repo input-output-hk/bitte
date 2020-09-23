@@ -94,9 +94,7 @@ in {
         }];
       };
 
-      security = {
-        adminPasswordFile = /var/lib/grafana/password;
-      };
+      security = { adminPasswordFile = /var/lib/grafana/password; };
     };
 
     prometheus = {

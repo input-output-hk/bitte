@@ -1,29 +1,13 @@
 { writeShellScript, writeReferencesToFile, writeText, bash, lib, systemd
-, nixFlakes, cacert }:
+, nixFlakes, cacert, gawk }:
 { name, command, args ? [ ], env ? { }, extraSystemdProperties ? { }
 , resources ? { }, templates ? [ ], artifacts ? [ ], vault ? null
-, extraEnvironmentVariables ? [ ] }:
+, services ? { }, extraEnvironmentVariables ? [ ] }:
 let
   inherit (builtins) foldl' typeOf attrNames attrValues;
   inherit (lib) flatten pathHasContext isDerivation;
 
-  standardEnvironmentVariables = [
-    "INVOCATION_ID"
-    "NOMAD_ALLOC_DIR"
-    "NOMAD_ALLOC_ID"
-    "NOMAD_ALLOC_INDEX"
-    "NOMAD_ALLOC_NAME"
-    "NOMAD_CPU_LIMIT"
-    "NOMAD_DC"
-    "NOMAD_GROUP_NAME"
-    "NOMAD_JOB_NAME"
-    "NOMAD_MEMORY_LIMIT"
-    "NOMAD_NAMESPACE"
-    "NOMAD_REGION"
-    "NOMAD_SECRETS_DIR"
-    "NOMAD_TASK_DIR"
-    "NOMAD_TASK_NAME"
-  ];
+  standardEnvironmentVariables = [ "INVOCATION_ID" ];
 
   onlyStringsWithContext = sum: input:
     let type = typeOf input;
@@ -95,21 +79,31 @@ let
     echo "entering ${placeholder "out"}/bin/runner"
     echo "dependencies: ${toString cleanLines}"
 
+    mapfile -t keys < <(${gawk}/bin/awk 'BEGIN { for (key in ENVIRON) { if (key ~ /^NOMAD/) print key } }')
+    args=(
+      "--property" "BindPaths=$NOMAD_ALLOC_DIR:$NOMAD_ALLOC_DIR $NOMAD_SECRETS_DIR:$NOMAD_SECRETS_DIR $NOMAD_TASK_DIR:$NOMAD_TASK_DIR"
+      "--setenv" "HOME=$NOMAD_TASK_DIR"
+    )
+
+    for key in "''${keys[@]}"; do
+      args+=("--setenv")
+      args+=("$key=''${!key}")
+    done
+
     exec ${systemd}/bin/systemd-run \
-      --setenv "HOME=$NOMAD_TASK_DIR" \
+      "''${args[@]}" \
       ${
         lib.concatStringsSep "\n" (map (e: ''--setenv "${e}=''$${e}" \'')
           (standardEnvironmentVariables ++ extraEnvironmentVariables))
       }
-      --property BindPaths="$NOMAD_ALLOC_DIR:$NOMAD_ALLOC_DIR $NOMAD_SECRETS_DIR:$NOMAD_SECRETS_DIR $NOMAD_TASK_DIR:$NOMAD_TASK_DIR" \
-      ${systemdRunFlags} --  ${toString command} ${toString args}
+      ${systemdRunFlags} -- ${toString command} ${toString args}
   '';
 in {
   inherit name env;
 
   driver = "raw_exec";
 
-  inherit resources templates artifacts vault;
+  inherit resources templates artifacts vault services;
 
   config = {
     command = "${bash}/bin/bash";

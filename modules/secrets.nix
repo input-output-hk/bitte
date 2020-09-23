@@ -21,12 +21,12 @@ let
       };
 
       inputType = lib.mkOption {
-        type = enum [ "json" "yaml" "dotenv" "binary"];
+        type = enum [ "json" "yaml" "dotenv" "binary" ];
         default = "json";
       };
 
       outputType = lib.mkOption {
-        type = enum [ "json" "yaml" "dotenv" "binary"];
+        type = enum [ "json" "yaml" "dotenv" "binary" ];
         default = "json";
       };
     };

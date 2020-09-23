@@ -17,8 +17,8 @@
     vault.address = "https://vault.service.consul:8200";
   };
 
-  system.extraDependencies = [pkgs.pkgsStatic.busybox];
+  system.extraDependencies = [ pkgs.pkgsStatic.busybox ];
 
   users.extraUsers.nobody.isSystemUser = true;
-  users.groups.nogroup = {};
+  users.groups.nogroup = { };
 }

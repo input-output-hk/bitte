@@ -96,6 +96,116 @@ let
 
   nanoseconds = coercedTo str toNanoseconds ints.unsigned;
 
+  serviceType = attrsOf (submodule ({ name, ... }: {
+    options = {
+      name = mkOption {
+        type = str;
+        default = name;
+      };
+
+      portLabel = mkOption {
+        type = nullOr str;
+        default = null;
+      };
+
+      tags = mkOption {
+        type = listOf str;
+        default = [ ];
+      };
+
+      meta = mkOption {
+        type = attrsOf str;
+        default = { };
+      };
+
+      checks = mkOption {
+        default = null;
+        type = nullOr (listOf (submodule {
+          options = {
+            name = mkOption {
+              type = str;
+              default = "alive";
+            };
+
+            portLabel = mkOption {
+              type = nullOr str;
+              default = null;
+            };
+
+            path = mkOption {
+              type = nullOr str;
+              default = null;
+            };
+
+            type = mkOption {
+              type = enum [ "script" "tcp" "http" ];
+              default = "tcp";
+            };
+
+            interval = mkOption {
+              type = nanoseconds;
+              default = "10s";
+            };
+
+            timeout = mkOption {
+              type = nanoseconds;
+              default = "2s";
+            };
+
+            task = mkOption {
+              type = str;
+              default = name;
+            };
+          };
+        }));
+      };
+
+      connect = mkOption {
+        default = null;
+        type = nullOr (submodule {
+          options = {
+            sidecarService = mkOption {
+              default = null;
+              type = nullOr (submodule {
+                options = {
+                  proxy = mkOption {
+                    default = null;
+                    type = nullOr (submodule {
+                      options = {
+                        config = mkOption {
+                          default = null;
+                          type = nullOr (submodule {
+                            options = {
+                              protocol = mkOption {
+                                type =
+                                  nullOr (enum [ "tcp" "http" "http2" "grpc" ]);
+                                default = null;
+                              };
+                            };
+                          });
+                        };
+
+                        upstreams = mkOption {
+                          type = listOf (submodule {
+                            options = {
+                              destinationName = mkOption { type = str; };
+
+                              localBindPort = mkOption { type = port; };
+                            };
+                          });
+                        };
+                      };
+                    });
+                  };
+                };
+              });
+            };
+          };
+        });
+      };
+    };
+  }));
+
   taskGroupType = submodule ({ name, ... }: {
     options = {
       name = mkOption {
@@ -178,63 +288,8 @@ let
 
       services = mkOption {
         apply = attrValues;
-        type = attrsOf (submodule ({ name, ... }: {
-          options = {
-            name = mkOption {
-              type = str;
-              default = name;
-            };
-
-            portLabel = mkOption {
-              type = nullOr str;
-              default = null;
-            };
-
-            connect = mkOption {
-              default = null;
-              type = nullOr (submodule {
-                options = {
-                  sidecarService = mkOption {
-                    default = null;
-                    type = nullOr (submodule {
-                      options = {
-                        proxy = mkOption {
-                          default = null;
-                          type = nullOr (submodule {
-                            options = {
-                              config = mkOption {
-                                default = null;
-                                type = nullOr (submodule {
-                                  options = {
-                                    protocol = mkOption {
-                                      type = nullOr
-                                        (enum [ "tcp" "http" "http2" "grpc" ]);
-                                      default = null;
-                                    };
-                                  };
-                                });
-                              };
-
-                              upstreams = mkOption {
-                                type = listOf (submodule {
-                                  options = {
-                                    destinationName = mkOption { type = str; };
-
-                                    localBindPort = mkOption { type = port; };
-                                  };
-                                });
-                              };
-                            };
-                          });
-                        };
-                      };
-                    });
-                  };
-                };
-              });
-            };
-          };
-        }));
+        type = serviceType;
+        default = { };
       };
 
       shutdownDelay = mkOption {
@@ -630,6 +685,12 @@ let
           Specifies the set of Vault policies required by all tasks in this group.
           Overrides a vault block set at the job level.
         '';
+      };
+
+      services = mkOption {
+        apply = attrValues;
+        type = serviceType;
+        default = { };
       };
     };
   });

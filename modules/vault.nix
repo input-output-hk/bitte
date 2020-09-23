@@ -151,7 +151,7 @@ in {
 
     configDir = mkOption {
       type = str;
-      default = "/vault.d";
+      default = "vault.d";
     };
 
     extraConfig = mkOption {
@@ -180,7 +180,7 @@ in {
 
     storage = mkOption {
       default = null;
-      type = nullOr ( submodule {
+      type = nullOr (submodule {
         options = {
           raft = mkOption {
             type = nullOr storageRaftType;
@@ -192,7 +192,7 @@ in {
             default = null;
           };
         };
-      } );
+      });
     };
 
     listener = mkOption {
@@ -311,7 +311,8 @@ in {
     };
   };
 
-  options.services.vault-consul-token.enable = mkEnableOption "Enable Vault Consul Token";
+  options.services.vault-consul-token.enable =
+    mkEnableOption "Enable Vault Consul Token";
 
   config = mkIf cfg.enable {
     environment.systemPackages = [ pkgs.vault-bin ];
@@ -331,7 +332,7 @@ in {
       after = [ "network.target" "consul.service" ];
 
       restartTriggers = mapAttrsToList (_: d: d.source)
-        (filterAttrs (n: _: hasPrefix "${cfg.configDir}/" n)
+        (filterAttrs (n: _: hasPrefix "${cfg.configDir}" n)
           config.environment.etc);
 
       unitConfig.RequiresMountsFor = [ cfg.storagePath ];
@@ -382,47 +383,48 @@ in {
       };
     };
 
-    systemd.services.vault-consul-token = mkIf config.services.vault-consul-token.enable {
-      after = [ "consul.service" ];
-      wantedBy = [ "vault.service" ];
-      before = [ "vault.service" ];
+    systemd.services.vault-consul-token =
+      mkIf config.services.vault-consul-token.enable {
+        after = [ "consul.service" ];
+        wantedBy = [ "vault.service" ];
+        before = [ "vault.service" ];
 
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        Restart = "on-failure";
-        RestartSec = "20s";
-        ExecStartPre = ensureDependencies [ "consul" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          Restart = "on-failure";
+          RestartSec = "20s";
+          ExecStartPre = ensureDependencies [ "consul" ];
+        };
+
+        path = with pkgs; [ consul curl jq ];
+
+        script = ''
+          set -exuo pipefail
+
+          [ -s /etc/vault.d/consul-token.json ] && exit
+          [ -s /etc/consul.d/secrets.json ]
+          jq -e .acl.tokens.master /etc/consul.d/secrets.json || exit
+
+          CONSUL_HTTP_TOKEN="$(jq -e -r .acl.tokens.master /etc/consul.d/secrets.json)"
+          export CONSUL_HTTP_TOKEN
+
+          vaultToken="$(
+            consul acl token create \
+              -policy-name=vault-server \
+              -description "vault-server ${nodeName} $(date +%Y-%m-%d-%H-%M-%S)" \
+              -format json \
+            | jq -e -r .SecretID
+          )"
+
+          echo '{}' \
+          | jq --arg token "$vaultToken" '.storage.consul.token = $token' \
+          | jq --arg token "$vaultToken" '.service_registration.consul.token = $token' \
+          > /etc/vault.d/consul-token.json.new
+
+          mv /etc/vault.d/consul-token.json.new /etc/vault.d/consul-token.json
+        '';
       };
-
-      path = with pkgs; [ consul curl jq ];
-
-      script = ''
-        set -exuo pipefail
-
-        [ -s /etc/vault.d/consul-token.json ] && exit
-        [ -s /etc/consul.d/secrets.json ]
-        jq -e .acl.tokens.master /etc/consul.d/secrets.json || exit
-
-        CONSUL_HTTP_TOKEN="$(jq -e -r .acl.tokens.master /etc/consul.d/secrets.json)"
-        export CONSUL_HTTP_TOKEN
-
-        vaultToken="$(
-          consul acl token create \
-            -policy-name=vault-server \
-            -description "vault-server ${nodeName} $(date +%Y-%m-%d-%H-%M-%S)" \
-            -format json \
-          | jq -e -r .SecretID
-        )"
-
-        echo '{}' \
-        | jq --arg token "$vaultToken" '.storage.consul.token = $token' \
-        | jq --arg token "$vaultToken" '.service_registration.consul.token = $token' \
-        > /etc/vault.d/consul-token.json.new
-
-        mv /etc/vault.d/consul-token.json.new /etc/vault.d/consul-token.json
-      '';
-    };
 
     systemd.services.vault-aws-addr = {
       wantedBy = [ "vault.service" ];
