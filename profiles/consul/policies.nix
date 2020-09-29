@@ -132,6 +132,12 @@
         servicePrefix = allWrite;
         keyPrefix = allRead;
       };
+
+      ingress = {
+        nodePrefix = allRead;
+        servicePrefix = allRead;
+        queryPrefix = allRead;
+      };
     };
   };
 }

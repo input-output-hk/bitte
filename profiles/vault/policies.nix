@@ -33,34 +33,46 @@ in {
       "sys/policies/*".capabilities = [ c r u d l ];
       "sys/policy".capabilities = [ c r u d l ];
       "sys/policy/*".capabilities = [ c r u d l ];
+      "sys/auth/aws".capabilities = [ c r u d l s ];
+      "sys/auth".capabilities = [ r l ];
+      "auth/aws/role/*".capabilities = [ c r u d l ];
+      "auth/aws/config/client".capabilities = [ c r u d l ];
+    };
+
+    developer.path = {
+      "sys/capabilities-self".capabilities = [ u ];
+      "auth/token/lookup-self".capabilities = [ r ];
+      "auth/token/renew-self".capabilities = [ u ];
     };
 
     core.path = {
-      "consul/creds/*".capabilities = [ r ];
-      "nomad/creds/*".capabilities = [ r ];
-      "nomad/config/access".capabilities = [ c u ];
-      "kv/data/bootstrap/*".capabilities = [ r ];
-      "kv/data/bootstrap/ca".capabilities = [ c r u d l ];
-
       "auth/token/create".capabilities = [ c r u d l s ];
-      "auth/token/create/nomad-server".capabilities = [ u ];
       "auth/token/create/nomad-cluster".capabilities = [ u ];
+      "auth/token/create/nomad-server".capabilities = [ u ];
       "auth/token/create-orphan".capabilities = [ c r u d l ];
       "auth/token/lookup".capabilities = [ u ];
       "auth/token/lookup-self".capabilities = [ r ];
       "auth/token/renew-self".capabilities = [ u ];
       "auth/token/revoke-accessor".capabilities = [ u ];
-      "auth/token/roles/nomad-server".capabilities = [ r ];
       "auth/token/roles/nomad-cluster".capabilities = [ r ];
-      "sys/capabilities-self".capabilities = [ u ];
-
-      "pki/roles/server".capabilities = [ r ];
-      "pki/issue/*".capabilities = [ c u ];
-      "pki/certs".capabilities = [ l ];
-      "pki/revoke".capabilities = [ c u ];
-      "pki/tidy".capabilities = [ c u ];
+      "auth/token/roles/nomad-server".capabilities = [ r ];
+      "consul/creds/consul-server-agent".capabilities = [ r ];
+      "consul/creds/consul-server-default".capabilities = [ r ];
+      "consul/creds/nomad-server".capabilities = [ r ];
+      "consul/creds/vault-server".capabilities = [ r ];
+      "consul/creds/ingress".capabilities = [ r ];
+      "kv/data/bootstrap/ca".capabilities = [ c r u d l ];
+      "kv/data/bootstrap/*".capabilities = [ r ];
+      "nomad/config/access".capabilities = [ c u ];
+      "nomad/creds/*".capabilities = [ r ];
       "pki/cert/ca".capabilities = [ r ];
+      "pki/certs".capabilities = [ l ];
       "pki-consul/*".capabilities = [ s ];
+      "pki/issue/*".capabilities = [ c u ];
+      "pki/revoke".capabilities = [ c u ];
+      "pki/roles/server".capabilities = [ r ];
+      "pki/tidy".capabilities = [ c u ];
+      "sys/capabilities-self".capabilities = [ u ];
     };
 
     # TODO: Pull list from config.cluster.iam

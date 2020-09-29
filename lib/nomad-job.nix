@@ -30,6 +30,7 @@ let
     EmbeddedTmpl = value.data or "";
     SourcePath = value.source or null;
     Envvars = value.env or false;
+    ChangeMode = value.changeMode or "restart";
   });
 
   mapConstraints = nullMap (value: {
@@ -538,6 +539,17 @@ let
         description = ''
           Specifies the template should be read back as environment variables
           for the task.
+        '';
+      };
+
+      changeMode = mkOption {
+        type = nullOr (enum ["restart" "signal" "noop"]);
+        default = "restart";
+        description = ''
+          Specifies the behavior Nomad should take if the rendered template
+          changes. Nomad will always write the new contents of the template to
+          the specified destination. The possible values below describe Nomad's
+          action after writing the template to disk.
         '';
       };
     };

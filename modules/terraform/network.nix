@@ -88,49 +88,6 @@ in {
         };
       });
 
-    # resource.aws_vpc_peering_connection =
-    #   lib.pipe (pkgs.terralib.vpcs config.cluster) [
-    #     (lib.filter (vpc: vpc.region != config.cluster.region))
-    #     (map (vpc:
-    #       lib.nameValuePair "${vpc.region}-requester" {
-    #         provider = awsProviderFor vpc.region;
-    #         vpc_id = id "aws_vpc.${vpc.region}";
-    #         peer_vpc_id = id "aws_vpc.core";
-    #         peer_owner_id = var "data.aws_caller_identity.core.account_id";
-    #         peer_region = config.cluster.region;
-    #         auto_accept = false;
-    #         lifecycle = [{ create_before_destroy = true; }];
-    #
-    #         tags = tags // {
-    #           Name = "${vpc.name}-requester";
-    #           Region = vpc.region;
-    #           Side = "requester";
-    #         };
-    #       }))
-    #     builtins.listToAttrs
-    #   ];
-
-    # resource.aws_vpc_peering_connection_accepter =
-    #   lib.pipe (pkgs.terralib.vpcs config.cluster) [
-    #     (lib.filter (vpc: vpc.region != config.cluster.region))
-    #     (map (vpc:
-    #       lib.nameValuePair "${vpc.region}-accepter" {
-    #         provider = awsProviderFor config.cluster.region;
-    #         vpc_id = id "aws_vpc.core";
-    #         peer_vpc_id = id "aws_vpc.${vpc.region}";
-    #         vpc_peering_connection_id =
-    #           id "aws_vpc_peering_connection.${vpc.region}-requester";
-    #         auto_accept = true;
-    #         lifecycle = [{ create_before_destroy = true; }];
-    #         tags = tags // {
-    #           Name = "${vpc.name}-accepter";
-    #           Region = vpc.region;
-    #           Side = "accepter";
-    #         };
-    #       }))
-    #     builtins.listToAttrs
-    #   ];
-
     resource.aws_subnet = mapVpcs (vpc:
       lib.flip lib.mapAttrsToList vpc.subnets (suffix: subnet:
         lib.nameValuePair "${vpc.region}-${suffix}" {

@@ -156,7 +156,7 @@ in {
 
         VAULT_TOKEN="$(vault login -method aws -no-store -token-only)"
         export VAULT_TOKEN
-        CONSUL_HTTP_TOKEN="$(vault read -field token consul/creds/consul-server-default)"
+        CONSUL_HTTP_TOKEN="$(vault read -field token consul/creds/ingress)"
         export CONSUL_HTTP_TOKEN
 
         set -x

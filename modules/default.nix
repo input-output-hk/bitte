@@ -11,11 +11,12 @@
     ./s3-download.nix
     ./s3-upload.nix
     ./secrets.nix
-    ./terraform.nix
-    ./terraform/core.nix
     ./terraform/clients.nix
     ./terraform/consul.nix
+    ./terraform/core.nix
+    ./terraform/iam.nix
     ./terraform/network.nix
+    ./terraform.nix
     ./vault-agent-client.nix
     ./vault-agent-server.nix
     ./vault.nix

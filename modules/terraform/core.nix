@@ -1,6 +1,5 @@
 { self, lib, pkgs, config, ... }:
 let
-  inherit (lib) types;
   inherit (pkgs.terralib)
     var id pp regions awsProviderNameFor awsProviderFor mkSecurityGroupRule
     nullRoute;

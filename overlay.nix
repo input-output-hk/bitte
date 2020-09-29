@@ -1,6 +1,6 @@
 { system, self }:
 let
-  inherit (self.inputs) nixpkgs nix ops-lib;
+  inherit (self.inputs) nixpkgs nix ops-lib nixpkgs-terraform nixpkgs-crystal;
   inherit (builtins) fromJSON toJSON trace mapAttrs genList foldl';
   inherit (nixpkgs) lib;
 in final: prev: {
@@ -32,9 +32,20 @@ in final: prev: {
 
   consul = prev.callPackage ./pkgs/consul { };
 
-  terraform-with-plugins = prev.terraform.withPlugins (plugins:
-    lib.attrVals [ "null" "local" "aws" "tls" "sops" "consul" "acme" "null" ]
-    plugins);
+  terraform-with-plugins =
+    nixpkgs-terraform.legacyPackages.${system}.terraform_0_12.withPlugins
+    (plugins:
+      lib.attrVals [
+        "acme"
+        "aws"
+        "consul"
+        "local"
+        "nomad"
+        "null"
+        "sops"
+        "tls"
+        "vault"
+      ] plugins);
 
   mkShellNoCC = prev.mkShell.override { stdenv = prev.stdenvNoCC; };
 
@@ -48,7 +59,7 @@ in final: prev: {
 
   inherit (self.inputs.inclusive.lib) inclusive;
 
-  inherit (self.inputs.nixpkgs-crystal.legacyPackages.${system}) crystal;
+  inherit (nixpkgs-crystal.legacyPackages.${system}) crystal;
 
   pp = v: trace (toJSON v) v;
 
