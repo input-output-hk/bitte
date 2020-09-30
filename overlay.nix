@@ -131,14 +131,15 @@ in final: prev: {
     merge = lib.foldl' lib.recursiveUpdate { };
 
     nullRoute = {
-      gateway_id = null;
       egress_only_gateway_id = null;
       instance_id = null;
       ipv6_cidr_block = null;
+      local_gateway_id = null;
       nat_gateway_id = null;
       network_interface_id = null;
       transit_gateway_id = null;
       vpc_peering_connection_id = null;
+      gateway_id = null;
     };
 
     vpcs = cluster:

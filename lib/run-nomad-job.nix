@@ -2,9 +2,10 @@
 writeShellScriptBin "nomad-run" ''
   echo running ${json}
 
-  set -xeuo pipefail
+  set -euo pipefail
 
-  vault login -method aws -no-print
+  vault token lookup "$(vault print token)" \
+  || vault login -method aws -no-print
 
   NOMAD_TOKEN="$(vault read -field secret_id nomad/creds/admin)"
   export NOMAD_TOKEN
@@ -20,6 +21,7 @@ writeShellScriptBin "nomad-run" ''
   | curl -f \
     -X POST \
     -H "X-Nomad-Token: $NOMAD_TOKEN" \
+    -H "X-Vault-Token: $(vault print token)" \
     -d @- \
     "$NOMAD_ADDR/v1/jobs"
 ''

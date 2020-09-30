@@ -77,12 +77,6 @@ in {
           vpc_zone_identifier = lib.flip lib.mapAttrsToList group.vpc.subnets
             (suffix: _: id "data.aws_subnet.${group.region}-${suffix}");
 
-          availability_zones = lib.flip lib.imap0 group.subnets (idx: _:
-            var
-            "data.aws_availability_zones.available_in_${group.region}.names[${
-              toString idx
-            }]");
-
           min_size = group.minSize;
           max_size = group.maxSize;
           desired_capacity = group.desiredCapacity;

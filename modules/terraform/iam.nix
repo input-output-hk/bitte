@@ -40,14 +40,15 @@ in {
       policy = var "data.vault_policy_document.developer.hcl";
     };
 
-    resource.vault_aws_auth_backend_role = lib.listToAttrs (lib.forEach users (user:
-      lib.nameValuePair user {
-        backend = "aws";
-        role = user;
-        auth_type = "iam";
-        bound_iam_principal_arns = [ (var "aws_iam_user.${user}.arn") ];
-        token_policies = [ "default" "developer" ];
-      }));
+    resource.vault_aws_auth_backend_role = lib.listToAttrs (lib.forEach users
+      (user:
+        lib.nameValuePair user {
+          backend = "aws";
+          role = user;
+          auth_type = "iam";
+          bound_iam_principal_arns = [ (var "aws_iam_user.${user}.arn") ];
+          token_policies = [ "default" "developer" ];
+        }));
 
     resource.vault_aws_secret_backend_role = lib.listToAttrs (lib.forEach users
       (user:

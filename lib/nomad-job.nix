@@ -157,6 +157,38 @@ let
               type = str;
               default = name;
             };
+
+            command = mkOption {
+              type = nullOr str;
+              default = null;
+            };
+
+            args = mkOption {
+              type = nullOr (listOf str);
+              default = null;
+            };
+
+            checkRestart = mkOption {
+              default = null;
+              type = nullOr (submodule {
+                options = {
+                  limit = mkOption {
+                    type = nullOr ints.positive;
+                    default = null;
+                  };
+
+                  grace = mkOption {
+                    type = nullOr nanoseconds;
+                    default = null;
+                  };
+
+                  ignoreWarnings = mkOption {
+                    type = nullOr bool;
+                    default = null;
+                  };
+                };
+              });
+            };
           };
         }));
       };
@@ -543,7 +575,7 @@ let
       };
 
       changeMode = mkOption {
-        type = nullOr (enum ["restart" "signal" "noop"]);
+        type = nullOr (enum [ "restart" "signal" "noop" ]);
         default = "restart";
         description = ''
           Specifies the behavior Nomad should take if the rendered template
