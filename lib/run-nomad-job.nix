@@ -4,7 +4,7 @@ writeShellScriptBin "nomad-run" ''
 
   set -euo pipefail
 
-  vault token lookup "$(vault print token)" \
+  vault token lookup "$(vault print token)" &> /dev/null \
   || vault login -method aws -no-print
 
   NOMAD_TOKEN="$(vault read -field secret_id nomad/creds/admin)"
