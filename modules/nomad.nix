@@ -1144,13 +1144,9 @@ in {
               (toString cfg.pluginDir)
             ]);
         in pkgs.writeShellScript "nomad" ''
-          if [ -s /run/keys/vault-token ]; then
-            export VAULT_TOKEN="$(< /run/keys/vault-token)"
-            exec ${lib.concatStringsSep " " args}
-          else
-            echo "Nomad service failed due to missing Vault token"
-            exit 1
-          fi
+          VAULT_TOKEN="$(${pkgs.vault-bin}/bin/vault login -method aws -no-store -token-only)"
+          export VAULT_TOKEN
+          exec ${lib.concatStringsSep " " args}
         '';
 
         KillMode = "process";
