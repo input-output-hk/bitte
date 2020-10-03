@@ -47,11 +47,8 @@ in {
     };
 
     consul = {
-      address = "127.0.0.1:${toString config.services.consul.ports.https}";
-      ssl = true;
-      ca_file = full;
-      cert_file = cert;
-      key_file = key;
+      address = "127.0.0.1:${toString config.services.consul.ports.http}";
+      ssl = false;
       allow_unauthenticated = false;
     };
 

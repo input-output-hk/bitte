@@ -59,6 +59,7 @@ in {
     ports = {
       grpc = 8502;
       https = 8501;
+      http = 8500;
     };
 
     extraConfig = {
