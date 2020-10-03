@@ -9,7 +9,6 @@ let
 
   merge = lib.foldl' lib.recursiveUpdate { };
 
-  users = [ "tester1" "tester2" ];
 in {
   tf.iam.configuration = {
     terraform.backend.remote = {
@@ -29,10 +28,25 @@ in {
 
     data.vault_policy_document.developer = {
       rule = [{
+        # TODO: Create new rules to be able to create a nomad token
+        #       Need a token which comes from the nomad policy developer
+        #       Create new rules to be able to create a consul token
+        #       Need a token which comes from the nomad policy developer
         path = "kv/*";
         capabilities = [ "create" "read" "update" "delete" "list" ];
         description = "Allow all KV access";
       }];
+    };
+
+    resource.vault_github_auth_backend.employee = {
+      organization = "input-output-hk";
+      path = "github-employees";
+    };
+
+    resource.vault_github_team.devops = {
+      backend = var "vault_github_auth_backend.employee.path";
+      team = "devops";
+      policies = [ "admin" "default" ];
     };
 
     resource.vault_policy.developer = {
@@ -40,29 +54,29 @@ in {
       policy = var "data.vault_policy_document.developer.hcl";
     };
 
-    resource.vault_aws_auth_backend_role = lib.listToAttrs (lib.forEach users
-      (user:
-        lib.nameValuePair user {
-          backend = "aws";
-          role = user;
-          auth_type = "iam";
-          bound_iam_principal_arns = [ (var "aws_iam_user.${user}.arn") ];
-          token_policies = [ "default" "developer" ];
-        }));
-
-    resource.vault_aws_secret_backend_role = lib.listToAttrs (lib.forEach users
-      (user:
-        lib.nameValuePair user {
-          backend = "aws";
-          name = "tester1";
-          credential_type = "iam_user";
-          iam_groups = [ "developers" ];
-        }));
+    resource.vault_aws_secret_backend_role = {
+      developers = {
+        backend = "aws";
+        name = "developer";
+        credential_type = "iam_user";
+        iam_groups = [ "developers" ];
+      };
+      admin = {
+        backend = "aws";
+        name = "admin";
+        credential_type = "iam_user";
+        iam_groups = [ "admins" ];
+      };
+    };
 
     resource.aws_iam_group = {
       developers = {
         name = "developers";
         path = "/developers/";
+      };
+      admins = {
+        name = "admins";
+        path = "/admins/";
       };
     };
 
@@ -70,7 +84,6 @@ in {
       developers = {
         name = "Developers";
         group = var "aws_iam_group.developers.name";
-
         policy = ''
           {
             "Version": "2012-10-17",
@@ -95,16 +108,22 @@ in {
           }
         '';
       };
+      admins = {
+        name = "Administrators";
+        group = var "aws_iam_group.admins.name";
+        policy = ''
+          {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": "*",
+                "Resource": "*"
+              }
+            ]
+          }
+        '';
+      };
     };
-
-    resource.aws_iam_user_group_membership = lib.listToAttrs (lib.forEach users
-      (user:
-        lib.nameValuePair user {
-          user = var "aws_iam_user.${user}.name";
-          groups = [ (var "aws_iam_group.developers.name") ];
-        }));
-
-    resource.aws_iam_user = lib.listToAttrs
-      (lib.forEach users (user: lib.nameValuePair user { name = user; }));
   };
 }

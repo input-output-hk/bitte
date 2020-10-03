@@ -327,7 +327,6 @@ in {
 
         auth="$(vault auth list)"
 
-        echo "$auth" | jq -e '."approle/"' || vault auth enable approle
         echo "$auth" | jq -e '."aws/"'     || vault auth enable aws
 
         # This lets Vault issue Consul tokens

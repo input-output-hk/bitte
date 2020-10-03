@@ -16,6 +16,8 @@ in {
       "nomad/*".capabilities = [ c r u d l ];
       "pki/*".capabilities = [ c r u d l ];
 
+      "auth/github-employees/config".capabilities = [ c r u d l s ];
+      "auth/github-employees/map/teams/*".capabilities = [ c r u d l s ];
       "auth/token/create".capabilities = [ c r u d l s ];
       "auth/token/create/*".capabilities = [ c r u d l ];
       "auth/token/create/nomad-cluster".capabilities = [ c r u d l s ];
@@ -30,10 +32,13 @@ in {
       "auth/token/roles/nomad-cluster".capabilities = [ c r u d l ];
       "identity/*".capabilities = [ c r u d l ];
       "sys/capabilities-self".capabilities = [ s ];
+      "sys/mounts/auth/*".capabilities = [ c r u d l s ];
       "sys/policies/*".capabilities = [ c r u d l ];
       "sys/policy".capabilities = [ c r u d l ];
       "sys/policy/*".capabilities = [ c r u d l ];
       "sys/auth/aws".capabilities = [ c r u d l s ];
+      "sys/auth/github-employees".capabilities = [ c r u d l s ];
+      "sys/auth/github-employees/config".capabilities = [ c r ];
       "sys/auth".capabilities = [ r l ];
       "auth/aws/role/*".capabilities = [ c r u d l ];
       "auth/aws/config/client".capabilities = [ c r u d l ];
