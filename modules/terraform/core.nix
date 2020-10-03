@@ -201,17 +201,10 @@ in {
 
     resource.aws_route_table.${config.cluster.name} = {
       vpc_id = id "data.aws_vpc.core";
-      route = [{
+      route = [( nullRoute // {
         cidr_block = "0.0.0.0/0";
         gateway_id = id "aws_internet_gateway.${config.cluster.name}";
-        egress_only_gateway_id = null;
-        instance_id = null;
-        ipv6_cidr_block = null;
-        nat_gateway_id = null;
-        network_interface_id = null;
-        transit_gateway_id = null;
-        vpc_peering_connection_id = null;
-      }] ++ (mapVpcsToList (vpc:
+      })] ++ (mapVpcsToList (vpc:
         nullRoute // {
           cidr_block = vpc.cidr;
           vpc_peering_connection_id =
