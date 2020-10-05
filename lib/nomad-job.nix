@@ -736,6 +736,15 @@ let
         type = serviceType;
         default = { };
       };
+
+      restart = mkOption {
+        type = nullOr restartPolicyType;
+        default = null;
+        description = ''
+          The restart stanza configures a tasks's behavior on task failure.
+          Restarts happen on the client that is running the task.
+        '';
+      };
     };
   });
 

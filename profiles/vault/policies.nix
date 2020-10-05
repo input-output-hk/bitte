@@ -83,7 +83,7 @@ in {
     # TODO: Pull list from config.cluster.iam
 
     client.path = {
-      "auth/token/create".capabilities = [ u ];
+      "auth/token/create".capabilities = [ u s ];
       "auth/token/create/nomad-cluster".capabilities = [ u ];
       "auth/token/create/nomad-server".capabilities = [ u ];
       "auth/token/lookup".capabilities = [ u ];

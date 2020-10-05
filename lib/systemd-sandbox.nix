@@ -2,7 +2,7 @@
 , nixFlakes, cacert, gawk }:
 { name, command, args ? [ ], env ? { }, extraSystemdProperties ? { }
 , resources ? { }, templates ? [ ], artifacts ? [ ], vault ? null
-, services ? { }, extraEnvironmentVariables ? [ ] }:
+, restart ? null, services ? { }, extraEnvironmentVariables ? [ ] }:
 let
   inherit (builtins) foldl' typeOf attrNames attrValues;
   inherit (lib) flatten pathHasContext isDerivation;
@@ -103,7 +103,7 @@ in {
 
   driver = "raw_exec";
 
-  inherit resources templates artifacts vault services;
+  inherit resources templates artifacts vault services restart;
 
   config = {
     command = "${bash}/bin/bash";

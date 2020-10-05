@@ -3,6 +3,7 @@
 
   services.nomad = {
     enable = true;
+
     client.enabled = true;
 
     datacenter = config.asg.region;
@@ -14,7 +15,7 @@
       "${builtins.unsafeDiscardStringContext pkgs.pkgsStatic.busybox}" = "/usr";
     };
 
-    vault.address = "https://vault.service.consul:8200";
+    vault.address = "https://127.0.0.1:8200";
   };
 
   system.extraDependencies = [ pkgs.pkgsStatic.busybox ];

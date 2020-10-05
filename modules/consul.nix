@@ -196,24 +196,36 @@ in {
       };
 
       acl = mkOption {
-        type = submodule {
+        default = null;
+        type = nullOr (submodule {
           options = {
-            enabled = mkEnableOption "Enable ACL";
+            enabled = mkOption {
+              type = nullOr bool;
+              default = null;
+            };
 
-            defaultPolicy = mkOption { type = enum [ "deny" "allow" ]; };
+            defaultPolicy = mkOption {
+              type = nullOr (enum [ "deny" "allow" ]);
+              default = null;
+            };
 
-            enableTokenPersistence = mkEnableOption
-              "Enable token persistence for `consul acl set-agent-token`";
+            enableTokenPersistence = mkOption {
+              type = nullOr bool;
+              default = null;
+              description = ''
+                Enable token persistence for `consul acl set-agent-token`
+              '';
+            };
 
             downPolicy = mkOption {
-              type = enum [
+              type = nullOr (enum [
                 "allow"
                 "deny"
                 "extend-cache"
                 "async-cache"
                 "extend-cache"
-              ];
-              default = "extend-cache";
+              ]);
+              default = null;
               description = ''
                 In the case that a policy or token cannot be read from the
                 primary_datacenter or leader node, the down policy is applied.
@@ -228,8 +240,7 @@ in {
               '';
             };
           };
-        };
-        default = { };
+        });
       };
 
       connect = mkOption {
@@ -367,9 +378,7 @@ in {
   config = mkIf cfg.enable {
     environment.systemPackages = [ cfg.package ];
 
-    environment.variables = {
-      CONSUL_HTTP_ADDR = "http://127.0.0.1:8500";
-    };
+    environment.variables = { CONSUL_HTTP_ADDR = "http://127.0.0.1:8500"; };
 
     environment.etc."${cfg.configDir}/config.json".source =
       pkgs.toPrettyJSON "config" (sanitize {

@@ -81,6 +81,10 @@ let
           contents = ''
             {
               "acl": {
+                "default_policy": "${config.services.consul.acl.defaultPolicy}",
+                "down_policy": "${config.services.consul.acl.downPolicy}",
+                "enable_token_persistence": true,
+                "enabled": true,
                 "tokens": {
                   "default": "{{ with secret "consul/creds/consul-server-default" }}{{ .Data.token }}{{ end }}",
                   "agent": "{{ with secret "consul/creds/consul-server-agent" }}{{ .Data.token }}{{ end }}"

@@ -90,6 +90,11 @@ in {
       default = /etc/nomad.d;
     };
 
+    tokenPolicy = mkOption {
+      type = str;
+      default = "nomad-server";
+    };
+
     data_dir = mkOption {
       type = path;
       default = /var/lib/nomad;
@@ -1110,10 +1115,13 @@ in {
         consul
         envoy
         amazon-ecr-credential-helper
+        vault-bin
+        jq
       ];
 
       environment = mkIf config.services.consul.enable {
         CONSUL_HTTP_ADDR = "http://127.0.0.1:8500";
+        VAULT_FORMAT= "json";
         HOME = "/var/lib/nomad";
       };
 
@@ -1144,10 +1152,13 @@ in {
               (toString cfg.pluginDir)
             ]);
         in pkgs.writeShellScript "nomad" ''
-          VAULT_TOKEN="$(${pkgs.vault-bin}/bin/vault login -method aws -no-store -token-only)"
-          export VAULT_TOKEN
-          exec ${lib.concatStringsSep " " args}
+          token="$(
+            VAULT_TOKEN="$(< /run/keys/vault-token)" vault token create -policy ${cfg.tokenPolicy} -period 72h -orphan \
+            | jq -r -e .auth.client_token
+          )"
+          VAULT_TOKEN="$token" exec ${lib.concatStringsSep " " args}
         '';
+
 
         KillMode = "process";
         LimitNOFILE = "infinity";
