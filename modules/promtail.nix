@@ -71,6 +71,10 @@ let
             source_labels = [ "__journal__hostname" ];
             target_label = "host";
           }
+          {
+            source_labels = [ "__journal_syslog_identifier" ];
+            target_label = "syslog_identifier";
+          }
         ];
       }
     ];

@@ -1,5 +1,5 @@
 { writeShellScript, writeReferencesToFile, writeText, bash, lib, systemd
-, nixFlakes, cacert, gawk }:
+, nixFlakes, cacert, gawk, coreutils }:
 { name, command, args ? [ ], env ? { }, extraSystemdProperties ? { }
 , resources ? { }, templates ? [ ], artifacts ? [ ], vault ? null
 , restart ? null, services ? { }, extraEnvironmentVariables ? [ ] }:
@@ -112,7 +112,8 @@ in {
       ''
         set -exuo pipefail
         ${nixFlakes}/bin/nix-store -r ${runner}
-        exec ${runner}
+
+        exec ${runner} | ${coreutils}/bin/tee >(${systemd}/bin/systemd-cat -t "${name}")
       ''
     ];
   };
