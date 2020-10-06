@@ -43,11 +43,27 @@ in {
       path = "github-employees";
     };
 
-    resource.vault_github_team.devops = {
-      backend = var "vault_github_auth_backend.employee.path";
-      team = "devops";
-      policies = [ "admin" "default" ];
-    };
+    resource.vault_github_team = {
+      devops = {
+        backend = var "vault_github_auth_backend.employee.path";
+        team = "devops";
+        policies = [ "admin" "default" ];
+      };
+    } // (lib.listToAttrs (lib.forEach config.cluster.developerGithubTeamNames
+      (name:
+        lib.nameValuePair name {
+          backend = var "vault_github_auth_backend.employee.path";
+          team = name;
+          policies = [ "developer" "default" ];
+        })));
+
+    resource.vault_github_user = lib.listToAttrs
+      (lib.forEach config.cluster.developerGithubNames (name:
+        lib.nameValuePair name {
+          backend = var "vault_github_auth_backend.employee.path";
+          user = name;
+          policies = [ "developer" "default" ];
+        }));
 
     resource.vault_policy.developer = {
       name = "developer";

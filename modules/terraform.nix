@@ -93,6 +93,16 @@ let
         default = [ ];
       };
 
+      developerGithubTeamNames = mkOption {
+        type = listOf str;
+        default = [];
+      };
+
+      developerGithubNames = mkOption {
+        type = listOf str;
+        default = [];
+      };
+
       generateSSHKey = mkOption {
         type = bool;
         default = true;
