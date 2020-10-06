@@ -37,11 +37,6 @@ in {
           default-server check maxconn 2000
           server grafana 127.0.0.1:3000
 
-        backend docker
-          default-server check maxconn 2000
-          option httpchk HEAD /
-          server docker 127.0.0.1:5000
-
         frontend http
           bind *:80
           acl http ssl_fc,not
@@ -49,9 +44,6 @@ in {
 
         frontend https
           bind *:443 ssl crt ${acme-full} alpn h2,http/1.1
-
-          acl host_docker hdr(host) -i docker.${domain}
-          use_backend docker if host_docker
 
           default_backend grafana
       '';

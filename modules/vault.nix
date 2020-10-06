@@ -345,12 +345,14 @@ in {
           chown --reference . --recursive .
         '';
 
+        # Sending SIGHUP only trigers a reload of certificates but not of the other configuration.
+        # So we have to kill the service instead to make sure we apply all changes!
         reloadScript = pkgs.writeShellScriptBin "vault-reload" ''
           export PATH="${makeBinPath [ pkgs.coreutils ]}"
           set -exuo pipefail
           cp /etc/ssl/certs/cert-key.pem .
           chown --reference . --recursive .
-          kill -SIGHUP "$MAINPID"
+          kill --signal INT "$MAINPID"
         '';
       in {
         ExecStartPre = "!${preScript}/bin/vault-start-pre";
@@ -388,6 +390,7 @@ in {
         after = [ "consul.service" ];
         wantedBy = [ "vault.service" ];
         before = [ "vault.service" ];
+        description = "provide a consul token for bootstrapping";
 
         serviceConfig = {
           Type = "oneshot";
