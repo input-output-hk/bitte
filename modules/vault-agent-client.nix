@@ -33,12 +33,14 @@ let
     systemctl reload consul.service || true
 
     if curl -s -k https://127.0.0.1:4646/v1/status/leader &> /dev/null; then
-      systemctl reload nomad.service || true
+      systemctl restart nomad.service || true
     else
       systemctl start nomad.service || true
     fi
 
     systemctl restart vault.service || true
+    systemctl restart register-promtail.service || true
+    systemctl restart register-telegraf.service || true
     exit 0
   '';
 
@@ -125,15 +127,9 @@ let
       (runIf config.services.nomad.enable {
         template = {
           command = reload-cvn;
-          destination = "/etc/nomad.d/consul-token.json";
+          destination = "/run/keys/nomad-consul-token";
           contents = ''
-            {{ with secret "consul/creds/nomad-client" }}
-            {
-              "consul": {
-                "token": "{{ .Data.token }}"
-              }
-            }
-            {{ end }}
+            {{ with secret "consul/creds/nomad-client" }}{{ .Data.token }}{{ end }}
           '';
         };
       })

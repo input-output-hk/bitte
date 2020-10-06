@@ -1134,13 +1134,6 @@ in {
           chown --reference . *.pem
         '';
       in {
-        ExecReload = let
-          reload = pkgs.writeShellScript "nomad-reload" ''
-            ${start-pre}
-            kill -HUP $MAINPID
-          '';
-        in "!${reload}";
-
         ExecStartPre = "!${start-pre}";
         ExecStart = let
           args = [ "${cfg.package}/bin/nomad" "agent" ]
@@ -1156,7 +1149,12 @@ in {
             VAULT_TOKEN="$(< /run/keys/vault-token)" vault token create -policy ${cfg.tokenPolicy} -period 72h -orphan \
             | jq -r -e .auth.client_token
           )"
-          VAULT_TOKEN="$token" exec ${lib.concatStringsSep " " args}
+          export VAULT_TOKEN="$token"
+
+          CONSUL_HTTP_TOKEN="$(< /run/keys/nomad-consul-token)"
+          export CONSUL_HTTP_TOKEN
+
+          exec ${lib.concatStringsSep " " args}
         '';
 
 

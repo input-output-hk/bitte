@@ -13,8 +13,8 @@ writeShellScriptBin "bitte-tokens" ''
   )
 
   NOMAD_TOKEN="$(vault read -field secret_id nomad/creds/developer)"
-  export NOMAD_TOKEN
+  echo $NOMAD_TOKEN
 
   CONSUL_HTTP_TOKEN="$(vault read -field token consul/creds/developer)"
-  export CONSUL_HTTP_TOKEN
+  echo $CONSUL_HTTP_TOKEN
 ''
