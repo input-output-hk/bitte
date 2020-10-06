@@ -44,11 +44,12 @@ in {
       "auth/aws/config/client".capabilities = [ c r u d l ];
     };
 
-    developer.path = {
-      "sys/capabilities-self".capabilities = [ u ];
-      "auth/token/lookup-self".capabilities = [ r ];
-      "auth/token/renew-self".capabilities = [ u ];
-    };
+    # developer.path = {
+    #   "sys/capabilities-self".capabilities = [ u ];
+    #   "auth/token/lookup-self".capabilities = [ r ];
+    #   "auth/token/renew-self".capabilities = [ u ];
+    #   "auth/token/lookup".capabilities = [ u ];
+    # };
 
     core.path = {
       "auth/token/create".capabilities = [ c r u d l s ];

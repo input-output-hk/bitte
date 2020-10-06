@@ -27,15 +27,42 @@ in {
     };
 
     data.vault_policy_document.developer = {
-      rule = [{
-        # TODO: Create new rules to be able to create a nomad token
-        #       Need a token which comes from the nomad policy developer
-        #       Create new rules to be able to create a consul token
-        #       Need a token which comes from the nomad policy developer
-        path = "kv/*";
-        capabilities = [ "create" "read" "update" "delete" "list" ];
-        description = "Allow all KV access";
-      }];
+      rule = [
+        {
+          # TODO: Create new rules to be able to create a nomad token
+          #       Need a token which comes from the nomad policy developer
+          #       Create new rules to be able to create a consul token
+          #       Need a token which comes from the nomad policy developer
+          path = "kv/*";
+          capabilities = [ "create" "read" "update" "delete" "list" ];
+          description = "Allow all KV access";
+        }
+        {
+          path = "nomad/creds/developer";
+          capabilities = [ "read" "update" ];
+          description = "Allow creating Nomad Tokens";
+        }
+        {
+          path = "consul/creds/developer";
+          capabilities = [ "read" "update" ];
+        }
+        {
+          path = "sys/capabilities-self";
+          capabilities = [ "update" ];
+        }
+        {
+          path = "auth/token/lookup-self";
+          capabilities = [ "read" ];
+        }
+        {
+          path = "auth/token/renew-self";
+          capabilities = [ "update" ];
+        }
+        {
+          path = "auth/token/lookup";
+          capabilities = [ "update" ];
+        }
+      ];
     };
 
     resource.vault_github_auth_backend.employee = {
@@ -57,13 +84,14 @@ in {
           policies = [ "developer" "default" ];
         })));
 
-    resource.vault_github_user = lib.listToAttrs
-      (lib.forEach config.cluster.developerGithubNames (name:
+    resource.vault_github_user =
+      lib.mkIf (builtins.length config.cluster.developerGithubNames > 0)
+      (lib.listToAttrs (lib.forEach config.cluster.developerGithubNames (name:
         lib.nameValuePair name {
           backend = var "vault_github_auth_backend.employee.path";
           user = name;
           policies = [ "developer" "default" ];
-        }));
+        })));
 
     resource.vault_policy.developer = {
       name = "developer";
@@ -119,6 +147,13 @@ in {
                   "iam:GetAccountPasswordPolicy"
                 ],
                 "Resource": "*"
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "s3:*"
+                ],
+                "Resource": "arn:aws:s3:::*"
               }
             ]
           }

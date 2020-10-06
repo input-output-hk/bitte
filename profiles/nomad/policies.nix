@@ -29,7 +29,13 @@
 
       namespace.default = {
         policy = "read";
-        capabilities = [ "submit-job" "dispatch-job" "read-logs" ];
+        capabilities = [
+          "submit-job"
+          "dispatch-job"
+          "read-logs"
+          "alloc-exec"
+          "alloc-node-exec"
+        ];
       };
     };
 

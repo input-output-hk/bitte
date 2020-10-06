@@ -17,10 +17,10 @@ writeShellScriptBin "nomad-run" ''
     sleep 10
   )
 
-  NOMAD_TOKEN="$(vault read -field secret_id nomad/creds/admin)"
+  NOMAD_TOKEN="$(vault read -field secret_id nomad/creds/developer)"
   export NOMAD_TOKEN
 
-  CONSUL_HTTP_TOKEN="$(vault read -field token consul/creds/admin)"
+  CONSUL_HTTP_TOKEN="$(vault read -field token consul/creds/developer)"
   export CONSUL_HTTP_TOKEN
 
   cache="$(nix eval ".#clusters.$BITTE_CLUSTER.proto.config.cluster.s3Cache" --raw)"
