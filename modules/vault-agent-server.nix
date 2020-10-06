@@ -62,7 +62,7 @@ let
         set -x
         ${pkgs.systemd}/bin/systemctl reload consul.service
         ${pkgs.systemd}/bin/systemctl reload nomad.service
-        ${pkgs.systemd}/bin/systemctl reload vault.service
+        ${pkgs.systemd}/bin/systemctl restart vault.service
         ${pkgs.systemd}/bin/systemctl restart ingress.service
 
         vault write nomad/config/access \

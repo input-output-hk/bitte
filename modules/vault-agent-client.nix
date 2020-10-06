@@ -38,7 +38,7 @@ let
       systemctl start nomad.service || true
     fi
 
-    systemctl reload vault.service || true
+    systemctl restart vault.service || true
     exit 0
   '';
 
