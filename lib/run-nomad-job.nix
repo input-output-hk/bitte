@@ -4,7 +4,7 @@ writeShellScriptBin "nomad-run" ''
 
   set -euo pipefail
 
-  vault token lookup "$(vault print token)" &> /dev/null \
+  vault token lookup &> /dev/null \
   || vault login -method github -path github-employees -no-print
 
   aws s3 ls &> /dev/null \
