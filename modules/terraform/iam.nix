@@ -38,29 +38,34 @@ in {
           description = "Allow all KV access";
         }
         {
+          path = "aws/creds/developer";
+          capabilities = [ "read" "update" ];
+          description = "Allow creating AWS tokens";
+        }
+        {
           path = "nomad/creds/developer";
           capabilities = [ "read" "update" ];
-          description = "Allow creating Nomad Tokens";
+          description = "Allow creating Nomad tokens";
         }
         {
           path = "consul/creds/developer";
           capabilities = [ "read" "update" ];
+          description = "Allow creating Consul tokens";
         }
         {
           path = "sys/capabilities-self";
           capabilities = [ "update" ];
+          description = "Allow lookup of own capabilities";
         }
         {
           path = "auth/token/lookup-self";
           capabilities = [ "read" ];
+          description = "Allow lookup of own tokens";
         }
         {
           path = "auth/token/renew-self";
           capabilities = [ "update" ];
-        }
-        {
-          path = "auth/token/lookup";
-          capabilities = [ "update" ];
+          description = "Allow self renewing tokens";
         }
       ];
     };
