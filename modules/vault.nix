@@ -344,19 +344,8 @@ in {
           cp /etc/ssl/certs/cert-key.pem .
           chown --reference . --recursive .
         '';
-
-        # Sending SIGHUP only trigers a reload of certificates but not of the other configuration.
-        # So we have to kill the service instead to make sure we apply all changes!
-        reloadScript = pkgs.writeShellScriptBin "vault-reload" ''
-          export PATH="${makeBinPath [ pkgs.coreutils ]}"
-          set -exuo pipefail
-          cp /etc/ssl/certs/cert-key.pem .
-          chown --reference . --recursive .
-          kill --signal INT "$MAINPID"
-        '';
       in {
         ExecStartPre = "!${preScript}/bin/vault-start-pre";
-        ExecReload = "!${reloadScript}/bin/vault-reload";
         ExecStart =
           "@${pkgs.vault-bin}/bin/vault vault server -config /etc/${cfg.configDir}";
 

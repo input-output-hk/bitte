@@ -65,6 +65,8 @@ in final: prev: {
 
   inherit (self.inputs.bitte-cli.legacyPackages.${system}) bitte;
 
+  bitte-tokens = prev.callPackage ./pkgs/bitte-tokens.nix { };
+
   devShell = final.callPackage ./pkgs/dev-shell.nix { };
 
   nixosModules = import ./pkgs/nixos-modules.nix { inherit nixpkgs lib; };

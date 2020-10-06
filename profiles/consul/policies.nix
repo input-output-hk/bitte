@@ -59,6 +59,20 @@
         operator = "write";
       };
 
+      developer = {
+        agentPrefix = allRead;
+        eventPrefix = allRead;
+        keyPrefix = allRead;
+        nodePrefix = allRead;
+        queryPrefix = allRead;
+        servicePrefix = {
+          "" = {
+            policy = "read";
+            intentions = "read";
+          };
+        };
+      };
+
       dns = {
         nodePrefix = allRead;
         servicePrefix = allRead;
