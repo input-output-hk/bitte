@@ -229,12 +229,12 @@ in {
         (lib.flip lib.mapAttrsToList config.cluster.instances
           (instanceName: instance:
             lib.forEach instance.route53.domains
-            (subDomain: { ${subDomain} = instance.uid; }))));
-    in lib.flip lib.mapAttrs' (lib.zipAttrs domains) (subDomain: instanceUids:
+            (domain: { ${domain} = instance.uid; }))));
+    in lib.flip lib.mapAttrs' (lib.zipAttrs domains) (domain: instanceUids:
       lib.nameValuePair
-      "${config.cluster.name}-${lib.replaceStrings [ "." ] [ "_" ] subDomain}" {
+      "${config.cluster.name}-${lib.replaceStrings [ "." ] [ "_" ] domain}" {
         zone_id = id "data.aws_route53_zone.selected";
-        name = "${subDomain}.${config.cluster.domain}";
+        name = domain;
         type = "A";
         ttl = "60";
         records =
