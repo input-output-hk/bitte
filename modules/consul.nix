@@ -372,6 +372,11 @@ in {
         type = nullOr str;
         default = null;
       };
+
+      enableDebug = mkOption {
+        type = bool;
+        default = false;
+      };
     };
   };
 
@@ -387,7 +392,7 @@ in {
           clientAddr encrypt addresses retryJoin primaryDatacenter acl connect
           caFile certFile keyFile autoEncrypt verifyServerHostname
           verifyOutgoing verifyIncoming dataDir tlsMinVersion ports
-          enableLocalScriptChecks nodeMeta telemetry nodeId;
+          enableLocalScriptChecks nodeMeta telemetry nodeId enableDebug;
       });
 
     environment.etc."${cfg.configDir}/extra-config.json".source =

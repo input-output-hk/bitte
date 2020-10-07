@@ -98,13 +98,6 @@ in {
   };
 
   config = mkIf config.services.ingress.enable {
-    systemd.services.register-ingress = (pkgs.consulRegister {
-      service = {
-        name = "ingress";
-        port = 443;
-      };
-    }).systemdService;
-
     systemd.services.ingress = {
       wantedBy = [ "multi-user.target" ];
       after = [ "consul.service" ];

@@ -81,11 +81,4 @@ in {
       };
     };
   };
-
-  systemd.services.register-telegraf = (pkgs.consulRegister {
-    service = {
-      name = "telegraf";
-      port = 8125;
-    };
-  }).systemdService;
 }

@@ -39,8 +39,6 @@ let
     fi
 
     systemctl restart vault.service || true
-    systemctl restart register-promtail.service || true
-    systemctl restart register-telegraf.service || true
     exit 0
   '';
 

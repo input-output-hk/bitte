@@ -99,7 +99,7 @@ let
       (if config.services.nomad.enable then {
         template = {
           command =
-            "${pkgs.systemd}/bin/systemctl reload nomad.service || ${pkgs.systemd}/bin/systemctl restart nomad.service";
+            "${pkgs.systemd}/bin/systemctl restart nomad.service";
           destination = "/etc/nomad.d/consul-token.json";
           contents = ''
             {
