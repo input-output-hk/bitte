@@ -1145,6 +1145,7 @@ in {
               (toString cfg.pluginDir)
             ]);
         in pkgs.writeShellScript "nomad" ''
+          # TODO: caching this
           token="$(
             VAULT_TOKEN="$(< /run/keys/vault-token)" vault token create -policy ${cfg.tokenPolicy} -period 72h -orphan \
             | jq -r -e .auth.client_token

@@ -60,6 +60,7 @@ let
         export VAULT_TOKEN
 
         set -x
+
         ${pkgs.systemd}/bin/systemctl reload consul.service
         ${pkgs.systemd}/bin/systemctl restart nomad.service
         ${pkgs.systemd}/bin/systemctl restart vault.service

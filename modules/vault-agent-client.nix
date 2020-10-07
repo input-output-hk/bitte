@@ -28,7 +28,9 @@ let
   reload-cvn = writeShellScript "reload-cvn" ''
     set -x
 
-    export PATH="$PATH:${lib.makeBinPath (with pkgs; [ systemd curl ])}"
+    export PATH="$PATH:${lib.makeBinPath (with pkgs; [ coreutils systemd curl ])}"
+
+    rm -f /etc/nomad.d/consul-token.json
 
     systemctl reload consul.service || true
 
