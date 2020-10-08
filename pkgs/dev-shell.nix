@@ -25,5 +25,6 @@ mkShellNoCC {
     terraform-with-plugins
     vault-bin
     bitte-tokens
+    jq
   ];
 }

@@ -310,7 +310,7 @@ let
 
       # reschedule (Reschedule: nil) - Allows to specify a rescheduling strategy. Nomad will then attempt to schedule the task on another node if any of the group allocation statuses become "failed".
 
-      restart = mkOption {
+      restartPolicy = mkOption {
         type = nullOr restartPolicyType;
         default = null;
         description = ''
@@ -363,6 +363,23 @@ let
         description = ''
           Specifies the set of Vault policies required by all tasks in this group.
           Overrides a vault block set at the job level.
+        '';
+      };
+
+
+      reschedulePolicy = mkOption {
+        type = nullOr reschedulePolicyType;
+        default = null;
+        description = ''
+          The reschedule stanza specifies the group's rescheduling strategy. If
+          specified at the job level, the configuration will apply to all
+          groups within the job. If the reschedule stanza is present on both
+          the job and the group, they are merged with the group stanza taking
+          the highest precedence and then the job.
+          Nomad will attempt to schedule the task on another node if any of its
+          allocation statuses become "failed". It prefers to create a
+          replacement allocation on a node that hasn't previously been used.
+          https://www.nomadproject.io/docs/job-specification/reschedule/
         '';
       };
 
@@ -737,7 +754,7 @@ let
         default = { };
       };
 
-      restart = mkOption {
+      restartPolicy = mkOption {
         type = nullOr restartPolicyType;
         default = null;
         description = ''
@@ -1223,7 +1240,7 @@ in {
       '';
     };
 
-    reschedule = mkOption {
+    reschedulePolicy = mkOption {
       type = nullOr reschedulePolicyType;
       default = null;
       description = ''
