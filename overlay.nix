@@ -67,7 +67,7 @@ in final: prev: {
 
   bitte-tokens = prev.callPackage ./pkgs/bitte-tokens.nix { };
 
-  haproxy-auth-request = prev.callPackage ./pkgs/haproxy-auth-request.nix {};
+  haproxy-auth-request = prev.callPackage ./pkgs/haproxy-auth-request.nix { };
 
   devShell = final.callPackage ./pkgs/dev-shell.nix { };
 

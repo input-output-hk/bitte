@@ -27,8 +27,13 @@ let
   # ]
 
   regionPeeringPairs = vpcs: connector: index:
-    map (acceptor: { connector = connector; acceptor = acceptor; }) (lib.drop (index+1) vpcs);
-  peeringPairs = lib.flatten (lib.imap0 (i: connector: regionPeeringPairs vpcRegions connector i) vpcRegions);
+    map (acceptor: {
+      connector = connector;
+      acceptor = acceptor;
+    }) (lib.drop (index + 1) vpcs);
+  peeringPairs = lib.flatten
+    (lib.imap0 (i: connector: regionPeeringPairs vpcRegions connector i)
+      vpcRegions);
   mapVpcPeers = f: lib.listToAttrs (lib.forEach peeringPairs f);
 
   tags = { Cluster = config.cluster.name; };
@@ -103,12 +108,18 @@ in {
             (innerVpc: innerVpc.region != vpc.region)) (innerVpc:
               # Derive the proper peerPairing connection name using a comparison
               let
-                connector = if innerVpc.region < vpc.region then innerVpc.region else vpc.region;
-                acceptor = if innerVpc.region > vpc.region then innerVpc.region else vpc.region;
+                connector = if innerVpc.region < vpc.region then
+                  innerVpc.region
+                else
+                  vpc.region;
+                acceptor = if innerVpc.region > vpc.region then
+                  innerVpc.region
+                else
+                  vpc.region;
               in nullRoute // {
                 cidr_block = innerVpc.cidr;
-                vpc_peering_connection_id =
-                  id "aws_vpc_peering_connection.${connector}-connect-${acceptor}";
+                vpc_peering_connection_id = id
+                  "aws_vpc_peering_connection.${connector}-connect-${acceptor}";
               }));
 
         tags = tags // {
@@ -157,20 +168,20 @@ in {
           Region = vpc.region;
         };
       }) // (mapVpcPeers (link:
-      lib.nameValuePair "${link.connector}-connect-${link.acceptor}" {
-        provider = awsProviderFor link.connector;
-        vpc_id = id "aws_vpc.${link.connector}";
-        peer_vpc_id = id "aws_vpc.${link.acceptor}";
-        peer_owner_id = var "data.aws_caller_identity.core.account_id";
-        peer_region = link.acceptor;
-        auto_accept = false;
-        lifecycle = [{ create_before_destroy = true; }];
+        lib.nameValuePair "${link.connector}-connect-${link.acceptor}" {
+          provider = awsProviderFor link.connector;
+          vpc_id = id "aws_vpc.${link.connector}";
+          peer_vpc_id = id "aws_vpc.${link.acceptor}";
+          peer_owner_id = var "data.aws_caller_identity.core.account_id";
+          peer_region = link.acceptor;
+          auto_accept = false;
+          lifecycle = [{ create_before_destroy = true; }];
 
-        tags = tags // {
-          Name = "${link.connector}-connect-${link.acceptor}";
-          Region = link.connector;
-        };
-      }));
+          tags = tags // {
+            Name = "${link.connector}-connect-${link.acceptor}";
+            Region = link.connector;
+          };
+        }));
 
     # Accept vpc pairing from each autoscaling region to the core region (1st block)
     # Then accept the mesh vpc pairing connections (2nd block)
@@ -186,16 +197,16 @@ in {
           Region = vpc.region;
         };
       }) // (mapVpcPeers (link:
-      lib.nameValuePair "${link.acceptor}-accept-${link.connector}" {
-        provider = awsProviderFor link.acceptor;
-        vpc_peering_connection_id =
-          id "aws_vpc_peering_connection.${link.connector}-connect-${link.acceptor}";
-        auto_accept = true;
-        lifecycle = [{ create_before_destroy = true; }];
-        tags = tags // {
-          Name = "${link.acceptor}-accept-${link.connector}";
-          Region = link.acceptor;
-        };
-      }));
+        lib.nameValuePair "${link.acceptor}-accept-${link.connector}" {
+          provider = awsProviderFor link.acceptor;
+          vpc_peering_connection_id = id
+            "aws_vpc_peering_connection.${link.connector}-connect-${link.acceptor}";
+          auto_accept = true;
+          lifecycle = [{ create_before_destroy = true; }];
+          tags = tags // {
+            Name = "${link.acceptor}-accept-${link.connector}";
+            Region = link.acceptor;
+          };
+        }));
   };
 }

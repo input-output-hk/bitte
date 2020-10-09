@@ -8,7 +8,7 @@ let
 
   vaultAgentConfig = pkgs.toPrettyJSON "vault-agent" {
     pid_file = "./vault-agent.pid";
-    vault.address = "https://127.0.0.1:8200";
+    vault.address = config.services.vault-agent-core.vaultAddress;
     # exit_after_auth = true;
     auto_auth = {
       method = [{
@@ -99,8 +99,7 @@ let
 
       (if config.services.nomad.enable then {
         template = {
-          command =
-            "${pkgs.systemd}/bin/systemctl restart nomad.service";
+          command = "${pkgs.systemd}/bin/systemctl restart nomad.service";
           destination = "/etc/nomad.d/consul-token.json";
           contents = ''
             {
@@ -117,8 +116,13 @@ let
 
 in {
   options = {
-    services.vault-agent-core.enable =
-      mkEnableOption "Start vault-agent for cores";
+    services.vault-agent-core = {
+      enable = mkEnableOption "Start vault-agent for cores";
+      vaultAddress = lib.mkOption {
+        type = lib.types.str;
+        default = "https://127.0.0.1:8200";
+      };
+    };
   };
 
   config = mkIf config.services.vault-agent-core.enable {

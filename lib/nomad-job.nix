@@ -366,7 +366,6 @@ let
         '';
       };
 
-
       reschedulePolicy = mkOption {
         type = nullOr reschedulePolicyType;
         default = null;

@@ -1121,7 +1121,7 @@ in {
 
       environment = mkIf config.services.consul.enable {
         CONSUL_HTTP_ADDR = "http://127.0.0.1:8500";
-        VAULT_FORMAT= "json";
+        VAULT_FORMAT = "json";
         HOME = "/var/lib/nomad";
       };
 
@@ -1157,7 +1157,6 @@ in {
 
           exec ${lib.concatStringsSep " " args}
         '';
-
 
         KillMode = "process";
         LimitNOFILE = "infinity";

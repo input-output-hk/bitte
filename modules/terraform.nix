@@ -95,12 +95,12 @@ let
 
       developerGithubTeamNames = mkOption {
         type = listOf str;
-        default = [];
+        default = [ ];
       };
 
       developerGithubNames = mkOption {
         type = listOf str;
-        default = [];
+        default = [ ];
       };
 
       generateSSHKey = mkOption {
