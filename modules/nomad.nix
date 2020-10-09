@@ -1164,9 +1164,8 @@ in {
         LimitNPROC = "infinity";
         TasksMax = "infinity";
         Restart = "on-failure";
-        RestartSec = 2;
-        StartLimitBurst = 3;
-        StartLimitIntervalSec = 10;
+        RestartSec = 10;
+        StartLimitBurst = 0;
         WorkingDirectory = "/var/lib/nomad";
         StateDirectory = "nomad";
       };

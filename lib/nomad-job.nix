@@ -805,8 +805,7 @@ let
       };
 
       operator = mkOption {
-        type = str;
-        enum = [
+        type = enum [
           "regexp"
           "set_contains"
           "distinct_hosts"

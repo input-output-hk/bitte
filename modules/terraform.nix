@@ -787,7 +787,7 @@ in {
             export PATH="${
               lib.makeBinPath [ pkgs.coreutils pkgs.terraform-with-plugins ]
             }"
-            set -exuo pipefail
+            set -euo pipefail
 
             rm -f config.tf.json
             cp "${this.config.output}" config.tf.json
@@ -797,8 +797,8 @@ in {
           prepare = ''
             ${copy}
 
-            terraform workspace select "${name}"
-            terraform init
+            terraform workspace select "${name}" 1>&2
+            terraform init 1>&2
           '';
         in {
           configuration = lib.mkOption { type = attrsOf unspecified; };
