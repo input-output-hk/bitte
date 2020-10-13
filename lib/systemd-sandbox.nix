@@ -1,5 +1,5 @@
 { writeShellScript, writeReferencesToFile, writeText, bash, lib, systemd
-, nixFlakes, cacert, gawk, coreutils }:
+, systemd-runner, nixFlakes, cacert, gawk, coreutils }:
 { name, command, args ? [ ], env ? { }, extraSystemdProperties ? { }
 , resources ? { }, templates ? [ ], artifacts ? [ ], vault ? null
 , restartPolicy ? null, services ? { }, extraEnvironmentVariables ? [ ] }:
@@ -76,22 +76,12 @@ let
   runner = writeShellScript "systemd-runner" ''
     set -exuo pipefail
 
+    export PATH="$PATH:${lib.makeBinPath [ systemd systemd-runner ]}"
+
     echo "entering ${placeholder "out"}/bin/runner"
     echo "dependencies: ${toString cleanLines}"
 
-    mapfile -t keys < <(${gawk}/bin/awk 'BEGIN { for (key in ENVIRON) { if (key ~ /^NOMAD/) print key } }')
-    args=(
-      "--property" "BindPaths=$NOMAD_ALLOC_DIR:$NOMAD_ALLOC_DIR $NOMAD_SECRETS_DIR:$NOMAD_SECRETS_DIR $NOMAD_TASK_DIR:$NOMAD_TASK_DIR"
-      "--setenv" "HOME=$NOMAD_TASK_DIR"
-    )
-
-    for key in "''${keys[@]}"; do
-      args+=("--setenv")
-      args+=("$key=''${!key}")
-    done
-
-    exec ${systemd}/bin/systemd-run \
-      "''${args[@]}" \
+    exec systemd-runner \
       ${
         lib.concatStringsSep "\n" (map (e: ''--setenv "${e}=''$${e}" \'')
           (standardEnvironmentVariables ++ extraEnvironmentVariables))

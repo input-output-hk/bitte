@@ -3,7 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    nixpkgs-crystal.url = "github:manveru/nixpkgs/crystal-0.35";
+    nixpkgs-crystal.follows = "bitte-cli/nixpkgs-crystal";
     nixpkgs-terraform.url = "github:manveru/nixpkgs/terraform-providers";
     inclusive.url = "github:manveru/nix-inclusive";
     utils.url = "github:numtide/flake-utils";

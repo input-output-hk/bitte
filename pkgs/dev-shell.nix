@@ -26,5 +26,6 @@ mkShellNoCC {
     vault-bin
     bitte-tokens
     jq
+    crystal
   ];
 }

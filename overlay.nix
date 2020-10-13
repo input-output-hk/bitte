@@ -75,6 +75,10 @@ in final: prev: {
 
   consulRegister = prev.callPackage ./pkgs/consul-register.nix { };
 
+  systemd-runner = final.callPackage ./pkgs/systemd_runner ({
+    inherit (nixpkgs-crystal.legacyPackages.${system}) crystal;
+  });
+
   envoy = prev.callPackage ./pkgs/envoy.nix { };
 
   nomad = prev.callPackage ./pkgs/nomad.nix { };
