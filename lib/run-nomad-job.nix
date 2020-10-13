@@ -29,7 +29,7 @@ writeShellScriptBin "nomad-run" ''
   nix copy --to "$cache&secret-key=secrets/nix-secret-key-file" ${json}
 
   jq --arg token "$CONSUL_HTTP_TOKEN" '.Job.ConsulToken = $token' < ${json} \
-  | curl -f \
+  | curl -s -q \
     -X POST \
     -H "X-Nomad-Token: $NOMAD_TOKEN" \
     -H "X-Vault-Token: $(vault print token)" \
