@@ -10,6 +10,14 @@ writeShellScriptBin "nomad-run" ''
   aws s3 ls &> /dev/null \
   || (
     echo "Generating AWS Credentials and setting them in $AWS_PROFILE ..."
+
+    if grep "\[mantis\]" ~/.aws/credentials; then
+      echo "found existing profile, updating credentials..."
+    else
+      echo "adding mantis profile..."
+      printf '\n\n[mantis]' >> ~/.aws/credentials
+    fi
+
     creds="$(vault read -format json aws/creds/developer)"
     aws configure set --profile "$AWS_PROFILE" aws_access_key_id "$( echo "$creds" | jq -r -e .data.access_key )"
     aws configure set --profile "$AWS_PROFILE" aws_secret_access_key "$(echo "$creds" | jq -r -e .data.secret_key)"
