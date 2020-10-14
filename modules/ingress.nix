@@ -12,6 +12,16 @@ in {
         type = lib.types.lines;
         default = "";
       };
+
+      extraHttpsBackends = lib.mkOption {
+        type = lib.types.lines;
+        default = "";
+      };
+
+      extraHttpsAcls = lib.mkOption {
+        type = lib.types.lines;
+        default = "";
+      };
     };
   };
 
@@ -90,6 +100,7 @@ in {
         acl is_nomad     hdr(host) -i nomad.${domain}
         acl is_consul    hdr(host) -i consul.${domain}
         acl is_ui path_beg /ui
+        ${config.services.ingress.extraHttpsAcls}
 
         http-request lua.auth-request oauth_proxy /oauth2/auth
         http-request add-header X-Authenticated-User %[var(req.auth_response_header.x_auth_request_email)]
@@ -98,6 +109,7 @@ in {
         use_backend consul  if is_consul is_ui authenticated OR is_consul ! is_ui
         use_backend vault   if is_vault  is_ui authenticated OR is_vault ! is_ui
         use_backend nomad   if is_nomad  is_ui authenticated OR is_nomad ! is_ui
+        ${config.services.ingress.extraHttpsBackends}
         use_backend oauth_proxy if is_ui ! authenticated OR is_monitoring ! authenticated
 
         default_backend grafana
