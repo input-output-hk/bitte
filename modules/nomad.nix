@@ -1122,6 +1122,9 @@ in {
       environment = mkIf config.services.consul.enable {
         CONSUL_HTTP_ADDR = "http://127.0.0.1:8500";
         VAULT_FORMAT = "json";
+        # certificates get rotated often, we got no way to update them while
+        # the jobs are running...
+        VAULT_SKIP_VERIFY = "true";
         HOME = "/var/lib/nomad";
       };
 
