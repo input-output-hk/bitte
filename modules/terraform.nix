@@ -249,9 +249,14 @@ let
 
   initialVaultSecretsType = submodule ({ ... }@this: {
     options = {
-      consul = mkOption { type = str; };
-
-      nomad = mkOption { type = str; };
+      consul = mkOption {
+        type = str;
+        default = trace "initialVaultSecrets is not used anymore!" "";
+      };
+      nomad = mkOption {
+        type = str;
+        default = trace "initialVaultSecrets is not used anymore!" "";
+      };
     };
   });
 

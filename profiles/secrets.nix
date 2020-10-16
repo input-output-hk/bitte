@@ -139,6 +139,14 @@ in {
 
       cp secrets/nix-public-key-file encrypted/nix-public-key-file
     fi
+
+    if [ ! -s encrypted/nix-cache.json ]; then
+      echo generating encrypted/nix-cache.json
+      echo '{}' \
+      | jq --arg private "$(< secrets/nix-secret-key-file)" '.private = $private' \
+      | jq --arg public "$(< secrets/nix-public-key-file)" '.public = $public' \
+      > encrypted/nix-cache.json
+    fi
   '';
 
   secrets.generate.ca = lib.mkIf isInstance ''

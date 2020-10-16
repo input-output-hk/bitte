@@ -14,6 +14,24 @@ let
     export CONSUL_HTTP_TOKEN
     set -x
   '';
+
+  initialVaultSecrets = ''
+    sops --decrypt --extract '["encrypt"]' ${
+      config.secrets.encryptedRoot + "/consul-clients.json"
+    } | vault kv put kv/bootstrap/clients/consul encrypt=-
+
+    sops --decrypt --extract '["server"]["encrypt"]' ${
+      config.secrets.encryptedRoot + "/nomad.json"
+    } | vault kv put kv/bootstrap/clients/nomad encrypt=-
+
+    sops --decrypt --extract '["private_key"]' ${
+      config.secrets.encryptedRoot + "/cache.json"
+    } | vault kv put kv/bootstrap/cache/nix-secret-key-file
+
+    sops --decrypt ${
+      config.secrets.encryptedRoot + "/nix-cache.json"
+    } | vault kv put kv/bootstrap/cache/nix-key
+  '';
 in {
   options = { };
 
@@ -172,6 +190,8 @@ in {
             policies=default,admin \
             max_ttl=24h
         ''))}
+
+        ${initialVaultSecrets}
       '';
     };
 
@@ -378,8 +398,7 @@ in {
           generate_lease=true \
           max_ttl=12h
 
-        ${config.instance.initialVaultSecrets.consul}
-        ${config.instance.initialVaultSecrets.nomad}
+        ${initialVaultSecrets}
 
         touch .bootstrap-done
       '';
