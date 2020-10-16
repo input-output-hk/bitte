@@ -234,7 +234,7 @@ in {
             (domain: { ${domain} = instance.uid; }))));
     in lib.flip lib.mapAttrs' (lib.zipAttrs domains) (domain: instanceUids:
       lib.nameValuePair
-      "${config.cluster.name}-${lib.replaceStrings [ "." ] [ "_" ] domain}" {
+      "${config.cluster.name}-${lib.replaceStrings [ "." "*" ] [ "_" "_" ] domain}" {
         zone_id = id "data.aws_route53_zone.selected";
         name = domain;
         type = "A";
