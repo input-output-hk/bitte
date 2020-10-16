@@ -251,11 +251,11 @@ let
     options = {
       consul = mkOption {
         type = str;
-        default = trace "initialVaultSecrets is not used anymore!" "";
+        default = builtins.trace "initialVaultSecrets is not used anymore!" "";
       };
       nomad = mkOption {
         type = str;
-        default = trace "initialVaultSecrets is not used anymore!" "";
+        default = builtins.trace "initialVaultSecrets is not used anymore!" "";
       };
     };
   });
