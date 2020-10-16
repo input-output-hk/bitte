@@ -64,7 +64,9 @@ let
           in pkgs.writeShellScriptBin "generate-secrets" ''
             set -euo pipefail
 
-            export PATH="$PATH:${lib.makeBinPath (with pkgs; [ utillinux git ])}"
+            export PATH="$PATH:${
+              lib.makeBinPath (with pkgs; [ utillinux git ])
+            }"
 
             mkdir -p secrets encrypted
 
