@@ -145,6 +145,7 @@ in {
       echo '{}' \
       | jq --arg private "$(< secrets/nix-secret-key-file)" '.private = $private' \
       | jq --arg public "$(< secrets/nix-public-key-file)" '.public = $public' \
+      | ${sopsEncrypt} \
       > encrypted/nix-cache.json
     fi
   '';
