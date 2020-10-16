@@ -15,6 +15,7 @@ writeShellScriptBin "nomad-run" ''
       echo "found existing profile, updating credentials..."
     else
       echo "adding mantis profile..."
+      mkdir -p ~/.aws
       printf '\n\n[mantis]' >> ~/.aws/credentials
     fi
 
@@ -33,8 +34,13 @@ writeShellScriptBin "nomad-run" ''
 
   cache="$(nix eval ".#clusters.$BITTE_CLUSTER.proto.config.cluster.s3Cache" --raw)"
 
+  mkdir -p secrets
+  vault kv get -field private kv/cache/nix-key > secrets/nix-secret-key-file
+
   echo "Copying closure to the binary cache..."
   nix copy --to "$cache&secret-key=secrets/nix-secret-key-file" ${json}
+
+  rm -f secrets/nix-secret-key-file
 
   jq --arg token "$CONSUL_HTTP_TOKEN" '.Job.ConsulToken = $token' < ${json} \
   | curl -s -q \
