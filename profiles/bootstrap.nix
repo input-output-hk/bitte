@@ -24,10 +24,6 @@ let
       config.secrets.encryptedRoot + "/nomad.json"
     } | vault kv put kv/bootstrap/clients/nomad encrypt=-
 
-    sops --decrypt --extract '["private_key"]' ${
-      config.secrets.encryptedRoot + "/cache.json"
-    } | vault kv put kv/bootstrap/cache/nix-secret-key-file
-
     sops --decrypt ${
       config.secrets.encryptedRoot + "/nix-cache.json"
     } | vault kv put kv/bootstrap/cache/nix-key
