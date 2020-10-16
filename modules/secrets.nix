@@ -56,13 +56,13 @@ let
                   script = pkgs.writeShellScriptBin name ''
                     ## ${name}
 
-                    set -exuo pipefail
+                    set -euo pipefail
 
                     ${value}
                   '';
                 in "${script}/bin/${name}") config.secrets.generate);
           in pkgs.writeShellScriptBin "generate-secrets" ''
-            set -exuo pipefail
+            set -euo pipefail
 
             export PATH="$PATH:${lib.makeBinPath (with pkgs; [ utillinux git ])}"
 

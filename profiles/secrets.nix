@@ -76,6 +76,7 @@ in {
     encrypt="$(consul keygen)"
 
     if [ ! -s encrypted/consul-core.json ]; then
+      echo generating encrypted/consul-core.json
       echo '{}' \
       | jq --arg encrypt "$encrypt" '.encrypt = $encrypt' \
       | jq --arg token "$(uuidgen)" '.acl.tokens.master = $token' \
@@ -84,6 +85,7 @@ in {
     fi
 
     if [ ! -s encrypted/consul-clients.json ]; then
+      echo generating encrypted/consul-clients.json
       echo '{}' \
       | jq --arg encrypt "$encrypt" '.encrypt = $encrypt' \
       | ${sopsEncrypt} \
@@ -110,6 +112,7 @@ in {
     export PATH="${lib.makeBinPath (with pkgs; [ nomad jq ])}"
 
     if [ ! -s encrypted/nomad.json ]; then
+      echo generating encrypted/nomad.json
       encrypt="$(nomad operator keygen)"
 
       echo '{}' \
@@ -126,6 +129,7 @@ in {
 
     if [ ! -s encrypted/nix-public-key-file ]; then
       if [ ! -s secrets/nix-secret-key-file ] || [ ! -s secrets/nix-public-key-file ]; then
+        echo generating Nix cache keys
         nix-store \
           --generate-binary-cache-key \
           "${config.cluster.name}-0" \
