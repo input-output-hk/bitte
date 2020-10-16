@@ -35,6 +35,7 @@
           "read-logs"
           "alloc-exec"
           "alloc-node-exec"
+          "alloc-lifecycle"
         ];
       };
     };
