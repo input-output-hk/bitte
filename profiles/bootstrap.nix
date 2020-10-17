@@ -26,7 +26,7 @@ let
 
     sops --decrypt ${
       config.secrets.encryptedRoot + "/nix-cache.json"
-    } | vault kv put kv/bootstrap/cache/nix-key
+    } | vault kv put kv/bootstrap/cache/nix-key -
   '';
 in {
   options = { };
@@ -177,7 +177,7 @@ in {
           auth_type=iam \
           bound_iam_principal_arn="$arn:role/${config.cluster.name}-client" \
           policies=default,client,nomad-server \
-          max_ttl=24h
+          period=24h
 
         ${concatStringsSep "\n" (forEach adminNames (name: ''
           vault write "auth/aws/role/${name}" \

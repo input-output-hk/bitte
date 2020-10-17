@@ -1149,11 +1149,11 @@ in {
             ]);
         in pkgs.writeShellScript "nomad" ''
           # TODO: caching this
-          token="$(
-            VAULT_TOKEN="$(< /run/keys/vault-token)" vault token create -policy ${cfg.tokenPolicy} -period 72h -orphan \
-            | jq -r -e .auth.client_token
-          )"
-          export VAULT_TOKEN="$token"
+          VAULT_TOKEN="$(< /run/keys/vault-token)"
+          export VAULT_TOKEN
+
+          VAULT_TOKEN="$(vault token create -policy ${cfg.tokenPolicy} -period 72h -orphan -field token)"
+          export VAULT_TOKEN
 
           CONSUL_HTTP_TOKEN="$(< /run/keys/nomad-consul-token)"
           export CONSUL_HTTP_TOKEN
