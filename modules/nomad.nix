@@ -1121,7 +1121,6 @@ in {
 
       environment = mkIf config.services.consul.enable {
         CONSUL_HTTP_ADDR = "http://127.0.0.1:8500";
-        VAULT_FORMAT = "json";
         # certificates get rotated often, we got no way to update them while
         # the jobs are running...
         VAULT_SKIP_VERIFY = "true";
@@ -1134,6 +1133,8 @@ in {
           set -exuo pipefail
           ${pkgs.ensureDependencies [ "consul" "vault" ]}
           cp /etc/ssl/certs/cert-key.pem .
+          cp /run/keys/vault-token .
+          cp /run/keys/nomad-consul-token .
           chown --reference . *.pem
         '';
       in {
@@ -1149,13 +1150,15 @@ in {
             ]);
         in pkgs.writeShellScript "nomad" ''
           # TODO: caching this
-          VAULT_TOKEN="$(< /run/keys/vault-token)"
+          set -euo pipefail
+
+          VAULT_TOKEN="$(< vault-token)"
           export VAULT_TOKEN
 
-          VAULT_TOKEN="$(vault token create -policy ${cfg.tokenPolicy} -period 72h -orphan -field token)"
-          export VAULT_TOKEN
+          token="$(vault token create -policy ${cfg.tokenPolicy} -period 72h -orphan -field token)"
+          export VAULT_TOKEN="$token"
 
-          CONSUL_HTTP_TOKEN="$(< /run/keys/nomad-consul-token)"
+          CONSUL_HTTP_TOKEN="$(< nomad-consul-token)"
           export CONSUL_HTTP_TOKEN
 
           exec ${lib.concatStringsSep " " args}

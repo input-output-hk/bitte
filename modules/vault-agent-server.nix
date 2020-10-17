@@ -6,6 +6,9 @@ let
   inherit (config.cluster) domain region;
   inherit (config.cluster.instances.${nodeName}) privateIP;
 
+  runIf = cond: value: if cond then value else null;
+  compact = filter (value: value != null);
+
   vaultAgentConfig = pkgs.toPrettyJSON "vault-agent" {
     pid_file = "./vault-agent.pid";
     vault.address = config.services.vault-agent-core.vaultAddress;
@@ -61,7 +64,9 @@ let
 
         set -x
 
-        ${pkgs.systemd}/bin/systemctl reload consul.service
+        sleep 10
+
+        ${pkgs.systemd}/bin/systemctl restart consul.service
         ${pkgs.systemd}/bin/systemctl restart nomad.service
         ${pkgs.systemd}/bin/systemctl restart vault.service
         ${pkgs.systemd}/bin/systemctl restart ingress.service
@@ -74,8 +79,8 @@ let
         exit 0
       '';
 
-    in filter (t: t != null) [
-      (if config.services.consul.enable then {
+    in compact [
+      (runIf config.services.consul.enable {
         template = {
           destination = "/etc/consul.d/tokens.json";
           command = "${pkgs.systemd}/bin/systemctl reload consul.service";
@@ -94,10 +99,9 @@ let
             }
           '';
         };
-      } else
-        null)
+      })
 
-      (if config.services.nomad.enable then {
+      (runIf config.services.nomad.enable {
         template = {
           command = "${pkgs.systemd}/bin/systemctl restart nomad.service";
           destination = "/etc/nomad.d/consul-token.json";
@@ -109,8 +113,17 @@ let
             }
           '';
         };
-      } else
-        null)
+      })
+
+      (runIf config.services.nomad.enable {
+        template = {
+          command = "${pkgs.systemd}/bin/systemctl restart nomad.service";
+          destination = "/run/keys/nomad-consul-token";
+          contents = ''
+            {{- with secret "consul/creds/nomad-server" }}{{ .Data.token }}{{ end -}}
+          '';
+        };
+      })
     ];
   };
 
