@@ -34,13 +34,13 @@ writeShellScriptBin "nomad-run" ''
 
   cache="$(nix eval ".#clusters.$BITTE_CLUSTER.proto.config.cluster.s3Cache" --raw)"
 
-  mkdir -p secrets
-  vault kv get -field private kv/cache/nix-key > secrets/nix-secret-key-file
+  if [ ! -s secrets/nix-secret-key-file ]; then
+    mkdir -p secrets
+    vault kv get -field private kv/cache/nix-key > secrets/nix-secret-key-file
+  fi
 
   echo "Copying closure to the binary cache..."
   nix copy --to "$cache&secret-key=secrets/nix-secret-key-file" ${json}
-
-  rm -f secrets/nix-secret-key-file
 
   jq --arg token "$CONSUL_HTTP_TOKEN" '.Job.ConsulToken = $token' < ${json} \
   | curl -s -q \
