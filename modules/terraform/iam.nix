@@ -149,7 +149,8 @@ in {
               {
                 "Effect": "Allow",
                 "Action": [
-                  "iam:GetAccountPasswordPolicy"
+                  "iam:GetAccountPasswordPolicy",
+                  "autoscaling:DescribeAutoScalingGroups"
                 ],
                 "Resource": "*"
               },
