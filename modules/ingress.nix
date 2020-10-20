@@ -2,7 +2,9 @@
 
 {
   options = {
-    services.ingress = { enable = lib.mkEnableOption "Enable Ingress"; };
+    services.ingress = {
+      enable = lib.mkEnableOption "Enable Ingress";
+    };
   };
   config = {
 
@@ -39,8 +41,7 @@
         Group = "ingress";
         Type = "notify";
         ExecStartPre = "!${preScript}";
-        ExecStart =
-          "/run/ingress/haproxy -Ws -f /var/lib/ingress/haproxy.cfg -p /run/ingress/haproxy.pid";
+        ExecStart = "/run/ingress/haproxy -Ws -f /var/lib/ingress/haproxy.conf -p /run/ingress/haproxy.pid";
         # support reloading
         ExecReload = [
           "${pkgs.haproxy}/sbin/haproxy -c -f /var/lib/ingress/haproxy.conf"
@@ -61,8 +62,7 @@
         ProtectKernelTunables = true;
         ProtectKernelModules = true;
         ProtectControlGroups = true;
-        SystemCallFilter =
-          "~@cpu-emulation @keyring @module @obsolete @raw-io @reboot @swap @sync";
+        SystemCallFilter= "~@cpu-emulation @keyring @module @obsolete @raw-io @reboot @swap @sync";
         # needed in case we bind to port < 1024
         AmbientCapabilities = "CAP_NET_BIND_SERVICE";
       };
