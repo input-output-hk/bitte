@@ -26,5 +26,5 @@ allowed.each do |key, value|
 end
 
 Process.exec(
-  "systemd-run", args: args + ARGV
+  "systemd-run", args: args + ARGV, input: STDIN, output: STDOUT, error: STDERR
 )
