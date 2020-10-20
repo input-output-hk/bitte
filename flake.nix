@@ -2,8 +2,8 @@
   description = "Flake containing Bitte clusters";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    nixpkgs-crystal.follows = "bitte-cli/nixpkgs-crystal";
+    crystal.follows = "bitte-cli/crystal";
+    nixpkgs.follows = "bitte-cli/nixpkgs";
     nixpkgs-terraform.url = "github:manveru/nixpkgs/terraform-providers";
     inclusive.url = "github:manveru/nix-inclusive";
     utils.url = "github:numtide/flake-utils";
@@ -19,8 +19,8 @@
     };
   };
 
-  outputs = { self, nixpkgs, utils, ... }:
-    (utils.lib.eachDefaultSystem (system: rec {
+  outputs = { self, crystal, nixpkgs, utils, bitte-cli, ... }:
+    (utils.lib.eachSystem [ "x86_64-linux" "x86_64-darwin" ] (system: rec {
       overlay = import ./overlay.nix { inherit system self; };
 
       legacyPackages = import nixpkgs {
@@ -36,6 +36,8 @@
           bitte nixos-rebuild nixFlakes sops crystal terraform-with-plugins
           ssm-agent cfssl consul;
       };
+
+      hydraJobs = packages;
 
       apps.bitte = utils.lib.mkApp { drv = legacyPackages.bitte; };
     })) // (let

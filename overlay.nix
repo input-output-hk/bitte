@@ -1,6 +1,6 @@
 { system, self }:
 let
-  inherit (self.inputs) nixpkgs nix ops-lib nixpkgs-terraform nixpkgs-crystal;
+  inherit (self.inputs) nixpkgs nix ops-lib nixpkgs-terraform crystal bitte-cli inclusive;
   inherit (builtins) fromJSON toJSON trace mapAttrs genList foldl';
   inherit (nixpkgs) lib;
 in final: prev: {
@@ -27,8 +27,6 @@ in final: prev: {
   # nix = prev.nixFlakes;
 
   ssm-agent = prev.callPackage ./pkgs/ssm-agent { };
-
-  vault-bin = prev.callPackage ./pkgs/vault-bin.nix { };
 
   consul = prev.callPackage ./pkgs/consul { };
 
@@ -57,13 +55,11 @@ in final: prev: {
 
   snakeCase = prev.callPackage ./lib/snake-case.nix { };
 
-  inherit (self.inputs.inclusive.lib) inclusive;
-
-  inherit (nixpkgs-crystal.legacyPackages.${system}) crystal;
+  inherit (inclusive.lib) inclusive;
+  inherit (crystal.packages.${system}) crystal;
+  inherit (bitte-cli.packages.${system}) bitte;
 
   pp = v: trace (toJSON v) v;
-
-  inherit (self.inputs.bitte-cli.legacyPackages.${system}) bitte;
 
   bitte-tokens = prev.callPackage ./pkgs/bitte-tokens.nix { };
 
@@ -75,9 +71,7 @@ in final: prev: {
 
   consulRegister = prev.callPackage ./pkgs/consul-register.nix { };
 
-  systemd-runner = final.callPackage ./pkgs/systemd_runner ({
-    inherit (nixpkgs-crystal.legacyPackages.${system}) crystal;
-  });
+  systemd-runner = final.callPackage ./pkgs/systemd_runner { };
 
   envoy = prev.callPackage ./pkgs/envoy.nix { };
 
