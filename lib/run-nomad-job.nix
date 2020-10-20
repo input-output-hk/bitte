@@ -11,12 +11,12 @@ writeShellScriptBin "nomad-run" ''
   || (
     echo "Generating AWS Credentials and setting them in $AWS_PROFILE ..."
 
-    if grep "\[mantis\]" ~/.aws/credentials; then
+    if grep "\[$AWS_PROFILE\]" ~/.aws/credentials; then
       echo "found existing profile, updating credentials..."
     else
-      echo "adding mantis profile..."
+      echo "adding $AWS_PROFILE profile..."
       mkdir -p ~/.aws
-      printf '\n\n[mantis]' >> ~/.aws/credentials
+      printf "\\n\\n[$AWS_PROFILE]" >> ~/.aws/credentials
     fi
 
     creds="$(vault read -format json aws/creds/developer)"
