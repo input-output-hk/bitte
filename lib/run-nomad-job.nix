@@ -1,4 +1,5 @@
-{ name, json, writeShellScriptBin }:
+{ name, lib, json, writeShellScriptBin, vault-bin, awscli, coreutils, jq,
+nomad, consul, nixFlakes, curl }:
 writeShellScriptBin "nomad-run" ''
   export PATH="${lib.makeBinPath [vault-bin awscli coreutils jq nomad consul nixFlakes curl ]}"
   echo "running job: ${json}"
