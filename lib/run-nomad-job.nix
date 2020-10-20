@@ -28,19 +28,24 @@ writeShellScriptBin "nomad-run" ''
     sleep 10
   )
 
-  NOMAD_TOKEN="''${NOMAD_TOKEN:-}"
-  nomad_token_info="$(nomad acl token self | grep -v  'Secret ID')"
-  if [ -n "$NOMAD_TOKEN" ]; then
-    echo "NOMAD_TOKEN environment variable found"
-    nomad acl token self
+  echo "Checking for Nomad credentials..."
+  if nomad acl token self | grep -v  'Secret ID'; then
+    echo "Nomad token found"
   else
-    echo "fetching NOMAD_TOKEN from Vault"
+    echo "generating new NOMAD_TOKEN from Vault"
     NOMAD_TOKEN="$(vault read -field secret_id nomad/creds/developer)"
     export NOMAD_TOKEN
   fi
 
-  CONSUL_HTTP_TOKEN="$(vault read -field token consul/creds/developer)"
-  export CONSUL_HTTP_TOKEN
+  echo "Checking for Consul credentials"
+  consul acl token read -self
+  if consul acl token read -self | grep -v SecretID | grep github-employees; then
+    echo "Consul token found"
+  else
+    echo "generating new CONSUL_HTTP_TOKEN from Vault"
+    CONSUL_HTTP_TOKEN="$(vault read -field token consul/creds/developer)"
+    export CONSUL_HTTP_TOKEN
+  fi
 
   cache="$(nix eval ".#clusters.$BITTE_CLUSTER.proto.config.cluster.s3Cache" --raw)"
 
