@@ -1,6 +1,7 @@
 { name, json, writeShellScriptBin }:
 writeShellScriptBin "nomad-run" ''
-  echo running ${json}
+  export PATH="${lib.makeBinPath [vault-bin awscli coreutils jq nomad consul nixFlakes curl ]}"
+  echo "running job: ${json}"
 
   set -euo pipefail
 
@@ -16,7 +17,7 @@ writeShellScriptBin "nomad-run" ''
     else
       echo "adding $AWS_PROFILE profile..."
       mkdir -p ~/.aws
-      printf "\\n\\n[$AWS_PROFILE]" >> ~/.aws/credentials
+      printf "\\n[$AWS_PROFILE]" >> ~/.aws/credentials
     fi
 
     creds="$(vault read -format json aws/creds/developer)"
@@ -26,8 +27,16 @@ writeShellScriptBin "nomad-run" ''
     sleep 10
   )
 
-  NOMAD_TOKEN="$(vault read -field secret_id nomad/creds/developer)"
-  export NOMAD_TOKEN
+  NOMAD_TOKEN="''${NOMAD_TOKEN:-}"
+  nomad_token_info="$(nomad acl token self | grep -v  'Secret ID')"
+  if [ -n "$NOMAD_TOKEN" ]; then
+    echo "NOMAD_TOKEN environment variable found"
+    nomad acl token self
+  else
+    echo "fetching NOMAD_TOKEN from Vault"
+    NOMAD_TOKEN="$(vault read -field secret_id nomad/creds/developer)"
+    export NOMAD_TOKEN
+  fi
 
   CONSUL_HTTP_TOKEN="$(vault read -field token consul/creds/developer)"
   export CONSUL_HTTP_TOKEN
