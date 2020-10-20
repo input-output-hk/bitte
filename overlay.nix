@@ -83,6 +83,8 @@ in final: prev: {
 
   nomad = prev.callPackage ./pkgs/nomad.nix { };
 
+  seaweedfs = prev.callPackage ./pkgs/seaweedfs.nix {} ;
+
   haproxy = prev.callPackage ./pkgs/haproxy.nix { };
 
   consul-template = prev.callPackage ./pkgs/consul-template.nix { };

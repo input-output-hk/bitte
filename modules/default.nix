@@ -11,6 +11,7 @@
     ./promtail.nix
     ./s3-download.nix
     ./s3-upload.nix
+    ./seaweedfs.nix
     ./secrets.nix
     ./terraform/clients.nix
     ./terraform/consul.nix

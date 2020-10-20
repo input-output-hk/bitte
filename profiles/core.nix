@@ -14,6 +14,7 @@
     telegraf.extraConfig.global_tags.role = "consul-server";
     vault-consul-token.enable = true;
     consul.enableDebug = false;
+    seaweedfs.master.enable = true;
   };
 
   environment.systemPackages = with pkgs; [ sops awscli cachix cfssl ];
