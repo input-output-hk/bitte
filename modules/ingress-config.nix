@@ -25,7 +25,7 @@ in {
     };
   };
 
-  config = mkIf config.services.ingress.enable (let
+  config = mkIf config.services.ingress-config.enable (let
     haproxyTemplate = pkgs.writeText "haproxy.conf.tmpl" ''
       global
         stats socket /run/ingress/haproxy.sock mode 600 expose-fd listeners level user
@@ -100,7 +100,7 @@ in {
         acl is_nomad     hdr(host) -i nomad.${domain}
         acl is_consul    hdr(host) -i consul.${domain}
         acl is_ui path_beg /ui
-        ${config.services.ingress.extraHttpsAcls}
+        ${config.services.ingress-config.extraHttpsAcls}
 
         http-request lua.auth-request oauth_proxy /oauth2/auth
         http-request add-header X-Authenticated-User %[var(req.auth_response_header.x_auth_request_email)]
@@ -109,18 +109,19 @@ in {
         use_backend consul  if is_consul is_ui authenticated OR is_consul ! is_ui
         use_backend vault   if is_vault  is_ui authenticated OR is_vault ! is_ui
         use_backend nomad   if is_nomad  is_ui authenticated OR is_nomad ! is_ui
-        ${config.services.ingress.extraHttpsBackends}
+        ${config.services.ingress-config.extraHttpsBackends}
         use_backend oauth_proxy if is_ui ! authenticated OR is_monitoring ! authenticated
 
         default_backend grafana
 
-      ${config.services.ingress.extraConfig}
+      ${config.services.ingress-config.extraConfig}
     '';
 
     haproxyConfig = pkgs.toPrettyJSON "haproxy" {
       template = [{
         source = haproxyTemplate;
         destination = "/var/lib/ingress/haproxy.conf";
+        command = "${pkgs.systemd}/bin/systemctl reload ingress.service";
       }];
     };
   in {
@@ -139,11 +140,7 @@ in {
       path = with pkgs; [ consul consul-template vault-bin ];
 
       environment = {
-        CONSUL_CACERT = "/etc/ssl/certs/full.pem";
-        CONSUL_CLIENT_CERT = "/etc/ssl/certs/cert.pem";
-        CONSUL_CLIENT_KEY = "consul-key.pem";
-        CONSUL_HTTP_ADDR = "https://127.0.0.1:8501";
-        CONSUL_HTTP_SSL = "true";
+        CONSUL_HTTP_ADDR = "http://127.0.0.1:8500";
         VAULT_ADDR =
           "https://${config.cluster.instances.core-1.privateIP}:8200";
         inherit (config.environment.variables) VAULT_CACERT;

@@ -4,6 +4,7 @@
     ./consul.nix
     ./consul-policies.nix
     ./consul-template.nix
+    ./ingress-config.nix
     ./ingress.nix
     ./nomad.nix
     ./nomad-policies.nix
