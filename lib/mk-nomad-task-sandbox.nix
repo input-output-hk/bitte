@@ -108,7 +108,7 @@ in {
       "-c"
       ''
         set -exuo pipefail
-        ${nixFlakes}/bin/nix-store -r ${runner}
+        /run/current-system/bin/nix-store -r ${runner}
         exec ${runner}/bin/systemd-runner
       ''
     ];
