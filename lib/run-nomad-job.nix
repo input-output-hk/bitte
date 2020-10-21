@@ -1,5 +1,5 @@
 { name, lib, json, writeShellScriptBin, vault-bin, awscli, coreutils, jq, nomad
-, consul, nixFlakes, curl }:
+, consul, nixFlakes, curl, gnugrep, gitMinimal }:
 writeShellScriptBin "nomad-run" ''
   export PATH="${
     lib.makeBinPath [
@@ -11,6 +11,8 @@ writeShellScriptBin "nomad-run" ''
       consul
       nixFlakes
       curl
+      gnugrep
+      gitMinimal
     ]
   }"
   echo "running job: ${json}"
@@ -49,7 +51,6 @@ writeShellScriptBin "nomad-run" ''
   fi
 
   echo "Checking for Consul credentials"
-  consul acl token read -self
   if consul acl token read -self | grep -v SecretID | grep github-employees; then
     echo "Consul token found"
   else

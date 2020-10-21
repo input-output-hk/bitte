@@ -17,6 +17,14 @@ in {
     vault-agent-core.enable = true;
     amazon-ssm-agent.enable = true;
     ingress.enable = true;
+    seaweedfs.filer = {
+      enable = true;
+      s3.enable = true;
+        master = lib.forEach [ "core-1" "core-2" "core-3" ] (core:
+          "${config.cluster.instances.${core}.privateIP}:${
+            toString config.services.seaweedfs.master.port
+          }");
+    };
 
     oauth2_proxy = {
       enable = true;

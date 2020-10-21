@@ -27,5 +27,6 @@ mkShellNoCC {
     bitte-tokens
     jq
     crystal
+    cockroachdb
   ];
 }
