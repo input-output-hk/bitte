@@ -31,7 +31,7 @@ in {
         tlsClientCaFile = full;
         tlsCertFile = cert;
         tlsKeyFile = key;
-        tlsMinVersion = "tls13";
+        tlsMinVersion = "tls12";
       };
 
       telemetry = {
