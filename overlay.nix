@@ -26,6 +26,8 @@ in final: prev: {
 
   # nix = prev.nixFlakes;
 
+  vault-bin = prev.callPackage ./pkgs/vault-bin.nix { };
+
   ssm-agent = prev.callPackage ./pkgs/ssm-agent { };
 
   consul = prev.callPackage ./pkgs/consul { };
