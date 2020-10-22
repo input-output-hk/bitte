@@ -1,11 +1,11 @@
-{ self, lib, pkgs, config, ... }:
+{ self, lib, pkgs, deployerPkgs, config, ... }:
 let
-  inherit (pkgs.terralib)
+  inherit (deployerPkgs.terralib)
     var id pp regions awsProviderNameFor awsProviderFor mkSecurityGroupRule
     nullRoute;
 
-  mapVpcs = pkgs.terralib.mapVpcs config.cluster;
-  mapVpcsToList = pkgs.terralib.mapVpcsToList config.cluster;
+  mapVpcs = deployerPkgs.terralib.mapVpcs config.cluster;
+  mapVpcsToList = deployerPkgs.terralib.mapVpcsToList config.cluster;
 
   merge = lib.foldl' lib.recursiveUpdate { };
 in {
@@ -20,7 +20,7 @@ in {
         flake = toString config.cluster.flakePath;
         kms = config.cluster.kms;
         name = config.cluster.name;
-        nix = pkgs.nixFlakes;
+        nix = deployerPkgs.nixFlakes;
         region = config.cluster.region;
         s3_bucket = config.cluster.s3Bucket;
         s3_cache = config.cluster.s3Cache;
@@ -171,12 +171,19 @@ in {
         lifecycle = [{ create_before_destroy = true; }];
       }) config.cluster.instances;
 
+
+      module.instance_types_to_azs = {
+        source = "${./modules/instance-types-to-azs}";
+        instance_types = config.cluster.requiredInstanceTypes;
+      };
+
     resource.aws_subnet = lib.flip lib.mapAttrs' config.cluster.vpc.subnets
       (name: subnet:
         lib.nameValuePair subnet.name {
           provider = awsProviderFor config.cluster.vpc.region;
           vpc_id = id "data.aws_vpc.core";
-          cidr_block = subnet.cidr;
+          cidr_block = var subnet.cidr;
+          availability_zone = subnet.availabilityZone;
           tags = {
             Cluster = config.cluster.name;
             Name = subnet.name;

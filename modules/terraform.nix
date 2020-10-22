@@ -1,7 +1,7 @@
-{ self, config, pkgs, nodeName, ... }:
+{ self, lib, config, deployerPkgs, pkgs, nodeName, ... }:
 let
-  inherit (pkgs) lib terralib;
-  inherit (lib) mkOption reverseList;
+  inherit (deployerPkgs) lib terralib;
+  inherit (lib) mkOption reverseList pipe;
   inherit (lib.types)
     attrs submodule str attrsOf bool ints path enum port listof nullOr listOf
     oneOf list package unspecified;
@@ -25,7 +25,7 @@ let
     eu-west-1 = "ami-0f765805e4520b54d";
   };
 
-  vpcMap = lib.pipe [
+  vpcMap = pipe [
     "ap-northeast-1"
     "ap-northeast-2"
     "ap-south-1"
@@ -61,6 +61,18 @@ let
         default = { };
       };
 
+      requiredInstanceTypes = mkOption {
+        internal = true;
+        readOnly = true;
+        type = listOf str;
+        default =
+        pipe config.cluster.instances [
+          builtins.attrValues
+          (map (lib.attrByPath [ "instanceType" ] null))
+          lib.unique
+        ];
+      };
+
       autoscalingGroups = mkOption {
         type = attrsOf autoscalingGroupType;
         default = { };
@@ -89,7 +101,7 @@ let
       s3Cache = mkOption {
         type = str;
         default =
-          "s3://${cfg.s3Bucket}/infra/binary-cache/?region=${cfg.region}";
+          "s3://${cfg.s3Bucket}/infra/binary-cache?region=${cfg.region}";
       };
 
       s3CachePubKey = mkOption { type = str; };
@@ -121,16 +133,24 @@ let
 
       vpc = mkOption {
         type = vpcType cfg.name;
-        default = {
-          region = cfg.region;
-
+        default = let
           cidr = "172.16.0.0/16";
+        in {
+          inherit cidr;
+          inherit (cfg) region;
 
-          subnets = {
-            core-1.cidr = "172.16.0.0/24";
-            core-2.cidr = "172.16.1.0/24";
-            core-3.cidr = "172.16.2.0/24";
-          };
+          subnets = lib.pipe 3 [
+            (builtins.genList lib.id)
+            (map (idx: lib.nameValuePair "core-${toString (idx+1)}" {
+              inherit idx;
+              # cidr = "10.${base}.${toString idx}.0/18";
+              cidr = ''cidrsubnet("${cidr}", 8, ${toString (idx+1)})'';
+              availabilityZone =
+                var
+                "module.instance_types_to_azs.availability_zones[${toString idx}]";
+            }))
+            lib.listToAttrs
+          ];
         };
       };
 
@@ -373,6 +393,15 @@ let
 
       cidr = mkOption { type = str; };
 
+      availabilityZone = mkOption {
+        type = nullOr str;
+        default = null;
+      };
+
+      idx = mkOption {
+        type = ints.unsigned;
+      };
+
       id = mkOption {
         type = str;
         default = id "aws_subnet.${this.config.name}";
@@ -501,7 +530,7 @@ let
         default = let
           ip = var "aws_eip.${this.config.uid}.public_ip";
           args = [
-            "${pkgs.bitte}/bin/bitte"
+            "${deployerPkgs.bitte}/bin/bitte"
             "provision"
             "--name"
             this.config.name
@@ -608,7 +637,7 @@ let
 
       interpreter = mkOption {
         type = nullOr (listOf str);
-        default = [ "${pkgs.bash}/bin/bash" "-c" ];
+        default = [ "${deployerPkgs.bash}/bin/bash" "-c" ];
       };
 
       environment = mkOption {
@@ -647,19 +676,31 @@ let
 
       vpc = mkOption {
         type = vpcType this.config.uid;
-        default = let base = toString (vpcMap.${this.config.region} * 4);
+        default = let
+          base = toString (vpcMap.${this.config.region} * 4);
+          cidr = "10.${base}.0.0/16";
+          atoz = "abcdefghijklmnopqrstuvwxyz";
         in {
+          inherit cidr;
           region = this.config.region;
 
-          cidr = "10.${base}.0.0/16";
-
           name = "${cfg.name}-${this.config.region}-asgs";
-          subnets = {
-            a.cidr = "10.${base}.0.0/18";
-            b.cidr = "10.${base}.64.0/18";
-            c.cidr = "10.${base}.128.0/18";
-            # d.cidr = "10.${base}.192.0/18";
-          };
+          subnets = lib.pipe 3 [
+            (builtins.genList lib.id)
+            (map (idx: lib.nameValuePair
+            (pipe atoz [
+                lib.stringToCharacters
+                (lib.flip builtins.elemAt idx)
+            ]) {
+              inherit idx;
+              # cidr = "10.${base}.${toString idx}.0/18";
+              cidr = ''cidrsubnet("${cidr}", 2, ${toString (idx+1)})'';
+              availabilityZone =
+                var
+                "module.instance_types_to_azs.availability_zones[${toString idx}]";
+            }))
+            lib.listToAttrs
+          ];
         };
       };
 
@@ -759,7 +800,7 @@ in {
         options = let
           copy = ''
             export PATH="${
-              lib.makeBinPath [ pkgs.coreutils pkgs.terraform-with-plugins ]
+              lib.makeBinPath [ deployerPkgs.coreutils deployerPkgs.terraform-with-plugins ]
             }"
             set -euo pipefail
 
@@ -782,25 +823,27 @@ in {
             apply = v:
               let
                 compiledConfig =
-                  import (self.inputs.terranix + "/core/default.nix") {
-                    pkgs = self.inputs.nixpkgs.legacyPackages.x86_64-linux;
+                  lib.terranix {
+                    # pkgs = deployerPkgs;
+                    # pkgs = self.inputs.nixpkgs.legacyPackages.x86_64-linux;
+                    inherit pkgs;
                     strip_nulls = false;
                     terranix_config = {
                       imports = [ this.config.configuration ];
                     };
                   };
-              in pkgs.toPrettyJSON "${name}.tf" compiledConfig.config;
+              in deployerPkgs.toPrettyJSON "${name}.tf" compiledConfig.config;
           };
 
           config = lib.mkOption {
             type = lib.mkOptionType { name = "${name}-config"; };
-            apply = v: pkgs.writeShellScriptBin "${name}-config" copy;
+            apply = v: deployerPkgs.writeShellScriptBin "${name}-config" copy;
           };
 
           plan = lib.mkOption {
             type = lib.mkOptionType { name = "${name}-plan"; };
             apply = v:
-              pkgs.writeShellScriptBin "${name}-plan" ''
+              deployerPkgs.writeShellScriptBin "${name}-plan" ''
                 ${prepare}
 
                 terraform plan -out ${name}.plan
@@ -810,7 +853,7 @@ in {
           apply = lib.mkOption {
             type = lib.mkOptionType { name = "${name}-apply"; };
             apply = v:
-              pkgs.writeShellScriptBin "${name}-apply" ''
+              deployerPkgs.writeShellScriptBin "${name}-apply" ''
                 ${prepare}
 
                 terraform apply ${name}.plan
@@ -820,7 +863,7 @@ in {
           terraform = lib.mkOption {
             type = lib.mkOptionType { name = "${name}-apply"; };
             apply = v:
-              pkgs.writeShellScriptBin "${name}-apply" ''
+              deployerPkgs.writeShellScriptBin "${name}-apply" ''
                 ${prepare}
 
                 terraform $@

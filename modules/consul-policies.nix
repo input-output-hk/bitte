@@ -1,4 +1,4 @@
-{ lib, pkgs, config, ... }:
+{ lib, pkgs, deployerPkgs, config, ... }:
 let
   inherit (builtins)
     mapAttrs toJSON readFile concatStringsSep attrValues isString;
@@ -121,9 +121,9 @@ let
         apply = _:
           let
             json = toJSON this.config._computed;
-            mini = pkgs.writeText "consul-policy.mini.json" json;
-          in pkgs.runCommandNoCCLocal "consul-policy.json" { } ''
-            ${pkgs.jq}/bin/jq -S < ${mini} > $out
+            mini = deployerPkgs.writeText "consul-policy.mini.json" json;
+          in deployerPkgs.runCommandNoCCLocal "consul-policy.json" { } ''
+            ${deployerPkgs.jq}/bin/jq -S < ${mini} > $out
           '';
       };
 

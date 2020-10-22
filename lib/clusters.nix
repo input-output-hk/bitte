@@ -1,76 +1,106 @@
-{ self, pkgs, system, lib, root, ... }:
-
+{ lib }:
 let
-  inherit (builtins) attrNames readDir mapAttrs;
-  inherit (lib)
-    flip pipe mkForce filterAttrs flatten listToAttrs forEach nameValuePair
-    mapAttrs';
 
-  readDirRec = path:
-    pipe path [
-      readDir
-      (filterAttrs (n: v: v == "directory" || n == "default.nix"))
-      attrNames
-      (map (name: path + "/${name}"))
-      (map (child:
-        if (baseNameOf child) == "default.nix" then
-          child
-        else
-          readDirRec child))
-      flatten
-    ];
+  inherit (lib) nixpkgs;
+  inherit (nixpkgs.lib) nixosSystem mkForce mapAttrs flip attrNames;
 
-  mkSystem = nodeName: modules:
-    self.inputs.nixpkgs.lib.nixosSystem {
-      inherit pkgs system;
-      modules = [
-        ../modules/default.nix
-        (self.inputs.nixpkgs + "/nixos/modules/virtualisation/amazon-image.nix")
-      ] ++ modules;
-      specialArgs = { inherit nodeName self; };
-    };
+  deployerPkgsFor = self: system: import self.inputs.nixpkgs {
+    inherit system;
+    overlays = [ self.overlay ];
+  };
 
-  clusterFiles = readDirRec root;
+in
+rec {
 
-in listToAttrs (forEach clusterFiles (file:
-  let
-    proto = self.inputs.nixpkgs.lib.nixosSystem {
-      inherit pkgs system;
+  mkProto = self: deployerPkgs: file:
+    nixosSystem {
+      inherit (deployerPkgs) pkgs system;
       modules = [
         ../modules/default.nix
         ../profiles/nix.nix
         ../profiles/consul/policies.nix
         file
       ];
-      specialArgs = { inherit self; };
+      specialArgs = { inherit self deployerPkgs; };
     };
 
-    tf = proto.config.tf;
+  mkCluster = self: deployerPkgs: file:
+    let
+      proto = mkProto self deployerPkgs file;
 
-    nodes = mapAttrs (name: instance:
-      mkSystem name
-      ([ { networking.hostName = mkForce name; } file ] ++ instance.modules))
-      proto.config.cluster.instances;
+      bitte-secrets = deployerPkgs.callPackage ../pkgs/bitte-secrets.nix {
+        inherit (proto.config) cluster;
+      };
 
-    groups =
-      mapAttrs (name: instance: mkSystem name ([ file ] ++ instance.modules))
-      proto.config.cluster.autoscalingGroups;
+      mkNode = name: instance: mkSystem self deployerPkgs name
+        ([{ networking.hostName = mkForce name; } file] ++ instance.modules);
 
-    # All data used by the CLI should be exported here.
-    topology = {
-      nodes = flip mapAttrs proto.config.cluster.instances (name: node: {
-        inherit (proto.config.cluster) kms region;
-        inherit (node) name privateIP instanceType;
-      });
-      groups = attrNames groups;
+      mkGroup = name: instance: mkSystem self deployerPkgs name ([ file ] ++ instance.modules);
+    in
+    rec {
+      inherit proto bitte-secrets;
+
+      tf = proto.config.tf;
+
+      nodes = mapAttrs mkNode proto.config.cluster.instances;
+
+      groups = mapAttrs mkGroup proto.config.cluster.autoscalingGroups;
+
+      # All data used by the CLI should be exported here.
+      topology = {
+        nodes = flip mapAttrs proto.config.cluster.instances (name: node: {
+          inherit (proto.config.cluster) kms region;
+          inherit (node) name privateIP instanceType;
+        });
+        groups = attrNames groups;
+      };
+
+      mkJob = import ./mk-job.nix proto;
+    } // bitte-secrets;
+
+  mkSystem = self: deployerPkgs: nodeName: modules:
+    nixosSystem {
+      system = "x86_64-linux";
+      pkgs = import self.inputs.nixpkgs {
+        system = "x86_64-linux";
+        overlays = [ self.overlay ];
+      };
+      modules = [
+        ../modules
+        (nixpkgs + "/nixos/modules/virtualisation/amazon-image.nix")
+      ] ++ modules;
+      specialArgs = { inherit nodeName self deployerPkgs; };
     };
 
-    secrets = pkgs.callPackages ../pkgs/bitte-secrets.nix {
-      inherit (proto.config) cluster;
-    };
+  mkClusters =
+    { self, nixpkgs, system, root }:
+    let
+      inherit (builtins) attrNames readDir mapAttrs;
+      inherit (nixpkgs.lib)
+        flip pipe mkForce filterAttrs flatten listToAttrs forEach nameValuePair
+        mapAttrs' nixosSystem;
 
-    mkJob = import ./mk-job.nix proto;
+      deployerPkgs = deployerPkgsFor self system;
+      readDirRec = path:
+        pipe path [
+          builtins.readDir
+          (filterAttrs (n: v: v == "directory" || n == "default.nix"))
+          attrNames
+          (map (name: path + "/${name}"))
+          (map (child:
+            if (baseNameOf child) == "default.nix" then
+              child
+            else
+              readDirRec child))
+          flatten
+        ];
 
-  in nameValuePair proto.config.cluster.name {
-    inherit proto tf nodes groups topology secrets mkJob;
-  }))
+      clusterFiles = readDirRec root;
+
+    in
+    pipe clusterFiles [
+      (map (mkCluster self deployerPkgs))
+      (map (c: nameValuePair c.proto.config.cluster.name c))
+      listToAttrs
+    ];
+}

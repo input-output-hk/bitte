@@ -2,6 +2,7 @@
 let
   inherit (lib) mapAttrsToList mkIf mkDefault;
   inherit (config.cluster) instances region;
+
 in {
   services.consul = mkIf config.services.consul.enable {
     addresses = { http = mkDefault "127.0.0.1"; };
@@ -33,9 +34,18 @@ in {
     });
 
     # generate deterministic UUIDs for each node so they can rejoin.
-    nodeId = lib.mkIf (config.instance != null) (lib.fileContents
-      (pkgs.runCommand "node-id" { buildInputs = [ pkgs.utillinux ]; }
-        "uuidgen -s -n ab8c189c-e764-4103-a1a8-d355b7f2c814 -N ${nodeName} > $out"));
+    nodeId = lib.mkIf (config.instance != null) {
+        # NOTE these IDs are hardcoded for historical reasons to avoid
+        # having to re-do all clusters.
+        core-1 = "a2528830-ed64-513b-9389-209f4c92bae8";
+        core-2 = "db2ce149-ce64-5e84-83fe-1d3e391573d5";
+        core-3 = "67ddc872-0ddc-5b19-89a7-6c3cb87b226d";
+        monitoring = "41acfc41-6f80-54f3-abee-1ce97cd6c53d";
+    }.${nodeName} or
+    (with builtins;
+      concatStringsSep "-"
+      (match "(.{8})(.{4})(.{4})(.{4})(.{12})"
+      (hashString "md5" nodeId)));
 
     bindAddr = ''{{ GetInterfaceIP "ens5" }}'';
 

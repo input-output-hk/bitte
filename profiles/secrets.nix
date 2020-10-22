@@ -1,12 +1,12 @@
-{ self, lib, pkgs, config, ... }:
+{ self, lib, pkgs, deployerPkgs, config, ... }:
 let
   inherit (config.cluster) instances domain region kms;
 
   sopsEncrypt =
-    "${pkgs.sops}/bin/sops --encrypt --input-type json --kms '${kms}' /dev/stdin";
+    "${deployerPkgs.sops}/bin/sops --encrypt --input-type json --kms '${kms}' /dev/stdin";
 
   sopsDecrypt = path:
-    "${pkgs.sops}/bin/sops --decrypt --input-type json ${path}";
+    "${deployerPkgs.sops}/bin/sops --decrypt --input-type json ${path}";
 
   isInstance = config.instance != null;
 
@@ -22,12 +22,12 @@ let
     size = 256;
   };
 
-  caJson = pkgs.toPrettyJSON "ca" {
+  caJson = deployerPkgs.toPrettyJSON "ca" {
     hosts = [ "consul" ];
     inherit names key;
   };
 
-  caConfigJson = pkgs.toPrettyJSON "ca" {
+  caConfigJson = deployerPkgs.toPrettyJSON "ca" {
     signing = {
       default = { expiry = "43800h"; };
 
@@ -53,7 +53,7 @@ let
     };
   };
 
-  certConfig = pkgs.toPrettyJSON "core" {
+  certConfig = deployerPkgs.toPrettyJSON "core" {
     CN = "${domain}";
     inherit names key;
     hosts = [
@@ -71,7 +71,7 @@ let
 
 in {
   secrets.generate.consul = lib.mkIf isInstance ''
-    export PATH="${lib.makeBinPath (with pkgs; [ consul toybox jq coreutils ])}"
+    export PATH="${lib.makeBinPath (with deployerPkgs; [ python consul utillinux jq coreutils ])}"
 
     encrypt="$(consul keygen)"
 
@@ -79,7 +79,7 @@ in {
       echo generating encrypted/consul-core.json
       echo '{}' \
       | jq --arg encrypt "$encrypt" '.encrypt = $encrypt' \
-      | jq --arg token "$(uuidgen)" '.acl.tokens.master = $token' \
+      | jq --arg token "$(python -c "import uuid, sys;sys.stdout.write(str(uuid.uuid4()))")" '.acl.tokens.master = $token' \
       | ${sopsEncrypt} \
       > encrypted/consul-core.json
     fi
@@ -109,7 +109,7 @@ in {
   };
 
   secrets.generate.nomad = lib.mkIf isInstance ''
-    export PATH="${lib.makeBinPath (with pkgs; [ nomad jq ])}"
+    export PATH="${lib.makeBinPath (with deployerPkgs; [ nomad jq ])}"
 
     if [ ! -s encrypted/nomad.json ]; then
       echo generating encrypted/nomad.json
@@ -123,7 +123,7 @@ in {
   '';
 
   secrets.generate.cache = lib.mkIf isInstance ''
-    export PATH="${lib.makeBinPath (with pkgs; [ coreutils nixFlakes jq ])}"
+    export PATH="${lib.makeBinPath (with deployerPkgs; [ coreutils nixFlakes jq ])}"
 
     mkdir -p secrets encrypted
 
@@ -152,8 +152,10 @@ in {
 
   secrets.generate.ca = lib.mkIf isInstance ''
     export PATH="${
-      lib.makeBinPath (with pkgs; [ cfssl jq coreutils terraform-with-plugins ])
+      lib.makeBinPath (with deployerPkgs; [ cfssl jq coreutils terraform-with-plugins ])
     }"
+
+    IP="$(terraform output -json cluster | jq -e -r '.instances."core-1"."public-ip"')"
 
     if [ ! -s secrets/ca.pem ]; then
       ca="$(cfssl gencert -initca ${caJson})"
@@ -186,7 +188,7 @@ in {
 
   secrets.install.certs = lib.mkIf isInstance {
     script = ''
-      export PATH="${lib.makeBinPath (with pkgs; [ cfssl jq coreutils ])}"
+      export PATH="${lib.makeBinPath (with deployerPkgs; [ cfssl jq coreutils ])}"
       cert="$(${sopsDecrypt (config.secrets.encryptedRoot + "/cert.json")})"
       echo "$cert" | cfssljson -bare cert
       echo "$cert" | jq -r -e .ca  > "ca.pem"

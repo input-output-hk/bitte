@@ -1,4 +1,4 @@
-{ lib, config, pkgs, ... }:
+{ lib, config, pkgs, deployerPkgs, ... }:
 let
   inherit (lib.types) str enum submodule attrsOf nullOr path;
   inherit (config.cluster) kms;
@@ -47,9 +47,10 @@ let
       };
 
       generateScript = lib.mkOption {
-        type = str;
-        apply = f:
+        type = lib.types.path;
+        default =
           let
+            pkgs = deployerPkgs;
             scripts = lib.concatStringsSep "\n" (lib.mapAttrsToList
               (name: value:
                 let
@@ -65,7 +66,7 @@ let
             set -euo pipefail
 
             export PATH="$PATH:${
-              lib.makeBinPath (with pkgs; [ utillinux git ])
+              lib.makeBinPath (with pkgs; [ flock git ])
             }"
 
             mkdir -p secrets encrypted

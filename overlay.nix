@@ -1,52 +1,43 @@
-{ system, self }:
+final: prev:
 let
-  inherit (self.inputs)
-    nixpkgs nix ops-lib nixpkgs-terraform crystal bitte-cli inclusive;
   inherit (builtins) fromJSON toJSON trace mapAttrs genList foldl';
-  inherit (nixpkgs) lib;
-in final: prev: {
-  inherit self;
-
-  nixos-rebuild = let
-    nixos = lib.nixosSystem {
-      inherit system;
-      modules = [{ nix.package = prev.nixFlakes; }];
-    };
-  in nixos.config.system.build.nixos-rebuild;
-
-  nixFlakes = prev.nixFlakes.overrideAttrs ({ patches ? [ ], ... }: {
-    patches = [
-      patches
-      (prev.fetchpatch {
-        url =
-          "https://github.com/cleverca22/nix/commit/39c2f9fd1c2d2e25ed10b6c3919a01022297dc34.patch";
-        sha256 = "sha256-6vwVTMC1eZnJqB6FGv3vsS2AZhz52j0exLeS2WsT6Y0=";
-      })
-    ];
-  });
-
-  # nix = prev.nixFlakes;
-
-  vault-bin = prev.callPackage ./pkgs/vault-bin.nix { };
-
+  inherit (final) lib;
+in
+{
   ssm-agent = prev.callPackage ./pkgs/ssm-agent { };
 
   consul = prev.callPackage ./pkgs/consul { };
 
-  terraform-with-plugins =
-    nixpkgs-terraform.legacyPackages.${system}.terraform_0_12.withPlugins
-    (plugins:
-      lib.attrVals [
-        "acme"
-        "aws"
-        "consul"
-        "local"
-        "nomad"
-        "null"
-        "sops"
-        "tls"
-        "vault"
-      ] plugins);
+  terraform-with-plugins = prev.terraform_0_12.withPlugins
+  (plugins: let
+    vault = plugins.vault.overrideAttrs (o: let
+      version = "2.14.0";
+      rev = "v${version}";
+      sha256 = "sha256-CeZIBuy00HGXAFDuiYEKm11o0ylkMAl07wa+zL9EW3E=";
+      passthru = o.passthru // { inherit version rev sha256; };
+
+    in {
+      inherit version passthru;
+      src = final.fetchFromGitHub {
+        inherit (passthru) owner repo rev sha256;
+      };
+      postBuild = "mv $NIX_BUILD_TOP/go/bin/${passthru.repo}{,_v${passthru.version}}";
+    });
+
+    aws = plugins.aws.overrideAttrs (o: let
+      version = "3.21.0";
+      rev = "v${version}";
+      sha256 = "sha256:0nb03xykjj4a3lvfbbz1l31j6czii5xgslznq8vw0x9v9birjj1v";
+      passthru = o.passthru // { inherit version rev sha256; };
+    in {
+      inherit version passthru;
+      src = final.fetchFromGitHub {
+        inherit (passthru) owner repo rev sha256;
+      };
+      postBuild = "mv $NIX_BUILD_TOP/go/bin/${passthru.repo}{,_v${passthru.version}}";
+    });
+  in [ vault aws plugins.null ]
+  ++ (with plugins; [ acme consul local nomad sops tls ]));
 
   mkShellNoCC = prev.mkShell.override { stdenv = prev.stdenvNoCC; };
 
@@ -58,23 +49,38 @@ in final: prev: {
 
   snakeCase = prev.callPackage ./lib/snake-case.nix { };
 
-  inherit (inclusive.lib) inclusive;
-  inherit (crystal.packages.${system}) crystal;
-  inherit (bitte-cli.packages.${system}) bitte;
-
   pp = v: trace (toJSON v) v;
 
   haproxy-auth-request = prev.callPackage ./pkgs/haproxy-auth-request.nix { };
 
   haproxy-cors = prev.callPackage ./pkgs/haproxy-cors.nix { };
 
-  devShell = final.callPackage ./pkgs/dev-shell.nix { };
+  devShell = prev.callPackage ./pkgs/dev-shell.nix { };
 
-  nixosModules = import ./pkgs/nixos-modules.nix { inherit nixpkgs lib; };
+  genericShell = final.callPackage ./pkgs/generic-shell.nix { };
+
+  mkBitteShell = {
+    cluster
+  , self
+  , profile
+  , nixConf ? null
+  }: let
+    cfg = self.clusters.${final.system}.${cluster}.proto.config.cluster;
+    inherit (cfg) domain region;
+  in final.genericShell.overrideAttrs (o: {
+    BITTE_CLUSTER = cluster;
+    AWS_PROFILE = profile;
+    AWS_DEFAULT_REGION = region;
+    VAULT_ADDR = "https://vault.${domain}";
+    NOMAD_ADDR = "https://nomad.${domain}";
+    CONSUL_HTTP_ADDR = "https://consul.${domain}";
+    NIX_USER_CONF_FILES = with lib; concatStringsSep ":"
+    ((toList o.NIX_USER_CONF_FILES) ++ (optional (nixConf != null) nixConf));
+  });
 
   consulRegister = prev.callPackage ./pkgs/consul-register.nix { };
 
-  systemd-runner = final.callPackage ./pkgs/systemd_runner { };
+  # systemd-runner = final.callPackage ./pkgs/systemd_runner { };
 
   envoy = prev.callPackage ./pkgs/envoy.nix { };
 
@@ -86,7 +92,7 @@ in final: prev: {
 
   grpcdump = prev.callPackage ./pkgs/grpcdump.nix { };
 
-  haproxy = prev.callPackage ./pkgs/haproxy.nix { };
+  # haproxy = prev.callPackage ./pkgs/haproxy.nix { };
 
   grafana-loki = prev.callPackage ./pkgs/loki.nix { };
 
@@ -113,24 +119,8 @@ in final: prev: {
       --prefix PATH : ${prev.lib.makeBinPath deps}
   '';
 
-  mkClusters = args:
-    import ./lib/clusters.nix ({
-      pkgs = final;
-      lib = final.lib;
-    } // args);
-
-  mkNixosConfigurations = clusters:
-    lib.pipe clusters [
-      (lib.mapAttrsToList (clusterName: cluster:
-        lib.mapAttrsToList
-        (name: value: lib.nameValuePair "${clusterName}-${name}" value)
-        (cluster.nodes // cluster.groups)))
-      lib.flatten
-      lib.listToAttrs
-    ];
-
   terralib = rec {
-    amis = import (nixpkgs + "/nixos/modules/virtualisation/ec2-amis.nix");
+    amis = import (final.path + "/nixos/modules/virtualisation/ec2-amis.nix");
 
     var = v: "\${${v}}";
     id = v: var "${v}.id";
@@ -156,6 +146,7 @@ in final: prev: {
       network_interface_id = null;
       transit_gateway_id = null;
       vpc_peering_connection_id = null;
+      vpc_endpoint_id = null;
       gateway_id = null;
     };
 
@@ -228,9 +219,4 @@ in final: prev: {
       set -exuo pipefail
       ${checks}
     '';
-
-  ssh-keys = let
-    keys = import (ops-lib + "/overlays/ssh-keys.nix") lib;
-    inherit (keys) allKeysFrom devOps;
-  in { devOps = allKeysFrom devOps; };
 }

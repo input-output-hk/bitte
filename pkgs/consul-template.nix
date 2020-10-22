@@ -6,6 +6,7 @@ buildGoModule rec {
   rev = "v${version}";
 
   vendorSha256 = "sha256-wklYuJ98Ui0fChwHBdKZnkePL/Klsv/k/LOfiaZZZEM=";
+  doCheck = false;
 
   src = fetchFromGitHub {
     inherit rev;

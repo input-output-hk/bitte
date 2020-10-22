@@ -1,4 +1,4 @@
-{ lib, pkgs, config, nodeName, ... }:
+{ lib, pkgs, deployerPkgs, config, nodeName, ... }:
 let
   inherit (config.cluster) domain region instances kms;
   acme-full = "/etc/ssl/certs/${config.cluster.domain}-full.pem";
@@ -24,7 +24,19 @@ in {
     vault-agent-core = {
       enable = true;
       vaultAddress =
-        "https://${config.cluster.instances.core-1.privateIP}:8200";
+        "https://${
+          lib.fileContents (
+            let
+              inherit (config.cluster.instances.core-1) privateIP;
+            in deployerPkgs.runCommand "private-ip" {
+              buildInputs = [ deployerPkgs.terraform ];
+            } ''
+              cat <<'EOF' | terraform console > $out
+              "${privateIP}"
+              EOF
+            ''
+          )
+          }:8200";
     };
 
     oauth2_proxy = {
@@ -107,7 +119,7 @@ in {
   };
 
   secrets.generate.grafana-password = ''
-    export PATH="${lib.makeBinPath (with pkgs; [ coreutils sops xkcdpass ])}"
+    export PATH="${lib.makeBinPath (with deployerPkgs; [ coreutils sops xkcdpass ])}"
 
     if [ ! -s encrypted/grafana-password.json ]; then
       xkcdpass \
@@ -117,7 +129,7 @@ in {
   '';
 
   secrets.install.grafana-password.script = ''
-    export PATH="${lib.makeBinPath (with pkgs; [ sops coreutils ])}"
+    export PATH="${lib.makeBinPath (with deployerPkgs; [ sops coreutils ])}"
 
     mkdir -p /var/lib/grafana
 
@@ -129,7 +141,7 @@ in {
   users.extraGroups.keys.members = [ "oauth2_proxy" ];
 
   secrets.install.oauth.script = ''
-    export PATH="${lib.makeBinPath (with pkgs; [ sops coreutils ])}"
+    export PATH="${lib.makeBinPath (with deployerPkgs; [ sops coreutils ])}"
 
     cat ${config.secrets.encryptedRoot + "/oauth-secrets"} \
       | sops -d /dev/stdin \

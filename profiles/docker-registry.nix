@@ -1,4 +1,4 @@
-{ lib, pkgs, config, ... }:
+{ lib, pkgs, deployerPkgs, config, ... }:
 let kms = config.cluster.kms;
 in {
   systemd.services.docker-registry.serviceConfig.Environment = [
@@ -34,7 +34,7 @@ in {
   };
 
   secrets.generate.redis-password = ''
-    export PATH="${lib.makeBinPath (with pkgs; [ coreutils sops xkcdpass ])}"
+    export PATH="${lib.makeBinPath (with deployerPkgs; [ coreutils sops xkcdpass ])}"
 
     if [ ! -s encrypted/redis-password.json ]; then
       xkcdpass \
@@ -52,7 +52,7 @@ in {
 
   secrets.generate.docker-passwords = ''
     export PATH="${
-      lib.makeBinPath (with pkgs; [ coreutils sops jq pwgen apacheHttpd ])
+      lib.makeBinPath (with deployerPkgs; [ coreutils sops jq pwgen apacheHttpd ])
     }"
 
     if [ ! -s encrypted/docker-passwords.json ]; then

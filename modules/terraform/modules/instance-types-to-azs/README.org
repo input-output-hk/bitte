@@ -1,0 +1,23 @@
+#+TITLE: Readme
+
+#+begin_src bash :results verbatim
+tmpdir="$(mktemp -d)"
+trap "rm -rf $tmpdir" EXIT
+cd $tmpdir
+
+cat<<EOF > test.tf
+module "test" {
+    source = "$OLDPWD"
+    instance_types = [ "r5a.xlarge", "t3.micro", "m3.medium" ]
+}
+
+output "out" {
+  value = module.test.map
+}
+
+EOF
+
+terraform apply
+#+end_src
+
+#+RESULTS:

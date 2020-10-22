@@ -2,46 +2,57 @@
   description = "Flake containing Bitte clusters";
 
   inputs = {
-    crystal.follows = "bitte-cli/crystal";
-    nixpkgs.url = "github:NixOS/nixpkgs?rev=b8c367a7bd05e3a514c2b057c09223c74804a21b";
-    nixpkgs-terraform.url = "github:manveru/nixpkgs/terraform-providers";
-    inclusive.url = "github:input-output-hk/nix-inclusive";
-    utils.url = "github:numtide/flake-utils";
-    bitte-cli.url = "github:input-output-hk/bitte-cli";
-    # bitte-cli.url = "/home/manveru/github/input-output-hk/bitte-cli";
+    utils.url = "github:kreisys/flake-utils";
+    cli.url = "github:input-output-hk/bitte-cli/decalisssystemd";
+
     ops-lib = {
       url = "github:input-output-hk/ops-lib";
       flake = false;
     };
+    # TODO use upstream/nixpkgs
     terranix = {
       url = "github:manveru/terranix/cleanup";
       flake = false;
     };
   };
 
-  outputs = { self, crystal, nixpkgs, utils, bitte-cli, ... }:
-    (utils.lib.eachSystem [ "x86_64-linux" "x86_64-darwin" ] (system: rec {
-      overlay = import ./overlay.nix { inherit system self; };
+  outputs = { self, nixpkgs, terranix, utils, cli, ... }:
+  (utils.lib.simpleFlake {
+      inherit nixpkgs;
+      name = "bitte";
+      systems = [ "x86_64-darwin" "x86_64-linux" ];
 
-      legacyPackages = import nixpkgs {
-        inherit system;
-        config.allowUnfree = true; # for ssm-session-manager-plugin
-        overlays = [ overlay ];
+      overlays = [
+        cli
+        ./overlay.nix
+        (final: prev: {
+          lib = nixpkgs.lib.extend (final: prev: {
+            terranix = import (terranix + "/core");
+          });
+        })
+      ];
+
+      packages = { devShell, bitte }: {
+        inherit devShell bitte;
+        defaultPackage = bitte;
       };
 
-      inherit (legacyPackages) devShell nixosModules;
-
-      packages = {
-        inherit (legacyPackages)
-          bitte nixos-rebuild nixFlakes sops crystal terraform-with-plugins
-          ssm-agent cfssl consul;
+      hydraJobs = { devShell, bitte }: {
+        inherit bitte;
+        devShell = devShell.overrideAttrs (_: {
+          nobuildPhase = "touch $out";
+        });
       };
 
-      hydraJobs = packages;
+      config.allowUnfreePredicate = pkg:
+      let name = nixpkgs.lib.getName pkg;
+      in
+      (builtins.elem name [ "ssm-session-manager-plugin" ])
+      || throw "unfree not allowed: ${name}";
 
-      apps.bitte = utils.lib.mkApp { drv = legacyPackages.bitte; };
-
-    })) // {
+    }) // {
       mkHashiStack = import ./lib/mk-hashi-stack.nix;
+      lib = import ./lib { inherit nixpkgs; };
+      nixosModules = self.lib.importNixosModules ./modules;
     };
 }

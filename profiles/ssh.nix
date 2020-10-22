@@ -1,4 +1,4 @@
-{ pkgs, ... }: {
+{ lib, self, ... }: {
   services = {
     openssh = {
       enable = true;
@@ -6,5 +6,10 @@
     };
   };
 
-  users.extraUsers.root.openssh.authorizedKeys.keys = pkgs.ssh-keys.devOps;
+  users.extraUsers.root.openssh.authorizedKeys.keys = let
+    ssh-keys = let
+      keys = import (self.inputs.ops-lib + "/overlays/ssh-keys.nix") lib;
+      inherit (keys) allKeysFrom devOps;
+    in { devOps = allKeysFrom devOps; };
+  in ssh-keys.devOps;
 }
