@@ -44,6 +44,23 @@ in {
       "auth/aws/config/client".capabilities = [ c r u d l ];
     };
 
+    developer.path = {
+      # Allow all KV access
+      "kv/*".capabilities = [ c r u d l ];
+      # Allow creating AWS tokens
+      "aws/creds/developer".capabilities = [ r u ];
+      # Allow creating Nomad tokens
+      "nomad/creds/developer".capabilities = [ r u ];
+      # Allow creating Consul tokens
+      "consul/creds/developer".capabilities = [ r u ];
+      # Allow lookup of own capabilities
+      "sys/capabilities-self".capabilities = [ u ];
+      # Allow lookup of own tokens
+      "auth/token/lookup-self".capabilities = [ r ];
+      # Allow self renewing tokens
+      "auth/token/renew-self".capabilities = [ u ];
+    };
+
     core.path = {
       "auth/token/create".capabilities = [ c r u d l s ];
       "auth/token/create/nomad-cluster".capabilities = [ u ];
