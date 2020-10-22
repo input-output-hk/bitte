@@ -63,8 +63,6 @@ in final: prev: {
 
   pp = v: trace (toJSON v) v;
 
-  bitte-tokens = prev.callPackage ./pkgs/bitte-tokens.nix { };
-
   haproxy-auth-request = prev.callPackage ./pkgs/haproxy-auth-request.nix { };
 
   devShell = final.callPackage ./pkgs/dev-shell.nix { };

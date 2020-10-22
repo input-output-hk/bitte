@@ -24,7 +24,6 @@ mkShellNoCC {
     ssm-session-manager-plugin
     terraform-with-plugins
     vault-bin
-    bitte-tokens
     jq
     crystal
     cockroachdb
