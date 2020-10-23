@@ -79,6 +79,8 @@ in final: prev: {
 
   seaweedfs = prev.callPackage ./pkgs/seaweedfs.nix { };
 
+  grpcdump = prev.callPackage ./pkgs/grpcdump.nix { };
+
   haproxy = prev.callPackage ./pkgs/haproxy.nix { };
 
   consul-template = prev.callPackage ./pkgs/consul-template.nix { };
@@ -88,8 +90,6 @@ in final: prev: {
   toPrettyJSON = prev.callPackage ./lib/to-pretty-json.nix { };
 
   mkNomadJob = final.callPackage ./lib/mk-nomad-job.nix { };
-
-  mkNomadTaskSandbox = final.callPackage ./lib/mk-nomad-task-sandbox.nix { };
 
   systemdSandbox = final.callPackage ./lib/systemd-sandbox.nix { };
 

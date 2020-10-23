@@ -1,4 +1,4 @@
-{ lib, pkgs, config, ... }:
+{ lib, pkgs, config, nodeName, ... }:
 let
   inherit (config.cluster) domain region instances kms;
   acme-full = "/etc/ssl/certs/${config.cluster.domain}-full.pem";
@@ -20,10 +20,20 @@ in {
     seaweedfs.filer = {
       enable = true;
       s3.enable = true;
-        master = lib.forEach [ "core-1" "core-2" "core-3" ] (core:
-          "${config.cluster.instances.${core}.privateIP}:${
-            toString config.services.seaweedfs.master.port
-          }");
+
+      master = lib.forEach [ "core-1" "core-2" "core-3" ] (core:
+        "${config.cluster.instances.${core}.privateIP}:${
+          toString config.services.seaweedfs.master.port
+        }");
+
+      peers = lib.forEach ["core-1" "core-2" "core-3"] (core:
+        "${config.cluster.instances.${core}.privateIP}:${
+          toString config.services.seaweedfs.filer.http.port
+        }");
+
+      postgres.enable = true;
+      postgres.hostname = "${nodeName}.node.consul";
+      postgres.port = 26257;
     };
 
     oauth2_proxy = {

@@ -9,7 +9,8 @@ let
     protocol = "protocol";
     auth = "auth";
     image = "image";
-    volumes = "volumes";
+    # FIXME: this is used by docker tasks (needs to be lowercase) and by volume mounts (capitalized)...
+    # volumes = "volumes";
     args = "args";
     memoryMB = "MemoryMB";
   };

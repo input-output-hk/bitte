@@ -19,6 +19,21 @@ let
       ProhibitOverlap = input.prohibitOverlap;
     };
 
+  mapVolumeMounts = nullMap (value: {
+    Volume = value.volume;
+    destination = value.destination;
+    ReadOnly = value.readOnly;
+    PropagationMode = value.propagationMode;
+  });
+
+  mapVolumes = nullMap (value: {
+    Name = value.name;
+    Type = value.type;
+    Source = value.source;
+    ReadOnly = value.readOnly;
+    MountOptions = value.MountOptions;
+  });
+
   mapArtifacts = nullMap (value: {
     GetterSource = value.source;
     RelativeDest = value.destination;
@@ -239,6 +254,90 @@ let
     };
   }));
 
+  volumeMountType = submodule ({ name, ... }: {
+    options = {
+      volume = mkOption {
+        type = str;
+        default = name;
+      };
+
+      destination = mkOption { type = str; };
+
+      readOnly = mkOption {
+        type = bool;
+        default = true;
+      };
+
+      propagationMode = mkOption {
+        type = enum [ "host-to-task" "private" "bidirectional" ];
+        default = "private";
+      };
+    };
+  });
+
+  volumeType = submodule ({ name, ... }: {
+    options = {
+      name = mkOption {
+        type = str;
+        default = name;
+      };
+
+      type = mkOption {
+        type = nullOr (enum [ "host" "csi" ]);
+        default = null;
+        description = ''
+          Specifies the type of a given volume. The valid volume types are "host" and "csi".
+        '';
+      };
+
+      source = mkOption {
+        type = str;
+        default = null;
+        description = ''
+          Specifies the type of a given volume. The valid volume types are "host" and "csi".
+        '';
+      };
+
+      readOnly = mkOption {
+        type = bool;
+        default = false;
+        description = ''
+          Specifies that the group only requires read only access to a volume
+          and is used as the default value for the volumeMount -> readOnly
+          configuration.
+          This value is also used for validating hostVolume ACLs and for
+          scheduling when a matching hostVolume requires readOnly usage.
+        '';
+      };
+
+      mountOptions = mkOption {
+        default = null;
+
+        description = ''
+          Options for mounting CSI volumes that have the file-system attachment
+          mode. These options override the mount_options field from volume
+          registration. Consult the documentation for your storage provider and
+          CSI plugin as to whether these options are required or necessary.
+        '';
+
+        type = nullOr (submodule {
+          options = {
+            fsType = mkOption {
+              type = nullOr str;
+              default = null;
+              description = ''file system type (ex. "ext4")'';
+            };
+            mountFlags = mkOption {
+              type = nullOr str;
+              default = null;
+              description = ''the flags passed to mount (ex. "ro,noatime")'';
+            };
+          };
+        });
+      };
+    };
+  });
+
   taskGroupType = submodule ({ name, ... }: {
     options = {
       name = mkOption {
@@ -384,9 +483,15 @@ let
 
       # stop_after_client_disconnect (string: "") - Specifies a duration after which a Nomad client that cannot communicate with the servers will stop allocations based on this task group. By default, a client will not stop an allocation until explicitly told to by a server. A client that fails to heartbeat to a server within the hearbeat_grace window and any allocations running on it will be marked "lost" and Nomad will schedule replacement allocations. However, these replaced allocations will continue to run on the non-responsive client; an operator may desire that these replaced allocations are also stopped in this case — for example, allocations requiring exclusive access to an external resource. When specified, the Nomad client will stop them after this duration. The Nomad client process must be running for this to occur.
 
-      # task (Task: <required>) - Specifies one or more tasks to run within this group. This can be specified multiple times, to add a task as part of the group.
-
-      # volume (Volume: nil) - Specifies the volumes that are required by tasks within the group.
+      volumes = mkOption {
+        type = attrsOf volumeType;
+        default = { };
+        # apply = mapVolumes;
+        description = ''
+          Allows the group to specify that it requires a given volume from the cluster.
+          The key is the name of the volume as it will be exposed to task configuration.
+        '';
+      };
     };
   });
 
@@ -605,6 +710,12 @@ let
 
   taskType = submodule ({ name, ... }: {
     options = {
+      volumeMounts = mkOption {
+        type = attrsOf volumeMountType;
+        apply = attrValues;
+        default = { };
+      };
+
       artifacts = mkOption {
         type = nullOr (listOf artifactType);
         default = null;

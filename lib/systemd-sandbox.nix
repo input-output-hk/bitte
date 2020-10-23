@@ -2,7 +2,8 @@
 , systemd-runner, nixFlakes, cacert, gawk, coreutils }:
 { name, command, args ? [ ], env ? { }, extraSystemdProperties ? { }
 , resources ? { }, templates ? [ ], artifacts ? [ ], vault ? null
-, restartPolicy ? null, services ? { }, extraEnvironmentVariables ? [ ] }:
+, restartPolicy ? null, services ? { }, extraEnvironmentVariables ? [ ]
+, volumeMounts ? { }, mountPaths ? { } }:
 let
   inherit (builtins) foldl' typeOf attrNames attrValues;
   inherit (lib) flatten pathHasContext isDerivation;
@@ -73,6 +74,19 @@ let
     } // extraSystemdProperties);
   };
 
+  # mountPaths {
+  # };
+
+  mount = if (builtins.length (builtins.attrNames mountPaths)) > 0 then ''
+    export NOMAD_MOUNT_TASK="${
+      builtins.concatStringsSep " "
+      (lib.mapAttrsToList (key: value: "${key}:${value}") mountPaths)
+    }"
+  '' else
+    "";
+
+  # NOMAD_ALLOC_DIR
+
   runner = writeShellScript "systemd-runner" ''
     set -exuo pipefail
 
@@ -80,6 +94,10 @@ let
 
     echo "entering ${placeholder "out"}/bin/runner"
     echo "dependencies: ${toString cleanLines}"
+
+    ${mount}
+
+    env
 
     exec systemd-runner \
       ${
@@ -93,7 +111,8 @@ in {
 
   driver = "raw_exec";
 
-  inherit resources templates artifacts vault services restartPolicy;
+  inherit resources templates artifacts vault services restartPolicy
+    volumeMounts;
 
   config = {
     command = "${bash}/bin/bash";

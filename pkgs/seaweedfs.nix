@@ -1,6 +1,3 @@
-# go get github.com/chrislusf/seaweedfs/weed
-# https://github.com/chrislusf/seaweedfs/releases/tag/2.05
-
 { stdenv, buildGoModule, fetchFromGitHub, nixosTests }:
 
 buildGoModule rec {
@@ -18,25 +15,13 @@ buildGoModule rec {
   src = fetchFromGitHub {
     owner = "chrislusf";
     repo = pname;
-    rev = version;
-    sha256 = "sha256-1LvJ6B1vYFKLOBUwDtE39XdmGUhVCea2TcllRIKwVeQ=";
+    rev = "b81359823fdd8dca0edf812303cd1d441e0dce3f";
+    sha256 = "sha256-WI9Okh/yyiMIIKWICyR9JmXKwIhjoObV2Uqu7CHB3fE=";
   };
 
-  # passthru.tests.consul = nixosTests.consul;
-
-  # This corresponds to paths with package main - normally unneeded but consul
-  # has a split module structure in one repo
   subPackages = [ "weed" ];
 
-  vendorSha256 = "sha256-Z92fyKYSz0JxZE5ZYrepdjRgZthIBVhEevFMY00kNxs=";
-  deleteVendor = true;
-
-  # preBuild = ''
-  #   buildFlagsArray+=("-ldflags"
-  #                     "-X github.com/hashicorp/consul/version.GitDescribe=v${version}
-  #                      -X github.com/hashicorp/consul/version.Version=${version}
-  #                      -X github.com/hashicorp/consul/version.VersionPrerelease=")
-  # '';
+  vendorSha256 = "sha256-mQbZiUCFlMoAGKcIfc6jLbLTDnbQqZX8xGJon+s0Ppw=";
 
   meta = with stdenv.lib; {
     description = "Tool for service discovery, monitoring and configuration";

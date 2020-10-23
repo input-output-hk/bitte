@@ -66,6 +66,33 @@ let
       };
     };
   };
+
+  hostVolumeType = listOf (submodule {
+    options = {
+      name = mkOption {
+        type = str;
+      };
+
+      path = mkOption {
+        type = nullOr path;
+        default = null;
+        description = ''
+          The path on the host that should be used as the source when
+          this volume is mounted into a task. The path must exist on
+          client startup.
+        '';
+      };
+
+      read_only = mkOption {
+        type = bool;
+        default = false;
+        description = ''
+          Whether the volume should only ever be allowed to be
+          mounted read_only, or if it should be writeable.
+        '';
+      };
+    };
+  });
 in {
   options.services.nomad = {
     enable = mkEnableOption "Enable the Nomad agent";
@@ -468,33 +495,12 @@ in {
           };
 
           host_volume = mkOption {
-            default = null;
+            type = hostVolumeType;
+            default = [];
             description = ''
               Exposes paths from the host as volumes that can be mounted into
               jobs.
             '';
-            type = nullOr (submodule {
-              options = {
-                path = mkOption {
-                  type = nullOr path;
-                  default = null;
-                  description = ''
-                    The path on the host that should be used as the source when
-                    this volume is mounted into a task. The path must exist on
-                    client startup.
-                  '';
-                };
-
-                read_only = mkOption {
-                  type = bool;
-                  default = false;
-                  description = ''
-                    Whether the volume should only ever be allowed to be
-                    mounted read_only, or if it should be writeable.
-                  '';
-                };
-              };
-            });
           };
         };
       };
