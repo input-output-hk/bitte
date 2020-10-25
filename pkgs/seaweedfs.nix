@@ -1,4 +1,4 @@
-{ stdenv, buildGoModule, fetchFromGitHub, nixosTests }:
+{ stdenv, buildGoModule, fetchFromGitHub }:
 
 buildGoModule rec {
   pname = "seaweedfs";
@@ -15,13 +15,13 @@ buildGoModule rec {
   src = fetchFromGitHub {
     owner = "chrislusf";
     repo = pname;
-    rev = "b81359823fdd8dca0edf812303cd1d441e0dce3f";
-    sha256 = "sha256-WI9Okh/yyiMIIKWICyR9JmXKwIhjoObV2Uqu7CHB3fE=";
+    rev = "91fd311f7a7e84217f4dde536de50e31948b669b";
+    sha256 = "sha256-WOqUqwyWY69adiJ3AHuIYMmqjUz72o0kengwdMe7zkA=";
   };
 
   subPackages = [ "weed" ];
 
-  vendorSha256 = "sha256-mQbZiUCFlMoAGKcIfc6jLbLTDnbQqZX8xGJon+s0Ppw=";
+  vendorSha256 = "sha256-9i+ynECjHHwsZhkaR+cg/kVta2wTugIJiqsIT+JTWPs=";
 
   meta = with stdenv.lib; {
     description = "Tool for service discovery, monitoring and configuration";

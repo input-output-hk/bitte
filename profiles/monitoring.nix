@@ -26,7 +26,7 @@ in {
           toString config.services.seaweedfs.master.port
         }");
 
-      peers = lib.forEach ["core-1" "core-2" "core-3"] (core:
+      peers = lib.forEach [ "core-1" "core-2" "core-3" ] (core:
         "${config.cluster.instances.${core}.privateIP}:${
           toString config.services.seaweedfs.filer.http.port
         }");

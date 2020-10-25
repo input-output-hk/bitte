@@ -69,9 +69,7 @@ let
 
   hostVolumeType = listOf (submodule {
     options = {
-      name = mkOption {
-        type = str;
-      };
+      name = mkOption { type = str; };
 
       path = mkOption {
         type = nullOr path;
@@ -496,7 +494,7 @@ in {
 
           host_volume = mkOption {
             type = hostVolumeType;
-            default = [];
+            default = [ ];
             description = ''
               Exposes paths from the host as volumes that can be mounted into
               jobs.

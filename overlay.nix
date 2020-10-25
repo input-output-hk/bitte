@@ -1,6 +1,7 @@
 { system, self }:
 let
-  inherit (self.inputs) nixpkgs nix ops-lib nixpkgs-terraform crystal bitte-cli inclusive;
+  inherit (self.inputs)
+    nixpkgs nix ops-lib nixpkgs-terraform crystal bitte-cli inclusive;
   inherit (builtins) fromJSON toJSON trace mapAttrs genList foldl';
   inherit (nixpkgs) lib;
 in final: prev: {

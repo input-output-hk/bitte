@@ -14,7 +14,10 @@
     telegraf.extraConfig.global_tags.role = "consul-server";
     vault-consul-token.enable = true;
     consul.enableDebug = false;
-    seaweedfs = let others = lib.remove nodeName [ "core-1" "core-2" "core-3" ]; in {
+    seaweedfs = let
+      cores = [ "core-1" "core-2" "core-3" ];
+      others = lib.remove nodeName cores;
+    in {
       master = {
         enable = true;
         peers = lib.forEach others (core:
@@ -29,7 +32,7 @@
         enable = true;
         max = [ "0" ];
         dataCenter = config.cluster.region;
-        mserver = lib.forEach others (core:
+        mserver = lib.forEach cores (core:
           "${config.cluster.instances.${core}.privateIP}:${
             toString config.services.seaweedfs.master.port
           }");
@@ -38,15 +41,15 @@
       filer = {
         enable = true;
 
-        master = lib.forEach others (core:
+        master = lib.forEach cores (core:
           "${config.cluster.instances.${core}.privateIP}:${
             toString config.services.seaweedfs.master.port
           }");
 
-        peers = lib.forEach (lib.remove nodeName [ "core-3" ]) (core:
-          "${config.cluster.instances.${core}.privateIP}:${
-            toString config.services.seaweedfs.filer.http.port
-          }");
+        # peers = lib.forEach (lib.remove nodeName [ "core-3" ]) (core:
+        #   "${config.cluster.instances.${core}.privateIP}:${
+        #     toString config.services.seaweedfs.filer.http.port
+        #   }");
 
         postgres.enable = true;
         postgres.hostname = "${nodeName}.node.consul";
