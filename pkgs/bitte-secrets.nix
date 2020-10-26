@@ -1,4 +1,4 @@
-{ self, cluster, lib, awscli, sops, jq, coreutils, cfssl, consul, toybox
+{ self, cluster, lib, awscli, sops, jq, coreutils, cfssl, consul, utillinux
 , vault-bin, toPrettyJSON, writeShellScriptBin, bitte, terraform-with-plugins
 , rsync, openssh, gnused, curl, cacert, nixFlakes, nomad }:
 let
@@ -75,7 +75,7 @@ let
         coreutils
         cfssl
         consul
-        toybox
+        utillinux
         terraform-with-plugins
         nomad
       ]
