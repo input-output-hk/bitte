@@ -65,7 +65,7 @@ let
             set -euo pipefail
 
             export PATH="$PATH:${
-              lib.makeBinPath (with pkgs; [ utillinux git ])
+              lib.makeBinPath (with pkgs; [ flock git ])
             }"
 
             mkdir -p secrets encrypted
