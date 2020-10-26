@@ -6,16 +6,15 @@
 , volumeMounts ? { }, mountPaths ? { } }:
 let
   inherit (builtins) foldl' typeOf attrNames attrValues;
-  inherit (lib) flatten pathHasContext isDerivation;
 
   standardEnvironmentVariables = [ "INVOCATION_ID" ];
 
   onlyStringsWithContext = sum: input:
     let type = typeOf input;
     in sum ++ {
-      string = if pathHasContext input then [ input ] else [ ];
+      string = if lib.pathHasContext input then [ input ] else [ ];
       list = (foldl' (s: v: s ++ (onlyStringsWithContext [ ] v)) [ ] input);
-      set = if isDerivation input then
+      set = if lib.isDerivation input then
         [ input ]
       else
         (onlyStringsWithContext [ ] (attrNames input))
@@ -74,16 +73,13 @@ let
     } // extraSystemdProperties);
   };
 
-  # mountPaths {
-  # };
-
-  mount = if (builtins.length (builtins.attrNames mountPaths)) > 0 then ''
+  hasMounts = (builtins.length (builtins.attrNames mountPaths)) > 0;
+  mount = lib.optionalString hasMounts ''
     export NOMAD_MOUNT_TASK="${
       builtins.concatStringsSep " "
       (lib.mapAttrsToList (key: value: "${key}:${value}") mountPaths)
     }"
-  '' else
-    "";
+  '';
 
   # NOMAD_ALLOC_DIR
 
@@ -96,8 +92,6 @@ let
     echo "dependencies: ${toString cleanLines}"
 
     ${mount}
-
-    env
 
     exec systemd-runner \
       ${
