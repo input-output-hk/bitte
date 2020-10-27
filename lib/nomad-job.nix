@@ -501,6 +501,11 @@ let
         type = str;
         default = "bridge";
       };
+
+      port = mkOption {
+        type = attrsOf (submodule {name, ...}: { options = {}; });
+        default = {};
+      };
     };
   };
 
