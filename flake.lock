@@ -5,18 +5,20 @@
         "crystal": "crystal",
         "inclusive": "inclusive",
         "nixpkgs": "nixpkgs_2",
+        "nixpkgs/nixos-rebuild-no-systemctl": "nixpkgs/nixos-rebuild-no-systemctl",
         "utils": "utils_2"
       },
       "locked": {
-        "lastModified": 1606386177,
-        "narHash": "sha256-r0l2phaLS+7iZ9VpDjzAhlb9AjcL+hAGDJBvdfh86Vc=",
+        "lastModified": 1603791443,
+        "narHash": "sha256-7O+7YuzA5cBI246reA3p1KBLMdR4SuVenrGotKdfGpQ=",
         "owner": "input-output-hk",
         "repo": "bitte-cli",
-        "rev": "9355abbdcee3ea01f5267d786c0cca8f614fb36e",
+        "rev": "a53b3dc4c369794ecb072821ba429042fd6927da",
         "type": "github"
       },
       "original": {
         "owner": "input-output-hk",
+        "ref": "decalisssystemd",
         "repo": "bitte-cli",
         "type": "github"
       }
@@ -102,6 +104,22 @@
       "original": {
         "owner": "manveru",
         "ref": "terraform-providers",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs/nixos-rebuild-no-systemctl": {
+      "locked": {
+        "lastModified": 1603362239,
+        "narHash": "sha256-7rganVnQj16Rns40uAeJDLs0wBF3Vh+KgftYGlSWkDk=",
+        "owner": "kreisys",
+        "repo": "nixpkgs",
+        "rev": "62c9a87ce53a46e0c23e56f53618c3cd5e1a6cd5",
+        "type": "github"
+      },
+      "original": {
+        "owner": "kreisys",
+        "ref": "nixos-rebuild-no-systemctl",
         "repo": "nixpkgs",
         "type": "github"
       }

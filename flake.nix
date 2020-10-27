@@ -7,7 +7,7 @@
     nixpkgs-terraform.url = "github:manveru/nixpkgs/terraform-providers";
     inclusive.url = "github:input-output-hk/nix-inclusive";
     utils.url = "github:numtide/flake-utils";
-    bitte-cli.url = "github:input-output-hk/bitte-cli";
+    bitte-cli.url = "github:input-output-hk/bitte-cli/decalisssystemd";
     # bitte-cli.url = "/home/manveru/github/input-output-hk/bitte-cli";
     ops-lib = {
       url = "github:input-output-hk/ops-lib";
