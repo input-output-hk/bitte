@@ -47,8 +47,11 @@ let
       };
 
       generateScript = lib.mkOption {
-        type = str;
-        apply = f:
+        type = lib.mkOptionType rec {
+          name = "function";
+          check = lib.isFunction;
+        };
+        default = { pkgs ? pkgs }:
           let
             scripts = lib.concatStringsSep "\n" (lib.mapAttrsToList
               (name: value:
