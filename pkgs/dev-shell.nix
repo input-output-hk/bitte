@@ -23,7 +23,7 @@ mkShellNoCC {
     openssl
     python38Packages.pyhcl
     sops
-    ssm-session-manager-plugin
+    # ssm-session-manager-plugin
     terraform-with-plugins
     vault-bin
   ];
