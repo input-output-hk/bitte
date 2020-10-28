@@ -40,8 +40,8 @@ in {
         option httplog
         option dontlognull
         timeout connect 5000
-        timeout client 50000
-        timeout server 50000
+        timeout client 310000
+        timeout server 310000
         default-server init-addr none
         balance roundrobin
 
@@ -77,8 +77,6 @@ in {
 
       backend docker
         mode http
-        timeout client 120000
-        timeout server 120000
         http-request set-header X-Forwarded-Proto "https"
         server docker 127.0.0.1:5000
 
