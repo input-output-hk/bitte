@@ -424,7 +424,7 @@ in {
             set -exuo pipefail
             PATH="${makeBinPath [ pkgs.jq cfg.package pkgs.coreutils ]}"
             set +x
-            CONSUL_HTTP_TOKEN="$(jq -r -e .acl.tokens.default /etc/${cfg.configDir}/tokens.json)"
+            CONSUL_HTTP_TOKEN="$(< /run/keys/consul-server-default-token)"
             export CONSUL_HTTP_TOKEN
             set -x
             cd /var/lib/consul/

@@ -73,9 +73,14 @@ in {
       backend consul
         default-server check maxconn 2000
         option httpchk HEAD /
-      {{ range $key, $value := service "consul" }}
-        server consul{{ $key }} {{.Address}}:8500
-      {{- end }}
+        server consul 127.0.0.1:8500
+
+      backend docker
+        mode http
+        timeout client 120000
+        timeout server 120000
+        http-request set-header X-Forwarded-Proto "https"
+        server docker 127.0.0.1:5000
 
       frontend stats
         bind *:1936
@@ -99,6 +104,7 @@ in {
         acl is_vault     hdr(host) -i vault.${domain}
         acl is_nomad     hdr(host) -i nomad.${domain}
         acl is_consul    hdr(host) -i consul.${domain}
+        acl is_docker    hdr(host) -i docker.${domain}
         acl is_ui path_beg /ui
         ${config.services.ingress-config.extraHttpsAcls}
 
@@ -106,6 +112,7 @@ in {
         http-request add-header X-Authenticated-User %[var(req.auth_response_header.x_auth_request_email)]
 
         use_backend oauth_proxy if oauth_proxy
+        use_backend docker if is_docker
         use_backend consul  if is_consul is_ui authenticated OR is_consul ! is_ui
         use_backend vault   if is_vault  is_ui authenticated OR is_vault ! is_ui
         use_backend nomad   if is_nomad  is_ui authenticated OR is_nomad ! is_ui

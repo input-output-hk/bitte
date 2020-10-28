@@ -84,7 +84,21 @@ let
         template = {
           destination = "/etc/consul.d/tokens.json";
           command = "${pkgs.systemd}/bin/systemctl reload consul.service";
-          contents = ''
+          contents = if nodeName == "monitoring" then ''
+            {
+              "acl": {
+                "default_policy": "${config.services.consul.acl.defaultPolicy}",
+                "down_policy": "${config.services.consul.acl.downPolicy}",
+                "enable_token_persistence": true,
+                "enabled": true,
+                "tokens": {
+                  "agent": "{{ with secret "consul/creds/consul-server-agent" }}{{ .Data.token }}{{ end }}"
+                }
+              }
+            }
+          ''
+          else
+          ''
             {
               "acl": {
                 "default_policy": "${config.services.consul.acl.defaultPolicy}",
@@ -97,6 +111,16 @@ let
                 }
               }
             }
+          '';
+        };
+      })
+
+      (runIf (config.services.consul.enable) {
+        template = {
+          destination = "/run/keys/consul-server-default-token";
+          command = "${pkgs.systemd}/bin/systemctl reload consul.service";
+          contents = ''
+            {{ with secret "consul/creds/consul-server-default" }}{{ .Data.token }}{{ end }}
           '';
         };
       })

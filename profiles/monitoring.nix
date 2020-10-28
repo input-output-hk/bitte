@@ -13,6 +13,7 @@ in {
   ];
 
   services = {
+    consul.ui = true;
     nomad.enable = false;
     vault-agent-core.enable = true;
     amazon-ssm-agent.enable = true;
