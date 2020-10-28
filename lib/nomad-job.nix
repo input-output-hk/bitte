@@ -4,7 +4,7 @@ let
   inherit (lib) mkOption mkEnableOption attrValues;
   inherit (lib.types)
     nullOr submodule str enum ints listOf attrsOf attrs bool coercedTo float
-    port unspecified;
+    port unspecified int;
 
   nullMap = f: input: if input == null then null else map f input;
 
@@ -19,19 +19,33 @@ let
       ProhibitOverlap = input.prohibitOverlap;
     };
 
+  mapNetworks = nullMap (value: {
+    Mode = value.mode;
+    DNS = value.dns;
+
+    ReservedPorts = let
+      reserved = lib.filterAttrs (k: v: v.static or null != null) value.ports;
+    in lib.mapAttrsToList (k: v: {
+      Label = k;
+      Value = v.static;
+      To = v.to;
+      HostNetwork = v.hostNetwork;
+    }) reserved;
+
+    DynamicPorts = let
+      dynamic = lib.filterAttrs (k: v: v.static or null == null) value.ports;
+    in lib.mapAttrsToList (k: v: {
+      Label = k;
+      To = v.to;
+      HostNetwork = v.hostNetwork;
+    }) dynamic;
+  });
+
   mapVolumeMounts = nullMap (value: {
     Volume = value.volume;
     destination = value.destination;
     ReadOnly = value.readOnly;
     PropagationMode = value.propagationMode;
-  });
-
-  mapVolumes = nullMap (value: {
-    Name = value.name;
-    Type = value.type;
-    Source = value.source;
-    ReadOnly = value.readOnly;
-    MountOptions = value.MountOptions;
   });
 
   mapArtifacts = nullMap (value: {
@@ -132,6 +146,16 @@ let
       meta = mkOption {
         type = attrsOf str;
         default = { };
+      };
+
+      task = mkOption {
+        type = str;
+        default = "";
+      };
+
+      addressMode = mkOption {
+        type = str;
+        default = "auto";
       };
 
       checks = mkOption {
@@ -394,6 +418,7 @@ let
       networks = mkOption {
         type = nullOr (listOf networkType);
         default = null;
+        apply = mapNetworks;
       };
 
       meta = mkOption {
@@ -486,7 +511,6 @@ let
       volumes = mkOption {
         type = attrsOf volumeType;
         default = { };
-        # apply = mapVolumes;
         description = ''
           Allows the group to specify that it requires a given volume from the cluster.
           The key is the name of the volume as it will be exposed to task configuration.
@@ -499,12 +523,90 @@ let
     options = {
       mode = mkOption {
         type = str;
-        default = "bridge";
+        default = "";
+        description = ''
+          none: Task group will have an isolated network without any network
+          interfaces.
+
+          bridge: Task group will have an isolated network namespace with an
+          interface that is bridged with the host. Note that bridge networking
+          is only currently supported for the docker, exec, raw_exec, and java
+          task drivers.
+
+          host: Each task will join the host network namespace and a shared
+          network namespace is not created. This matches the current behavior
+          in Nomad 0.9.
+
+          cni/<cni network name>: Task group will have an isolated network
+          namespace with the network configured by CNI.
+        '';
       };
 
-      port = mkOption {
-        type = attrsOf (submodule {name, ...}: { options = {}; });
-        default = {};
+      ports = mkOption {
+        default = { };
+        type = attrsOf (submodule ({ name, ... }: {
+          options = {
+            label = mkOption {
+              type = str;
+              description = ''
+                Label is the key for HCL port stanzas: port "foo" {}
+              '';
+            };
+
+            static = mkOption {
+              type = nullOr port;
+              default = null;
+              description = ''
+                Specifies the static TCP/UDP port to allocate. If omitted, a
+                dynamic port is chosen. We do not recommend using static ports,
+                except for system or specialized jobs like load balancers.
+              '';
+            };
+
+            to = mkOption {
+              type = nullOr int;
+              default = null;
+              description = ''
+                Applicable when using "bridge" mode to configure port to map to
+                inside the task's network namespace. -1 sets the mapped port
+                equal to the dynamic port allocated by the scheduler.  The
+                NOMAD_PORT_<label> environment variable will contain the to
+                value.
+              '';
+            };
+
+            hostNetwork = mkOption {
+              type = nullOr str;
+              default = null;
+              description = ''
+                Designates the host network name to use when allocating the
+                port.  When port mapping the host port will only forward
+                traffic to the matched host network address.
+              '';
+            };
+          };
+        }));
+      };
+
+      dns = {
+        servers = mkOption {
+          type = nullOr (listOf str);
+          default = null;
+          description =
+            "Sets the DNS nameservers the allocation uses for name resolution.";
+        };
+
+        searches = mkOption {
+          type = nullOr (listOf str);
+          default = null;
+          description = "Sets the search list for hostname lookup";
+        };
+
+        options = mkOption {
+          type = nullOr (listOf str);
+          default = null;
+          description = "Sets internal resolver variables.";
+        };
       };
     };
   };
@@ -830,8 +932,9 @@ let
             };
 
             networks = mkOption {
+              type = nullOr (listOf networkType);
               default = null;
-              type = unspecified;
+              apply = mapNetworks;
             };
           };
         });

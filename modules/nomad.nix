@@ -67,10 +67,8 @@ let
     };
   };
 
-  hostVolumeType = listOf (submodule {
+  hostVolumeType = listOf (attrsOf (submodule {
     options = {
-      name = mkOption { type = str; };
-
       path = mkOption {
         type = nullOr path;
         default = null;
@@ -90,7 +88,7 @@ let
         '';
       };
     };
-  });
+  }));
 in {
   options.services.nomad = {
     enable = mkEnableOption "Enable the Nomad agent";
