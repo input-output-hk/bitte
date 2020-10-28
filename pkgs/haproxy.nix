@@ -7,13 +7,13 @@ assert usePcre -> pcre != null;
 
 stdenv.mkDerivation rec {
   pname = "haproxy";
-  version = "2.2.0";
+  version = "2.2.4";
 
   src = fetchurl {
     url = "https://www.haproxy.org/download/${
         stdenv.lib.versions.majorMinor version
       }/src/${pname}-${version}.tar.gz";
-    sha256 = "sha256-PBqHFg7qQOBn8eKBO/5pIoChDEVb6xeo7n+uEeQiMnQ=";
+    sha256 = "sha256-h6TZ1P+NwwlMthu+1Kju0sQLWsR7lgTa668DbXtUG+I=";
   };
 
   buildInputs = [ openssl zlib ] ++ lib.optional useLua lua5_3
