@@ -75,6 +75,22 @@ let
             source_labels = [ "__journal_syslog_identifier" ];
             target_label = "syslog_identifier";
           }
+          {
+            source_labels = [ "__journal_container_tag" ];
+            target_label = "container_tag";
+          }
+          {
+            source_labels = [ "__journal_namespace" ];
+            target_label = "namespace";
+          }
+          {
+            source_labels = [ "__journal_container_name" ];
+            target_label = "container_name";
+          }
+          {
+            source_labels = [ "__journal_image_name" ];
+            target_label = "image_name";
+          }
         ];
       }
     ];
