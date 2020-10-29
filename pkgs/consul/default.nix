@@ -2,7 +2,7 @@
 
 buildGoModule rec {
   pname = "consul";
-  version = "1.8.0";
+  version = "1.8.5";
   rev = "v${version}";
 
   # Note: Currently only release tags are supported, because they have the Consul UI
@@ -17,10 +17,8 @@ buildGoModule rec {
     owner = "hashicorp";
     repo = pname;
     inherit rev;
-    sha256 = "1rmybh0piqlbsy5ihqy9cmg0vsgg9pnxiza2kia8ww4qx98nvh6y";
+    sha256 = "sha256-Re3YcltmwstOrewdZbjPnAqxBg4ubQXLhyfBPtb+w7E=";
   };
-
-  patches = [ ./envoy-grpc-web.patch ];
 
   passthru.tests.consul = nixosTests.consul;
 
@@ -28,7 +26,7 @@ buildGoModule rec {
   # has a split module structure in one repo
   subPackages = [ "." "connect/certgen" ];
 
-  vendorSha256 = "12a2x8j4kc1vi3ip0cz81k6anfwac23iqqyz00wf7wpvgxqzcxn3";
+  vendorSha256 = "snt6jshsOzHGRnqnhh8U5F1tZFLlsnFqQun0/SyE4/8=";
   deleteVendor = true;
 
   preBuild = ''
