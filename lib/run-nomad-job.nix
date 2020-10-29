@@ -69,6 +69,7 @@ writeShellScriptBin "nomad-run" ''
   echo "Copying closure to the binary cache..."
   nix copy --to "$cache&secret-key=secrets/nix-secret-key-file" ${json}
 
+  echo "Submitting Job..."
   jq --arg token "$CONSUL_HTTP_TOKEN" '.Job.ConsulToken = $token' < ${json} \
   | curl -s -q \
     -X POST \

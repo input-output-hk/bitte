@@ -11,8 +11,7 @@ let
 
   specialUpper = parents: name:
     let path = parents ++ [ name ];
-    in builtins.trace (builtins.toJSON path)
-    (if parents == [ "TaskGroups" "Volumes" ] then
+    in if parents == [ "TaskGroups" "Volumes" ] then
       name
     else if path == [ "id" ] then
       "ID"
@@ -22,7 +21,7 @@ let
     else if (lib.take 3 parents) == [ "TaskGroups" "Tasks" "Config" ] then
       name
     else
-      null);
+      null;
 
   capitalizeString = parents: name:
     let special = specialUpper parents name;
