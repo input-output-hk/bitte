@@ -411,6 +411,11 @@ in {
       description = "SeaweedFS mount %I";
       scriptArgs = "%i";
 
+      serviceConfig = {
+        Restart = "on-failure";
+        RestartSec = "15s";
+      };
+
       path = with pkgs; [ gawk iproute seaweedfs utillinux ];
 
       script = let
