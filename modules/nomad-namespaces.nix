@@ -22,66 +22,69 @@ in {
       default = { };
     };
 
-    services.nomad-namespaces.enable = lib.mkEnableOption "Maintain Nomad namespaces";
+    services.nomad-namespaces.enable =
+      lib.mkEnableOption "Maintain Nomad namespaces";
   };
 
   config = {
-    services.nomad.namespaces.default = lib.mkDefault "Default shared namespace";
+    services.nomad.namespaces.default =
+      lib.mkDefault { description = "Default shared namespace"; };
 
-    systemd.services.nomad-namespaces = lib.mkIf config.services.nomad-namespaces.enable {
-      after = [ "nomad.service" ];
-      wantedBy = [ "multi-user.target" ];
+    systemd.services.nomad-namespaces =
+      lib.mkIf config.services.nomad-namespaces.enable {
+        after = [ "nomad.service" ];
+        wantedBy = [ "multi-user.target" ];
 
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        Restart = "on-failure";
-        RestartSec = "10s";
-        ExecStartPre = pkgs.writeShellScript "check" ''
-          ${pkgs.systemd}/bin/systemctl is-active nomad.service
-        '';
-      };
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          Restart = "on-failure";
+          RestartSec = "10s";
+          ExecStartPre = pkgs.writeShellScript "check" ''
+            ${pkgs.systemd}/bin/systemctl is-active nomad.service
+          '';
+        };
 
-      environment = {
-        inherit (config.environment.variables) NOMAD_ADDR;
-        CURL_CA_BUNDLE = "/etc/ssl/certs/full.pem";
-      };
+        environment = {
+          inherit (config.environment.variables) NOMAD_ADDR;
+          CURL_CA_BUNDLE = "/etc/ssl/certs/full.pem";
+        };
 
-      path = with pkgs; [ nomad jq ];
+        path = with pkgs; [ nomad jq ];
 
-      script = ''
-        set -euo pipefail
+        script = ''
+          set -euo pipefail
 
-        NOMAD_TOKEN="$(< /var/lib/nomad/bootstrap.token)"
-        export NOMAD_TOKEN
+          NOMAD_TOKEN="$(< /var/lib/nomad/bootstrap.token)"
+          export NOMAD_TOKEN
 
-        set -x
+          set -x
 
-        ${lib.concatStringsSep "" (lib.mapAttrsToList (name: value: ''
-          nomad namespace apply -description ${
-            lib.escapeShellArg value.description
-          } "${name}" \
-          ${lib.optionalString (value.quota != null)
-          "-quota ${lib.escapeShellArg value.quota}"}
-        '') cfg)}
+          ${lib.concatStringsSep "" (lib.mapAttrsToList (name: value: ''
+            nomad namespace apply -description ${
+              lib.escapeShellArg value.description
+            } "${name}" \
+            ${lib.optionalString (value.quota != null)
+            "-quota ${lib.escapeShellArg value.quota}"}
+          '') cfg)}
 
-          keepNames=(${toString (builtins.attrNames cfg)})
+            keepNames=(${toString (builtins.attrNames cfg)})
 
-          namespaces=($(nomad namespace list -json | jq -e -r '.[].Name'))
+            namespaces=($(nomad namespace list -json | jq -e -r '.[].Name'))
 
-          for name in "''${namespaces[@]}"; do
-            keep=""
-            for kname in "''${keepNames[@]}"; do
-              if [ "$name" = "$kname" ]; then
-                keep="yes"
+            for name in "''${namespaces[@]}"; do
+              keep=""
+              for kname in "''${keepNames[@]}"; do
+                if [ "$name" = "$kname" ]; then
+                  keep="yes"
+                fi
+              done
+
+              if [ -z "$keep" ]; then
+                nomad namespace delete "$name"
               fi
             done
-
-            if [ -z "$keep" ]; then
-              nomad namespace delete "$name"
-            fi
-          done
-      '';
-    };
+        '';
+      };
   };
 }

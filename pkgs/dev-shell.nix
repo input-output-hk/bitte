@@ -10,10 +10,13 @@ mkShellNoCC {
     bitte
     cachix
     cfssl
+    cockroachdb
     consul
     consul-template
+    crystal
     dnsutils
     ipcalc
+    jq
     nixFlakes
     nixfmt
     nixos-rebuild
@@ -24,8 +27,5 @@ mkShellNoCC {
     ssm-session-manager-plugin
     terraform-with-plugins
     vault-bin
-    jq
-    crystal
-    cockroachdb
   ];
 }

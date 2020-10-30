@@ -96,9 +96,7 @@ let
                 }
               }
             }
-          ''
-          else
-          ''
+          '' else ''
             {
               "acl": {
                 "default_policy": "${config.services.consul.acl.defaultPolicy}",
