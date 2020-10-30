@@ -6,6 +6,7 @@
     ./consul-template.nix
     ./ingress-config.nix
     ./ingress.nix
+    ./nomad-namespaces.nix
     ./nomad.nix
     ./nomad-policies.nix
     ./promtail.nix

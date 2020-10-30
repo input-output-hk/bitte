@@ -12,5 +12,6 @@ in {
     consul-policies.enable = true;
     nomad-acl.enable = true;
     vault-acl.enable = true;
+    nomad-namespaces.enable = true;
   };
 }
