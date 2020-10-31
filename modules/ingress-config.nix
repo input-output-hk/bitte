@@ -1,8 +1,8 @@
 { pkgs, config, lib, ... }:
 let
   inherit (lib) mkIf makeBinPath concatStringsSep mapAttrsToList;
-  inherit (config.cluster) domain;
-  acme-full = "/etc/ssl/certs/${config.cluster.domain}-full.pem";
+  inherit (config.cluster) domain instances;
+  acme-full = "/etc/ssl/certs/${domain}-full.pem";
 in {
   options = {
     services.ingress-config = {
@@ -46,7 +46,7 @@ in {
         balance roundrobin
 
       resolvers consul
-        nameserver dnsmasq 127.0.0.1:53
+        nameserver dnsmasq ${instances.core-1.privateIP}:53
         accepted_payload_size 8192
         hold valid 5s
 
@@ -147,7 +147,7 @@ in {
       environment = {
         CONSUL_HTTP_ADDR = "http://127.0.0.1:8500";
         VAULT_ADDR =
-          "https://${config.cluster.instances.core-1.privateIP}:8200";
+          "https://${instances.core-1.privateIP}:8200";
         inherit (config.environment.variables) VAULT_CACERT;
       };
 
