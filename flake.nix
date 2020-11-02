@@ -5,7 +5,7 @@
     crystal.follows = "bitte-cli/crystal";
     nixpkgs.follows = "bitte-cli/nixpkgs";
     nixpkgs-terraform.url = "github:manveru/nixpkgs/terraform-providers";
-    inclusive.url = "github:manveru/nix-inclusive";
+    inclusive.url = "github:input-output-hk/nix-inclusive";
     utils.url = "github:numtide/flake-utils";
     bitte-cli.url = "github:input-output-hk/bitte-cli";
     # bitte-cli.url = "/home/manveru/github/input-output-hk/bitte-cli";

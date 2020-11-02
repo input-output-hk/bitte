@@ -63,15 +63,15 @@
         "stdlib": "stdlib_2"
       },
       "locked": {
-        "lastModified": 1592950149,
-        "narHash": "sha256-tZSz9/WkOrtNbW7U2re4WoFPQ2tQX0I0GpCeoF3fY1M=",
-        "owner": "manveru",
+        "lastModified": 1594133516,
+        "narHash": "sha256-4Z9XU8QRmTU7LldCxwRqkEH5pHJwgW8XmMvqu4t2DEg=",
+        "owner": "input-output-hk",
         "repo": "nix-inclusive",
-        "rev": "dd80ddcc6850d130b591fbc9b0aacacfbb3cf47c",
+        "rev": "11d05e4f1ca04fd250a9734e27970ad73bbd872d",
         "type": "github"
       },
       "original": {
-        "owner": "manveru",
+        "owner": "input-output-hk",
         "repo": "nix-inclusive",
         "type": "github"
       }
