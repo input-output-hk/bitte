@@ -80,6 +80,8 @@ in final: prev: {
 
   seaweedfs = prev.callPackage ./pkgs/seaweedfs.nix { };
 
+  boundary = prev.callPackage ./pkgs/boundary.nix {};
+
   grpcdump = prev.callPackage ./pkgs/grpcdump.nix { };
 
   haproxy = prev.callPackage ./pkgs/haproxy.nix { };

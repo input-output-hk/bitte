@@ -17,14 +17,14 @@ buildGoModule rec {
     owner = "hashicorp";
     repo = pname;
     inherit rev;
-    sha256 = "sha256-Re3YcltmwstOrewdZbjPnAqxBg1ubQXLhyfBPtb+w7E=";
+    sha256 = "sha256-o/8n6SeYRBIaazUu5aOfE37F20jCx2CLHX1UTnJj8CA=";
   };
 
   # This corresponds to paths with package main - normally unneeded but consul
   # has a split module structure in one repo
   subPackages = [ "." ];
 
-  vendorSha256 = "snt6jshsOzHGRnqnhh8U1F1tZFLlsnFqQun0/SyE4/8=";
+  vendorSha256 = "sha256-mWW1LGrkLaLC/D62Q+rm3fCQ6HGZORRx3AcmN6w5JX8=";
   deleteVendor = true;
 
   preBuild = let
