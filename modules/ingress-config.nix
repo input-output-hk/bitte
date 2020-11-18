@@ -13,6 +13,11 @@ in {
         default = "";
       };
 
+      extraHttpsFrontendConfig = lib.mkOption {
+        type = lib.types.lines;
+        default = "";
+      };
+
       extraHttpsBackends = lib.mkOption {
         type = lib.types.lines;
         default = "";
@@ -32,7 +37,9 @@ in {
         log /dev/log local0 info
         lua-prepend-path ${pkgs.haproxy-auth-request}/usr/share/haproxy/?/http.lua
         lua-prepend-path ${pkgs.lua53Packages.dkjson}/share/lua/5.3/dk?.lua
+        lua-prepend-path ${pkgs.haproxy-cors}/usr/share/haproxy/haproxy-lua-cors/cors.lua
         lua-load ${pkgs.haproxy-auth-request}/usr/share/haproxy/auth-request.lua
+        lua-load ${pkgs.haproxy-cors}/usr/share/haproxy/haproxy-lua-cors/cors.lua
 
       defaults
         log global
@@ -108,6 +115,8 @@ in {
 
         http-request lua.auth-request oauth_proxy /oauth2/auth
         http-request add-header X-Authenticated-User %[var(req.auth_response_header.x_auth_request_email)]
+
+        ${config.services.ingress-config.extraHttpsFrontendConfig}
 
         use_backend oauth_proxy if oauth_proxy
         use_backend docker if is_docker

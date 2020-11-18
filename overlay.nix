@@ -66,6 +66,8 @@ in final: prev: {
 
   haproxy-auth-request = prev.callPackage ./pkgs/haproxy-auth-request.nix { };
 
+  haproxy-cors = prev.callPackage ./pkgs/haproxy-cors.nix { };
+
   devShell = final.callPackage ./pkgs/dev-shell.nix { };
 
   nixosModules = import ./pkgs/nixos-modules.nix { inherit nixpkgs lib; };
