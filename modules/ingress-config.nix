@@ -37,7 +37,6 @@ in {
         log /dev/log local0 info
         lua-prepend-path ${pkgs.haproxy-auth-request}/usr/share/haproxy/?/http.lua
         lua-prepend-path ${pkgs.lua53Packages.dkjson}/share/lua/5.3/dk?.lua
-        lua-prepend-path ${pkgs.haproxy-cors}/usr/share/haproxy/haproxy-lua-cors/cors.lua
         lua-load ${pkgs.haproxy-auth-request}/usr/share/haproxy/auth-request.lua
         lua-load ${pkgs.haproxy-cors}/usr/share/haproxy/haproxy-lua-cors/cors.lua
 
