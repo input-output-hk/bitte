@@ -13,6 +13,11 @@ in {
         default = "";
       };
 
+      extraGlobalConfig = lib.mkOption {
+        type = lib.types.lines;
+        default = "";
+      };
+
       extraHttpsFrontendConfig = lib.mkOption {
         type = lib.types.lines;
         default = "";
@@ -39,6 +44,7 @@ in {
         lua-prepend-path ${pkgs.lua53Packages.dkjson}/share/lua/5.3/dk?.lua
         lua-load ${pkgs.haproxy-auth-request}/usr/share/haproxy/auth-request.lua
         lua-load ${pkgs.haproxy-cors}/usr/share/haproxy/haproxy-lua-cors/cors.lua
+        ${config.services.ingress-config.extraGlobalConfig}
 
       defaults
         log global
