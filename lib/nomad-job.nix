@@ -192,7 +192,7 @@ let
               default = "2s";
             };
 
-            task = mkOption {
+            taskName = mkOption {
               type = str;
               default = name;
             };
