@@ -88,6 +88,8 @@ in final: prev: {
 
   haproxy = prev.callPackage ./pkgs/haproxy.nix { };
 
+  loki = prev.callPackage ./pkgs/loki.nix { };
+
   consul-template = prev.callPackage ./pkgs/consul-template.nix { };
 
   nomad-autoscaler = prev.callPackage ./pkgs/nomad-autoscaler.nix { };
