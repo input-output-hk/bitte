@@ -59,15 +59,17 @@ writeShellScriptBin "nomad-run" ''
     export CONSUL_HTTP_TOKEN
   fi
 
-  cache="$(nix eval ".#clusters.$BITTE_CLUSTER.proto.config.cluster.s3Cache" --raw)"
+  if [ -n "''${COPY_NIX_CACHE:-}" ]; then
+    cache="$(nix eval ".#clusters.$BITTE_CLUSTER.proto.config.cluster.s3Cache" --raw)"
 
-  if [ ! -s secrets/nix-secret-key-file ]; then
-    mkdir -p secrets
-    vault kv get -field private kv/cache/nix-key > secrets/nix-secret-key-file
+    if [ ! -s secrets/nix-secret-key-file ]; then
+      mkdir -p secrets
+      vault kv get -field private kv/cache/nix-key > secrets/nix-secret-key-file
+    fi
+
+    echo "Copying closure to the binary cache..."
+    nix copy --to "$cache&secret-key=secrets/nix-secret-key-file" ${json}
   fi
-
-  echo "Copying closure to the binary cache..."
-  nix copy --to "$cache&secret-key=secrets/nix-secret-key-file" ${json}
 
   echo "Submitting Job..."
   jq --arg token "$CONSUL_HTTP_TOKEN" '.Job.ConsulToken = $token' < ${json} \
