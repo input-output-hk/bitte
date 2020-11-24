@@ -71,7 +71,7 @@ in {
         AUTH_PROXY_HEADER_NAME = "X-Authenticated-User";
         AUTH_SIGNOUT_REDIRECT_URL = "/oauth2/sign_out";
       };
-      # rootUrl = "%(protocol)s://%(domain)s/grafana/";
+      rootUrl = "https://monitoring.${domain}/";
       provision = {
         enable = true;
 
