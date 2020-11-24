@@ -424,7 +424,7 @@
           {
             "evaluator": {
               "params": [
-                15
+                20
               ],
               "type": "gt"
             },
@@ -508,7 +508,7 @@
         },
         {
           "expr": "stddev_over_time(consul_raft_apply_value[1h:15m]) > avg_over_time(consul_raft_apply_value[1h:15m]) / 2",
-          "hide": true,
+          "hide": false,
           "interval": "",
           "intervalFactor": 1,
           "legendFormat": "{{host}} stddev",
@@ -521,7 +521,7 @@
           "fill": true,
           "line": true,
           "op": "gt",
-          "value": 15
+          "value": 20
         }
       ],
       "timeFrom": null,
