@@ -15,7 +15,6 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 3,
   "links": [],
   "panels": [
     {
@@ -65,7 +64,7 @@
         "frequency": "1m",
         "handler": 1,
         "name": "Elections alert",
-        "noDataState": "no_data",
+        "noDataState": "ok",
         "notifications": []
       },
       "aliasColors": {},
@@ -149,6 +148,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:1041",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -157,6 +157,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:1042",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -716,7 +717,7 @@
           {
             "evaluator": {
               "params": [
-                10
+                15
               ],
               "type": "gt"
             },
@@ -742,7 +743,7 @@
         "frequency": "1m",
         "handler": 1,
         "name": "KVs apply alert",
-        "noDataState": "no_data",
+        "noDataState": "keep_state",
         "notifications": []
       },
       "aliasColors": {},
@@ -811,8 +812,7 @@
           "fill": true,
           "line": true,
           "op": "gt",
-          "value": 10,
-          "yaxis": "left"
+          "value": 15
         }
       ],
       "timeFrom": null,
@@ -834,6 +834,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:928",
           "format": "ms",
           "label": null,
           "logBase": 1,
@@ -842,6 +843,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:929",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -958,7 +960,7 @@
     "list": []
   },
   "time": {
-    "from": "now-15m",
+    "from": "now-12h",
     "to": "now"
   },
   "timepicker": {
@@ -977,5 +979,5 @@
   "timezone": "",
   "title": "Consul",
   "uid": "git7NNSMk",
-  "version": 2
+  "version": 1
 }
