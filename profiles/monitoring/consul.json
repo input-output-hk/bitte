@@ -450,7 +450,7 @@
         "frequency": "1m",
         "handler": 1,
         "name": "Raft Apply alert",
-        "noDataState": "no_data",
+        "noDataState": "ok",
         "notifications": []
       },
       "aliasColors": {},
