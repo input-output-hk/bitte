@@ -58,7 +58,7 @@ in {
         balance roundrobin
 
       resolvers consul
-        nameserver dnsmasq ${instances.core-1.privateIP}:53
+        nameserver dnsmasq ${instances.core-2.privateIP}:53
         accepted_payload_size 8192
         hold valid 5s
 
