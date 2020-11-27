@@ -14,15 +14,6 @@
     vault-agent-client.enable = true;
     nomad.enable = true;
     telegraf.extraConfig.global_tags.role = "consul-client";
-    seaweedfs.volume = {
-      enable = true;
-      max = [ "0" ];
-      dataCenter = config.asg.region;
-      mserver = lib.forEach [ "core-1" "core-2" "core-3" ] (core:
-        "${config.cluster.instances.${core}.privateIP}:${
-          toString config.services.seaweedfs.master.port
-        }");
-    };
   };
 
   boot.cleanTmpDir = true;

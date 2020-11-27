@@ -10,7 +10,6 @@ mkShellNoCC {
     bitte
     cachix
     cfssl
-    cockroachdb
     consul
     consul-template
     crystal

@@ -27,7 +27,6 @@ in {
     nomad-autoscaler
     openssl
     ripgrep
-    seaweedfs
     tmux
     tree
     vim
