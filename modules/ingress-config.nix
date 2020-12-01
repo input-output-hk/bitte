@@ -131,8 +131,7 @@ in {
         ${config.services.ingress-config.extraHttpsBackends}
 
         use_backend oauth_proxy if is_ui ! authenticated OR is_monitoring ! authenticated
-
-        default_backend grafana
+        use_backend grafana if is_monitoring
 
       ${config.services.ingress-config.extraConfig}
     '';
