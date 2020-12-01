@@ -50,7 +50,7 @@ in {
         log global
         mode http
         option httplog
-        option dontlognull
+        option debug
         timeout connect 5000
         timeout client 310000
         timeout server 310000
