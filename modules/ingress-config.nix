@@ -129,6 +129,7 @@ in {
         use_backend vault   if is_vault  is_ui authenticated OR is_vault ! is_ui
         use_backend nomad   if is_nomad  is_ui authenticated OR is_nomad ! is_ui
         ${config.services.ingress-config.extraHttpsBackends}
+
         use_backend oauth_proxy if is_ui ! authenticated OR is_monitoring ! authenticated
 
         default_backend grafana
