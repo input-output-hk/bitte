@@ -60,6 +60,7 @@ let
     SourcePath = value.source or null;
     Envvars = value.env or false;
     ChangeMode = value.changeMode or "restart";
+    ChangeSignal = value.changeSignal or "";
   });
 
   mapConstraints = nullMap (value: {
@@ -852,6 +853,14 @@ let
           changes. Nomad will always write the new contents of the template to
           the specified destination. The possible values below describe Nomad's
           action after writing the template to disk.
+        '';
+      };
+
+      changeSignal = mkOption {
+        type = nullOr (enum [ "SIGHUP" "SIGINT" "SIGUSR1" "SIGUSR2" "SIGTERM" ]);
+        default = null;
+        description = ''
+          Specifies the signal to send to the task as a string like "SIGUSR1" or "SIGINT". This option is required if the ChangeMode is signal.
         '';
       };
     };
