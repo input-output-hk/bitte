@@ -475,14 +475,7 @@ let
       };
 
       vault = mkOption {
-        type = nullOr (submodule {
-          options = {
-            policies = mkOption {
-              type = listOf str;
-              default = [ ];
-            };
-          };
-        });
+        type = vaultType;
         default = null;
         description = ''
           Specifies the set of Vault policies required by all tasks in this group.
@@ -610,6 +603,55 @@ let
       };
     };
   };
+
+  vaultType = nullOr (submodule {
+    options = {
+      policies = mkOption {
+        type = listOf str;
+        default = [ ];
+        description = ''
+          Specifies the set of Vault policies that the task requires. The Nomad
+          client will retrieve a Vault token that is limited to those policies.
+        '';
+      };
+
+      changeMode = mkOption {
+        type = enum [ "noop" "restart" "signal" ];
+        default = "restart";
+        description = ''
+          Specifies the behavior Nomad should take if the Vault token changes.
+        '';
+      };
+
+      changeSignal = mkOption {
+        type = str;
+        default = "";
+        description = ''
+          Specifies the signal to send to the task as a string like "SIGUSR1"
+          or "SIGINT". This option is required if the changeMode is signal.
+        '';
+      };
+
+      env = mkOption {
+        type = bool;
+        default = true;
+        description = ''
+          Specifies if the VAULT_TOKEN and VAULT_NAMESPACE environment
+          variables should be set when starting the task.
+        '';
+      };
+
+      namespace = mkOption {
+        type = str;
+        default = "";
+        description = ''
+          Specifies the Vault Namespace to use for the task. The Nomad client
+          will retrieve a Vault token that is scoped to this particular
+          namespace.
+        '';
+      };
+    };
+  });
 
   restartPolicyType = submodule {
     options = {
@@ -951,14 +993,7 @@ let
       };
 
       vault = mkOption {
-        type = nullOr (submodule {
-          options = {
-            policies = mkOption {
-              type = listOf str;
-              default = [ ];
-            };
-          };
-        });
+        type = vaultType;
         default = null;
         description = ''
           Specifies the set of Vault policies required by all tasks in this group.
