@@ -174,7 +174,7 @@ in {
     };
 
     log_level = mkOption {
-      type = enum [ "DEBUG" "INFO" "warn" ];
+      type = enum [ "DEBUG" "INFO" "WARN" ];
       default = "INFO";
     };
 
