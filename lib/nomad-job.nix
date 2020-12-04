@@ -863,6 +863,18 @@ let
           Specifies the signal to send to the task as a string like "SIGUSR1" or "SIGINT". This option is required if the ChangeMode is signal.
         '';
       };
+
+      splay = mkOption {
+        type = nanoseconds;
+        default = "5s";
+        description = ''
+          Specifies a random amount of time to wait between 0 ms and the given
+          splay value before invoking the change mode. This is specified using
+          a label suffix like "30s" or "1h", and is often used to prevent a
+          thundering herd problem where all task instances restart at the same
+          time.
+        '';
+      };
     };
   });
 
