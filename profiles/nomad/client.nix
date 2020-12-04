@@ -4,16 +4,18 @@
   services.nomad = {
     enable = true;
 
-    client.enabled = true;
+    client = {
+      enabled = true;
+      gc_interval = "12h";
+      chroot_env = {
+        # "/usr/bin/env" = "/usr/bin/env";
+        "${builtins.unsafeDiscardStringContext pkgs.pkgsStatic.busybox}" = "/usr";
+      };
+    };
 
     datacenter = config.asg.region;
 
-    plugin.raw_exec.enabled = true;
-
-    client.chroot_env = {
-      # "/usr/bin/env" = "/usr/bin/env";
-      "${builtins.unsafeDiscardStringContext pkgs.pkgsStatic.busybox}" = "/usr";
-    };
+    plugin.raw_exec.enabled = false;
 
     vault.address = "https://127.0.0.1:8200";
   };
