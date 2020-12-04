@@ -1,18 +1,22 @@
-{ system, self }:
+{ self }:
+
+final: prev:
 let
-  inherit (self.inputs)
-    nixpkgs nix ops-lib nixpkgs-terraform crystal bitte-cli inclusive;
+  inherit (self.inputs) ops-lib;
   inherit (builtins) fromJSON toJSON trace mapAttrs genList foldl';
-  inherit (nixpkgs) lib;
-in final: prev: {
+  inherit (final) lib;
+in
+{
   inherit self;
 
-  nixos-rebuild = let
-    nixos = lib.nixosSystem {
-      inherit system;
-      modules = [{ nix.package = prev.nixFlakes; }];
-    };
-  in nixos.config.system.build.nixos-rebuild;
+  nixos-rebuild =
+    let
+      nixos = lib.nixosSystem {
+        inherit (final) system;
+        modules = [{ nix.package = prev.nixFlakes; }];
+      };
+    in
+    nixos.config.system.build.nixos-rebuild;
 
   nixFlakes = prev.nixFlakes.overrideAttrs ({ patches ? [ ], ... }: {
     patches = [
@@ -25,26 +29,26 @@ in final: prev: {
     ];
   });
 
-  # nix = prev.nixFlakes;
-
   ssm-agent = prev.callPackage ./pkgs/ssm-agent { };
 
   consul = prev.callPackage ./pkgs/consul { };
 
-  terraform-with-plugins =
-    nixpkgs-terraform.legacyPackages.${system}.terraform_0_12.withPlugins
-    (plugins:
-      lib.attrVals [
-        "acme"
-        "aws"
-        "consul"
-        "local"
-        "nomad"
-        "null"
-        "sops"
-        "tls"
-        "vault"
-      ] plugins);
+  terraform-with-plugins = prev.terraform_0_12.withPlugins
+  (plugins: let
+    vault = plugins.vault.overrideAttrs (o: let
+      version = "2.14.0";
+      rev = "v${version}";
+      sha256 = "sha256-CeZIBuy00HGXAFDuiYEKm11o0ylkMAl07wa+zL9EW3E=";
+      passthru = o.passthru // { inherit version rev sha256; };
+    in {
+      inherit version passthru;
+      src = final.fetchFromGitHub {
+        inherit (passthru) owner repo rev sha256;
+      };
+      postBuild = "mv $NIX_BUILD_TOP/go/bin/${passthru.repo}{,_v${passthru.version}}";
+    });
+  in [ vault plugins.null ]
+  ++ (with plugins; [ acme aws consul local nomad sops tls ]));
 
   mkShellNoCC = prev.mkShell.override { stdenv = prev.stdenvNoCC; };
 
@@ -56,10 +60,6 @@ in final: prev: {
 
   snakeCase = prev.callPackage ./lib/snake-case.nix { };
 
-  inherit (inclusive.lib) inclusive;
-  inherit (crystal.packages.${system}) crystal;
-  inherit (bitte-cli.packages.${system}) bitte;
-
   pp = v: trace (toJSON v) v;
 
   haproxy-auth-request = prev.callPackage ./pkgs/haproxy-auth-request.nix { };
@@ -67,8 +67,6 @@ in final: prev: {
   haproxy-cors = prev.callPackage ./pkgs/haproxy-cors.nix { };
 
   devShell = final.callPackage ./pkgs/dev-shell.nix { };
-
-  nixosModules = import ./pkgs/nixos-modules.nix { inherit nixpkgs lib; };
 
   consulRegister = prev.callPackage ./pkgs/consul-register.nix { };
 
@@ -111,31 +109,8 @@ in final: prev: {
       --prefix PATH : ${prev.lib.makeBinPath deps}
   '';
 
-  clusters = final.mkClusters {
-    root = ./clusters;
-    inherit self system;
-  };
-
-  mkClusters = args:
-    import ./lib/clusters.nix ({
-      pkgs = final;
-      lib = final.lib;
-    } // args);
-
-  nixosConfigurations = final.mkNixosConfigurations final.clusters;
-
-  mkNixosConfigurations = clusters:
-    lib.pipe clusters [
-      (lib.mapAttrsToList (clusterName: cluster:
-        lib.mapAttrsToList
-        (name: value: lib.nameValuePair "${clusterName}-${name}" value)
-        (cluster.nodes // cluster.groups)))
-      lib.flatten
-      lib.listToAttrs
-    ];
-
   terralib = rec {
-    amis = import (nixpkgs + "/nixos/modules/virtualisation/ec2-amis.nix");
+    amis = import (final.path + "/nixos/modules/virtualisation/ec2-amis.nix");
 
     var = v: "\${${v}}";
     id = v: var "${v}.id";
@@ -233,10 +208,4 @@ in final: prev: {
       set -exuo pipefail
       ${checks}
     '';
-
-  ssh-keys = let
-    authorized_keys = lib.fileContents ../modules/ssh_keys/authorized_keys;
-    keys = import (ops-lib + "/overlays/ssh-keys.nix") lib;
-    inherit (keys) allKeysFrom devOps;
-  in { devOps = allKeysFrom devOps; };
 }

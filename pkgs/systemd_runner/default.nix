@@ -1,10 +1,10 @@
-{ removeReferencesTo, inclusive, crystal }:
+{ lib, removeReferencesTo, crystal }:
 crystal.buildCrystalPackage {
   pname = "systemd-runner";
   version = "0.0.1";
   format = "crystal";
 
-  src = inclusive ./. [ ./systemd_runner.cr ];
+  src = lib.inclusive ./. [ ./systemd_runner.cr ];
 
   nativeBuildInputs = [ removeReferencesTo ];
 

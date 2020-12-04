@@ -7,7 +7,7 @@ mkShellNoCC {
 
   buildInputs = [
     awscli
-    bitte
+    bitte.cli
     cachix
     cfssl
     consul
