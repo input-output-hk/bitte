@@ -18,6 +18,41 @@
   "links": [],
   "panels": [
     {
+      "alert": {
+        "alertRuleTags": {},
+        "conditions": [
+          {
+            "evaluator": {
+              "params": [
+                90
+              ],
+              "type": "gt"
+            },
+            "operator": {
+              "type": "and"
+            },
+            "query": {
+              "params": [
+                "A",
+                "5m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "params": [],
+              "type": "avg"
+            },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "5m",
+        "frequency": "1m",
+        "handler": 1,
+        "name": "CPU Used alert",
+        "noDataState": "no_data",
+        "notifications": []
+      },
       "aliasColors": {},
       "bars": false,
       "dashLength": 10,
@@ -70,13 +105,21 @@
           "refId": "A"
         }
       ],
-      "thresholds": [],
+      "thresholds": [
+        {
+          "colorMode": "critical",
+          "fill": true,
+          "line": true,
+          "op": "gt",
+          "value": 90
+        }
+      ],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
       "title": "CPU Used",
       "tooltip": {
-        "shared": true,
+        "shared": false,
         "sort": 0,
         "value_type": "individual"
       },
@@ -90,6 +133,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:96",
           "format": "percent",
           "label": null,
           "logBase": 1,
@@ -98,6 +142,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:97",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -112,6 +157,41 @@
       }
     },
     {
+      "alert": {
+        "alertRuleTags": {},
+        "conditions": [
+          {
+            "evaluator": {
+              "params": [
+                80
+              ],
+              "type": "gt"
+            },
+            "operator": {
+              "type": "and"
+            },
+            "query": {
+              "params": [
+                "A",
+                "5m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "params": [],
+              "type": "avg"
+            },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "5m",
+        "frequency": "1m",
+        "handler": 1,
+        "name": "Memory Used alert",
+        "noDataState": "no_data",
+        "notifications": []
+      },
       "aliasColors": {},
       "bars": false,
       "dashLength": 10,
@@ -164,7 +244,15 @@
           "refId": "A"
         }
       ],
-      "thresholds": [],
+      "thresholds": [
+        {
+          "colorMode": "critical",
+          "fill": true,
+          "line": true,
+          "op": "gt",
+          "value": 80
+        }
+      ],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
@@ -184,6 +272,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:511",
           "format": "percent",
           "label": null,
           "logBase": 1,
@@ -192,6 +281,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:512",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -308,8 +398,8 @@
       "timeShift": null,
       "title": "Disk used /",
       "tooltip": {
-        "shared": true,
-        "sort": 0,
+        "shared": false,
+        "sort": 2,
         "value_type": "individual"
       },
       "type": "graph",
@@ -546,6 +636,7 @@
       }
     }
   ],
+  "refresh": "10s",
   "schemaVersion": 25,
   "style": "dark",
   "tags": [],
