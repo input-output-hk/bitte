@@ -9,7 +9,7 @@ in {
     clientAddr = "0.0.0.0";
     datacenter = region;
     enableLocalScriptChecks = true;
-    logLevel = "trace";
+    logLevel = "info";
     primaryDatacenter = region;
     tlsMinVersion = "tls12";
     verifyIncoming = true;
