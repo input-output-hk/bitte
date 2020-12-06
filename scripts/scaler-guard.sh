@@ -32,10 +32,16 @@ do
        echo "  -m   Print a manual CLI reference for executing any actions this script can take manually (cannot be used with other options)."
        echo
        echo
-       echo "Example:"
+       echo "Examples:"
+       echo
+       echo
+       echo "    Analyze the nomad clients only without taking any action:"
+       echo
+       echo "    $0 -a"
+       echo
        echo
        echo "    Provide scale-in protection, disable drain, enable eligibility on nomad clients with active allocations"
-       echo "    and remove scale-in protection, enable drain, disable eligibility on nomad clients with no active allocations."
+       echo "    and remove scale-in protection, enable drain, disable eligibility on nomad clients with no active allocations:"
        echo
        echo "    $0 -p -d -r -u"
        exit 0
