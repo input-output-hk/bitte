@@ -100,6 +100,16 @@ in final: prev: {
 
   systemdSandbox = final.callPackage ./lib/systemd-sandbox.nix { };
 
+  scaler-guard = let
+    deps = with final; [ awscli bash curl jq nomad ];
+  in prev.runCommandLocal "scaler-guard" {
+    script = ./scripts/scaler-guard.sh;
+    nativeBuildInputs = [ prev.makeWrapper ];
+  } ''
+    makeWrapper $script $out/bin/scaler-guard \
+      --prefix PATH : ${prev.lib.makeBinPath deps}
+  '';
+
   clusters = final.mkClusters {
     root = ./clusters;
     inherit self system;
