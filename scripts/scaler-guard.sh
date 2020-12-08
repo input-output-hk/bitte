@@ -83,7 +83,7 @@ if [ "${REFERENCE:-}" == "TRUE" ]; then
   echo -e "\n"
   echo -e "Get specific Nomad node allocations running count:\n"
   echo "    $CURL \"\$NOMAD_ADDR/v1/node/\$FULL_NODE_ID/allocations\" \\"
-  echo "      | jq -r '. | map(select(.DesiredStatus == \"run\")) | length'"
+  echo "      | jq -r '. | map(select(.DesiredStatus == \"run\")) | map(select(.ClientStatus == \"running\")) | length'"
   echo -e "\n"
   echo -e "Get specific aws instance autoscaler info (provides the autoscaler group name, etc):\n"
   echo "    aws --region \"\$NODE_DATACENTER\" autoscaling describe-auto-scaling-instances \\"
@@ -117,6 +117,9 @@ if [ "${REFERENCE:-}" == "TRUE" ]; then
 fi
 
 COUNT="1"
+EMPTY_NODES="0"
+ALLOCATED_NODES="0"
+INDETERMINATE_NODES="0"
 
 # Get all nomad client node info
 mapfile -t CLIENTS <<< "$(eval "$CURL \"$NOMAD_ADDR/v1/nodes\" | jq -r '.[] | .ID'")"
@@ -138,7 +141,7 @@ for CLIENT in "${CLIENTS[@]}"; do
 
   CLIENT_PUBLIC_IP=$(jq -r '.Attributes."unique.platform.aws.public-ipv4"' <<< "$CLIENT_INFO")
   CLIENT_PRIVATE_IP=$(jq -r '.Attributes."unique.network.ip-address"' <<< "$CLIENT_INFO")
-  CLIENT_ALLOCS_RUNNING=$(jq -r '. | map(select(.DesiredStatus == "run")) | length' <<< "$CLIENT_ALLOCS")
+  CLIENT_ALLOCS_RUNNING=$(jq -r '. | map(select(.DesiredStatus == "run")) | map(select(.ClientStatus == "running")) | length' <<< "$CLIENT_ALLOCS")
   CLIENT_ASGN=$(jq -r '.AutoScalingInstances | .[0].AutoScalingGroupName' <<< "$CLIENT_ASI")
   CLIENT_AZ=$(jq -r '.AutoScalingInstances | .[0].AvailabilityZone' <<< "$CLIENT_ASI")
   CLIENT_PROTECTION=$(jq -r '.AutoScalingInstances | .[0].ProtectedFromScaleIn' <<< "$CLIENT_ASI")
@@ -283,7 +286,22 @@ for CLIENT in "${CLIENTS[@]}"; do
 
   echo
   echo
+
+  if [[ "$CLIENT_ALLOCS_RUNNING" =~ ^[0-9]+$ ]]; then
+    if [ "$CLIENT_ALLOCS_RUNNING" -eq "0" ]; then
+      EMPTY_NODES=$((EMPTY_NODES + 1))
+    else
+      ALLOCATED_NODES=$((ALLOCATED_NODES + 1))
+    fi
+  else
+    INDETERMINATE_NODES=$((INDETERMINATE_NODES + 1))
+  fi
   COUNT=$((COUNT + 1))
 done
 echo
-echo "    COMPLETED: $((COUNT - 1)) nomad infrastructure clients analyzed"
+echo "    COMPLETED:"
+echo
+echo "        Total nomad nodes analyzed:     $((COUNT - 1))"
+echo "        Total allocated nomad nodes:    $ALLOCATED_NODES"
+echo "        Total empty nomad nodes:        $EMPTY_NODES"
+echo "        Total indeterminate nodes:      $INDETERMINATE_NODES"
