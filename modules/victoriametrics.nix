@@ -25,6 +25,14 @@ in {
         Retention period in months.
       '';
     };
+    selfScrapeInterval = mkOption {
+      default = "60s";
+      type = types.str;
+      description = ''
+        The default time to self-scrape VictoriaMetrics' metrics.
+        Set to "0" to disable.
+      '';
+    };
     extraOptions = mkOption {
       type = types.listOf types.str;
       default = [ ];
@@ -51,6 +59,7 @@ in {
               -storageDataPath=/var/lib/victoriametrics \
               -httpListenAddr ${cfg.listenAddress} \
               -retentionPeriod ${toString cfg.retentionPeriod} \
+              -selfScrapeInterval=${cfg.selfScrapeInterval} \
               ${lib.escapeShellArgs cfg.extraOptions}
         '';
       };
