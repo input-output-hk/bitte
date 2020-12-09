@@ -14,6 +14,7 @@
     ./s3-upload.nix
     ./seaweedfs.nix
     ./secrets.nix
+    ./telegraf.nix
     ./terraform/clients.nix
     ./terraform/consul.nix
     ./terraform/core.nix
@@ -28,8 +29,9 @@
   ];
 
   disabledModules = [
-    "services/security/vault.nix"
-    "services/networking/consul.nix"
     "services/databases/victoriametrics.nix"
+    "services/monitoring/telegraf.nix"
+    "services/networking/consul.nix"
+    "services/security/vault.nix"
   ];
 }
