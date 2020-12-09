@@ -88,7 +88,7 @@ in final: prev: {
 
   haproxy = prev.callPackage ./pkgs/haproxy.nix { };
 
-  loki = prev.callPackage ./pkgs/loki.nix { };
+  grafana-loki = prev.callPackage ./pkgs/loki.nix { };
 
   consul-template = prev.callPackage ./pkgs/consul-template.nix { };
 
