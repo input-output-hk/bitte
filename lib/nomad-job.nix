@@ -857,7 +857,8 @@ let
       };
 
       changeSignal = mkOption {
-        type = nullOr (enum [ "SIGHUP" "SIGINT" "SIGUSR1" "SIGUSR2" "SIGTERM" ]);
+        type =
+          nullOr (enum [ "SIGHUP" "SIGINT" "SIGUSR1" "SIGUSR2" "SIGTERM" ]);
         default = null;
         description = ''
           Specifies the signal to send to the task as a string like "SIGUSR1" or "SIGINT". This option is required if the ChangeMode is signal.

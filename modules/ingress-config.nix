@@ -160,8 +160,7 @@ in {
 
       environment = {
         CONSUL_HTTP_ADDR = "http://127.0.0.1:8500";
-        VAULT_ADDR =
-          "https://${instances.core-1.privateIP}:8200";
+        VAULT_ADDR = "https://${instances.core-1.privateIP}:8200";
         inherit (config.environment.variables) VAULT_CACERT;
       };
 

@@ -82,7 +82,7 @@ in final: prev: {
 
   seaweedfs = prev.callPackage ./pkgs/seaweedfs.nix { };
 
-  boundary = prev.callPackage ./pkgs/boundary.nix {};
+  boundary = prev.callPackage ./pkgs/boundary.nix { };
 
   grpcdump = prev.callPackage ./pkgs/grpcdump.nix { };
 
@@ -102,8 +102,7 @@ in final: prev: {
 
   systemdSandbox = final.callPackage ./lib/systemd-sandbox.nix { };
 
-  scaler-guard = let
-    deps = with final; [ awscli bash curl jq nomad ];
+  scaler-guard = let deps = with final; [ awscli bash curl jq nomad ];
   in prev.runCommandLocal "scaler-guard" {
     script = ./scripts/scaler-guard.sh;
     nativeBuildInputs = [ prev.makeWrapper ];

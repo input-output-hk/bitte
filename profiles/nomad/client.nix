@@ -9,7 +9,8 @@
       gc_interval = "12h";
       chroot_env = {
         # "/usr/bin/env" = "/usr/bin/env";
-        "${builtins.unsafeDiscardStringContext pkgs.pkgsStatic.busybox}" = "/usr";
+        "${builtins.unsafeDiscardStringContext pkgs.pkgsStatic.busybox}" =
+          "/usr";
       };
     };
 

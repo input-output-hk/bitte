@@ -28,13 +28,13 @@ in {
       };
 
       extraConfig = mkOption {
-        default = {};
+        default = { };
         description = "Extra configuration options for telegraf";
         type = types.attrs;
         example = {
           outputs = {
             influxdb = {
-              urls = ["http://localhost:8086"];
+              urls = [ "http://localhost:8086" ];
               database = "telegraf";
             };
           };
@@ -49,7 +49,6 @@ in {
     };
   };
 
-
   ###### implementation
   config = mkIf config.services.telegraf.enable {
     systemd.services.telegraf = {
@@ -58,8 +57,9 @@ in {
       after = [ "network-online.target" ];
       serviceConfig = {
         ExecStartPre = "!${preScript}/bin/telegraf-start-pre";
-        ExecStart=''${cfg.package}/bin/telegraf -config /etc/telegraf/config.toml'';
-        ExecReload="${pkgs.coreutils}/bin/kill -HUP $MAINPID";
+        ExecStart =
+          "${cfg.package}/bin/telegraf -config /etc/telegraf/config.toml";
+        ExecReload = "${pkgs.coreutils}/bin/kill -HUP $MAINPID";
         User = "telegraf";
         Restart = "on-failure";
       };

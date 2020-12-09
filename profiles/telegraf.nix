@@ -35,7 +35,8 @@ in {
         prometheus = {
           #urls = [ "http://127.0.0.1:3101/metrics" "http://127.0.0.1:9334" ];
           urls = [ "http://127.0.0.1:3101/metrics" ]
-            ++ optional config.services.loki.enable "http://127.0.0.1:3100/metrics";
+            ++ optional config.services.loki.enable
+            "http://127.0.0.1:3100/metrics";
           metric_version = 2;
         };
 
