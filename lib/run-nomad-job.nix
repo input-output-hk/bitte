@@ -1,6 +1,28 @@
-{ name, lib, json, writeShellScriptBin, vault-bin, awscli, coreutils, jq, nomad
-, consul, nixFlakes, curl, gnugrep, gitMinimal }:
-writeShellScriptBin "nomad-run" ''
+{ name, lib, json, dockerImages, writeShellScriptBin, vault-bin, awscli
+, coreutils, jq, nomad, consul, nixFlakes, curl, gnugrep, gitMinimal }:
+let
+  pushImage = imageId: image:
+    let
+      parts = builtins.split "/" image.imageName;
+      registry = builtins.elemAt parts 0;
+      repo = builtins.elemAt parts 2;
+      url =
+        "https://developer:$dockerPassword@${registry}/v2/${repo}/tags/list";
+    in ''
+      echo -n "Pushing ${image.imageName}:${image.imageTag} ... "
+
+      if curl -s "${url}" | grep "${image.imageTag}" &> /dev/null; then
+        echo "Image already exists in registry"
+      else
+        nix-store -r ${
+          builtins.unsafeDiscardStringContext image.drvPath
+        } -o .docker-image
+        docker load -i ./.docker-image
+        docker push ${image.imageName}:${image.imageTag}
+      fi
+    '';
+  pushImages = lib.mapAttrsToList pushImage dockerImages;
+in writeShellScriptBin "nomad-run" ''
   export PATH="${
     lib.makeBinPath [
       vault-bin
@@ -70,6 +92,12 @@ writeShellScriptBin "nomad-run" ''
     echo "Copying closure to the binary cache..."
     nix copy --to "$cache&secret-key=secrets/nix-secret-key-file" ${json}
   fi
+
+  ${lib.optionalString ((builtins.length pushImages) > 0) ''
+    dockerPassword="$(vault kv get -field value kv/nomad-cluster/docker-developer-password)"
+  ''}
+
+  ${builtins.concatStringsSep "\n" pushImages}
 
   echo "Submitting Job..."
   jq --arg token "$CONSUL_HTTP_TOKEN" '.Job.ConsulToken = $token' < ${json} \

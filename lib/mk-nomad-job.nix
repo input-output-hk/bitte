@@ -70,7 +70,18 @@ let
 
   evaluated = { Job = nomadix configuration; };
 
+  dockerImages = lib.pipe evaluated.Job.TaskGroups [
+    (map (x: x.Tasks))
+    builtins.concatLists
+    (map (y: {
+      name = builtins.unsafeDiscardStringContext y.Config.image;
+      value = y.Config.image.image;
+    }))
+    (lib.filter (value: value != null))
+    builtins.listToAttrs
+  ];
+
   json = toPrettyJSON name evaluated;
 
-  run = callPackage ./run-nomad-job.nix { inherit json name; };
-in { inherit json evaluated run; }
+  run = callPackage ./run-nomad-job.nix { inherit json name dockerImages; };
+in { inherit json evaluated run dockerImages; }
