@@ -110,6 +110,7 @@ in {
       "consul/creds/vault-client".capabilities = [ r ];
       "kv/data/bootstrap/clients/*".capabilities = [ r ];
       "kv/data/nomad-cluster/*".capabilities = [ r l ];
+      "kv/metadata/nomad-cluster/*".capabilities = [ r l ];
       "pki/issue/client".capabilities = [ c u ];
       "pki/roles/client".capabilities = [ r ];
       "sys/capabilities-self".capabilities = [ u ];
@@ -148,6 +149,7 @@ in {
 
     nomad-cluster.path = {
       "kv/data/nomad-cluster/*".capabilities = [ r l ];
+      "kv/metadata/nomad-cluster/*".capabilities = [ r l ];
       "auth/token/renew-self".capabilities = [ u ];
       "auth/token/lookup-self".capabilities = [ r ];
       "auth/token/lookup".capabilities = [ u ];
