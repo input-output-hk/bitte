@@ -1,5 +1,5 @@
 { name, lib, json, dockerImages, writeShellScriptBin, vault-bin, awscli
-, coreutils, jq, nomad, consul, nixFlakes, curl, gnugrep, gitMinimal }:
+, coreutils, jq, nomad, consul, nixFlakes, docker, curl, gnugrep, gitMinimal }:
 let
   pushImage = imageId: image:
     let
@@ -14,10 +14,10 @@ let
       if curl -s "${url}" | grep "${image.imageTag}" &> /dev/null; then
         echo "Image already exists in registry"
       else
-        nix-store -r ${
+        storePath="$(nix-store -r ${
           builtins.unsafeDiscardStringContext image.drvPath
-        } -o .docker-image
-        docker load -i ./.docker-image
+        })"
+        docker load -i "$storePath"
         docker push ${image.imageName}:${image.imageTag}
       fi
     '';
@@ -35,6 +35,7 @@ in writeShellScriptBin "nomad-run" ''
       curl
       gnugrep
       gitMinimal
+      docker
     ]
   }"
   echo "running job: ${json}"
@@ -95,6 +96,8 @@ in writeShellScriptBin "nomad-run" ''
 
   ${lib.optionalString ((builtins.length pushImages) > 0) ''
     dockerPassword="$(vault kv get -field value kv/nomad-cluster/docker-developer-password)"
+    domain="$(nix eval ".#clusters.$BITTE_CLUSTER.proto.config.cluster.domain" --raw)"
+    echo "$dockerPassword" | docker login "docker.$domain" -u developer --password-stdin
   ''}
 
   ${builtins.concatStringsSep "\n" pushImages}
