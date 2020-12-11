@@ -1,4 +1,4 @@
-{ pkgs, config, ... }: {
+{ pkgs, config, self, ... }: {
   nix = {
     package = pkgs.nixFlakes;
     gc.automatic = true;
@@ -10,6 +10,13 @@
       show-trace = true
       experimental-features = nix-command flakes ca-references recursive-nix
     '';
+    registry.nixpkgs = {
+      flake = self.inputs.nixpkgs;
+      from = {
+        id = "nixpkgs";
+        type = "indirect";
+      };
+    };
     systemFeatures = [ "recursive-nix" "nixos-test" ];
 
     binaryCaches = [ "https://hydra.iohk.io" config.cluster.s3Cache ];
