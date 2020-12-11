@@ -90,6 +90,8 @@ in final: prev: {
 
   grafana-loki = prev.callPackage ./pkgs/loki.nix { };
 
+  grafana = prev.callPackage ./pkgs/grafana.nix { };
+
   victoriametrics = prev.callPackage ./pkgs/victoriametrics.nix { };
 
   consul-template = prev.callPackage ./pkgs/consul-template.nix { };
