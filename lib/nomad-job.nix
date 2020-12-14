@@ -1182,8 +1182,8 @@ let
       };
 
       target = mkOption {
-        type = spreadTargetType;
-        default = { };
+        type = nullOr (listOf spreadTargetType);
+        default = null;
         apply = mapSpreadTarget;
         description = ''
           Specifies one or more target percentages for each value of the
