@@ -1,8 +1,4 @@
-{ config, pkgs, ... }:
-let
-  bitte-secrets =
-    pkgs.callPackage ../pkgs/bitte-secrets.nix { inherit (config) cluster; };
-in {
+{ config, pkgs, ... }: {
   documentation.man.enable = false;
   documentation.nixos.enable = false;
   documentation.info.enable = false;
@@ -14,7 +10,6 @@ in {
   environment.systemPackages = with pkgs; [
     bat
     bind
-    bitte-secrets.bitte-secrets-repair
     di
     envoy
     fd
@@ -27,6 +22,7 @@ in {
     nomad-autoscaler
     openssl
     ripgrep
+    tcpdump
     tmux
     tree
     vim

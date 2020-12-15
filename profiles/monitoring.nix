@@ -6,18 +6,26 @@ in {
   imports = [
     ./common.nix
     ./consul/client.nix
+    ./docker-registry.nix
     ./loki.nix
+    ./secrets.nix
     ./telegraf.nix
     ./vault/client.nix
-    ./secrets.nix
   ];
 
   services = {
     consul.ui = true;
     nomad.enable = false;
-    vault-agent-core.enable = true;
     amazon-ssm-agent.enable = true;
     ingress.enable = true;
+    ingress-config.enable = true;
+    minio.enable = true;
+
+    vault-agent-core = {
+      enable = true;
+      vaultAddress =
+        "https://${config.cluster.instances.core-1.privateIP}:8200";
+    }
 
     oauth2_proxy = {
       enable = true;

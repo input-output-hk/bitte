@@ -19,6 +19,12 @@ let
       nixosAmis."20.03";
   };
 
+  autoscalingAMIs = {
+    us-east-2 = "ami-0492aa69cf46f79c3";
+    eu-central-1 = "ami-0839f2c610f876d2d";
+    eu-west-1 = "ami-0b6cdcba6e3d6f665";
+  };
+
   vpcMap = lib.pipe [
     "ap-northeast-1"
     "ap-northeast-2"
@@ -631,7 +637,8 @@ let
 
       ami = mkOption {
         type = str;
-        default = amis.nixos.${this.config.region};
+        default = autoscalingAMIs.${this.config.region} or throw
+          "Please make sure the NixOS ZFS AMI is copied to ${this.config.region}";
       };
 
       region = mkOption { type = str; };
@@ -659,58 +666,20 @@ let
       userData = mkOption {
         type = nullOr str;
         default = ''
-          ### https://nixos.org/channels/nixpkgs-unstable nixos
-          { pkgs, config, ... }: {
-            imports = [ <nixpkgs/nixos/modules/virtualisation/amazon-image.nix> ];
+          # amazon-shell-init
+          set -exuo pipefail
 
-            nix = {
-              package = pkgs.nixFlakes;
-              extraOptions = '''
-                show-trace = true
-                experimental-features = nix-command flakes ca-references
-              ''';
-              binaryCaches = [
-                "https://hydra.iohk.io"
-                "${cfg.s3Cache}"
-              ];
-              binaryCachePublicKeys = [
-                "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
-                "${cfg.s3CachePubKey}"
-              ];
-            };
+          ${pkgs.zfs}/bin/zpool online -e tank nvme0n1p3
 
-            systemd.services.install = {
-              wantedBy = ["multi-user.target"];
-              after = ["network-online.target"];
-              path = with pkgs; [ config.system.build.nixos-rebuild nixFlakes awscli coreutils gnutar curl xz ];
-              restartIfChanged = false;
-              unitConfig.X-StopOnRemoval = false;
-              serviceConfig = {
-                Type = "oneshot";
-                Restart = "on-failure";
-                RestartSec = "30s";
-              };
-              script = '''
-                set -exuo pipefail
-                pushd /run/keys
-
-                aws s3 cp \
-                  "s3://${cfg.s3Bucket}/infra/secrets/${cfg.name}/${cfg.kms}/source/source.tar.xz" \
-                  source.tar.xz
-                mkdir -p source
-                tar xvf source.tar.xz -C source
-                nix build ./source#nixosConfigurations.${cfg.name}-${this.config.name}.config.system.build.toplevel
-                nixos-rebuild --flake ./source#${cfg.name}-${this.config.name} boot
-                booted="$(readlink /run/booted-system/{initrd,kernel,kernel-modules})"
-                built="$(readlink /nix/var/nix/profiles/system/{initrd,kernel,kernel-modules})"
-                if [ "$booted" = "$built" ]; then
-                  nixos-rebuild --flake ./source#${cfg.name}-${this.config.name} switch
-                else
-                  /run/current-system/sw/bin/shutdown -r now
-                fi
-              ''';
-            };
-          }
+          export CACHES="https://hydra.iohk.io https://cache.nixos.org ${cfg.s3Cache}"
+          export CACHE_KEYS="hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= ${cfg.s3CachePubKey}"
+          pushd /run/keys
+          aws s3 cp "s3://${cfg.s3Bucket}/infra/secrets/${cfg.name}/${cfg.kms}/source/source.tar.xz" source.tar.xz
+          mkdir -p source
+          tar xvf source.tar.xz -C source
+          nix build ./source#nixosConfigurations.${cfg.name}-${this.config.name}.config.system.build.toplevel --option substituters "$CACHES" --option trusted-public-keys "$CACHE_KEYS"
+          /run/current-system/sw/bin/nixos-rebuild --flake ./source#${cfg.name}-${this.config.name} boot --option substituters "$CACHES" --option trusted-public-keys "$CACHE_KEYS"
+          /run/current-system/sw/bin/shutdown -r now
         '';
       };
 
@@ -746,7 +715,7 @@ let
 
       associatePublicIP = mkOption {
         type = bool;
-        default = false;
+        default = true;
       };
 
       subnets = mkOption {

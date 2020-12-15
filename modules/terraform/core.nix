@@ -383,48 +383,6 @@ in {
               };
             }
           ];
-
-          # provisioner = let
-          #   connection = {
-          #     type = "ssh";
-          #     host = var "self.public_ip";
-          #     private_key = var "tls_private_key.${config.cluster.name}.private_key_pem";
-          #     agent = false;
-          #   };
-          # in
-          # [
-          #   {
-          #     file = {
-          #       content = var "file(./encrypted/core-1/vault.enc.json.json)";
-          #       destination = "/run/keys/ca.crt.pem";
-          #       inherit connection;
-          #     };
-          #   }
-          # ];
-
-          #   {
-          #     file = {
-          #       content = var "tls_locally_signed_cert.cert.cert_pem";
-          #       destination = "/run/keys/vault.crt.pem";
-          #       inherit connection;
-          #     };
-          #   }
-          #   {
-          #     file = {
-          #       content = var "tls_private_key.cert.private_key_pem";
-          #       destination = "/run/keys/vault.key.pem";
-          #       inherit connection;
-          #     };
-          #   }
-          #   {
-          #     local-exec = {
-          #       inherit (server.localProvisioner)
-          #         interpreter command environment;
-          #       working_dir = server.localProvisioner.workingDir;
-          #     };
-          #   }
-          # ];
-
         })
 
         (lib.mkIf config.cluster.generateSSHKey {
