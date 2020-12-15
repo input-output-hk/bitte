@@ -25,7 +25,7 @@ in {
       enable = true;
       vaultAddress =
         "https://${config.cluster.instances.core-1.privateIP}:8200";
-    }
+    };
 
     oauth2_proxy = {
       enable = true;

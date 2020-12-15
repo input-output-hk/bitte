@@ -14,7 +14,8 @@ buildGoModule rec {
   };
 
   srcStatic = fetchurl {
-    url = "https://dl.grafana.com/oss/release/grafana-${version}.linux-amd64.tar.gz";
+    url =
+      "https://dl.grafana.com/oss/release/grafana-${version}.linux-amd64.tar.gz";
     sha256 = "0vplzj5jrx643qp68kxg1g1gazxjrnx771dmc1703zalv28z8fq3";
   };
 
@@ -40,10 +41,18 @@ buildGoModule rec {
   passthru.tests = { inherit (nixosTests) grafana; };
 
   meta = with lib; {
-    description = "Gorgeous metric viz, dashboards & editors for Graphite, InfluxDB & OpenTSDB";
+    description =
+      "Gorgeous metric viz, dashboards & editors for Graphite, InfluxDB & OpenTSDB";
     license = licenses.asl20;
     homepage = "https://grafana.com";
-    maintainers = with maintainers; [ offline fpletz willibutz globin ma27 Frostman ];
+    maintainers = with maintainers; [
+      offline
+      fpletz
+      willibutz
+      globin
+      ma27
+      Frostman
+    ];
     platforms = platforms.linux;
   };
 }
