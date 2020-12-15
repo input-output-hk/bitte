@@ -15,7 +15,29 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "links": [],
+  "id": null,
+  "links": [
+    {
+      "$$hashKey": "object:900",
+      "icon": "external link",
+      "tags": [],
+      "targetBlank": true,
+      "title": "Consul Metrics Reference",
+      "tooltip": "Consul Metrics Reference",
+      "type": "link",
+      "url": "https://www.consul.io/docs/agent/telemetry#metrics-reference"
+    },
+    {
+      "$$hashKey": "object:850",
+      "icon": "external link",
+      "tags": [],
+      "targetBlank": true,
+      "title": "Consul Telemetry Key Metrics",
+      "tooltip": "Consul Telemetry Key Metrics",
+      "type": "link",
+      "url": "https://www.consul.io/docs/agent/telemetry#key-metrics"
+    }
+  ],
   "panels": [
     {
       "collapsed": false,
@@ -38,7 +60,7 @@
           {
             "evaluator": {
               "params": [
-                0
+                1
               ],
               "type": "gt"
             },
@@ -63,19 +85,25 @@
         "for": "5m",
         "frequency": "1m",
         "handler": 1,
-        "name": "Elections alert",
-        "noDataState": "ok",
-        "notifications": []
+        "message": "There has been more than one raft election change in the past hour. \nLeadership may be flapping.",
+        "name": "[Consul] Raft Elections alert",
+        "noDataState": "alerting",
+        "notifications": [
+          {
+            "uid": "LYnzSR0Gk"
+          }
+        ]
       },
       "aliasColors": {},
       "bars": false,
       "dashLength": 10,
       "dashes": false,
       "datasource": "VictoriaMetrics",
-      "description": "This increments whenever a Consul server starts an election.",
+      "description": "Shows how many raft election changes have occurred in a 1 hour period.",
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "custom": {},
+          "links": []
         },
         "overrides": []
       },
@@ -102,9 +130,10 @@
       "linewidth": 1,
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
+      "pluginVersion": "7.3.5",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -114,9 +143,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "consul_raft_state_candidate_value default 0",
+          "expr": "sum(changes((union(consul_raft_state_candidate_value,0))[1h]))",
+          "hide": false,
           "interval": "",
-          "legendFormat": "{{host}}",
+          "legendFormat": "Raft elections changes over 1 hr",
           "refId": "A"
         }
       ],
@@ -126,13 +156,13 @@
           "fill": true,
           "line": true,
           "op": "gt",
-          "value": 0
+          "value": 1
         }
       ],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Elections",
+      "title": "Raft Elections Changes",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -172,14 +202,56 @@
       }
     },
     {
+      "alert": {
+        "alertRuleTags": {},
+        "conditions": [
+          {
+            "evaluator": {
+              "params": [
+                1
+              ],
+              "type": "gt"
+            },
+            "operator": {
+              "type": "and"
+            },
+            "query": {
+              "params": [
+                "A",
+                "5m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "params": [],
+              "type": "avg"
+            },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "5m",
+        "frequency": "1m",
+        "handler": 1,
+        "message": "There has been more than one raft leader change in the past hour. \nLeadership may be flapping.",
+        "name": "[Consul] Raft Leader alert",
+        "noDataState": "alerting",
+        "notifications": [
+          {
+            "uid": "LYnzSR0Gk"
+          }
+        ]
+      },
       "aliasColors": {},
       "bars": false,
       "dashLength": 10,
       "dashes": false,
       "datasource": "VictoriaMetrics",
+      "description": "This panel shows raft leader changes per hour.",
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "custom": {},
+          "links": []
         },
         "overrides": []
       },
@@ -206,9 +278,10 @@
       "linewidth": 1,
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
+      "pluginVersion": "7.3.5",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -218,17 +291,26 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "consul_raft_state_leader_value",
+          "expr": "sum(changes(union(consul_raft_state_leader_value, 0)[1h]))",
+          "hide": false,
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "Raft leader changes over 1 hr",
           "refId": "A"
         }
       ],
-      "thresholds": [],
+      "thresholds": [
+        {
+          "colorMode": "critical",
+          "fill": true,
+          "line": true,
+          "op": "gt",
+          "value": 1
+        }
+      ],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Raft Leader",
+      "title": "Raft Leader Changes",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -266,27 +348,13 @@
       }
     },
     {
-      "collapsed": false,
-      "datasource": null,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 9
-      },
-      "id": 10,
-      "panels": [],
-      "title": "Transaction Timing",
-      "type": "row"
-    },
-    {
       "alert": {
         "alertRuleTags": {},
         "conditions": [
           {
             "evaluator": {
               "params": [
-                200
+                50
               ],
               "type": "gt"
             },
@@ -311,9 +379,14 @@
         "for": "5m",
         "frequency": "1m",
         "handler": 1,
-        "name": "Raft Leader Last Contact alert",
-        "noDataState": "no_data",
-        "notifications": []
+        "message": "Leadership contact latency is exceedingly high (> 200 ms).\nThe consul cluster may be degraded",
+        "name": "[Consul] Raft Leader Last Contact alert",
+        "noDataState": "alerting",
+        "notifications": [
+          {
+            "uid": "LYnzSR0Gk"
+          }
+        ]
       },
       "aliasColors": {},
       "bars": false,
@@ -323,7 +396,8 @@
       "description": "Measures the time since the leader was last able to contact the follower nodes when checking its leader lease.",
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "custom": {},
+          "links": []
         },
         "overrides": []
       },
@@ -333,7 +407,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 10
+        "y": 9
       },
       "hiddenSeries": false,
       "id": 8,
@@ -350,9 +424,10 @@
       "linewidth": 1,
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
+      "pluginVersion": "7.3.5",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -362,7 +437,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg_over_time(consul_raft_leader_lastContact_count[1m:15m])",
+          "expr": "consul_raft_leader_lastContact_count",
           "interval": "",
           "legendFormat": "{{host}}",
           "refId": "A"
@@ -374,7 +449,7 @@
           "fill": true,
           "line": true,
           "op": "gt",
-          "value": 200
+          "value": 50
         }
       ],
       "timeFrom": null,
@@ -418,151 +493,18 @@
       }
     },
     {
-      "alert": {
-        "alertRuleTags": {},
-        "conditions": [
-          {
-            "evaluator": {
-              "params": [
-                20
-              ],
-              "type": "gt"
-            },
-            "operator": {
-              "type": "and"
-            },
-            "query": {
-              "params": [
-                "B",
-                "15m",
-                "now"
-              ]
-            },
-            "reducer": {
-              "params": [],
-              "type": "avg"
-            },
-            "type": "query"
-          }
-        ],
-        "executionErrorState": "alerting",
-        "for": "5m",
-        "frequency": "1m",
-        "handler": 1,
-        "name": "Raft Apply alert",
-        "noDataState": "ok",
-        "notifications": []
-      },
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "VictoriaMetrics",
-      "description": "This counts the number of Raft transactions occurring over the interval.",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
+      "collapsed": false,
+      "datasource": null,
       "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 10
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 17
       },
-      "hiddenSeries": false,
-      "id": 4,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "options": {
-        "dataLinks": []
-      },
-      "percentage": false,
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "avg_over_time(consul_raft_apply_value)",
-          "hide": false,
-          "interval": "",
-          "legendFormat": "{{host}}",
-          "refId": "A"
-        },
-        {
-          "expr": "stddev_over_time(consul_raft_apply_value[1h:15m]) > avg_over_time(consul_raft_apply_value[1h:15m]) / 2",
-          "hide": false,
-          "interval": "",
-          "intervalFactor": 1,
-          "legendFormat": "{{host}} stddev",
-          "refId": "B"
-        }
-      ],
-      "thresholds": [
-        {
-          "colorMode": "critical",
-          "fill": true,
-          "line": true,
-          "op": "gt",
-          "value": 20
-        }
-      ],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Raft Apply",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
+      "id": 10,
+      "panels": [],
+      "title": "Transaction Timing",
+      "type": "row"
     },
     {
       "alert": {
@@ -580,8 +522,8 @@
             },
             "query": {
               "params": [
-                "A",
-                "1h",
+                "B",
+                "5m",
                 "now"
               ]
             },
@@ -596,9 +538,14 @@
         "for": "5m",
         "frequency": "1m",
         "handler": 1,
-        "name": "Raft Commit Time alert",
-        "noDataState": "no_data",
-        "notifications": []
+        "message": "Average raft commit time over the past hour is > 20 ms.\nThe consul servers may be overloaded or not functioning correctly.",
+        "name": "[Consul] Raft Commit Time alert",
+        "noDataState": "alerting",
+        "notifications": [
+          {
+            "uid": "LYnzSR0Gk"
+          }
+        ]
       },
       "aliasColors": {},
       "bars": false,
@@ -608,7 +555,8 @@
       "description": "This measures the time it takes to commit a new entry to the Raft log on the leader.",
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "custom": {},
+          "links": []
         },
         "overrides": []
       },
@@ -635,9 +583,10 @@
       "linewidth": 1,
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
+      "pluginVersion": "7.3.5",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -653,10 +602,10 @@
           "refId": "A"
         },
         {
-          "expr": "stddev_over_time(consul_raft_commitTime_count[1h:15m]) > avg_over_time(consul_raft_commitTime_count[1h:15m]) / 2",
-          "hide": true,
+          "expr": "avg_over_time(consul_raft_commitTime_count[1h])",
+          "hide": false,
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "{{host}}-(1 hr avg)",
           "refId": "B"
         }
       ],
@@ -666,8 +615,7 @@
           "fill": true,
           "line": true,
           "op": "gt",
-          "value": 20,
-          "yaxis": "left"
+          "value": 20
         }
       ],
       "timeFrom": null,
@@ -717,7 +665,7 @@
           {
             "evaluator": {
               "params": [
-                15
+                20
               ],
               "type": "gt"
             },
@@ -742,19 +690,25 @@
         "for": "5m",
         "frequency": "1m",
         "handler": 1,
-        "name": "KVs apply alert",
-        "noDataState": "keep_state",
-        "notifications": []
+        "message": "Average raft apply time over the past hour is > 20 ms.\nThe consul servers may be overloaded or not functioning correctly.",
+        "name": "[Consul] Raft Apply alert",
+        "noDataState": "alerting",
+        "notifications": [
+          {
+            "uid": "LYnzSR0Gk"
+          }
+        ]
       },
       "aliasColors": {},
       "bars": false,
       "dashLength": 10,
       "dashes": false,
       "datasource": "VictoriaMetrics",
-      "description": "This measures the time it takes to complete an update to the KV store.",
+      "description": "This counts the number of Raft transactions occurring over the interval.",
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "custom": {},
+          "links": []
         },
         "overrides": []
       },
@@ -765,6 +719,161 @@
         "w": 12,
         "x": 12,
         "y": 18
+      },
+      "hiddenSeries": false,
+      "id": 4,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.3.5",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "consul_raft_apply_value",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "{{host}}",
+          "refId": "A"
+        },
+        {
+          "expr": "avg_over_time(consul_raft_apply_value[1h])",
+          "hide": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{host}}-(1 hr avg)",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [
+        {
+          "colorMode": "critical",
+          "fill": true,
+          "line": true,
+          "op": "gt",
+          "value": 20
+        }
+      ],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Raft Apply",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "transformations": [],
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "alert": {
+        "alertRuleTags": {},
+        "conditions": [
+          {
+            "evaluator": {
+              "params": [
+                20
+              ],
+              "type": "gt"
+            },
+            "operator": {
+              "type": "and"
+            },
+            "query": {
+              "params": [
+                "B",
+                "5m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "params": [],
+              "type": "avg"
+            },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "5m",
+        "frequency": "1m",
+        "handler": 1,
+        "message": "Average key-value store commit time over the past hour is > 20 ms.\nThe consul servers may be overloaded or not functioning correctly.",
+        "name": "[Consul] KVs apply alert",
+        "noDataState": "alerting",
+        "notifications": [
+          {
+            "uid": "LYnzSR0Gk"
+          }
+        ]
+      },
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "VictoriaMetrics",
+      "description": "This measures the time it takes to complete an update to the KV store.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "links": []
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 26
       },
       "hiddenSeries": false,
       "id": 2,
@@ -781,9 +890,10 @@
       "linewidth": 1,
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
+      "pluginVersion": "7.3.5",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -794,15 +904,16 @@
       "targets": [
         {
           "expr": "consul_kvs_apply_count",
+          "hide": false,
           "interval": "",
           "legendFormat": "{{host}}",
           "refId": "A"
         },
         {
-          "expr": "stddev_over_time(consul_kvs_apply_count[1h:15m]) > avg_over_time(consul_kvs_apply_count[1h:15m]) / 2",
+          "expr": "avg_over_time(consul_kvs_apply_count[1h])",
           "hide": true,
           "interval": "",
-          "legendFormat": "{{host}}",
+          "legendFormat": "{{host}}-(1 hr avg)",
           "refId": "B"
         }
       ],
@@ -812,7 +923,7 @@
           "fill": true,
           "line": true,
           "op": "gt",
-          "value": 15
+          "value": 20
         }
       ],
       "timeFrom": null,
@@ -858,14 +969,71 @@
       }
     },
     {
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 34
+      },
+      "id": 20,
+      "panels": [],
+      "title": "DNS",
+      "type": "row"
+    },
+    {
+      "alert": {
+        "alertRuleTags": {},
+        "conditions": [
+          {
+            "evaluator": {
+              "params": [
+                0.1
+              ],
+              "type": "lt"
+            },
+            "operator": {
+              "type": "and"
+            },
+            "query": {
+              "params": [
+                "B",
+                "5m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "params": [],
+              "type": "avg"
+            },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "5m",
+        "frequency": "1m",
+        "handler": 1,
+        "message": "Average DNS queries from core nodes over the past hour is less than 1.\nThe consul servers may not be functioning correctly (ex: dnsmasq service).",
+        "name": "[Consul] DNS core queries alert",
+        "noDataState": "alerting",
+        "notifications": [
+          {
+            "uid": "LYnzSR0Gk"
+          }
+        ]
+      },
       "aliasColors": {},
       "bars": false,
       "dashLength": 10,
       "dashes": false,
       "datasource": "VictoriaMetrics",
+      "description": "Shows the average number of domain queries per node over a 1 hour period.",
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "custom": {},
+          "links": [],
+          "unit": "avg queries/hr"
         },
         "overrides": []
       },
@@ -875,11 +1043,12 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 26
+        "y": 35
       },
       "hiddenSeries": false,
-      "id": 18,
+      "id": 22,
       "legend": {
+        "alignAsTable": false,
         "avg": false,
         "current": false,
         "max": false,
@@ -892,9 +1061,10 @@
       "linewidth": 1,
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
+      "pluginVersion": "7.3.5",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -904,17 +1074,32 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "vault_token_count_value",
+          "expr": "avg_over_time(consul_dns_domain_query_count[1h]) default 0",
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "{{host}}",
           "refId": "A"
+        },
+        {
+          "expr": "sum(avg_over_time(consul_dns_domain_query_count{host=~\"core.*\"}[1h])) default 0",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "core-node-sum",
+          "refId": "B"
         }
       ],
-      "thresholds": [],
+      "thresholds": [
+        {
+          "colorMode": "critical",
+          "fill": true,
+          "line": true,
+          "op": "lt",
+          "value": 0.1
+        }
+      ],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Token Count",
+      "title": "DNS Queries",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -930,7 +1115,8 @@
       },
       "yaxes": [
         {
-          "format": "short",
+          "$$hashKey": "object:168",
+          "format": "avg queries/hr",
           "label": null,
           "logBase": 1,
           "max": null,
@@ -938,6 +1124,362 @@
           "show": true
         },
         {
+          "$$hashKey": "object:169",
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 43
+      },
+      "id": 32,
+      "panels": [],
+      "title": "ACL",
+      "type": "row"
+    },
+    {
+      "alert": {
+        "alertRuleTags": {},
+        "conditions": [
+          {
+            "evaluator": {
+              "params": [
+                3000
+              ],
+              "type": "gt"
+            },
+            "operator": {
+              "type": "and"
+            },
+            "query": {
+              "params": [
+                "A",
+                "5m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "params": [],
+              "type": "avg"
+            },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "5m",
+        "frequency": "1m",
+        "handler": 1,
+        "message": "Average ACL resolves over the past 5 minutes is > 3000.\nA consul servers (or client) may be overloaded or not functioning correctly.",
+        "name": "[Consul] ACL Resolves alert",
+        "noDataState": "alerting",
+        "notifications": [
+          {
+            "uid": "LYnzSR0Gk"
+          }
+        ]
+      },
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "VictoriaMetrics",
+      "description": "Counts the average ACL tokens count resolved over a 5 minute period. ",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "links": [],
+          "unit": "avg ops/5m"
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 44
+      },
+      "hiddenSeries": false,
+      "id": 26,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": false,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.3.5",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "avg_over_time(consul_acl_ResolveToken_count[5m])",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "{{host}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [
+        {
+          "colorMode": "critical",
+          "fill": true,
+          "line": true,
+          "op": "gt",
+          "value": 3000
+        }
+      ],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "ACL Resolves",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:402",
+          "format": "avg ops/5m",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "$$hashKey": "object:403",
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 52
+      },
+      "id": 34,
+      "panels": [],
+      "title": "Catalog",
+      "type": "row"
+    },
+    {
+      "alert": {
+        "alertRuleTags": {},
+        "conditions": [
+          {
+            "evaluator": {
+              "params": [
+                10
+              ],
+              "type": "gt"
+            },
+            "operator": {
+              "type": "and"
+            },
+            "query": {
+              "params": [
+                "A",
+                "5m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "params": [],
+              "type": "avg"
+            },
+            "type": "query"
+          },
+          {
+            "evaluator": {
+              "params": [
+                10
+              ],
+              "type": "gt"
+            },
+            "operator": {
+              "type": "or"
+            },
+            "query": {
+              "params": [
+                "B",
+                "5m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "params": [],
+              "type": "avg"
+            },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "5m",
+        "frequency": "1m",
+        "handler": 1,
+        "message": "Average catalog registration or deregistration operations over the past 1 hour is > 10.\nThe consul servers may be overloaded or not functioning correctly.",
+        "name": "[Consul] Catalog Operations alert",
+        "noDataState": "alerting",
+        "notifications": [
+          {
+            "uid": "LYnzSR0Gk"
+          }
+        ]
+      },
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "VictoriaMetrics",
+      "description": "This shows the average catalog register and deregister operations in a 1 hour period. ",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "links": [],
+          "unit": "avg ops/1h"
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 53
+      },
+      "hiddenSeries": false,
+      "id": 24,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.3.5",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "avg_over_time(consul_catalog_register_count[1h]) default 0",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "{{host}}-register",
+          "refId": "A"
+        },
+        {
+          "expr": "avg_over_time(consul_catalog_deregister_count[1h]) default 0",
+          "interval": "",
+          "legendFormat": "{{host}}-deregister",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [
+        {
+          "colorMode": "critical",
+          "fill": true,
+          "line": true,
+          "op": "gt",
+          "value": 10
+        }
+      ],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Catalog Operations",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:444",
+          "format": "avg ops/1h",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "$$hashKey": "object:445",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -952,15 +1494,15 @@
       }
     }
   ],
-  "refresh": "30s",
-  "schemaVersion": 25,
+  "refresh": "1m",
+  "schemaVersion": 26,
   "style": "dark",
   "tags": [],
   "templating": {
     "list": []
   },
   "time": {
-    "from": "now-30m",
+    "from": "now-24h",
     "to": "now"
   },
   "timepicker": {
@@ -978,6 +1520,6 @@
   },
   "timezone": "",
   "title": "Consul [bitte]",
-  "uid": "git7NNSMk",
+  "uid": "git7NNSM",
   "version": 1
 }

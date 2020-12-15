@@ -15,8 +15,23 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
+  "id": null,
   "links": [],
   "panels": [
+    {
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 13,
+      "panels": [],
+      "title": "System",
+      "type": "row"
+    },
     {
       "alert": {
         "alertRuleTags": {},
@@ -49,9 +64,14 @@
         "for": "5m",
         "frequency": "1m",
         "handler": 1,
-        "name": "CPU Used alert",
-        "noDataState": "no_data",
-        "notifications": []
+        "message": "CPU has been above 90% for more than 5 minutes.",
+        "name": "[System] CPU Used alert",
+        "noDataState": "alerting",
+        "notifications": [
+          {
+            "uid": "LYnzSR0Gk"
+          }
+        ]
       },
       "aliasColors": {},
       "bars": false,
@@ -60,7 +80,8 @@
       "datasource": "VictoriaMetrics",
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "custom": {},
+          "links": []
         },
         "overrides": []
       },
@@ -70,7 +91,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 0
+        "y": 1
       },
       "hiddenSeries": false,
       "id": 2,
@@ -87,9 +108,10 @@
       "linewidth": 1,
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
+      "pluginVersion": "7.3.5",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -163,7 +185,7 @@
           {
             "evaluator": {
               "params": [
-                80
+                90
               ],
               "type": "gt"
             },
@@ -188,9 +210,14 @@
         "for": "5m",
         "frequency": "1m",
         "handler": 1,
-        "name": "Memory Used alert",
-        "noDataState": "no_data",
-        "notifications": []
+        "message": "Memory used has been above 90% for more than 5 minutes.",
+        "name": "[System] Memory Used alert",
+        "noDataState": "alerting",
+        "notifications": [
+          {
+            "uid": "LYnzSR0Gk"
+          }
+        ]
       },
       "aliasColors": {},
       "bars": false,
@@ -199,7 +226,8 @@
       "datasource": "VictoriaMetrics",
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "custom": {},
+          "links": []
         },
         "overrides": []
       },
@@ -209,7 +237,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 0
+        "y": 1
       },
       "hiddenSeries": false,
       "id": 4,
@@ -226,9 +254,10 @@
       "linewidth": 1,
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
+      "pluginVersion": "7.3.5",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -250,7 +279,7 @@
           "fill": true,
           "line": true,
           "op": "gt",
-          "value": 80
+          "value": 90
         }
       ],
       "timeFrom": null,
@@ -327,10 +356,14 @@
         "for": "5m",
         "frequency": "1m",
         "handler": 1,
-        "message": "Disk usage over 80%",
-        "name": "Disk used / alert",
-        "noDataState": "no_data",
-        "notifications": []
+        "message": "Disk used on / has been above 80% for more than 5 minutes.",
+        "name": "[System] Disk used / alert",
+        "noDataState": "alerting",
+        "notifications": [
+          {
+            "uid": "LYnzSR0Gk"
+          }
+        ]
       },
       "aliasColors": {},
       "bars": false,
@@ -339,7 +372,8 @@
       "datasource": "VictoriaMetrics",
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "custom": {},
+          "links": []
         },
         "overrides": []
       },
@@ -349,7 +383,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 8
+        "y": 9
       },
       "hiddenSeries": false,
       "id": 6,
@@ -366,9 +400,10 @@
       "linewidth": 1,
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
+      "pluginVersion": "7.3.5",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -379,6 +414,7 @@
       "targets": [
         {
           "expr": "disk_used_percent{path=\"/\"}",
+          "hide": false,
           "interval": "",
           "legendFormat": "{{host}}",
           "refId": "A"
@@ -436,6 +472,46 @@
       }
     },
     {
+      "alert": {
+        "alertRuleTags": {},
+        "conditions": [
+          {
+            "evaluator": {
+              "params": [
+                90
+              ],
+              "type": "gt"
+            },
+            "operator": {
+              "type": "and"
+            },
+            "query": {
+              "params": [
+                "A",
+                "5m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "params": [],
+              "type": "avg"
+            },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "5m",
+        "frequency": "1m",
+        "handler": 1,
+        "message": "Linear extrapolation predicts disk usage will be above 90% within 12 hours.",
+        "name": "[System] Predicted Disk used / alert",
+        "noDataState": "alerting",
+        "notifications": [
+          {
+            "uid": "LYnzSR0Gk"
+          }
+        ]
+      },
       "aliasColors": {},
       "bars": false,
       "dashLength": 10,
@@ -443,7 +519,8 @@
       "datasource": "VictoriaMetrics",
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "custom": {},
+          "links": []
         },
         "overrides": []
       },
@@ -453,7 +530,216 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 8
+        "y": 9
+      },
+      "hiddenSeries": false,
+      "id": 11,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": false,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.3.5",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "predict_linear(disk_used_percent{path=\"/\"}[1h], 12 * 3600)",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "{{host}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [
+        {
+          "colorMode": "critical",
+          "fill": true,
+          "line": true,
+          "op": "gt",
+          "value": 90
+        }
+      ],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Predicted Disk used / in 12 hr",
+      "tooltip": {
+        "shared": false,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:132",
+          "format": "percent",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "$$hashKey": "object:133",
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "VictoriaMetrics",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "links": []
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 17
+      },
+      "hiddenSeries": false,
+      "id": 10,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": false,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.3.5",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "irate(net_bytes_recv{interface=\"ens5\"})",
+          "interval": "",
+          "legendFormat": "{{host}}",
+          "refId": "A"
+        },
+        {
+          "expr": "-irate(net_bytes_sent{interface=\"ens5\"})",
+          "interval": "",
+          "legendFormat": "{{host}}",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Net Sent / Received",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "kbytes",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "kbytes",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "VictoriaMetrics",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "links": []
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 17
       },
       "hiddenSeries": false,
       "id": 8,
@@ -470,9 +756,10 @@
       "linewidth": 1,
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
+      "pluginVersion": "7.3.5",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -536,33 +823,89 @@
       }
     },
     {
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 25
+      },
+      "id": 17,
+      "panels": [],
+      "title": "Misc Alerts",
+      "type": "row"
+    },
+    {
+      "alert": {
+        "alertRuleTags": {},
+        "conditions": [
+          {
+            "evaluator": {
+              "params": [
+                0
+              ],
+              "type": "gt"
+            },
+            "operator": {
+              "type": "and"
+            },
+            "query": {
+              "params": [
+                "A",
+                "5m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "params": [],
+              "type": "avg"
+            },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "5m",
+        "frequency": "1m",
+        "handler": 1,
+        "message": "deadmanssnitch keepalive [bitte]\n\nThis alert serves as a heartbeat for Deadmans' Snitch (https://deadmanssnitch.com).\nIf this heartbeat alert is not already suppressed in PagerDuty, an event suppression rule can be created for it.\nIn the service integration's event rules, create a rule with a suppression action and condition of:\n\nsummary  contains  deadmanssnitch keepalive [bitte]",
+        "name": "[System] Deadmans Snitch (Constant Alert)",
+        "noDataState": "alerting",
+        "notifications": [
+          {
+            "uid": "oD9tvD1Gz"
+          }
+        ]
+      },
       "aliasColors": {},
       "bars": false,
       "dashLength": 10,
       "dashes": false,
       "datasource": "VictoriaMetrics",
+      "description": "[https://deadmanssnitch.com](https://deadmanssnitch.com)\n* This panel should ALWAYS be in alerting state\n* This enables Deadman's Snitch to report when this monitoring server dies",
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "custom": {},
+          "links": []
         },
         "overrides": []
       },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 8,
+        "h": 9,
         "w": 12,
         "x": 0,
-        "y": 16
+        "y": 26
       },
       "hiddenSeries": false,
-      "id": 10,
+      "id": 15,
       "legend": {
         "avg": false,
         "current": false,
         "max": false,
         "min": false,
-        "show": false,
+        "show": true,
         "total": false,
         "values": false
       },
@@ -570,9 +913,10 @@
       "linewidth": 1,
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "alertThreshold": true
       },
       "percentage": false,
+      "pluginVersion": "7.3.5",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -582,23 +926,25 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "irate(net_bytes_recv{interface=\"ens5\"})",
+          "expr": "1",
           "interval": "",
-          "legendFormat": "{{host}}",
+          "legendFormat": "deadmanssnitch",
           "refId": "A"
-        },
-        {
-          "expr": "-irate(net_bytes_sent{interface=\"ens5\"})",
-          "interval": "",
-          "legendFormat": "{{host}}",
-          "refId": "B"
         }
       ],
-      "thresholds": [],
+      "thresholds": [
+        {
+          "colorMode": "critical",
+          "fill": true,
+          "line": true,
+          "op": "gt",
+          "value": 0
+        }
+      ],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Net Sent / Received",
+      "title": "Deadman's Snitch (Constant Alert)",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -614,7 +960,7 @@
       },
       "yaxes": [
         {
-          "format": "kbytes",
+          "format": "short",
           "label": null,
           "logBase": 1,
           "max": null,
@@ -622,7 +968,7 @@
           "show": true
         },
         {
-          "format": "kbytes",
+          "format": "short",
           "label": null,
           "logBase": 1,
           "max": null,
@@ -636,15 +982,15 @@
       }
     }
   ],
-  "refresh": "10s",
-  "schemaVersion": 25,
+  "refresh": "1m",
+  "schemaVersion": 26,
   "style": "dark",
   "tags": [],
   "templating": {
     "list": []
   },
   "time": {
-    "from": "now-3h",
+    "from": "now-24h",
     "to": "now"
   },
   "timepicker": {
@@ -662,6 +1008,6 @@
   },
   "timezone": "",
   "title": "System [bitte]",
-  "uid": "AmKA7NSMz",
+  "uid": "NTUvY5JMz",
   "version": 1
 }

@@ -16,7 +16,7 @@
   "editable": true,
   "gnetId": 10229,
   "graphTooltip": 0,
-  "id": 29,
+  "id": null,
   "iteration": 1607446539014,
   "links": [
     {
@@ -3334,7 +3334,7 @@
       }
     }
   ],
-  "refresh": "30s",
+  "refresh": "1m",
   "schemaVersion": 25,
   "style": "dark",
   "tags": [],
@@ -3470,5 +3470,5 @@
   "timezone": "",
   "title": "VictoriaMetrics [bitte]",
   "uid": "wNf0q_kZk",
-  "version": 3
+  "version": 1
 }
