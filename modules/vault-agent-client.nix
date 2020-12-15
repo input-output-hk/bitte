@@ -32,8 +32,6 @@ let
       lib.makeBinPath (with pkgs; [ coreutils systemd curl ])
     }"
 
-    rm -f /etc/nomad.d/consul-token.json
-
     systemctl restart consul.service || true
 
     if curl -s -k https://127.0.0.1:4646/v1/status/leader &> /dev/null; then
