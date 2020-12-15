@@ -82,8 +82,6 @@ have these settings:
 
 To create new deployment from scratch, run the following commands:
 
-    bitte-secrets-orchestrate
-
     bitte terraform network
     bitte terraform core
     bitte terraform consul
