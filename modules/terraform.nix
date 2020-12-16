@@ -637,8 +637,8 @@ let
 
       ami = mkOption {
         type = str;
-        default = autoscalingAMIs.${this.config.region} or throw
-          "Please make sure the NixOS ZFS AMI is copied to ${this.config.region}";
+        default = autoscalingAMIs.${this.config.region} or (throw
+          "Please make sure the NixOS ZFS AMI is copied to ${this.config.region}");
       };
 
       region = mkOption { type = str; };
