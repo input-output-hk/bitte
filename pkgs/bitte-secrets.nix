@@ -87,7 +87,7 @@ let
     terraform workspace select core
     terraform init
 
-    IP="$(terraform output -json cluster | jq -e -r '.instances."core-1".public_ip')"
+    IP="$(terraform output -json cluster | jq -e -r '.instances."core-1"."public-ip"')"
 
     mkdir -p "$root/original" "$root/ship"
     cd "$root/original"
@@ -367,8 +367,8 @@ let
     }
     trap finish EXIT
 
-    ips=($(terraform output -json cluster | jq -e -r '.instances | map(.public_ip) | .[]'))
-    IP="$(terraform output -json cluster | jq -e -r '.instances."core-1".public_ip')"
+    ips=($(terraform output -json cluster | jq -e -r '.instances | map(."public-ip") | .[]'))
+    IP="$(terraform output -json cluster | jq -e -r '.instances."core-1"."public-ip"')"
 
     export VAULT_ADDR="https://$IP:8200"
     export VAULT_FORMAT=json
