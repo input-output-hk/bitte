@@ -1,11 +1,11 @@
 { self, lib, pkgs, config, ... }:
 let
-  inherit (pkgs.terralib)
+  inherit (pkgs.buildPackages.terralib)
     var id pp regions awsProviderNameFor awsProviderFor mkSecurityGroupRule
     nullRoute;
 
-  mapVpcs = pkgs.terralib.mapVpcs config.cluster;
-  mapVpcsToList = pkgs.terralib.mapVpcsToList config.cluster;
+  mapVpcs = pkgs.buildPackages.terralib.mapVpcs config.cluster;
+  mapVpcsToList = pkgs.buildPackages.terralib.mapVpcsToList config.cluster;
 
   merge = lib.foldl' lib.recursiveUpdate { };
 in {
@@ -20,7 +20,7 @@ in {
         flake = toString config.cluster.flakePath;
         kms = config.cluster.kms;
         name = config.cluster.name;
-        nix = pkgs.nixFlakes;
+        nix = pkgs.buildPackages.nixFlakes;
         region = config.cluster.region;
         s3_bucket = config.cluster.s3Bucket;
         s3_cache = config.cluster.s3Cache;
@@ -369,7 +369,7 @@ in {
             {
               local-exec = {
                 command = "${
-                    self.nixosConfigurations."${config.cluster.name}-${name}".config.secrets.generateScript { inherit pkgs; }
+                    self.nixosConfigurations."${config.cluster.name}-${name}".config.secrets.generateScript
                   }/bin/generate-secrets";
 
                 environment = { IP = var "self.public_ip"; };

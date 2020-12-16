@@ -47,12 +47,12 @@ let
       };
 
       generateScript = lib.mkOption {
-        type = lib.mkOptionType rec {
-          name = "function";
-          check = lib.isFunction;
-        };
-        default = { pkgs ? pkgs }:
+        type = lib.types.path;
+        default =
           let
+            inherit (pkgs) buildPackages;
+          in let
+            pkgs = buildPackages;
             scripts = lib.concatStringsSep "\n" (lib.mapAttrsToList
               (name: value:
                 let

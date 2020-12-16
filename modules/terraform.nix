@@ -1,6 +1,6 @@
-{ self, config, pkgs, nodeName, ... }:
+{ self, lib, config, pkgs, nodeName, ... }:
 let
-  inherit (pkgs) lib terralib;
+  inherit (pkgs.buildPackages) lib terralib;
   inherit (lib) mkOption reverseList;
   inherit (lib.types)
     attrs submodule str attrsOf bool ints path enum port listof nullOr listOf
@@ -501,7 +501,7 @@ let
         default = let
           ip = var "aws_eip.${this.config.uid}.public_ip";
           args = [
-            "${pkgs.bitte}/bin/bitte"
+            "${pkgs.buildPackages.bitte.cli}/bin/bitte"
             "provision"
             "--name"
             this.config.name
@@ -608,7 +608,7 @@ let
 
       interpreter = mkOption {
         type = nullOr (listOf str);
-        default = [ "${pkgs.bash}/bin/bash" "-c" ];
+        default = [ "${pkgs.buildPackages.bash}/bin/bash" "-c" ];
       };
 
       environment = mkOption {
@@ -759,7 +759,7 @@ in {
         options = let
           copy = ''
             export PATH="${
-              lib.makeBinPath [ pkgs.coreutils pkgs.terraform-with-plugins ]
+              lib.makeBinPath [ pkgs.buildPackages.coreutils pkgs.buildPackages.terraform-with-plugins ]
             }"
             set -euo pipefail
 
@@ -782,25 +782,27 @@ in {
             apply = v:
               let
                 compiledConfig =
-                  import (self.inputs.terranix + "/core/default.nix") {
-                    pkgs = self.inputs.nixpkgs.legacyPackages.x86_64-linux;
+                  lib.terranix {
+                    # pkgs = pkgs.buildPackages;
+                    # pkgs = self.inputs.nixpkgs.legacyPackages.x86_64-linux;
+                    inherit pkgs;
                     strip_nulls = false;
                     terranix_config = {
                       imports = [ this.config.configuration ];
                     };
                   };
-              in pkgs.toPrettyJSON "${name}.tf" compiledConfig.config;
+              in pkgs.buildPackages.toPrettyJSON "${name}.tf" compiledConfig.config;
           };
 
           config = lib.mkOption {
             type = lib.mkOptionType { name = "${name}-config"; };
-            apply = v: pkgs.writeShellScriptBin "${name}-config" copy;
+            apply = v: pkgs.buildPackages.writeShellScriptBin "${name}-config" copy;
           };
 
           plan = lib.mkOption {
             type = lib.mkOptionType { name = "${name}-plan"; };
             apply = v:
-              pkgs.writeShellScriptBin "${name}-plan" ''
+              pkgs.buildPackages.writeShellScriptBin "${name}-plan" ''
                 ${prepare}
 
                 terraform plan -out ${name}.plan
@@ -810,7 +812,7 @@ in {
           apply = lib.mkOption {
             type = lib.mkOptionType { name = "${name}-apply"; };
             apply = v:
-              pkgs.writeShellScriptBin "${name}-apply" ''
+              pkgs.buildPackages.writeShellScriptBin "${name}-apply" ''
                 ${prepare}
 
                 terraform apply ${name}.plan
@@ -820,7 +822,7 @@ in {
           terraform = lib.mkOption {
             type = lib.mkOptionType { name = "${name}-apply"; };
             apply = v:
-              pkgs.writeShellScriptBin "${name}-apply" ''
+              pkgs.buildPackages.writeShellScriptBin "${name}-apply" ''
                 ${prepare}
 
                 terraform $@

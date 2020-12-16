@@ -121,9 +121,9 @@ let
         apply = _:
           let
             json = toJSON this.config._computed;
-            mini = pkgs.writeText "consul-policy.mini.json" json;
-          in pkgs.runCommandNoCCLocal "consul-policy.json" { } ''
-            ${pkgs.jq}/bin/jq -S < ${mini} > $out
+            mini = pkgs.buildPackages.writeText "consul-policy.mini.json" json;
+          in pkgs.buildPackages.runCommandNoCCLocal "consul-policy.json" { } ''
+            ${pkgs.buildPackages.jq}/bin/jq -S < ${mini} > $out
           '';
       };
 

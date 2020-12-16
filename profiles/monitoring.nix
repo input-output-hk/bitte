@@ -107,7 +107,7 @@ in {
   };
 
   secrets.generate.grafana-password = ''
-    export PATH="${lib.makeBinPath (with pkgs; [ coreutils sops xkcdpass ])}"
+    export PATH="${lib.makeBinPath (with pkgs.buildPackages; [ coreutils sops xkcdpass ])}"
 
     if [ ! -s encrypted/grafana-password.json ]; then
       xkcdpass \
@@ -117,7 +117,7 @@ in {
   '';
 
   secrets.install.grafana-password.script = ''
-    export PATH="${lib.makeBinPath (with pkgs; [ sops coreutils ])}"
+    export PATH="${lib.makeBinPath (with pkgs.buildPackages; [ sops coreutils ])}"
 
     mkdir -p /var/lib/grafana
 
@@ -129,7 +129,7 @@ in {
   users.extraGroups.keys.members = [ "oauth2_proxy" ];
 
   secrets.install.oauth.script = ''
-    export PATH="${lib.makeBinPath (with pkgs; [ sops coreutils ])}"
+    export PATH="${lib.makeBinPath (with pkgs.buildPackages; [ sops coreutils ])}"
 
     cat ${config.secrets.encryptedRoot + "/oauth-secrets"} \
       | sops -d /dev/stdin \

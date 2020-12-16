@@ -1,9 +1,9 @@
 { self, config, pkgs, lib, ... }:
 let
-  inherit (pkgs.terralib)
+  inherit (pkgs.buildPackages.terralib)
     id var regions awsProviderNameFor awsProviderFor merge mkSecurityGroupRule;
 
-  mapVpcs = pkgs.terralib.mapVpcs config.cluster;
+  mapVpcs = pkgs.buildPackages.terralib.mapVpcs config.cluster;
 in {
   tf.clients.configuration = {
     terraform.backend.remote = {
@@ -16,7 +16,7 @@ in {
         flake = toString config.cluster.flakePath;
         kms = config.cluster.kms;
         name = config.cluster.name;
-        nix = pkgs.nixFlakes;
+        nix = pkgs.buildPackages.nixFlakes;
         region = config.cluster.region;
         s3-bucket = config.cluster.s3Bucket;
         s3-cache = config.cluster.s3Cache;
