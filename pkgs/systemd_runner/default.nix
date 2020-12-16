@@ -4,7 +4,7 @@ crystal.buildCrystalPackage {
   version = "0.0.1";
   format = "crystal";
 
-  src = lib.inclusive ./. [ ./systemd_runner.cr ];
+  src = ./.;
 
   nativeBuildInputs = [ removeReferencesTo ];
 
