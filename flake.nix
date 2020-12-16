@@ -81,24 +81,6 @@
         null)) paths;
       };
 
-      } // (
-      let
-        pkgs = import nixpkgs {
-          overlays = [ self.overlay ];
-          localSystem = "x86_64-darwin";
-          crossSystem = "x86_64-linux";
-        };
-      in {
-
-        nixosConfigurations = self.lib.mkNixosConfigurations self.clusters;
-
-        nixosModules = self.lib.importNixosModules ./modules;
-
-        clusters = self.lib.mkClusters {
-          root = ./clusters;
-          inherit (pkgs) lib;
-          inherit self pkgs;
-        };
-      }
-    );
+      nixosModules = self.lib.importNixosModules ./modules;
+    };
 }
