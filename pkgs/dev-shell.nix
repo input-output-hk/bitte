@@ -7,7 +7,7 @@ mkShellNoCC {
 
   buildInputs = [
     awscli
-    bitte.cli
+    bitte
     cfssl
     consul
     consul-template
