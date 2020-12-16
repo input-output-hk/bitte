@@ -1,14 +1,9 @@
-{ self }:
-
 final: prev:
 let
-  inherit (self.inputs) ops-lib;
   inherit (builtins) fromJSON toJSON trace mapAttrs genList foldl';
   inherit (final) lib;
 in
 {
-  inherit self;
-
   nixos-rebuild =
     let
       nixos = lib.nixosSystem {
@@ -40,6 +35,7 @@ in
       rev = "v${version}";
       sha256 = "sha256-CeZIBuy00HGXAFDuiYEKm11o0ylkMAl07wa+zL9EW3E=";
       passthru = o.passthru // { inherit version rev sha256; };
+
     in {
       inherit version passthru;
       src = final.fetchFromGitHub {
@@ -47,8 +43,21 @@ in
       };
       postBuild = "mv $NIX_BUILD_TOP/go/bin/${passthru.repo}{,_v${passthru.version}}";
     });
-  in [ vault plugins.null ]
-  ++ (with plugins; [ acme aws consul local nomad sops tls ]));
+
+    aws = plugins.aws.overrideAttrs (o: let
+      version = "3.21.0";
+      rev = "v${version}";
+      sha256 = "sha256:0nb03xykjj4a3lvfbbz1l31j6czii5xgslznq8vw0x9v9birjj1v";
+      passthru = o.passthru // { inherit version rev sha256; };
+    in {
+      inherit version passthru;
+      src = final.fetchFromGitHub {
+        inherit (passthru) owner repo rev sha256;
+      };
+      postBuild = "mv $NIX_BUILD_TOP/go/bin/${passthru.repo}{,_v${passthru.version}}";
+    });
+  in [ vault aws plugins.null ]
+  ++ (with plugins; [ acme consul local nomad sops tls ]));
 
   mkShellNoCC = prev.mkShell.override { stdenv = prev.stdenvNoCC; };
 
@@ -70,7 +79,7 @@ in
 
   consulRegister = prev.callPackage ./pkgs/consul-register.nix { };
 
-  systemd-runner = final.callPackage ./pkgs/systemd_runner { };
+  # systemd-runner = final.callPackage ./pkgs/systemd_runner { };
 
   envoy = prev.callPackage ./pkgs/envoy.nix { };
 
@@ -82,7 +91,7 @@ in
 
   grpcdump = prev.callPackage ./pkgs/grpcdump.nix { };
 
-  haproxy = prev.callPackage ./pkgs/haproxy.nix { };
+  # haproxy = prev.callPackage ./pkgs/haproxy.nix { };
 
   grafana-loki = prev.callPackage ./pkgs/loki.nix { };
 

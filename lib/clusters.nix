@@ -1,4 +1,4 @@
-{ self, pkgs, system, lib, root, ... }:
+{ self, pkgs, lib, root }:
 let
   inherit (builtins) attrNames readDir mapAttrs;
   inherit (lib)
@@ -20,8 +20,16 @@ let
     ];
 
   mkSystem = nodeName: modules:
-    self.inputs.nixpkgs.lib.nixosSystem {
-      inherit pkgs system;
+    lib.nixosSystem {
+      # NOTE In the domain of possibilities that we currently care for, a NixOS
+      # system would *always* be "x86_64-linux". In contrast, the *deployer* can
+      # be at least x86_64-linux, x86_64-darwin, with Apple Silicon poised to
+      # complicate things even further in the not-so-distant future.
+      system = "x86_64-linux";
+      pkgs = import self.inputs.nixpkgs {
+        system = "x86_64-linux";
+        overlays = [ self.overlay ];
+      };
       modules = [
         ../modules/default.nix
         (self.inputs.nixpkgs + "/nixos/modules/virtualisation/amazon-image.nix")
@@ -33,8 +41,9 @@ let
 
 in listToAttrs (forEach clusterFiles (file:
   let
-    proto = self.inputs.nixpkgs.lib.nixosSystem {
-      inherit pkgs system;
+    proto = lib.nixosSystem {
+      system = "x86_64-linux";
+      inherit pkgs;
       modules = [
         ../modules/default.nix
         ../profiles/nix.nix
@@ -66,6 +75,7 @@ in listToAttrs (forEach clusterFiles (file:
 
     bitte-secrets = pkgs.callPackage ../pkgs/bitte-secrets.nix {
       inherit (proto.config) cluster;
+      bitte = pkgs.bitte.cli;
     };
 
     mkJob = import ./mk-job.nix proto;
