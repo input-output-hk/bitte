@@ -136,6 +136,7 @@ in
       network_interface_id = null;
       transit_gateway_id = null;
       vpc_peering_connection_id = null;
+      vpc_endpoint_id = null;
       gateway_id = null;
     };
 
