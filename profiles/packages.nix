@@ -17,7 +17,6 @@
     tmux
     tree
     vim
-    cachix
     envoy
   ];
 }
