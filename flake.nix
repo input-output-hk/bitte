@@ -23,7 +23,7 @@
       systems = [ "x86_64-darwin" "x86_64-linux" ];
 
       overlays = [
-        cli.overlay
+        cli
         ./overlay.nix
         (final: prev: {
           lib = nixpkgs.lib.extend (final: prev: {
