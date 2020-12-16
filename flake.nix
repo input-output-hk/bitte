@@ -37,6 +37,13 @@
         defaultPackage = bitte;
       };
 
+      hydraJobs = { devShell, bitte }: {
+        inherit bitte;
+        devShell = devShell.overrideAttrs (_: {
+          nobuildPhase = "touch $out";
+        });
+      };
+
       config.allowUnfreePredicate = pkg:
       let name = nixpkgs.lib.getName pkg;
       in
