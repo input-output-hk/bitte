@@ -1,13 +1,13 @@
-{ self, pkgs, lib, root }:
+{ self, nixpkgs, system, root }:
 let
   inherit (builtins) attrNames readDir mapAttrs;
-  inherit (lib)
+  inherit (nixpkgs.lib)
     flip pipe mkForce filterAttrs flatten listToAttrs forEach nameValuePair
-    mapAttrs';
+    mapAttrs' nixosSystem;
 
   readDirRec = path:
     pipe path [
-      readDir
+      builtins.readDir
       (filterAttrs (n: v: v == "directory" || n == "default.nix"))
       attrNames
       (map (name: path + "/${name}"))
@@ -20,49 +20,62 @@ let
     ];
 
   mkSystem = nodeName: modules:
-    lib.nixosSystem {
+    nixosSystem {
       # NOTE In the domain of possibilities that we currently care for, a NixOS
       # system would *always* be "x86_64-linux". In contrast, the *deployer* can
       # be at least x86_64-linux, x86_64-darwin, with Apple Silicon poised to
       # complicate things even further in the not-so-distant future.
       system = "x86_64-linux";
-      pkgs = import self.inputs.nixpkgs {
+      pkgs = import nixpkgs {
         system = "x86_64-linux";
         overlays = [ self.overlay ];
       };
       modules = [
-        ../modules/default.nix
-        (self.inputs.nixpkgs + "/nixos/modules/virtualisation/amazon-image.nix")
+        ../modules
+        (nixpkgs + "/nixos/modules/virtualisation/amazon-image.nix")
       ] ++ modules;
-      specialArgs = { inherit nodeName self; };
+      specialArgs = { inherit nodeName self deployerPkgs; };
     };
+
+  deployerPkgs = import nixpkgs {
+    inherit system;
+    overlays = [ self.overlay ];
+  };
+
+  mkProto = file: nixosSystem {
+    inherit system;
+    pkgs = deployerPkgs;
+    modules = [
+      ../modules/default.nix
+      ../profiles/nix.nix
+      ../profiles/consul/policies.nix
+      file
+    ];
+    specialArgs = { inherit self deployerPkgs; };
+  };
 
   clusterFiles = readDirRec root;
 
-in listToAttrs (forEach clusterFiles (file:
+  mkCluster = file:
   let
-    proto = lib.nixosSystem {
-      system = "x86_64-linux";
-      inherit pkgs;
-      modules = [
-        ../modules/default.nix
-        ../profiles/nix.nix
-        ../profiles/consul/policies.nix
-        file
-      ];
-      specialArgs = { inherit self; };
+    proto = mkProto file;
+
+    bitte-secrets = deployerPkgs.callPackage ../pkgs/bitte-secrets.nix {
+      inherit (proto.config) cluster;
     };
+
+    mkNode = name: instance: mkSystem name
+    ([ { networking.hostName = mkForce name; } file ] ++ instance.modules);
+
+    mkGroup = name: instance: mkSystem name ([ file ] ++ instance.modules);
+  in rec {
+    inherit proto bitte-secrets;
 
     tf = proto.config.tf;
 
-    nodes = mapAttrs (name: instance:
-      mkSystem name
-      ([ { networking.hostName = mkForce name; } file ] ++ instance.modules))
-      proto.config.cluster.instances;
+    nodes = mapAttrs mkNode proto.config.cluster.instances;
 
-    groups =
-      mapAttrs (name: instance: mkSystem name ([ file ] ++ instance.modules))
-      proto.config.cluster.autoscalingGroups;
+    groups = mapAttrs mkGroup proto.config.cluster.autoscalingGroups;
 
     # All data used by the CLI should be exported here.
     topology = {
@@ -73,13 +86,14 @@ in listToAttrs (forEach clusterFiles (file:
       groups = attrNames groups;
     };
 
-    bitte-secrets = pkgs.callPackage ../pkgs/bitte-secrets.nix {
-      inherit (proto.config) cluster;
-      bitte = pkgs.bitte.cli;
-    };
-
     mkJob = import ./mk-job.nix proto;
+  } // bitte-secrets;
 
-  in nameValuePair proto.config.cluster.name ({
-    inherit proto tf nodes groups topology bitte-secrets mkJob;
-  } // bitte-secrets)))
+  mkClusters = flip pipe [
+    (map mkCluster)
+    (map (c: nameValuePair c.proto.config.cluster.name c))
+    listToAttrs
+  ];
+
+  clusters = mkClusters clusterFiles;
+in clusters

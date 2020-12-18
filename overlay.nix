@@ -4,26 +4,6 @@ let
   inherit (final) lib;
 in
 {
-  nixos-rebuild =
-    let
-      nixos = lib.nixosSystem {
-        inherit (final) system;
-        modules = [{ nix.package = prev.nixFlakes; }];
-      };
-    in
-    nixos.config.system.build.nixos-rebuild;
-
-  nixFlakes = prev.nixFlakes.overrideAttrs ({ patches ? [ ], ... }: {
-    patches = [
-      patches
-      (prev.fetchpatch {
-        url =
-          "https://github.com/cleverca22/nix/commit/39c2f9fd1c2d2e25ed10b6c3919a01022297dc34.patch";
-        sha256 = "sha256-6vwVTMC1eZnJqB6FGv3vsS2AZhz52j0exLeS2WsT6Y0=";
-      })
-    ];
-  });
-
   ssm-agent = prev.callPackage ./pkgs/ssm-agent { };
 
   consul = prev.callPackage ./pkgs/consul { };

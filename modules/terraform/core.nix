@@ -1,11 +1,11 @@
-{ self, lib, pkgs, config, ... }:
+{ self, lib, pkgs, deployerPkgs, config, ... }:
 let
-  inherit (pkgs.buildPackages.terralib)
+  inherit (deployerPkgs.terralib)
     var id pp regions awsProviderNameFor awsProviderFor mkSecurityGroupRule
     nullRoute;
 
-  mapVpcs = pkgs.buildPackages.terralib.mapVpcs config.cluster;
-  mapVpcsToList = pkgs.buildPackages.terralib.mapVpcsToList config.cluster;
+  mapVpcs = deployerPkgs.terralib.mapVpcs config.cluster;
+  mapVpcsToList = deployerPkgs.terralib.mapVpcsToList config.cluster;
 
   merge = lib.foldl' lib.recursiveUpdate { };
 in {
@@ -20,7 +20,7 @@ in {
         flake = toString config.cluster.flakePath;
         kms = config.cluster.kms;
         name = config.cluster.name;
-        nix = pkgs.buildPackages.nixFlakes;
+        nix = deployerPkgs.nixFlakes;
         region = config.cluster.region;
         s3_bucket = config.cluster.s3Bucket;
         s3_cache = config.cluster.s3Cache;

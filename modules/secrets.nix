@@ -1,4 +1,4 @@
-{ lib, config, pkgs, ... }:
+{ lib, config, pkgs, deployerPkgs, ... }:
 let
   inherit (lib.types) str enum submodule attrsOf nullOr path;
   inherit (config.cluster) kms;
@@ -50,9 +50,7 @@ let
         type = lib.types.path;
         default =
           let
-            inherit (pkgs) buildPackages;
-          in let
-            pkgs = buildPackages;
+            pkgs = deployerPkgs;
             scripts = lib.concatStringsSep "\n" (lib.mapAttrsToList
               (name: value:
                 let
