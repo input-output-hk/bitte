@@ -230,7 +230,6 @@ in final: prev: {
     '';
 
   ssh-keys = let
-    authorized_keys = lib.fileContents ../modules/ssh_keys/authorized_keys;
     keys = import (ops-lib + "/overlays/ssh-keys.nix") lib;
     inherit (keys) allKeysFrom devOps;
   in { devOps = allKeysFrom devOps; };
