@@ -113,18 +113,11 @@ in final: prev: {
       --prefix PATH : ${prev.lib.makeBinPath deps}
   '';
 
-  clusters = final.mkClusters {
-    root = ./clusters;
-    inherit self system;
-  };
-
   mkClusters = args:
     import ./lib/clusters.nix ({
       pkgs = final;
       lib = final.lib;
     } // args);
-
-  nixosConfigurations = final.mkNixosConfigurations final.clusters;
 
   mkNixosConfigurations = clusters:
     lib.pipe clusters [
