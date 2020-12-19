@@ -45,5 +45,5 @@
         overlays = [ self.overlay.x86_64-linux ];
         system = "x86_64-linux";
       };
-    in { inherit (pkgs) nixosModules nixosConfigurations clusters nomadJobs; });
+    in { inherit (pkgs) nixosModules clusters nomadJobs; });
 }
