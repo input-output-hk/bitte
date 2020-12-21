@@ -1,6 +1,5 @@
 { rootDir
 , pkgs
-, lib
 , domain # E.g. "mantis.ws"
 , dockerRegistry ? "docker." + domain
 , dockerRole ? "developer"
@@ -8,6 +7,7 @@
 }:
 
 let
+  lib = pkgs.lib;
   # Recurse through a directory and evaluate all expressions
   #
   # Directory -> callPackage(s) -> AttrSet
@@ -17,7 +17,7 @@ let
       toImport = name: type: type == "regular" && lib.hasSuffix ".nix" name;
       fileNames = builtins.attrNames (lib.filterAttrs toImport contents);
       imported = lib.forEach fileNames
-        (fileName: callPackage (jobsDir + "/${fileName}") { });
+        (fileName: callPackage (rootPath + "/${fileName}") { });
     in
       lib.foldl' lib.recursiveUpdate { } imported;
 
