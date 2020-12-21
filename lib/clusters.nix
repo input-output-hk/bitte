@@ -64,7 +64,7 @@ in listToAttrs (forEach clusterFiles (file:
       groups = attrNames groups;
     };
 
-    bitte-secrets = pkgs.callPackage ../pkgs/bitte-secrets.nix {
+    bitte-secrets = pkgs.callPackages ../pkgs/bitte-secrets.nix {
       inherit (proto.config) cluster;
     };
 
