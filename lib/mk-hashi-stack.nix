@@ -10,7 +10,7 @@ let
   lib = pkgs.lib;
 
   # extend package set with deployment specifc items
-  pkgs = pkgs.extend( final: prev: {
+  prod-pkgs = pkgs.extend( final: prev: {
     inherit domain dockerRegistry dockerRole vaultDockerPasswordKey;
   });
 
@@ -93,11 +93,11 @@ in
 lib.makeScope pkgs.newScope (self: with self; {
   inherit rootDir;
 
-  nomadJobs = recursiveCallPackage (rootDir + "/jobs") pkgs.callPackage;
+  nomadJobs = recursiveCallPackage (rootDir + "/jobs") prod-pkgs.callPackage;
 
   dockerImages =
     let
-      images = recursiveCallPackage (rootDir + "/docker") pkgs.callPackages;
+      images = recursiveCallPackage (rootDir + "/docker") prod-pkgs.callPackages;
     in lib.mapAttrs imageAttrToCommands images;
 
   push-docker-images = callPackage push-docker-images { };
