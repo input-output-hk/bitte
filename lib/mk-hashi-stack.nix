@@ -8,6 +8,12 @@
 
 let
   lib = pkgs.lib;
+
+  # extend package set with deployment specifc items
+  pkgs = pkgs.extend( final: prev: {
+    inherit domain dockerRegistry dockerRole vaultDockerPasswordKey;
+  });
+
   # Recurse through a directory and evaluate all expressions
   #
   # Directory -> callPackage(s) -> AttrSet
