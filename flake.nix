@@ -37,7 +37,6 @@
           ssm-agent cfssl consul;
       };
 
-      mkHashiStack = import ./lib/mk-hashi-stack.nix;
       hydraJobs = packages;
 
       apps.bitte = utils.lib.mkApp { drv = legacyPackages.bitte; };
@@ -46,5 +45,9 @@
         overlays = [ self.overlay.x86_64-linux ];
         system = "x86_64-linux";
       };
-    in { inherit (pkgs) nixosModules clusters nomadJobs; });
+      mkHashiStack = import ./lib/mk-hashi-stack.nix;
+    in {
+      inherit mkHashiStack;
+      inherit (pkgs) nixosModules clusters nomadJobs;
+    });
 }
