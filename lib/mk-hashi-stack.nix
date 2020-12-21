@@ -87,11 +87,11 @@ in
 lib.makeScope pkgs.newScope (self: with self; {
   inherit rootDir;
 
-  nomadJobs = recursiveCallPackage (rootDir + "/jobs") callPackage;
+  nomadJobs = recursiveCallPackage (rootDir + "/jobs") pkgs.callPackage;
 
   dockerImages =
     let
-      images = recursiveCallPackage (rootDir + "/docker") callPackages;
+      images = recursiveCallPackage (rootDir + "/docker") pkgs.callPackages;
     in lib.mapAttrs imageAttrToCommands images;
 
   push-docker-images = callPackage push-docker-images { };
