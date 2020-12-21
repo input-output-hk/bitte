@@ -37,6 +37,7 @@
           ssm-agent cfssl consul;
       };
 
+      mkHashiStack = import ./lib/mk-hashi-stack.nix;
       hydraJobs = packages;
 
       apps.bitte = utils.lib.mkApp { drv = legacyPackages.bitte; };
