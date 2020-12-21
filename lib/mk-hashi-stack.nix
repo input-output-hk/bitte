@@ -92,7 +92,7 @@ lib.makeScope pkgs.newScope (self: with self; {
   dockerImages =
     let
       images = recursiveCallPackage (rootDir + "/docker") callPackages;
-    in lib.mapAttrs imageAttrToCommands merged;
+    in lib.mapAttrs imageAttrToCommands images;
 
   push-docker-images = callPackage push-docker-images { };
 
