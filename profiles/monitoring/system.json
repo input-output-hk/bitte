@@ -67,11 +67,7 @@
         "message": "CPU has been above 90% for more than 5 minutes.",
         "name": "[System] CPU Used alert",
         "noDataState": "alerting",
-        "notifications": [
-          {
-            "uid": "LYnzSR0Gk"
-          }
-        ]
+        "notifications": []
       },
       "aliasColors": {},
       "bars": false,
@@ -213,11 +209,7 @@
         "message": "Memory used has been above 90% for more than 5 minutes.",
         "name": "[System] Memory Used alert",
         "noDataState": "alerting",
-        "notifications": [
-          {
-            "uid": "LYnzSR0Gk"
-          }
-        ]
+        "notifications": []
       },
       "aliasColors": {},
       "bars": false,
@@ -359,11 +351,7 @@
         "message": "Disk used on / has been above 80% for more than 5 minutes.",
         "name": "[System] Disk used / alert",
         "noDataState": "alerting",
-        "notifications": [
-          {
-            "uid": "LYnzSR0Gk"
-          }
-        ]
+        "notifications": []
       },
       "aliasColors": {},
       "bars": false,
@@ -506,11 +494,7 @@
         "message": "Linear extrapolation predicts disk usage will be above 90% within 12 hours.",
         "name": "[System] Predicted Disk used / alert",
         "noDataState": "alerting",
-        "notifications": [
-          {
-            "uid": "LYnzSR0Gk"
-          }
-        ]
+        "notifications": []
       },
       "aliasColors": {},
       "bars": false,
@@ -873,7 +857,7 @@
         "noDataState": "alerting",
         "notifications": [
           {
-            "uid": "oD9tvD1Gz"
+            "uid": "deadmanssnitch"
           }
         ]
       },

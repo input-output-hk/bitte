@@ -88,11 +88,7 @@
         "message": "There has been more than one raft election change in the past hour. \nLeadership may be flapping.",
         "name": "[Consul] Raft Elections alert",
         "noDataState": "alerting",
-        "notifications": [
-          {
-            "uid": "LYnzSR0Gk"
-          }
-        ]
+        "notifications": []
       },
       "aliasColors": {},
       "bars": false,
@@ -236,11 +232,7 @@
         "message": "There has been more than one raft leader change in the past hour. \nLeadership may be flapping.",
         "name": "[Consul] Raft Leader alert",
         "noDataState": "alerting",
-        "notifications": [
-          {
-            "uid": "LYnzSR0Gk"
-          }
-        ]
+        "notifications": []
       },
       "aliasColors": {},
       "bars": false,
@@ -382,11 +374,7 @@
         "message": "Leadership contact latency is exceedingly high (> 200 ms).\nThe consul cluster may be degraded",
         "name": "[Consul] Raft Leader Last Contact alert",
         "noDataState": "alerting",
-        "notifications": [
-          {
-            "uid": "LYnzSR0Gk"
-          }
-        ]
+        "notifications": []
       },
       "aliasColors": {},
       "bars": false,
@@ -541,11 +529,7 @@
         "message": "Average raft commit time over the past hour is > 20 ms.\nThe consul servers may be overloaded or not functioning correctly.",
         "name": "[Consul] Raft Commit Time alert",
         "noDataState": "alerting",
-        "notifications": [
-          {
-            "uid": "LYnzSR0Gk"
-          }
-        ]
+        "notifications": []
       },
       "aliasColors": {},
       "bars": false,
@@ -693,11 +677,7 @@
         "message": "Average raft apply time over the past hour is > 20 ms.\nThe consul servers may be overloaded or not functioning correctly.",
         "name": "[Consul] Raft Apply alert",
         "noDataState": "alerting",
-        "notifications": [
-          {
-            "uid": "LYnzSR0Gk"
-          }
-        ]
+        "notifications": []
       },
       "aliasColors": {},
       "bars": false,
@@ -848,11 +828,7 @@
         "message": "Average key-value store commit time over the past hour is > 20 ms.\nThe consul servers may be overloaded or not functioning correctly.",
         "name": "[Consul] KVs apply alert",
         "noDataState": "alerting",
-        "notifications": [
-          {
-            "uid": "LYnzSR0Gk"
-          }
-        ]
+        "notifications": []
       },
       "aliasColors": {},
       "bars": false,
@@ -1017,11 +993,7 @@
         "message": "Average DNS queries from core nodes over the past hour is less than 1.\nThe consul servers may not be functioning correctly (ex: dnsmasq service).",
         "name": "[Consul] DNS core queries alert",
         "noDataState": "alerting",
-        "notifications": [
-          {
-            "uid": "LYnzSR0Gk"
-          }
-        ]
+        "notifications": []
       },
       "aliasColors": {},
       "bars": false,
@@ -1187,11 +1159,7 @@
         "message": "Average ACL resolves over the past 5 minutes is > 3000.\nA consul servers (or client) may be overloaded or not functioning correctly.",
         "name": "[Consul] ACL Resolves alert",
         "noDataState": "alerting",
-        "notifications": [
-          {
-            "uid": "LYnzSR0Gk"
-          }
-        ]
+        "notifications": []
       },
       "aliasColors": {},
       "bars": false,
@@ -1373,11 +1341,7 @@
         "message": "Average catalog registration or deregistration operations over the past 1 hour is > 10.\nThe consul servers may be overloaded or not functioning correctly.",
         "name": "[Consul] Catalog Operations alert",
         "noDataState": "alerting",
-        "notifications": [
-          {
-            "uid": "LYnzSR0Gk"
-          }
-        ]
+        "notifications": []
       },
       "aliasColors": {},
       "bars": false,
