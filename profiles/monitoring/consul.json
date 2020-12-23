@@ -1393,14 +1393,14 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg_over_time(consul_catalog_register_count[1h]) default 0",
+          "expr": "avg_over_time(union(consul_catalog_register_count,label_set(0,\"host\",\"baseline\"))[1h]) default 0",
           "hide": false,
           "interval": "",
           "legendFormat": "{{host}}-register",
           "refId": "A"
         },
         {
-          "expr": "avg_over_time(consul_catalog_deregister_count[1h]) default 0",
+          "expr": "avg_over_time(union(consul_catalog_deregister_count,label_set(0,\"host\",\"baseline\"))[1h]) default 0",
           "interval": "",
           "legendFormat": "{{host}}-deregister",
           "refId": "B"
