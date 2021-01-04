@@ -87,6 +87,11 @@ in {
     '';
   };
 
+  # Restarts automatically upon fail, ex: memory limit hit
+  systemd.services.dnsmasq.startLimitIntervalSec = 0;
+  systemd.services.dnsmasq.serviceConfig.RestartSec = "1s";
+  systemd.services.dnsmasq.serviceConfig.MemoryMax = "128M";
+
   # Used for Consul Connect and requires reboot?
   boot.kernel.sysctl = {
     "net.bridge.bridge-nf-call-arptables" = mkDefault 1;
