@@ -53,6 +53,8 @@ in {
     };
 
     telemetry = {
+      publish_allocation_metrics = true;
+      publish_node_metrics = true;
       datadog_address = "localhost:8125";
       datadog_tags = [ "region:${region}" "role:nomad" ];
     };

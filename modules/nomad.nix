@@ -971,6 +971,22 @@ in {
             type = nullOr (listOf str);
             default = null;
           };
+
+          publish_allocation_metrics = mkOption {
+            type = bool;
+            default = false;
+            description = ''
+              Specifies if Nomad should publish runtime metrics of allocations.
+            '';
+          };
+
+          publish_node_metrics = mkOption {
+            type = bool;
+            default = false;
+            description = ''
+              Specifies if Nomad should publish runtime metrics of nodes.
+            '';
+          };
         };
       };
     };
