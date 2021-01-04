@@ -608,6 +608,7 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "VictoriaMetrics",
+      "description": "Bandwidth in SI units, bits per second (bps).\nPositive values are ingress, negative are egress.\nBandwidth is time averaged over a 1 minute window.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -651,13 +652,13 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "irate(net_bytes_recv{interface=\"ens5\"})",
+          "expr": "rate(net_bytes_recv{interface=\"ens5\"}[1m]) * 8 / 60",
           "interval": "",
           "legendFormat": "{{host}}",
           "refId": "A"
         },
         {
-          "expr": "-irate(net_bytes_sent{interface=\"ens5\"})",
+          "expr": "-rate(net_bytes_sent{interface=\"ens5\"}[1m]) * 8 / 60",
           "interval": "",
           "legendFormat": "{{host}}",
           "refId": "B"
@@ -667,7 +668,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Net Sent / Received",
+      "title": "Bandwidth Ingress / Egress",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -683,7 +684,8 @@
       },
       "yaxes": [
         {
-          "format": "kbytes",
+          "$$hashKey": "object:44",
+          "format": "bps",
           "label": null,
           "logBase": 1,
           "max": null,
@@ -691,6 +693,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:45",
           "format": "kbytes",
           "label": null,
           "logBase": 1,
@@ -710,6 +713,7 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "VictoriaMetrics",
+      "description": "Disk activity, time averaged over a 1 minute window.\nPositive values are disk reads, negative are disk writes.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -753,13 +757,15 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "irate(diskio_merged_reads{name=\"nvme0n1\"})",
+          "expr": "rate(diskio_merged_reads{name=\"nvme0n1\"}[1m])",
+          "hide": false,
           "interval": "",
           "legendFormat": "{{host}}",
           "refId": "A"
         },
         {
-          "expr": "-irate(diskio_merged_writes{name=\"nvme0n1\"})",
+          "expr": "-rate(diskio_merged_writes{name=\"nvme0n1\"}[1m])",
+          "hide": false,
           "interval": "",
           "legendFormat": "{{host}}",
           "refId": "B"
@@ -785,6 +791,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:75",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -793,6 +800,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:76",
           "format": "short",
           "label": null,
           "logBase": 1,
