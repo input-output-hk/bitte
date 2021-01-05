@@ -104,5 +104,10 @@ lib.makeScope pkgs.newScope (self: with self; {
 
   load-docker-images = callPackage load-docker-images { };
 
+  clusters = self.inputs.bitte.legacyPackages.${pkgs.hostPlatform.system}.mkClusters {
+    root = (rootDir + "/clusters");
+    inherit self;
+    inherit (pkgs.hostPlatform) system;
+  };
 })
 

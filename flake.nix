@@ -48,6 +48,6 @@
       mkHashiStack = import ./lib/mk-hashi-stack.nix;
     in {
       inherit mkHashiStack;
-      inherit (pkgs) nixosModules clusters nomadJobs;
+      inherit (pkgs) nixosModules;
     });
 }
