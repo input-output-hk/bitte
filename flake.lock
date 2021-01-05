@@ -8,11 +8,11 @@
         "utils": "utils_2"
       },
       "locked": {
-        "lastModified": 1606386177,
-        "narHash": "sha256-r0l2phaLS+7iZ9VpDjzAhlb9AjcL+hAGDJBvdfh86Vc=",
+        "lastModified": 1609876960,
+        "narHash": "sha256-Gb5271xfZlAALaRXXHwolR1MlO/ZDhKRNnm6CyIIkZs=",
         "owner": "input-output-hk",
         "repo": "bitte-cli",
-        "rev": "9355abbdcee3ea01f5267d786c0cca8f614fb36e",
+        "rev": "8e0b280aacca7427da5f5a031184daf3e7b1b201",
         "type": "github"
       },
       "original": {
@@ -108,6 +108,22 @@
     },
     "nixpkgs_2": {
       "locked": {
+        "lastModified": 1609725427,
+        "narHash": "sha256-Yn97AVjFvQunGmwK3nnr7LihzMnp72jyaYNRRaJvAZ4=",
+        "owner": "Nixos",
+        "repo": "nixpkgs",
+        "rev": "c5c6009fb436efe5732e07cd0e5692f495321752",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Nixos",
+        "ref": "nixos-20.09",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_3": {
+      "locked": {
         "lastModified": 1595425804,
         "narHash": "sha256-RM8fHq1PoN8HHVRPKIjYLrXq54Z18iVodQrwxmH/J3g=",
         "owner": "NixOS",
@@ -117,8 +133,8 @@
       },
       "original": {
         "owner": "NixOS",
-        "ref": "nixpkgs-unstable",
         "repo": "nixpkgs",
+        "rev": "b8c367a7bd05e3a514c2b057c09223c74804a21b",
         "type": "github"
       }
     },
@@ -146,10 +162,7 @@
           "crystal"
         ],
         "inclusive": "inclusive_2",
-        "nixpkgs": [
-          "bitte-cli",
-          "nixpkgs"
-        ],
+        "nixpkgs": "nixpkgs_3",
         "nixpkgs-terraform": "nixpkgs-terraform",
         "ops-lib": "ops-lib",
         "terranix": "terranix",
