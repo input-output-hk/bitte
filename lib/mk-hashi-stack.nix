@@ -110,5 +110,7 @@ lib.makeScope pkgs.newScope (self: with self; {
     self = flake;
     inherit (pkgs.hostPlatform) system;
   };
+
+  nixosConfigurations = pkgs.mkNixosConfigurations self.clusters;
 })
 
