@@ -138,4 +138,6 @@ in {
     chown root:keys /run/keys/oauth-secrets
     chmod g+r /run/keys/oauth-secrets
   '';
+
+  systemd.services.oauth2_proxy.after = [ "secret-oauth.service" ];
 }
