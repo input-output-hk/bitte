@@ -104,7 +104,7 @@ lib.makeScope pkgs.newScope (self: with self; {
 
   load-docker-images = callPackage load-docker-images { };
 
-  clusters = self.mkClusters {
+  clusters = pkgs.mkClusters {
     root = (rootDir + "/clusters");
     inherit self;
     inherit (pkgs.hostPlatform) system;
