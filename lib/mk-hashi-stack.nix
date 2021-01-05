@@ -1,5 +1,6 @@
 { rootDir
 , pkgs
+, flake
 , domain # E.g. "mantis.ws"
 , dockerRegistry ? "docker." + domain
 , dockerRole ? "developer"
@@ -106,7 +107,7 @@ lib.makeScope pkgs.newScope (self: with self; {
 
   clusters = pkgs.mkClusters {
     root = (rootDir + "/clusters");
-    inherit self;
+    self = flake;
     inherit (pkgs.hostPlatform) system;
   };
 })
