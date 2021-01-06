@@ -29,7 +29,7 @@
         overlays = [ overlay ];
       };
 
-      inherit (legacyPackages) devShell;
+      inherit (legacyPackages) devShell nixosModules;
 
       packages = {
         inherit (legacyPackages)
@@ -40,14 +40,8 @@
       hydraJobs = packages;
 
       apps.bitte = utils.lib.mkApp { drv = legacyPackages.bitte; };
-    })) // (let
-      pkgs = import nixpkgs {
-        overlays = [ self.overlay.x86_64-linux ];
-        system = "x86_64-linux";
-      };
+
+    })) // {
       mkHashiStack = import ./lib/mk-hashi-stack.nix;
-    in {
-      inherit mkHashiStack;
-      inherit (pkgs) nixosModules;
-    });
+    };
 }
