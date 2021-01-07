@@ -11,6 +11,7 @@
         # "/usr/bin/env" = "/usr/bin/env";
         "${builtins.unsafeDiscardStringContext pkgs.pkgsStatic.busybox}" =
           "/usr";
+        "/etc/passwd" = "/etc/passwd";
       };
     };
 

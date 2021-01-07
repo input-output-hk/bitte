@@ -15,7 +15,7 @@ in {
 
   services.nomad = {
     data_dir = /var/lib/nomad;
-    log_level = "INFO";
+    log_level = "DEBUG";
     name = if (instances.${nodeName} or null) != null then
       "nomad-${nodeName}"
     else
