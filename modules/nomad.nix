@@ -1135,6 +1135,7 @@ in {
         amazon-ecr-credential-helper
         vault-bin
         jq
+        nixFlakes
       ];
 
       environment = mkIf config.services.consul.enable {
