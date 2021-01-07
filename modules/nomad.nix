@@ -1114,6 +1114,8 @@ in {
 
     environment.systemPackages = [ pkgs.nomad ];
 
+    users.extraUsers.nobody = {};
+
     networking.firewall = {
       allowedTCPPorts = [ 4646 4647 4648 ];
       allowedUDPPorts = [ 4648 ];
