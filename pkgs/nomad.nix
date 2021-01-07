@@ -2,17 +2,17 @@
 
 buildGoPackage rec {
   pname = "nomad";
-  version = "1.0.0";
+  version = "1.0.1";
   rev = "v${version}";
 
   goPackagePath = "github.com/hashicorp/nomad";
   subPackages = [ "." ];
 
   src = fetchFromGitHub {
-    owner = "hashicorp";
+    owner = "manveru";
     repo = pname;
-    inherit rev;
-    sha256 = "sha256-DMt6micLmC5FHcv+yDaYaNYoE03LbZwDSHJ6J6VEShE=";
+    rev = "release-1.0.1";
+    sha256 = "sha256-EfTChEw9qJM+hGVE0nXAieFNJWFY0Ndhbz0JXUaR7Uc=";
   };
 
   # ui:
