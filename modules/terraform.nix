@@ -22,7 +22,7 @@ let
   autoscalingAMIs = {
     us-east-2 = "ami-0492aa69cf46f79c3";
     eu-central-1 = "ami-0839f2c610f876d2d";
-    eu-west-1 = "ami-0b6cdcba6e3d6f665";
+    eu-west-1 = "ami-0f765805e4520b54d";
   };
 
   vpcMap = lib.pipe [
