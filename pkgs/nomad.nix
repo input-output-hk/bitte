@@ -12,7 +12,7 @@ buildGoPackage rec {
     owner = "manveru";
     repo = pname;
     rev = "release-1.0.1";
-    sha256 = "sha256-l+kOn2JJ8+x5Lk6FN2ZbaFImOyr7AVTdA42ELUcNo34=";
+    sha256 = "sha256-iY9eIVtNaE7Z+BtqDSSeFsCJ1k0XehpiZPdB4bRRW7c=";
   };
 
   # ui:
