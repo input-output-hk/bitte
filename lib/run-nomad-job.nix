@@ -1,5 +1,6 @@
 { name, lib, json, dockerImages, writeShellScriptBin, vault-bin, awscli
-, coreutils, jq, nomad, consul, nixFlakes, docker, curl, gnugrep, gitMinimal }:
+, coreutils, jq, nomad, consul, nixFlakes, docker, curl, gnugrep, gitMinimal
+, skopeo }:
 let
   pushImage = imageId: image:
     let
@@ -17,8 +18,10 @@ let
         storePath="$(nix-store -r ${
           builtins.unsafeDiscardStringContext image.drvPath
         })"
-        docker load -i "$storePath"
-        docker push ${image.imageName}:${image.imageTag}
+        ${skopeo}/bin/skopeo copy \
+          "docker-archive://$storePath" \
+          "docker://${registry}/${repo}/${image.imageName}:${image.imageTag}" \
+          --dest-creds "developer:$dockerPassword"
       fi
     '';
   pushImages = lib.mapAttrsToList pushImage dockerImages;
