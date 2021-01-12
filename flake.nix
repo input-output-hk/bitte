@@ -3,7 +3,8 @@
 
   inputs = {
     crystal.follows = "bitte-cli/crystal";
-    nixpkgs.url = "github:NixOS/nixpkgs?rev=b8c367a7bd05e3a514c2b057c09223c74804a21b";
+    nixpkgs.url =
+      "github:NixOS/nixpkgs?rev=b8c367a7bd05e3a514c2b057c09223c74804a21b";
     nixpkgs-terraform.url = "github:manveru/nixpkgs/terraform-providers";
     inclusive.url = "github:input-output-hk/nix-inclusive";
     utils.url = "github:numtide/flake-utils";

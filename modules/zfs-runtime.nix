@@ -2,8 +2,7 @@
 
 with lib;
 
-let
-  poolName = config.zfs.poolName;
+let poolName = config.zfs.poolName;
 in {
   options = {
     zfs.poolName = mkOption {
@@ -23,8 +22,10 @@ in {
       kernelParams = [ "console=ttyS0" ];
       initrd = {
         availableKernelModules = [
-          "virtio_pci" "virtio_blk"
-          "xen-blkfront" "xen-netfront"
+          "virtio_pci"
+          "virtio_blk"
+          "xen-blkfront"
+          "xen-netfront"
           "nvme"
           "ena"
         ];
@@ -78,10 +79,22 @@ in {
       };
     };
     fileSystems = {
-      "/"     = { fsType = "zfs"; device = "${poolName}/root"; };
-      "/home" = { fsType = "zfs"; device = "${poolName}/home"; };
-      "/nix"  = { fsType = "zfs"; device = "${poolName}/nix"; };
-      "/var"  = { fsType = "zfs"; device = "${poolName}/var"; };
+      "/" = {
+        fsType = "zfs";
+        device = "${poolName}/root";
+      };
+      "/home" = {
+        fsType = "zfs";
+        device = "${poolName}/home";
+      };
+      "/nix" = {
+        fsType = "zfs";
+        device = "${poolName}/nix";
+      };
+      "/var" = {
+        fsType = "zfs";
+        device = "${poolName}/var";
+      };
     };
     networking = {
       hostName = lib.mkDefault "";
