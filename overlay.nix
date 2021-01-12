@@ -104,6 +104,37 @@ in final: prev: {
 
   systemdSandbox = final.callPackage ./lib/systemd-sandbox.nix { };
 
+  zfsAmi = {
+    # attrs of interest:
+    # * config.system.build.zfsImage
+    # * config.system.build.uploadAmi
+    zfs-ami = import "${nixpkgs}/nixos" {
+      system = "x86_64-linux";
+      configuration = { pkgs, lib, ... }: {
+        imports = [
+          ops-lib.nixosModules.make-zfs-image
+          ops-lib.nixosModules.zfs-runtime
+          "${nixpkgs}/nixos/modules/profiles/headless.nix"
+          "${nixpkgs}/nixos/modules/virtualisation/ec2-data.nix"
+        ];
+        nix.package = final.nixFlakes;
+        nix.extraOptions = ''
+          experimental-features = nix-command flakes
+        '';
+        systemd.services.amazon-shell-init.path = [ final.sops ];
+        nixpkgs.config.allowUnfreePredicate = x:
+          builtins.elem (lib.getName x) [ "ec2-ami-tools" "ec2-api-tools" ];
+        zfs.regions = [
+          "eu-west-1"
+          "ap-northeast-1"
+          "ap-northeast-2"
+          "eu-central-1"
+          "us-east-2"
+        ];
+      };
+    };
+  };
+
   scaler-guard = let deps = with final; [ awscli bash curl jq nomad ];
   in prev.runCommandLocal "scaler-guard" {
     script = ./scripts/scaler-guard.sh;

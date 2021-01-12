@@ -1,17 +1,12 @@
-{ rootDir
-, pkgs
-, flake
-, domain # E.g. "mantis.ws"
-, dockerRegistry ? "docker." + domain
-, dockerRole ? "developer"
-, vaultDockerPasswordKey ? "kv/nomad-cluster/docker-developer-password"
-}:
+{ rootDir, pkgs, flake, domain # E.g. "mantis.ws"
+, dockerRegistry ? "docker." + domain, dockerRole ? "developer"
+, vaultDockerPasswordKey ? "kv/nomad-cluster/docker-developer-password" }:
 
 let
   lib = pkgs.lib;
 
   # extend package set with deployment specifc items
-  prod-pkgs = pkgs.extend( final: prev: {
+  prod-pkgs = pkgs.extend (final: prev: {
     inherit domain dockerRegistry dockerRole vaultDockerPasswordKey;
   });
 
@@ -25,51 +20,53 @@ let
       fileNames = builtins.attrNames (lib.filterAttrs toImport contents);
       imported = lib.forEach fileNames
         (fileName: callPackage (rootPath + "/${fileName}") { });
-    in
-      lib.foldl' lib.recursiveUpdate { } imported;
+    in lib.foldl' lib.recursiveUpdate { } imported;
 
   # "Expands" a docker image into a set which allows for docker commands
   # to be easily performed. E.g. ".#dockerImages.$Image.push
-  imageAttrToCommands = key: image: {
-    inherit image;
+  imageAttrToCommands = key: image:
+    let id = "${image.imageName}:${image.imageTag}";
+    in {
+      inherit id image;
 
-    id = "${image.imageName}:${image.imageTag}";
+      # Turning this attribute set into a string will return the outPath instead.
+      outPath = id;
 
-    push = let
-      parts = builtins.split "/" image.imageName;
-      registry = builtins.elemAt parts 0;
-      repo = builtins.elemAt parts 2;
-    in pkgs.writeShellScriptBin "push" ''
-      set -euo pipefail
+      push = let
+        parts = builtins.split "/" image.imageName;
+        registry = builtins.elemAt parts 0;
+        repo = builtins.elemAt parts 2;
+      in pkgs.writeShellScriptBin "push" ''
+        set -euo pipefail
 
-      export dockerLoginDone="''${dockerLoginDone:-}"
-      export dockerPassword="''${dockerPassword:-}"
+        export dockerLoginDone="''${dockerLoginDone:-}"
+        export dockerPassword="''${dockerPassword:-}"
 
-      if [ -z "$dockerPassword" ]; then
-        dockerPassword="$(vault kv get -field value ${vaultDockerPasswordKey})"
-      fi
+        if [ -z "$dockerPassword" ]; then
+          dockerPassword="$(vault kv get -field value ${vaultDockerPasswordKey})"
+        fi
 
-      if [ -z "$dockerLoginDone" ]; then
-        echo "$dockerPassword" | docker login docker.mantis.ws -u ${dockerRole} --password-stdin
-        dockerLoginDone=1
-      fi
+        if [ -z "$dockerLoginDone" ]; then
+          echo "$dockerPassword" | docker login docker.mantis.ws -u ${dockerRole} --password-stdin
+          dockerLoginDone=1
+        fi
 
-      echo -n "Pushing ${image.imageName}:${image.imageTag} ... "
+        echo -n "Pushing ${image.imageName}:${image.imageTag} ... "
 
-      if curl -s "https://developer:$dockerPassword@${registry}/v2/${repo}/tags/list" | grep "${image.imageTag}" &> /dev/null; then
-        echo "Image already exists in registry"
-      else
+        if curl -s "https://developer:$dockerPassword@${registry}/v2/${repo}/tags/list" | grep "${image.imageTag}" &> /dev/null; then
+          echo "Image already exists in registry"
+        else
+          docker load -i ${image}
+          docker push ${image.imageName}:${image.imageTag}
+        fi
+      '';
+
+      load = pkgs.writeShellScriptBin "load" ''
+        set -euo pipefail
+        echo "Loading ${image} (${image.imageName}:${image.imageTag}) ..."
         docker load -i ${image}
-        docker push ${image.imageName}:${image.imageTag}
-      fi
-    '';
-
-    load = builtins.trace key (pkgs.writeShellScriptBin "load" ''
-      set -euo pipefail
-      echo "Loading ${image} (${image.imageName}:${image.imageTag}) ..."
-      docker load -i ${image}
-    '');
-  };
+      '';
+    };
 
   push-docker-images = { writeShellScriptBin, dockerImages }:
     writeShellScriptBin "push-docker-images" ''
@@ -89,28 +86,27 @@ let
         dockerImages)}
     '';
 
-in
+in lib.makeScope pkgs.newScope (self:
+  with self; {
+    inherit rootDir;
 
-lib.makeScope pkgs.newScope (self: with self; {
-  inherit rootDir;
+    nomadJobs = recursiveCallPackage (rootDir + "/jobs") prod-pkgs.callPackage;
 
-  nomadJobs = recursiveCallPackage (rootDir + "/jobs") prod-pkgs.callPackage;
-
-  dockerImages =
-    let
-      images = recursiveCallPackage (rootDir + "/docker") prod-pkgs.callPackages;
+    dockerImages = let
+      images =
+        recursiveCallPackage (rootDir + "/docker") prod-pkgs.callPackages;
     in lib.mapAttrs imageAttrToCommands images;
 
-  push-docker-images = callPackage push-docker-images { };
+    push-docker-images = callPackage push-docker-images { };
 
-  load-docker-images = callPackage load-docker-images { };
+    load-docker-images = callPackage load-docker-images { };
 
-  clusters = pkgs.mkClusters {
-    root = (rootDir + "/clusters");
-    self = flake;
-    inherit (pkgs.hostPlatform) system;
-  };
+    clusters = pkgs.mkClusters {
+      root = (rootDir + "/clusters");
+      self = flake;
+      inherit (pkgs.hostPlatform) system;
+    };
 
-  nixosConfigurations = pkgs.mkNixosConfigurations self.clusters;
-})
+    nixosConfigurations = pkgs.mkNixosConfigurations self.clusters;
+  })
 
