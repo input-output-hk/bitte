@@ -1,6 +1,7 @@
-{ self, lib, config, deployerPkgs, pkgs, nodeName, ... }:
+{ self, bitte, lib, config, deployerPkgs, pkgs, nodeName, ... }:
 let
   inherit (deployerPkgs) lib terralib;
+  inherit (bitte.lib) net;
   inherit (lib) mkOption reverseList pipe;
   inherit (lib.types)
     attrs submodule str attrsOf bool ints path enum port listof nullOr listOf
@@ -143,8 +144,9 @@ let
             (builtins.genList lib.id)
             (map (idx: lib.nameValuePair "core-${toString (idx+1)}" {
               inherit idx;
+              cidr = net.cidr.subnet 8 (idx+1) cidr;
               # cidr = "10.${base}.${toString idx}.0/18";
-              cidr = ''cidrsubnet("${cidr}", 8, ${toString (idx+1)})'';
+              # cidr = terralib.earlyVar ''cidrsubnet("${cidr}", 8, ${toString (idx+1)})'';
               availabilityZone =
                 var
                 "module.instance_types_to_azs.availability_zones[${toString idx}]";
@@ -504,7 +506,24 @@ let
             imports = [ <nixpkgs/nixos/modules/virtualisation/amazon-image.nix> ];
 
             nix = {
-              package = pkgs.nixFlakes;
+              package = let
+                nixSrc = builtins.fetchGit {
+                  url = "https://github.com/NixOS/nix";
+                  rev = "${bitte.inputs.nix.rev}";
+                  ref = "master";
+                };
+
+                flakeCompatSrc =
+                  fetchTarball
+                  "https://github.com/edolstra/flake-compat/archive/master.tar.gz";
+
+                getFlake = src: (import flakeCompatSrc {
+                  inherit src;
+                }).defaultNix;
+
+                package = (getFlake nixSrc).default;
+              in package;
+
               extraOptions = '''
                 show-trace = true
                 experimental-features = nix-command flakes ca-references
@@ -694,7 +713,8 @@ let
             ]) {
               inherit idx;
               # cidr = "10.${base}.${toString idx}.0/18";
-              cidr = ''cidrsubnet("${cidr}", 2, ${toString (idx+1)})'';
+              # cidr = lib.earlyVar ''cidrsubnet("${cidr}", 2, ${toString (idx+1)})'';
+              cidr = net.cidr.subnet 2 (idx+1) cidr;
               availabilityZone =
                 var
                 "module.instance_types_to_azs.availability_zones[${toString idx}]";

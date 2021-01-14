@@ -122,6 +122,16 @@ in
   terralib = rec {
     amis = import (final.path + "/nixos/modules/virtualisation/ec2-amis.nix");
 
+    earlyVar = v:
+    lib.fileContents (
+      final.runCommand "terraform-early-var" {
+        buildInputs = [ final.terraform ];
+      } ''
+        cat <<'EOF' | terraform console > $out
+        "${v}"
+        EOF
+      '');
+
     var = v: "\${${v}}";
     id = v: var "${v}.id";
     pp = v: trace (toJSON v) v;

@@ -21,7 +21,10 @@ rec {
         ../profiles/consul/policies.nix
         file
       ];
-      specialArgs = { inherit self deployerPkgs; };
+      specialArgs = {
+        inherit self deployerPkgs;
+        inherit (self.inputs) bitte;
+      };
     };
 
   mkCluster = self: deployerPkgs: file:
@@ -69,11 +72,14 @@ rec {
         ../modules
         (nixpkgs + "/nixos/modules/virtualisation/amazon-image.nix")
       ] ++ modules;
-      specialArgs = { inherit nodeName self deployerPkgs; };
+      specialArgs = {
+        inherit nodeName self deployerPkgs;
+        inherit (self.inputs) bitte;
+      };
     };
 
   mkClusters =
-    { self, nixpkgs, system, root }:
+    { self, system, root }:
     let
       inherit (builtins) attrNames readDir mapAttrs;
       inherit (nixpkgs.lib)

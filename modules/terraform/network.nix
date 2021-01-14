@@ -133,7 +133,7 @@ in {
         lib.nameValuePair "${vpc.region}-${suffix}" {
           provider = awsProviderFor vpc.region;
           vpc_id = id "aws_vpc.${vpc.region}";
-          cidr_block = var subnet.cidr;
+          cidr_block = subnet.cidr;
 
           lifecycle = [{ create_before_destroy = true; }];
 

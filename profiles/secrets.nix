@@ -6,7 +6,7 @@ let
     "${deployerPkgs.sops}/bin/sops --encrypt --input-type json --kms '${kms}' /dev/stdin";
 
   sopsDecrypt = path:
-    "${deployerPkgs.sops}/bin/sops --decrypt --input-type json ${path}";
+    "${pkgs.sops}/bin/sops --decrypt --input-type json ${path}";
 
   isInstance = config.instance != null;
 
@@ -70,7 +70,7 @@ let
   };
 
 in {
-  secrets.generate.consul = lib.mkIf isInstance ''
+  secrets.preGenerate.consul = lib.mkIf isInstance ''
     export PATH="${lib.makeBinPath (with deployerPkgs; [ python consul utillinux jq coreutils ])}"
 
     encrypt="$(consul keygen)"
@@ -108,7 +108,7 @@ in {
     target = /etc/consul.d/secrets.json;
   };
 
-  secrets.generate.nomad = lib.mkIf isInstance ''
+  secrets.preGenerate.nomad = lib.mkIf isInstance ''
     export PATH="${lib.makeBinPath (with deployerPkgs; [ nomad jq ])}"
 
     if [ ! -s encrypted/nomad.json ]; then
@@ -122,7 +122,7 @@ in {
     fi
   '';
 
-  secrets.generate.cache = lib.mkIf isInstance ''
+  secrets.preGenerate.cache = lib.mkIf isInstance ''
     export PATH="${lib.makeBinPath (with deployerPkgs; [ coreutils nixFlakes jq ])}"
 
     mkdir -p secrets encrypted
@@ -150,12 +150,10 @@ in {
     fi
   '';
 
-  secrets.generate.ca = lib.mkIf isInstance ''
+  secrets.preGenerate.ca = lib.mkIf isInstance ''
     export PATH="${
       lib.makeBinPath (with deployerPkgs; [ cfssl jq coreutils terraform-with-plugins ])
     }"
-
-    IP="$(terraform output -json cluster | jq -e -r '.instances."core-1"."public-ip"')"
 
     if [ ! -s secrets/ca.pem ]; then
       ca="$(cfssl gencert -initca ${caJson})"
@@ -164,8 +162,10 @@ in {
     fi
 
     certConfigJson="${certConfig}"
-    jq --arg ip "$IP" '.hosts += [$ip]' < "$certConfigJson" \
-    > cert.config
+    # jq --arg ip "$IP" '.hosts += [$ip]' < "$certConfigJson" \
+    # > cert.config
+
+    cp $certConfigJson ./cert.config
 
     if [ ! -s encrypted/cert.json ]; then
       cert="$(
@@ -188,7 +188,7 @@ in {
 
   secrets.install.certs = lib.mkIf isInstance {
     script = ''
-      export PATH="${lib.makeBinPath (with deployerPkgs; [ cfssl jq coreutils ])}"
+      export PATH="${lib.makeBinPath (with pkgs; [ cfssl jq coreutils ])}"
       cert="$(${sopsDecrypt (config.secrets.encryptedRoot + "/cert.json")})"
       echo "$cert" | cfssljson -bare cert
       echo "$cert" | jq -r -e .ca  > "ca.pem"

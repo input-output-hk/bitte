@@ -156,7 +156,7 @@ in {
           Cluster = config.cluster.name;
           Name = server.name;
         };
-        lifecycle = [{ create_before_destroy = true; }];
+        # lifecycle = [{ create_before_destroy = true; }];
       }) config.cluster.instances;
 
     resource.aws_network_interface = lib.mapAttrs' (name: server:
@@ -168,7 +168,7 @@ in {
           Cluster = config.cluster.name;
           Name = server.name;
         };
-        lifecycle = [{ create_before_destroy = true; }];
+        # lifecycle = [{ create_before_destroy = true; }];
       }) config.cluster.instances;
 
 
@@ -182,7 +182,7 @@ in {
         lib.nameValuePair subnet.name {
           provider = awsProviderFor config.cluster.vpc.region;
           vpc_id = id "data.aws_vpc.core";
-          cidr_block = var subnet.cidr;
+          cidr_block = subnet.cidr;
           availability_zone = subnet.availabilityZone;
           tags = {
             Cluster = config.cluster.name;
@@ -252,8 +252,8 @@ in {
       }));
 
     provider.acme = {
-      # server_url = "https://acme-staging-v02.api.letsencrypt.org/directory";
-      server_url = "https://acme-v02.api.letsencrypt.org/directory";
+      server_url = "https://acme-staging-v02.api.letsencrypt.org/directory";
+      # server_url = "https://acme-v02.api.letsencrypt.org/directory";
     };
 
     resource.tls_private_key.private_key = { algorithm = "RSA"; };
@@ -271,7 +271,8 @@ in {
       dns_challenge.provider = "route53";
     };
 
-    resource.null_resource = lib.flip lib.mapAttrs' config.cluster.instances
+    resource.null_resource = lib.mkMerge [
+      (lib.flip lib.mapAttrs' config.cluster.instances
       (name: server:
         lib.nameValuePair "${name}-files" {
           triggers = {
@@ -323,7 +324,31 @@ in {
               };
             }
           ];
-        });
+        }))
+        (lib.flip lib.mapAttrs' config.cluster.instances
+        (name: server:
+        lib.nameValuePair "${name}-bootstrap" {
+          triggers = {
+            instance_id = id "aws_instance.${name}";
+          };
+
+          provisioner = [{
+              local-exec = {
+                command = "${
+                    self.nixosConfigurations."${config.cluster.name}-${name}".config.secrets.generateScript
+                  }/bin/generate-secrets";
+
+                environment = { IP = var "aws_instance.${name}.public_ip"; };
+              };
+            }
+            {
+              local-exec = {
+                inherit (server.localProvisioner)
+                  interpreter command environment;
+                working_dir = server.localProvisioner.workingDir;
+              };
+            }];
+        }))];
 
     resource.local_file = {
       "ssh-${config.cluster.name}" = lib.mkIf config.cluster.generateSSHKey {
@@ -365,31 +390,14 @@ in {
 
           iam_instance_profile = server.iam.instanceProfile.tfName;
 
+          depends_on = [ "aws_network_interface.${server.uid}" ];
+
           network_interface = {
             network_interface_id = id "aws_network_interface.${server.uid}";
             device_index = 0;
           };
 
           user_data = server.userData;
-
-          provisioner = [
-            {
-              local-exec = {
-                command = "${
-                    self.nixosConfigurations."${config.cluster.name}-${name}".config.secrets.generateScript
-                  }/bin/generate-secrets";
-
-                environment = { IP = var "self.public_ip"; };
-              };
-            }
-            {
-              local-exec = {
-                inherit (server.localProvisioner)
-                  interpreter command environment;
-                working_dir = server.localProvisioner.workingDir;
-              };
-            }
-          ];
         })
 
         (lib.mkIf config.cluster.generateSSHKey {

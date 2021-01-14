@@ -33,7 +33,7 @@ in {
     redis.enable = true;
   };
 
-  secrets.generate.redis-password = ''
+  secrets.preGenerate.redis-password = ''
     export PATH="${lib.makeBinPath (with deployerPkgs; [ coreutils sops xkcdpass ])}"
 
     if [ ! -s encrypted/redis-password.json ]; then
@@ -50,7 +50,7 @@ in {
     outputType = "binary";
   };
 
-  secrets.generate.docker-passwords = ''
+  secrets.preGenerate.docker-passwords = ''
     export PATH="${
       lib.makeBinPath (with deployerPkgs; [ coreutils sops jq pwgen apacheHttpd ])
     }"

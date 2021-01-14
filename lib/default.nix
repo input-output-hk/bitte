@@ -12,6 +12,8 @@ let
     {
       inherit nixpkgs;
       clusters = callLibs ./clusters.nix;
+      net = callLibs ./net.nix;
+      mkHashiStack = callLibs ./mk-hashi-stack.nix;
       inherit (self.clusters) mkCluster mkClusters;
 
       mkNixosConfigurations = clusters:

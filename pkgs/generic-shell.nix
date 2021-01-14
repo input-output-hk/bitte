@@ -1,4 +1,23 @@
-{ bitte, pkgs, writeText, system, mkShell }:
+{ bitte
+, writeText
+, mkShell
+, nixos-rebuild
+, terraform-with-plugins
+, scaler-guard
+, sops
+, vault
+, openssl
+, cfssl
+, nixfmt
+, awscli
+, nomad
+, consul
+, consul-template
+, python38Packages
+, direnv
+, nixFlakes
+, jq
+}:
 
 mkShell {
   # for bitte-cli
@@ -10,7 +29,7 @@ mkShell {
     trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
   '';
 
-  buildInputs = with pkgs; [
+  buildInputs = [
     bitte
     nixos-rebuild
     terraform-with-plugins

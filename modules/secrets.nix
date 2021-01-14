@@ -1,4 +1,4 @@
-{ lib, config, pkgs, deployerPkgs, ... }:
+{ lib, pkgs, config, deployerPkgs, ... }:
 let
   inherit (lib.types) str enum submodule attrsOf nullOr path;
   inherit (config.cluster) kms;
@@ -36,6 +36,11 @@ let
     options = {
       encryptedRoot = lib.mkOption { type = path; };
 
+      preGenerate = lib.mkOption {
+        type = attrsOf str;
+        default = { };
+      };
+
       generate = lib.mkOption {
         type = attrsOf str;
         default = { };
@@ -46,15 +51,42 @@ let
         default = { };
       };
 
+      preGenerateScript = lib.mkOption {
+        type = lib.types.path;
+        default =
+          let
+            scripts = lib.concatStringsSep "\n" (lib.mapAttrsToList
+              (name: value:
+                let
+                  script = deployerPkgs.writeShellScriptBin name ''
+                    ## ${name}
+
+                    set -euo pipefail
+
+                    ${value}
+                  '';
+                in "${script}/bin/${name}") config.secrets.preGenerate);
+          in deployerPkgs.writeShellScriptBin "pre-generate-secrets" ''
+            set -euo pipefail
+
+            export PATH="$PATH:${
+              lib.makeBinPath (with deployerPkgs; [ git ])
+            }"
+
+            mkdir -p secrets encrypted
+            ${scripts}
+            git add encrypted/
+          '';
+      };
+
       generateScript = lib.mkOption {
         type = lib.types.path;
         default =
           let
-            pkgs = deployerPkgs;
             scripts = lib.concatStringsSep "\n" (lib.mapAttrsToList
               (name: value:
                 let
-                  script = pkgs.writeShellScriptBin name ''
+                  script = deployerPkgs.writeShellScriptBin name ''
                     ## ${name}
 
                     set -euo pipefail
@@ -62,22 +94,22 @@ let
                     ${value}
                   '';
                 in "${script}/bin/${name}") config.secrets.generate);
-          in pkgs.writeShellScriptBin "generate-secrets" ''
+          in deployerPkgs.writeShellScriptBin "generate-secrets" ''
             set -euo pipefail
 
             export PATH="$PATH:${
-              lib.makeBinPath (with pkgs; [ flock git ])
+              lib.makeBinPath (with deployerPkgs; [ flock git ])
             }"
 
             mkdir -p secrets encrypted
 
             echo "aquiring secrets/generate.lock ..."
 
-            exec 100>secrets/generate.lock || exit 1
-            flock -n 100 || (
+            exec 100>secrets/generate.lock || exit
+            flock -n 100 || {
               echo "secrets/generate.lock exists, not generating secrets!"
               exit
-            )
+            }
             trap 'rm -f secrets/generate.lock' EXIT
 
             ${scripts}
