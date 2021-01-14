@@ -136,6 +136,23 @@
         "type": "github"
       }
     },
+    "nomad-source": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1610630386,
+        "narHash": "sha256-uMaAz62nZvkLhzgrzOCQwv8Kjd3AY7wtOuU47SfGCiQ=",
+        "owner": "manveru",
+        "repo": "nomad",
+        "rev": "841e2abe5a6c13a2c6978c7c786c855aeb9ce4e3",
+        "type": "github"
+      },
+      "original": {
+        "owner": "manveru",
+        "ref": "release-1.0.1",
+        "repo": "nomad",
+        "type": "github"
+      }
+    },
     "ops-lib": {
       "flake": false,
       "locked": {
@@ -162,6 +179,7 @@
         "inclusive": "inclusive",
         "nixpkgs": "nixpkgs_3",
         "nixpkgs-terraform": "nixpkgs-terraform",
+        "nomad-source": "nomad-source",
         "ops-lib": "ops-lib",
         "terranix": "terranix",
         "utils": "utils_3"

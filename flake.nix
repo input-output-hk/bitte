@@ -18,6 +18,10 @@
       url = "github:manveru/terranix/cleanup";
       flake = false;
     };
+    nomad-source = {
+      url = "github:manveru/nomad/release-1.0.1";
+      flake = false;
+    };
   };
 
   outputs = { self, crystal, nixpkgs, utils, bitte-cli, ... }:

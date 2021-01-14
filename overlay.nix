@@ -1,7 +1,7 @@
 { system, self }:
 let
   inherit (self.inputs)
-    nixpkgs nix ops-lib nixpkgs-terraform crystal bitte-cli inclusive;
+    nixpkgs nix ops-lib nixpkgs-terraform crystal bitte-cli inclusive nomad-source;
   inherit (builtins) fromJSON toJSON trace mapAttrs genList foldl';
   inherit (nixpkgs) lib;
 in final: prev: {
@@ -78,7 +78,7 @@ in final: prev: {
 
   envoy = prev.callPackage ./pkgs/envoy.nix { };
 
-  nomad = prev.callPackage ./pkgs/nomad.nix { };
+  nomad = prev.callPackage ./pkgs/nomad.nix { inherit nomad-source; };
 
   seaweedfs = prev.callPackage ./pkgs/seaweedfs.nix { };
 
