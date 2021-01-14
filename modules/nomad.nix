@@ -1138,6 +1138,8 @@ in {
         vault-bin
         jq
         nixFlakes
+        openssh
+        git
       ];
 
       environment = mkIf config.services.consul.enable {
