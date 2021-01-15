@@ -139,11 +139,11 @@
     "nomad-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1610708834,
-        "narHash": "sha256-n9FgGvypMdHydp8+gaiBe/ZZgCeFfk+samBxk49/cBs=",
+        "lastModified": 1610718899,
+        "narHash": "sha256-Zyyg8JOPqvIzYH0aQ6r5ymzPwI52UWbrT2HH6kq0vPg=",
         "owner": "manveru",
         "repo": "nomad",
-        "rev": "6e2c7342c8bc37810a0288976885e3cd9a0b654b",
+        "rev": "66eecf1e336e8ae8ff0e972f4bee98ca010648ee",
         "type": "github"
       },
       "original": {
