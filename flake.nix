@@ -19,7 +19,7 @@
       flake = false;
     };
     nomad-source = {
-      url = "github:manveru/nomad/release-1.0.1";
+      url = "github:manveru/nomad/release-1.0.2";
       flake = false;
     };
   };
