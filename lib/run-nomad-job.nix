@@ -1,5 +1,5 @@
 { name, lib, json, dockerImages, writeShellScriptBin, vault-bin, awscli
-, coreutils, jq, nomad, consul, nixFlakes, docker, curl, gnugrep, gitMinimal
+, coreutils, jq, nomad, consul, nixFlakes, curl, gnugrep, gitMinimal
 , skopeo }:
 let
   pushImage = imageId: image:
@@ -39,7 +39,6 @@ in writeShellScriptBin "nomad-run" ''
       curl
       gnugrep
       gitMinimal
-      docker
     ]
   }"
   echo "running job: ${json}"
@@ -100,8 +99,6 @@ in writeShellScriptBin "nomad-run" ''
 
   ${lib.optionalString ((builtins.length pushImages) > 0) ''
     dockerPassword="$(vault kv get -field value kv/nomad-cluster/docker-developer-password)"
-    domain="$(nix eval ".#clusters.$BITTE_CLUSTER.proto.config.cluster.domain" --raw)"
-    echo "$dockerPassword" | docker login "docker.$domain" -u developer --password-stdin
   ''}
 
   ${builtins.concatStringsSep "\n" pushImages}
