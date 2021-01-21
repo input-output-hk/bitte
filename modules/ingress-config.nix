@@ -190,7 +190,7 @@ in {
         StartLimitBurst = 10;
       };
 
-      path = with pkgs; [ consul consul-template vault-bin ];
+      path = with pkgs; [ glibc consul consul-template vault-bin ];
 
       environment = {
         CONSUL_HTTP_ADDR = "http://127.0.0.1:8500";

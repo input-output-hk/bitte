@@ -184,7 +184,7 @@ in {
         VAULT_SKIP_VERIFY = "true";
       };
 
-      path = with pkgs; [ vault-bin ];
+      path = with pkgs; [ glibc vault-bin ];
 
       serviceConfig = {
         Restart = "always";

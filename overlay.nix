@@ -4,6 +4,7 @@ let
   inherit (final) lib;
 in
 {
+  vault-bin = final.vault;
   ssm-agent = prev.callPackage ./pkgs/ssm-agent { };
 
   consul = prev.callPackage ./pkgs/consul { };

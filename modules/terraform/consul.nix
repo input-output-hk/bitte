@@ -7,7 +7,7 @@
 
     provider.consul = {
       address = "https://consul.${config.cluster.domain}";
-      datacenter = "eu-central-1";
+      datacenter = config.cluster.region;
     };
 
     resource.consul_intention = lib.listToAttrs

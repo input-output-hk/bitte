@@ -78,11 +78,11 @@ in {
 
     resource.aws_iam_group = {
       developers = {
-        name = "developers";
+        name = "${cluster.name}-developers";
         path = "/developers/";
       };
       admins = {
-        name = "admins";
+        name = "${cluster.name}-admins";
         path = "/admins/";
       };
     };

@@ -1,4 +1,4 @@
-{ name, lib, json, dockerImages, writeShellScriptBin, vault-bin, awscli
+{ name, skopeo, lib, json, dockerImages, writeShellScriptBin, vault-bin, awscli
 , coreutils, jq, nomad, consul, nixFlakes, docker, curl, gnugrep, gitMinimal }:
 let
   pushImage = imageId: image:
@@ -17,8 +17,11 @@ let
         storePath="$(nix-store -r ${
           builtins.unsafeDiscardStringContext image.drvPath
         })"
-        docker load -i "$storePath"
-        docker push ${image.imageName}:${image.imageTag}
+
+        skopeo --insecure-policy \
+               copy --dest-creds developer:$dockerPassword \
+               "tarball:$storePath" \
+               docker://${registry}/${image.imageName}:${image.imageTag}
       fi
     '';
   pushImages = lib.mapAttrsToList pushImage dockerImages;
@@ -36,6 +39,7 @@ in writeShellScriptBin "nomad-run" ''
       gnugrep
       gitMinimal
       docker
+      skopeo
     ]
   }"
   echo "running job: ${json}"
@@ -96,7 +100,7 @@ in writeShellScriptBin "nomad-run" ''
 
   ${lib.optionalString ((builtins.length pushImages) > 0) ''
     dockerPassword="$(vault kv get -field value kv/nomad-cluster/docker-developer-password)"
-    domain="$(nix eval ".#clusters.$BITTE_CLUSTER.proto.config.cluster.domain" --raw)"
+    domain="$(nix eval ".#clusters.x86_64-linux.$BITTE_CLUSTER.proto.config.cluster.domain" --raw)"
     echo "$dockerPassword" | docker login "docker.$domain" -u developer --password-stdin
   ''}
 
@@ -105,6 +109,7 @@ in writeShellScriptBin "nomad-run" ''
   echo "Submitting Job..."
   jq --arg token "$CONSUL_HTTP_TOKEN" '.Job.ConsulToken = $token' < ${json} \
   | curl -s -q \
+    --cacert ~/Downloads/fakelerootx1.pem \
     -X POST \
     -H "X-Nomad-Token: $NOMAD_TOKEN" \
     -H "X-Vault-Token: $(vault print token)" \

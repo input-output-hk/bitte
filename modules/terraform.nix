@@ -20,7 +20,11 @@ let
       nixosAmis."20.03";
   };
 
+  # NOTE To copy AMI to a new region use:
+  # aws ec2 copy-image --source-image-id ami-5731123e --source-region us-east-1 --region ap-northeast-1 --name "My server"
   autoscalingAMIs = {
+    ca-central-1 = "ami-0ea1fec03c760f7b5";
+    us-east-1 = "ami-02700dd542e3304cd";
     us-east-2 = "ami-0492aa69cf46f79c3";
     eu-central-1 = "ami-0839f2c610f876d2d";
     eu-west-1 = "ami-0f765805e4520b54d";
@@ -730,7 +734,8 @@ let
           # amazon-shell-init
           set -exuo pipefail
 
-          ${pkgs.zfs}/bin/zpool online -e tank nvme0n1p3
+          # TODO barf
+          ${(import pkgs.path { system = "x86_64-linux"; }).zfs}/bin/zpool online -e tank nvme0n1p3
 
           export CACHES="https://hydra.iohk.io https://cache.nixos.org ${cfg.s3Cache}"
           export CACHE_KEYS="hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= ${cfg.s3CachePubKey}"

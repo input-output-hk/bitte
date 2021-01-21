@@ -374,6 +374,7 @@ in {
       };
     };
 
+    systemd.services.vault.path = [ pkgs.glibc ];
     systemd.services.vault-consul-token =
       mkIf config.services.vault-consul-token.enable {
         after = [ "consul.service" ];

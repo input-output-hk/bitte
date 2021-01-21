@@ -1,6 +1,6 @@
-{ config, pkgs, ... }:
+{ config, pkgs, deployerPkgs, ... }:
 let
-  inherit (pkgs) writeShellScriptBin mkNomadJob;
+  inherit (deployerPkgs) writeShellScriptBin mkNomadJob;
   inherit (config) cluster;
   inherit (cluster) region domain;
 

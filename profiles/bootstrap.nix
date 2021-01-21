@@ -282,7 +282,7 @@ in {
         VAULT_ADDR = "https://127.0.0.1:8200/";
       };
 
-      path = with pkgs; [ consul vault-bin sops coreutils jq gnused curl ];
+      path = with pkgs; [ glibc consul vault-bin sops coreutils jq gnused curl ];
 
       script = ''
         set -exuo pipefail
@@ -296,7 +296,7 @@ in {
 
         echo "waiting for Vault to be responsive"
 
-        until vault status &> /dev/null; do
+        until vault status; do
           [[ $? -eq 2 ]] && break
           sleep 1
         done
