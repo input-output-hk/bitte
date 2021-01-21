@@ -74,7 +74,7 @@ let
     (map (x: x.Tasks))
     builtins.concatLists
     (map (y: if (builtins.trace (builtins.attrNames y) y).Driver == "docker" then {
-      name = builtins.unsafeDiscardStringContext y.Config.image;
+      name = builtins.unsafeDiscardStringContext y.Config.image.id;
       value = y.Config.image.image;
     } else null))
     (lib.filter (value: value != null))
