@@ -20,7 +20,7 @@ let
         })"
         ${skopeo}/bin/skopeo copy \
           "docker-archive://$storePath" \
-          "docker://${registry}/${repo}/${image.imageName}:${image.imageTag}" \
+          "docker://${registry}/${repo}:${image.imageTag}" \
           --dest-creds "developer:$dockerPassword"
       fi
     '';
