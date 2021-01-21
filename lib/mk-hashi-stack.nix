@@ -111,16 +111,16 @@ makeScope pkgs.newScope (scope:
 {
   inherit rootDir;
 
-  nomadJobs = recursiveCallPackage jobsDir pkgs.callPackage;
+  nomadJobs = recursiveCallPackage jobsDir callPackage;
 
   dockerImages =
     let
       images = recursiveCallPackage dockerDir prod-pkgs.callPackages;
     in mapAttrs imageAttrToCommands images;
 
-  push-docker-images = pkgs.callPackage push-docker-images { };
+  push-docker-images = callPackage push-docker-images { };
 
-  load-docker-images = pkgs.callPackage load-docker-images { };
+  load-docker-images = callPackage load-docker-images { };
 
   clusters = genAttrs [ "x86_64-linux" "x86_64-darwin" ] (system:
   mkClusters {
