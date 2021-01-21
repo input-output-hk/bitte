@@ -14,7 +14,7 @@
 let
   inherit (lib) mkClusters mkNixosConfigurations;
   inherit (self.inputs.nixpkgs.lib) genAttrs foldl' hasSuffix filterAttrs
-  forEach recursiveUpdate concatStringsSep mapAttrsToList mapAttrs;
+  forEach recursiveUpdate concatStringsSep mapAttrsToList mapAttrs makeScope;
   # extend package set with deployment specifc items
   prod-pkgs = import self.inputs.nixpkgs {
     overlays = [
@@ -106,7 +106,8 @@ let
          dockerImages)}
      '';
 in
-
+makeScope pkgs.newScope (scope:
+  with scope;
 {
   inherit rootDir;
 
@@ -128,4 +129,4 @@ in
     });
 
   nixosConfigurations = mkNixosConfigurations self.clusters.x86_64-darwin;
-}
+})
