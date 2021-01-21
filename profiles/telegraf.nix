@@ -37,7 +37,7 @@ in {
           urls = [ "http://127.0.0.1:3101/metrics" ]
             ++ optional config.services.loki.enable
             "http://127.0.0.1:3100/metrics";
-          metric_version = 2;
+          metric_version = 1;
         };
 
         cpu = {
