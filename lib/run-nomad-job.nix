@@ -22,6 +22,10 @@ let
                copy --dest-creds developer:$dockerPassword \
                "tarball:$storePath" \
                docker://${registry}/${image.imageName}:${image.imageTag}
+        skopeo --insecure-policy \
+               copy --dest-creds developer:$dockerPassword \
+               "tarball:$storePath" \
+               docker://${registry}/${image.imageName}:latest
       fi
     '';
   pushImages = lib.mapAttrsToList pushImage dockerImages;
