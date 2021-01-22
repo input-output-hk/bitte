@@ -734,7 +734,8 @@ let
           # amazon-shell-init
           set -exuo pipefail
 
-          /run/current-system/sw/bin/zpool online -e tank nvme0n1p3
+          export PATH=/root/.nix-profile/bin:/run/current-system/sw/bin:$PATH
+          zpool online -e tank nvme0n1p3
 
           export CACHES="https://hydra.iohk.io https://cache.nixos.org ${cfg.s3Cache}"
           export CACHE_KEYS="hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= ${cfg.s3CachePubKey}"
@@ -742,14 +743,13 @@ let
           aws s3 cp "s3://${cfg.s3Bucket}/infra/secrets/${cfg.name}/${cfg.kms}/source/source.tar.xz" source.tar.xz
           mkdir -p source
           tar xvf source.tar.xz -C source
-          nix profile install nixpkgs#git --experimental-features 'ca-references nix-command flakes' --option substituters "$CACHES" --option trusted-public-keys "$CACHE_KEYS"
-          export PATH=/root/.nix-profile/bin:$PATH
           nix build ./source#nixosConfigurations.${cfg.name}-${this.config.name}.config.system.build.toplevel --option substituters "$CACHES" --option trusted-public-keys "$CACHE_KEYS"
-          /run/current-system/sw/bin/nixos-rebuild --flake ./source#${cfg.name}-${this.config.name} boot --option substituters "$CACHES" --option trusted-public-keys "$CACHE_KEYS"
-          /run/current-system/sw/bin/shutdown -r now
+          nixos-rebuild --flake ./source#${cfg.name}-${this.config.name} boot --option substituters "$CACHES" --option trusted-public-keys "$CACHE_KEYS"
+          shutdown -r now
         '';
       };
 
+      #nix -L profile install nixpkgs#git --experimental-features 'ca-references nix-command flakes' --option substituters "$CACHES" --option trusted-public-keys "$CACHE_KEYS"
       minSize = mkOption {
         type = ints.unsigned;
         default = 0;
