@@ -21,7 +21,7 @@ let
         skopeo --insecure-policy \
                copy --dest-creds developer:$dockerPassword \
                "docker-archive:$storePath" \
-               docker://${registry}/${image.imageName}:${image.imageTag}
+               docker://${registry}/${repo}:${image.imageTag}
       fi
     '';
   pushImages = lib.mapAttrsToList pushImage dockerImages;
