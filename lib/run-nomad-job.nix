@@ -109,7 +109,7 @@ in writeShellScriptBin "nomad-run" ''
   echo "Submitting Job..."
   jq --arg token "$CONSUL_HTTP_TOKEN" '.Job.ConsulToken = $token' < ${json} \
   | curl -s -q \
-    --cacert ~/Downloads/fakelerootx1.pem \
+    --cacert ${../profiles/acme-staging-root.pem} \
     -X POST \
     -H "X-Nomad-Token: $NOMAD_TOKEN" \
     -H "X-Vault-Token: $(vault print token)" \

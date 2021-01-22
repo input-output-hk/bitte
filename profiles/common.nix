@@ -23,4 +23,5 @@
   # TODO: enable again
   networking.firewall.enable = false;
   time.timeZone = "UTC";
+  security.pki.certificateFiles = [ ./acme-staging-root.pem ];
 }

@@ -1,4 +1,4 @@
-{ ... }: {
+{ config, ... }: {
   virtualisation.docker = {
     enable = true;
     autoPrune = {
@@ -16,4 +16,7 @@
     address = "169.254.169.252";
     prefixLength = 30;
   }];
+
+  environment.etc."/docker/certs.d/docker.${config.cluster.domain}".source =
+    ./acme-staging-root.pem;
 }
