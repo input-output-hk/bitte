@@ -73,7 +73,7 @@ let
   dockerImages = lib.pipe evaluated.Job.TaskGroups [
     (map (x: x.Tasks))
     builtins.concatLists
-    (map (y: if (builtins.trace (builtins.attrNames y) y).Driver == "docker" then {
+    (map (y: if y.Driver == "docker" then {
       name = builtins.unsafeDiscardStringContext y.Config.image.id;
       value = y.Config.image.image;
     } else null))
