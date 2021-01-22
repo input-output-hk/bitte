@@ -47,10 +47,12 @@ let
 
   # "Expands" a docker image into a set which allows for docker commands
   # to be easily performed. E.g. ".#dockerImages.$Image.push
-   imageAttrToCommands = key: image: {
-     inherit image;
-
+  imageAttrToCommands = key: image: let
      id = "${image.imageName}:${image.imageTag}";
+  in {
+     inherit id image;
+
+     outPath = id;
 
      push = let
        parts = builtins.split "/" image.imageName;
