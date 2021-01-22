@@ -743,6 +743,7 @@ let
           mkdir -p source
           tar xvf source.tar.xz -C source
           nix profile install nixpkgs#git --experimental-features 'ca-references nix-command flakes'
+          export PATH=/root/.nix-profile/bin:$PATH
           nix build ./source#nixosConfigurations.${cfg.name}-${this.config.name}.config.system.build.toplevel --option substituters "$CACHES" --option trusted-public-keys "$CACHE_KEYS"
           /run/current-system/sw/bin/nixos-rebuild --flake ./source#${cfg.name}-${this.config.name} boot --option substituters "$CACHES" --option trusted-public-keys "$CACHE_KEYS"
           /run/current-system/sw/bin/shutdown -r now
