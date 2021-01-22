@@ -17,6 +17,6 @@
     prefixLength = 30;
   }];
 
-  environment.etc."/docker/certs.d/docker.${config.cluster.domain}".source =
+  environment.etc."/docker/certs.d/docker.${config.cluster.domain}/ca.crt".source =
     ./acme-staging-root.pem;
 }
