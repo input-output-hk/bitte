@@ -118,17 +118,19 @@
       }
     },
     "ops-lib": {
-      "flake": false,
       "locked": {
-        "lastModified": 1608174889,
-        "narHash": "sha256-3q2ncBD//scq9xy39AWqUw+hip44OEz4SWP93WkKJmY=",
+        "dir": "zfs",
+        "lastModified": 1608256030,
+        "narHash": "sha256-LgYuK7OsgTtMxuQF4xeFGQbjnAXhkNPXvA8Zr79FvWs=",
         "owner": "input-output-hk",
         "repo": "ops-lib",
-        "rev": "f5c44f7b38238a6cff47bc4c62c50212f045b630",
+        "rev": "07a9d53b7552a97cb088342930ecebaddfcb1330",
         "type": "github"
       },
       "original": {
+        "dir": "zfs",
         "owner": "input-output-hk",
+        "ref": "zfs-image",
         "repo": "ops-lib",
         "type": "github"
       }
