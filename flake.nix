@@ -5,7 +5,9 @@
     utils.url = "github:kreisys/flake-utils";
     cli.url = "github:input-output-hk/bitte-cli";
     nix.url = "github:NixOS/nix/4e9cec79bf5302108a031b3910f63baccf719eb5";
+
     ops-lib.url = "github:input-output-hk/ops-lib";
+    ops-lib.flake = false;
 
     # TODO use upstream/nixpkgs
     terranix = {
