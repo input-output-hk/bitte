@@ -23,11 +23,13 @@ let
   # NOTE To copy AMI to a new region use:
   # aws ec2 copy-image --source-image-id ami-5731123e --source-region us-east-1 --region ap-northeast-1 --name "My server"
   autoscalingAMIs = {
-    ca-central-1 = "ami-0ea1fec03c760f7b5";
-    us-east-1 = "ami-02700dd542e3304cd";
-    us-east-2 = "ami-0492aa69cf46f79c3";
-    eu-central-1 = "ami-0839f2c610f876d2d";
-    eu-west-1 = "ami-0f765805e4520b54d";
+    ca-central-1   = "ami-0f660ba3091ce9a02";
+    ap-northeast-1 = "ami-08ebac41f50fc5b2d";
+    ap-northeast-2 = "ami-093250b61636f2ba0";
+    eu-central-1   = "ami-06b56988398ad6f05";
+    eu-west-1      = "ami-03a5a71c4a6e23ef9";
+    us-east-1      = "ami-0f9283a5ae91dfd9a";
+    us-east-2      = "ami-0a631d63dd5b48b91";
   };
 
   vpcMap = pipe [
