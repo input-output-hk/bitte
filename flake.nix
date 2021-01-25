@@ -74,12 +74,13 @@
             systemd.services.amazon-shell-init.path = with pkgs; [ git sops ];
             nixpkgs.config.allowUnfreePredicate = x:
             builtins.elem (lib.getName x) [ "ec2-ami-tools" "ec2-api-tools" ];
+            zfs.bucket = "mantispw-amis";
             zfs.regions = [
-              "eu-west-1"
+              "ca-central-1"
               "ap-northeast-1"
               "ap-northeast-2"
-              "ca-central-1"
               "eu-central-1"
+              "eu-west-1"
               "us-east-1"
               "us-east-2"
             ];
