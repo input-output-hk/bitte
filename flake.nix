@@ -76,7 +76,7 @@
               config.allowUnfreePredicate = x:
               builtins.elem (lib.getName x) [ "ec2-ami-tools" "ec2-api-tools" ];
 
-              inherit (self) overlays;
+              overlays = [ self.overlay ];
             };
 
             zfs.regions = [
