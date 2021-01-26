@@ -79,6 +79,7 @@
               overlays = [ self.overlay ];
             };
 
+            zfs.bucket = "mantispw-amis";
             zfs.regions = [
               "ca-central-1"
               "ap-northeast-1"
