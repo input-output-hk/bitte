@@ -69,7 +69,7 @@
             ];
             nix.package = pkgs.nixFlakes;
             nix.extraOptions = ''
-              experimental-features = nix-command flakes
+              experimental-features = nix-command flakes ca-references
             '';
             systemd.services.amazon-shell-init.path = with pkgs; [ git sops ];
             nixpkgs = {

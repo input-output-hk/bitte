@@ -69,10 +69,14 @@ let
     zfs set xattr=off ${poolName}/nix
     zfs set atime=off ${poolName}/nix
     echo copying toplevel
-    time nix copy --no-check-sigs --to 'local?root=/mnt/' ${config.system.build.toplevel}
+    time nix \
+    --experimental-features nix-command \
+    copy --no-check-sigs --to 'local?root=/mnt/' ${config.system.build.toplevel}
     ${lib.optionalString config.zfs.image.shipChannels ''
       echo copying channels
-      time nix copy --no-check-sigs --to 'local?root=/mnt/' ${channelSources}
+      time nix \
+      --experimental-features nix-command \
+      copy --no-check-sigs --to 'local?root=/mnt/' ${channelSources}
     ''}
 
     echo installing bootloader
