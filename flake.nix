@@ -72,9 +72,13 @@
               experimental-features = nix-command flakes
             '';
             systemd.services.amazon-shell-init.path = with pkgs; [ git sops ];
-            nixpkgs.config.allowUnfreePredicate = x:
-            builtins.elem (lib.getName x) [ "ec2-ami-tools" "ec2-api-tools" ];
-            zfs.bucket = "mantispw-amis";
+            nixpkgs = {
+              config.allowUnfreePredicate = x:
+              builtins.elem (lib.getName x) [ "ec2-ami-tools" "ec2-api-tools" ];
+
+              inherit (self) overlays;
+            };
+
             zfs.regions = [
               "ca-central-1"
               "ap-northeast-1"
