@@ -22,6 +22,10 @@
       url = "github:manveru/nomad/release-1.0.2";
       flake = false;
     };
+    levant-source = {
+      url = "github:hashicorp/levant?rev=05c6c36fdf24237af32a191d2b14756dbb2a4f24";
+      flake = false;
+    };
   };
 
   outputs = { self, crystal, nixpkgs, utils, bitte-cli, ... }:
