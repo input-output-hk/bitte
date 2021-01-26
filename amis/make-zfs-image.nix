@@ -6,7 +6,7 @@ let
   name = "zfs-image";
   poolName = config.zfs.poolName;
   bootSize = 1024;
-  diskSize = 1024 * 2;
+  diskSize = 1024 * 4;
   closureInfo = pkgs.closureInfo { rootPaths = [ config.system.build.toplevel channelSources ]; };
   preVM = ''
     PATH=$PATH:${pkgs.qemu_kvm}/bin
