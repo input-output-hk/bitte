@@ -10,7 +10,7 @@ writeScript "upload-amis" ''
 
   set -o pipefail
 
-  version=${lib.version}-6
+  version=${lib.version}-7
   major=${version:0:5}
   echo "NixOS version is $version ($major)"
 
