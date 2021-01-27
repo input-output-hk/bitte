@@ -13,6 +13,16 @@ in {
         interval = "10s";
         flush_interval = "10s";
         omit_hostname = false;
+
+        ## Telegraf will send metrics to outputs in batches of at most
+        ## metric_batch_size metrics.
+        ## This controls the size of writes that Telegraf sends to output plugins.
+        metric_batch_size = 5000;
+
+        ## Maximum number of unwritten metrics per output.  Increasing this value
+        ## allows for longer periods of output downtime without dropping metrics at the
+        ## cost of higher maximum memory usage.
+        metric_buffer_limit = 50000;
       };
 
       global_tags = { datacenter = region; };

@@ -1,5 +1,6 @@
-{ name, skopeo, lib, json, dockerImages, writeShellScriptBin, vault-bin, awscli
-, coreutils, jq, nomad, consul, nixFlakes, docker, curl, gnugrep, gitMinimal }:
+{ name, lib, json, dockerImages, writeShellScriptBin, vault-bin, awscli
+, coreutils, jq, nomad, consul, nixFlakes, curl, gnugrep, gitMinimal
+, skopeo }:
 let
   pushImage = imageId: image:
     let
@@ -38,7 +39,6 @@ in writeShellScriptBin "nomad-run" ''
       curl
       gnugrep
       gitMinimal
-      docker
       skopeo
     ]
   }"

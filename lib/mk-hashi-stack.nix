@@ -107,6 +107,36 @@ let
        (mapAttrsToList (key: value: "source ${value.load}/bin/load")
          dockerImages)}
      '';
+
+  buildConsulTemplates = { nomadJobs, writeText, linkFarm }:
+    let
+      sources = lib.pipe nomadJobs [
+        (lib.filterAttrs (n: v: v ? evaluated))
+        (lib.mapAttrsToList (n: v: {
+          path = [ n v.evaluated.Job.Namespace ];
+          taskGroups = v.evaluated.Job.TaskGroups;
+        }))
+        (map (e:
+          map (tg:
+            map (t:
+              if t.Templates != null then
+                map (tpl: {
+                  name = lib.concatStringsSep "/"
+                    (e.path ++ [ tg.Name t.Name tpl.DestPath ]);
+                  tmpl = tpl.EmbeddedTmpl;
+                }) t.Templates
+              else
+                null) tg.Tasks) e.taskGroups))
+        builtins.concatLists
+        builtins.concatLists
+        (lib.filter (e: e != null))
+        builtins.concatLists
+        (map (t: {
+          name = t.name;
+          path = writeText t.name t.tmpl;
+        }))
+      ];
+    in linkFarm "consul-templates" sources;
 in
 makeScope pkgs.newScope (scope:
   with scope;
@@ -123,6 +153,8 @@ makeScope pkgs.newScope (scope:
   push-docker-images = callPackage push-docker-images { };
 
   load-docker-images = callPackage load-docker-images { };
+
+  consulTemplates = callPackage buildConsulTemplates { };
 
   clusters = genAttrs [ "x86_64-linux" "x86_64-darwin" ] (system:
   mkClusters {
