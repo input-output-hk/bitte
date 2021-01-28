@@ -2,7 +2,7 @@
 
 buildGoPackage rec {
   pname = "nomad";
-  version = "1.0.1";
+  version = "1.0.2";
   rev = "v${version}";
 
   goPackagePath = "github.com/hashicorp/nomad";
