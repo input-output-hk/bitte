@@ -7,11 +7,11 @@
         "utils": "utils_2"
       },
       "locked": {
-        "lastModified": 1612350696,
-        "narHash": "sha256-QS7tjDGnjvNCXPDN95XqHDFEAtcPe1POCz97zyYJCg4=",
+        "lastModified": 1612384430,
+        "narHash": "sha256-IZ+jbPfYTWHbzKYvHtWXVqc+BlBY1i4kGt4LmKJ8sMc=",
         "owner": "input-output-hk",
         "repo": "bitte-cli",
-        "rev": "1a5fb1ceb7f6bce90cf251bfcb43c2d08288750e",
+        "rev": "a1802874e8ba12fba156b6466cb5acc83b138598",
         "type": "github"
       },
       "original": {
@@ -114,8 +114,10 @@
         "type": "github"
       },
       "original": {
-        "id": "nixpkgs",
-        "type": "indirect"
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
       }
     },
     "nixpkgs_3": {
