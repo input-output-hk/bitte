@@ -14,18 +14,8 @@ in final: prev: {
     };
   in nixos.config.system.build.nixos-rebuild;
 
-  nixFlakes = prev.nixFlakes.overrideAttrs ({ patches ? [ ], ... }: {
-    patches = [
-      patches
-      (prev.fetchpatch {
-        url =
-          "https://github.com/cleverca22/nix/commit/39c2f9fd1c2d2e25ed10b6c3919a01022297dc34.patch";
-        sha256 = "sha256-6vwVTMC1eZnJqB6FGv3vsS2AZhz52j0exLeS2WsT6Y0=";
-      })
-    ];
-  });
-
   # nix = prev.nixFlakes;
+  nixFlakes = self.inputs.nix.packages.${system}.nix;
 
   vault-bin = prev.callPackage ./pkgs/vault-bin.nix { };
 
