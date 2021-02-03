@@ -9,7 +9,7 @@
     inclusive.url = "github:input-output-hk/nix-inclusive";
     utils.url = "github:numtide/flake-utils";
     bitte-cli.url = "github:input-output-hk/bitte-cli";
-    nix.url = "github:NixOS/nix";
+    nix.url = "github:NixOS/nix?rev=b19aec7eeb8353be6c59b2967a511a5072612d99";
     # bitte-cli.url = "/home/manveru/github/input-output-hk/bitte-cli";
     ops-lib = {
       url = "github:input-output-hk/ops-lib";
