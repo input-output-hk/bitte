@@ -4,15 +4,14 @@
       "inputs": {
         "crystal": "crystal",
         "nixpkgs": "nixpkgs_2",
-        "nixpkgs/nixos-rebuild-no-systemctl": "nixpkgs/nixos-rebuild-no-systemctl",
         "utils": "utils_2"
       },
       "locked": {
-        "lastModified": 1611953094,
-        "narHash": "sha256-oH3Vb8ZN+ROCwK9vCno5sy2vWjkI/u6mgldDEbcwgMw=",
+        "lastModified": 1612350696,
+        "narHash": "sha256-QS7tjDGnjvNCXPDN95XqHDFEAtcPe1POCz97zyYJCg4=",
         "owner": "input-output-hk",
         "repo": "bitte-cli",
-        "rev": "b23d4a395e582a043f6e527558abac1a42e20e25",
+        "rev": "1a5fb1ceb7f6bce90cf251bfcb43c2d08288750e",
         "type": "github"
       },
       "original": {
@@ -105,29 +104,13 @@
         "type": "github"
       }
     },
-    "nixpkgs/nixos-rebuild-no-systemctl": {
-      "locked": {
-        "lastModified": 1603912078,
-        "narHash": "sha256-T6zhWX0PG6J+yWXGjG3D7khiTeHzLu0pQ2MTHGwRz2A=",
-        "owner": "kreisys",
-        "repo": "nixpkgs",
-        "rev": "b02d5ae5a23b0532023453e5c0e861fd507b726c",
-        "type": "github"
-      },
-      "original": {
-        "owner": "kreisys",
-        "ref": "nixos-rebuild-no-systemctl",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1608147201,
-        "narHash": "sha256-Th+tiy5RH2hiXBvS++3wtuyj9h7JZy/kiY2cvgBdFxY=",
+        "lastModified": 1612282043,
+        "narHash": "sha256-MzoN8nI1eydYHuWBAXBcw9Na0XndZHa/VjoxZRWSX68=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "ca2723567e629e9f1542c34bf20ba20f7c6d4dc9",
+        "rev": "fab6fcdceb2560a4ab943830a2b1632458c7a6ff",
         "type": "github"
       },
       "original": {
