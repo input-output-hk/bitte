@@ -31,15 +31,14 @@
 
   outputs = { self, crystal, nixpkgs, utils, bitte-cli, ... }:
     (utils.lib.eachSystem [ "x86_64-linux" "x86_64-darwin" ] (system: rec {
-      overlay = import ./overlay.nix { inherit system self; };
+      overlay = nixpkgs.lib.composeExtensions
+        bitte-cli.overlay
+        (import ./overlay.nix { inherit system self; });
 
       legacyPackages = import nixpkgs {
         inherit system;
         config.allowUnfree = true; # for ssm-session-manager-plugin
-        overlays = [
-          bitte-cli.overlay
-          overlay
-        ];
+        overlays = [ overlay ];
       };
 
       inherit (legacyPackages) devShell nixosModules;
