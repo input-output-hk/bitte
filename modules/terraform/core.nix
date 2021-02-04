@@ -268,10 +268,10 @@ in {
           lib.forEach instanceUids (uid: var "aws_eip.${uid}.public_ip");
       }));
 
-    provider.acme = {
-      server_url = "https://acme-staging-v02.api.letsencrypt.org/directory";
-      # server_url = "https://acme-v02.api.letsencrypt.org/directory";
-    };
+    provider.acme.server_url = if config.cluster.letsEncrypt.useStaging then
+        "https://acme-staging-v02.api.letsencrypt.org/directory"
+      else
+        "https://acme-v02.api.letsencrypt.org/directory";
 
     resource.tls_private_key.private_key = { algorithm = "RSA"; };
 

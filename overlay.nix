@@ -77,6 +77,9 @@ in
     CONSUL_HTTP_ADDR = "https://consul.${domain}";
     NIX_USER_CONF_FILES = with lib; concatStringsSep ":"
     ((toList o.NIX_USER_CONF_FILES) ++ (optional (nixConf != null) nixConf));
+  } // lib.optionalAttrs (cfg.letsEncrypt.useStaging) {
+    CONSUL_CACERT = "${./profiles/acme-staging-root.pem}";
+    VAULT_CACERT = "${./profiles/acme-staging-root.pem}";
   });
 
   consulRegister = prev.callPackage ./pkgs/consul-register.nix { };

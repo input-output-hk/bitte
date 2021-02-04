@@ -104,12 +104,12 @@ in writeShellScriptBin "nomad-run" ''
     echo "$dockerPassword" | docker login "docker.$domain" -u developer --password-stdin
   ''}
 
+  # --cacert ${../profiles/acme-staging-root.pem} \
   ${builtins.concatStringsSep "\n" pushImages}
 
   echo "Submitting Job..."
   jq --arg token "$CONSUL_HTTP_TOKEN" '.Job.ConsulToken = $token' < ${json} \
   | curl -s -q \
-    --cacert ${../profiles/acme-staging-root.pem} \
     -X POST \
     -H "X-Nomad-Token: $NOMAD_TOKEN" \
     -H "X-Vault-Token: $(vault print token)" \

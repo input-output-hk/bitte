@@ -23,9 +23,11 @@
     prefixLength = 30;
   }];
 
-  # TODO make this conditional of an acme-staging switch
-  environment.etc."/docker/certs.d/docker.${config.cluster.domain}/ca.crt".source =
-    ./acme-staging-root.pem;
+  # TODO Is this necessary if we set it up system wide?
+  environment.etc = lib.mkIf config.cluster.letsEncrypt.useStaging {
+    "/docker/certs.d/docker.${config.cluster.domain}/ca.crt".source =
+      ./acme-staging-root.pem;
+  };
 
   # Allow docker containers to issue DNS queries to the local host, which runs dnsmasq,
   # which allows them to resolve consul service domains as described in https://www.consul.io/docs/discovery/dns

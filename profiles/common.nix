@@ -1,4 +1,6 @@
-{ config, lib, ... }: {
+{ config, lib, ... }:
+let cfg = config.cluster; in
+{
   imports = [ ./nix.nix ./ssh.nix ./slim.nix ./promtail.nix ];
 
   services = {
@@ -7,7 +9,7 @@
     consul.enable = true;
   };
 
-  environment.variables = { AWS_DEFAULT_REGION = config.cluster.region; };
+  environment.variables = { AWS_DEFAULT_REGION = cfg.region; };
 
   # Don't `nixos-rebuild switch` after the initial deploy.
   systemd.services.amazon-init.enable = false;
@@ -23,5 +25,6 @@
   # TODO: enable again
   networking.firewall.enable = false;
   time.timeZone = "UTC";
-  security.pki.certificateFiles = [ ./acme-staging-root.pem ];
+  security.pki.certificateFiles = lib.mkIf cfg.letsEncrypt.useStaging
+    [ ./acme-staging-root.pem ];
 }

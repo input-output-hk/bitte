@@ -62,6 +62,8 @@ let
 
       secrets = mkOption { type = path; };
 
+      letsEncrypt.useStaging = mkOption { type = bool; default = true; };
+
       terraformOrganization = mkOption { type = str; };
 
       instances = mkOption {
