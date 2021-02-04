@@ -36,7 +36,10 @@
       legacyPackages = import nixpkgs {
         inherit system;
         config.allowUnfree = true; # for ssm-session-manager-plugin
-        overlays = [ overlay ];
+        overlays = [
+          bitte-cli.overlay
+          overlay
+        ];
       };
 
       inherit (legacyPackages) devShell nixosModules;

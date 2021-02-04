@@ -49,8 +49,6 @@ in final: prev: {
   snakeCase = prev.callPackage ./lib/snake-case.nix { };
 
   inherit (inclusive.lib) inclusive;
-  inherit (crystal.packages.${system}) crystal;
-  inherit (bitte-cli.packages.${system}) bitte;
 
   pp = v: trace (toJSON v) v;
 
