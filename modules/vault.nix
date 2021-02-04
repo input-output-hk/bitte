@@ -245,7 +245,7 @@ in {
           awskms = mkOption {
             type = submodule {
               options = {
-                kmsKeyId = mkOption { type = str; };
+                # kmsKeyId = mkOption { type = str; };
                 region = mkOption { type = str; };
               };
             };
@@ -345,6 +345,7 @@ in {
           chown --reference . --recursive .
         '';
       in {
+        EnvironmentFile = "/run/keys/vault-kms";
         ExecStartPre = "!${preScript}/bin/vault-start-pre";
         ExecStart =
           "@${pkgs.vault-bin}/bin/vault vault server -config /etc/${cfg.configDir}";

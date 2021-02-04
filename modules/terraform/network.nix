@@ -44,6 +44,15 @@ in {
       workspaces = [{ prefix = "${config.cluster.name}_"; }];
     };
 
+    output.cluster = {
+      value = rec {
+        kms = var "aws_kms_key.key.arn";
+        s3_bucket = var "aws_s3_bucket.bucket.bucket";
+        s3_cache =
+          "s3://${s3_bucket}/infra/binary-cache?region=${config.cluster.region}";
+      };
+    };
+
     provider.aws = [{ region = config.cluster.region; }] ++ (lib.forEach regions
       (region: {
         inherit region;
@@ -52,6 +61,18 @@ in {
 
     data.aws_caller_identity.core = {
       provider = awsProviderFor config.cluster.region;
+    };
+
+    resource.aws_s3_bucket.bucket = {
+      bucket = "iohk-mantispw-bitte";
+      acl = "private";
+      force_destroy = false;
+    };
+
+    resource.aws_kms_key.key = {
+      # NOTE I only put this here because it looks like terranix
+      # does not render resources with an empty attrset.
+      description = "KMS Key";
     };
 
     resource.aws_vpc = mapVpcs (vpc:

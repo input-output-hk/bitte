@@ -1,6 +1,6 @@
 { lib, pkgs, deployerPkgs, config, nodeName, ... }:
 let
-  inherit (config.cluster) domain region instances kms;
+  inherit (config.cluster) domain region instances;
   acme-full = "/etc/ssl/certs/${config.cluster.domain}-full.pem";
 in {
   imports = [
@@ -118,12 +118,12 @@ in {
     };
   };
 
-  secrets.preGenerate.grafana-password = ''
+  secrets.generate.grafana-password = ''
     export PATH="${lib.makeBinPath (with deployerPkgs; [ coreutils sops xkcdpass ])}"
 
     if [ ! -s encrypted/grafana-password.json ]; then
       xkcdpass \
-      | sops --encrypt --kms '${kms}' /dev/stdin \
+      | sops --encrypt --kms $kms /dev/stdin \
       > encrypted/grafana-password.json
     fi
   '';

@@ -8,7 +8,7 @@ in {
   imports = [ ./bootstrap.nix ];
 
   services = {
-    s3-upload.enable = true;
+    # s3-upload.enable = true;
     consul-policies.enable = true;
     nomad-acl.enable = true;
     vault-acl.enable = true;

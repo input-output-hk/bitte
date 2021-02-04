@@ -8,8 +8,6 @@ let
     oneOf list package unspecified;
   inherit (terralib) var id regions awsProviderFor;
 
-  kms2region = kms: builtins.elemAt (lib.splitString ":" kms) 3;
-
   merge = lib.foldl' lib.recursiveUpdate { };
 
   amis = let
@@ -31,6 +29,9 @@ let
     us-east-1 = "ami-04aa3f7c3c9ab4fc4";
     us-east-2 = "ami-0733fa3cb9e73b254";
   };
+
+  s3Cache  = var "data.terraform_remote_state.network.outputs.cluster.s3_cache";
+  s3Bucket = var "data.terraform_remote_state.network.outputs.cluster.s3_bucket";
 
   vpcMap = pipe [
     "ap-northeast-1"
@@ -101,16 +102,6 @@ let
         default = { };
       };
 
-      kms = mkOption { type = str; };
-
-      s3Bucket = mkOption { type = str; };
-
-      s3Cache = mkOption {
-        type = str;
-        default =
-          "s3://${cfg.s3Bucket}/infra/binary-cache?region=${cfg.region}";
-      };
-
       s3CachePubKey = mkOption { type = str; };
 
       adminNames = mkOption {
@@ -135,7 +126,6 @@ let
 
       region = mkOption {
         type = str;
-        default = kms2region cfg.kms;
       };
 
       vpc = mkOption {
@@ -536,7 +526,7 @@ let
               ''';
               binaryCaches = [
                 "https://hydra.iohk.io"
-                "${cfg.s3Cache}"
+                "${s3Cache}"
               ];
               binaryCachePublicKeys = [
                 "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
@@ -562,7 +552,7 @@ let
             "--cluster"
             cfg.name
             "--cache"
-            cfg.s3Cache
+            s3Cache
             "--ip"
             ip
             "--flake"
@@ -739,10 +729,10 @@ let
           export PATH=/root/.nix-profile/bin:/run/current-system/sw/bin:$PATH
           zpool online -e tank nvme0n1p3
 
-          export CACHES="https://hydra.iohk.io https://cache.nixos.org ${cfg.s3Cache}"
+          export CACHES="https://hydra.iohk.io https://cache.nixos.org ${s3Cache}"
           export CACHE_KEYS="hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= ${cfg.s3CachePubKey}"
           pushd /run/keys
-          aws s3 cp "s3://${cfg.s3Bucket}/infra/secrets/${cfg.name}/${cfg.kms}/source/source.tar.xz" source.tar.xz
+          aws s3 cp "s3://${s3Bucket}/infra/secrets/${cfg.name}/${cfg.kms}/source/source.tar.xz" source.tar.xz
           mkdir -p source
           git config --global init.defaultBranch master
           tar xvf source.tar.xz -C source

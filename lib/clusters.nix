@@ -31,9 +31,9 @@ rec {
     let
       proto = mkProto self deployerPkgs file;
 
-      bitte-secrets = deployerPkgs.callPackage ../pkgs/bitte-secrets.nix {
-        inherit (proto.config) cluster;
-      };
+      # bitte-secrets = deployerPkgs.callPackage ../pkgs/bitte-secrets.nix {
+      #   inherit (proto.config) cluster;
+      # };
 
       mkNode = name: instance: mkSystem self deployerPkgs name
         ([{ networking.hostName = mkForce name; } file] ++ instance.modules);
@@ -41,7 +41,10 @@ rec {
       mkGroup = name: instance: mkSystem self deployerPkgs name ([ file ] ++ instance.modules);
     in
     rec {
-      inherit proto bitte-secrets;
+      inherit
+      proto
+      # bitte-secrets
+      ;
 
       tf = proto.config.tf;
 
@@ -59,7 +62,10 @@ rec {
       };
 
       mkJob = import ./mk-job.nix proto;
-    } // bitte-secrets;
+    }
+    # //
+    # bitte-secrets
+    ;
 
   mkSystem = self: deployerPkgs: nodeName: modules:
     nixosSystem {

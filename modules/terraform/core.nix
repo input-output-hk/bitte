@@ -8,6 +8,9 @@ let
   mapVpcsToList = deployerPkgs.terralib.mapVpcsToList config.cluster;
 
   merge = lib.foldl' lib.recursiveUpdate { };
+
+  kms    = var "data.terraform_remote_state.network.outputs.cluster.kms";
+  bucket = var "data.terraform_remote_state.network.outputs.cluster.s3_bucket";
 in {
   tf.core.configuration = {
     terraform.backend.remote = {
@@ -18,12 +21,9 @@ in {
     output.cluster = {
       value = {
         flake = toString config.cluster.flakePath;
-        kms = config.cluster.kms;
         name = config.cluster.name;
         nix = deployerPkgs.nixFlakes;
         region = config.cluster.region;
-        s3_bucket = config.cluster.s3Bucket;
-        s3_cache = config.cluster.s3Cache;
 
         roles = lib.flip lib.mapAttrs config.cluster.iam.roles
           (name: role: { arn = var "aws_iam_role.${role.uid}.arn"; });
@@ -50,6 +50,23 @@ in {
           inherit region;
           alias = awsProviderNameFor region;
         }));
+    };
+
+    data.terraform_remote_state.network = {
+      backend = "remote";
+      workspace = "network";
+      config.organization = config.cluster.terraformOrganization;
+      config.workspaces.prefix = "${config.cluster.name}_";
+    };
+
+    resource.aws_s3_bucket_object.flake = rec {
+      inherit bucket;
+      key = "infra/secrets/${config.cluster.name}/${kms}/source/source.tar.xz";
+      source = pkgs.runCommand "source.tar.xz" {
+        src = config.cluster.flakePath;
+        buildInputs = [ pkgs.gnutar ];
+      } "tar cvf $out -C ${config.cluster.flakePath} .";
+      etag   = ''''${md5(file("${source}"))}'';
     };
 
     resource.tls_private_key.${config.cluster.name} =
@@ -311,6 +328,18 @@ in {
             }
             {
               file = {
+                content = kms;
+                destination = "/run/keys/kms";
+              };
+            }
+            {
+              file = {
+                content = "VAULT_AWSKMS_SEAL_KEY_ID=${kms}";
+                destination = "/run/keys/vault-kms";
+              };
+            }
+            {
+              file = {
                 content = var ''
                   join("\n", [
                     acme_certificate.certificate.certificate_pem,
@@ -333,13 +362,16 @@ in {
           };
 
           provisioner = [{
-              local-exec = {
-                command = "${
-                    self.nixosConfigurations."${config.cluster.name}-${name}".config.secrets.generateScript
-                  }/bin/generate-secrets";
+            local-exec = {
+              command = "${
+                self.nixosConfigurations."${config.cluster.name}-${name}".config.secrets.generateScript
+              }/bin/generate-secrets";
 
-                environment = { IP = var "aws_instance.${name}.public_ip"; };
+              environment = {
+                IP = var "aws_instance.${name}.public_ip";
+                inherit kms;
               };
+            };
             }
             {
               local-exec = {

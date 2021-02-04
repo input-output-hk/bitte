@@ -8,14 +8,14 @@ let
   inherit (pkgs.terralib) sops2kms sops2region cidrsOf;
   inherit (lib) splitString forEach unique flatten;
   inherit (config) cluster;
-  inherit (cluster) s3Bucket kms;
 
   mapVpcs = pkgs.terralib.mapVpcs config.cluster;
   mapVpcsToList = pkgs.terralib.mapVpcsToList config.cluster;
 
   merge = lib.foldl' lib.recursiveUpdate { };
 
-  bucketArn = "arn:aws:s3:::${s3Bucket}";
+  bucketArn = "arn:aws:s3:::\${data.terraform_remote_state.network.outputs.cluster.s3_bucket}";
+  kms = var "data.terraform_remote_state.network.outputs.cluster.kms";
 in {
   tf.iam.configuration = {
     terraform.backend.remote = {
@@ -31,6 +31,13 @@ in {
         }));
 
       vault = { };
+    };
+
+    data.terraform_remote_state.network = {
+      backend = "remote";
+      workspace = "network";
+      config.organization = config.cluster.terraformOrganization;
+      config.workspaces.prefix = "${config.cluster.name}_";
     };
 
     resource.vault_github_auth_backend.employee = {

@@ -1,6 +1,5 @@
 { lib, pkgs, deployerPkgs, config, ... }:
-let kms = config.cluster.kms;
-in {
+{
   systemd.services.docker-registry.serviceConfig.Environment = [
     "REGISTRY_AUTH=htpasswd"
     "REGISTRY_AUTH_HTPASSWD_REALM=docker-registry"
@@ -33,12 +32,12 @@ in {
     redis.enable = true;
   };
 
-  secrets.preGenerate.redis-password = ''
+  secrets.generate.redis-password = ''
     export PATH="${lib.makeBinPath (with deployerPkgs; [ coreutils sops xkcdpass ])}"
 
     if [ ! -s encrypted/redis-password.json ]; then
       xkcdpass \
-      | sops --encrypt --kms '${kms}' /dev/stdin \
+      | sops --encrypt --kms $kms /dev/stdin \
       > encrypted/redis-password.json
     fi
   '';
@@ -50,7 +49,7 @@ in {
     outputType = "binary";
   };
 
-  secrets.preGenerate.docker-passwords = ''
+  secrets.generate.docker-passwords = ''
     export PATH="${
       lib.makeBinPath (with deployerPkgs; [ coreutils sops jq pwgen apacheHttpd ])
     }"
@@ -62,7 +61,7 @@ in {
       echo '{}' \
         | jq --arg password "$password" '.password = $password' \
         | jq --arg hashed "$hashed" '.hashed = $hashed' \
-        | sops --encrypt --input-type json --output-type json --kms '${kms}' /dev/stdin \
+        | sops --encrypt --input-type json --output-type json --kms $kms /dev/stdin \
         > encrypted/docker-passwords.new.json
       mv encrypted/docker-passwords.new.json encrypted/docker-passwords.json
     fi

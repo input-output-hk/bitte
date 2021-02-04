@@ -1,7 +1,7 @@
 { lib, pkgs, config, ... }:
 let
   inherit (lib) mapAttrsToList mkIf;
-  inherit (config.cluster) region instances kms;
+  inherit (config.cluster) region instances;
   cfg = config.services.vault;
 
   full = "/etc/ssl/certs/full.pem";
@@ -20,7 +20,7 @@ in {
       logLevel = "trace";
 
       seal.awskms = {
-        kmsKeyId = kms;
+        # kmsKeyId = ;
         inherit region;
       };
 

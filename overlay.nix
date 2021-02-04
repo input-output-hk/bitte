@@ -86,10 +86,10 @@ in
   envoy = prev.callPackage ./pkgs/envoy.nix { };
 
   nomad =
-    prev.callPackage ./pkgs/nomad.nix { inherit (self.inputs) nomad-source; };
+    prev.callPackage ./pkgs/nomad.nix {};
 
   levant =
-    prev.callPackage ./pkgs/levant.nix { inherit (self.inputs) levant-source; };
+    prev.callPackage ./pkgs/levant.nix {};
 
   seaweedfs = prev.callPackage ./pkgs/seaweedfs.nix { };
 
@@ -114,37 +114,6 @@ in
   mkNomadJob = final.callPackage ./lib/mk-nomad-job.nix { };
 
   systemdSandbox = final.callPackage ./lib/systemd-sandbox.nix { };
-
-  zfsAmi = {
-    # attrs of interest:
-    # * config.system.build.zfsImage
-    # * config.system.build.uploadAmi
-    zfs-ami = import "${nixpkgs}/nixos" {
-      system = "x86_64-linux";
-      configuration = { pkgs, lib, ... }: {
-        imports = [
-          ops-lib.nixosModules.make-zfs-image
-          ops-lib.nixosModules.zfs-runtime
-          "${nixpkgs}/nixos/modules/profiles/headless.nix"
-          "${nixpkgs}/nixos/modules/virtualisation/ec2-data.nix"
-        ];
-        nix.package = final.nixFlakes;
-        nix.extraOptions = ''
-          experimental-features = nix-command flakes
-        '';
-        systemd.services.amazon-shell-init.path = [ final.sops ];
-        nixpkgs.config.allowUnfreePredicate = x:
-          builtins.elem (lib.getName x) [ "ec2-ami-tools" "ec2-api-tools" ];
-        zfs.regions = [
-          "eu-west-1"
-          "ap-northeast-1"
-          "ap-northeast-2"
-          "eu-central-1"
-          "us-east-2"
-        ];
-      };
-    };
-  };
 
   scaler-guard = let deps = with final; [ awscli bash curl jq nomad ];
   in prev.runCommandLocal "scaler-guard" {

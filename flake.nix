@@ -37,6 +37,12 @@
       (final: prev: {
         inherit (nix.packages.${final.system}) nix;
         nixFlakes = final.nix;
+        nomad = prev.nomad.overrideAttrs (_: {
+          src = self.inputs.nomad-source;
+        });
+        levant = prev.levant.overrideAttrs (_: {
+          src = self.inputs.levant-source;
+        });
         lib = nixpkgs.lib.extend (final: prev: {
           terranix = import (terranix + "/core");
         });

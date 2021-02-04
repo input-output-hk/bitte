@@ -1,4 +1,4 @@
-{ stdenv, buildGoPackage, nomad-source }:
+{ stdenv, buildGoPackage }:
 
 buildGoPackage rec {
   pname = "nomad";
@@ -7,8 +7,6 @@ buildGoPackage rec {
 
   goPackagePath = "github.com/hashicorp/nomad";
   subPackages = [ "." ];
-
-  src = nomad-source;
 
   # ui:
   #  Nomad release commits include the compiled version of the UI, but the file

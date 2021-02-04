@@ -1,9 +1,9 @@
 { self, lib, pkgs, deployerPkgs, config, ... }:
 let
-  inherit (config.cluster) instances domain region kms;
+  inherit (config.cluster) instances domain region;
 
   sopsEncrypt =
-    "${deployerPkgs.sops}/bin/sops --encrypt --input-type json --kms '${kms}' /dev/stdin";
+    "${deployerPkgs.sops}/bin/sops --encrypt --input-type json --kms $kms /dev/stdin";
 
   sopsDecrypt = path:
     "${pkgs.sops}/bin/sops --decrypt --input-type json ${path}";
@@ -70,7 +70,7 @@ let
   };
 
 in {
-  secrets.preGenerate.consul = lib.mkIf isInstance ''
+  secrets.generate.consul = lib.mkIf isInstance ''
     export PATH="${lib.makeBinPath (with deployerPkgs; [ python consul utillinux jq coreutils ])}"
 
     encrypt="$(consul keygen)"
@@ -108,7 +108,7 @@ in {
     target = /etc/consul.d/secrets.json;
   };
 
-  secrets.preGenerate.nomad = lib.mkIf isInstance ''
+  secrets.generate.nomad = lib.mkIf isInstance ''
     export PATH="${lib.makeBinPath (with deployerPkgs; [ nomad jq ])}"
 
     if [ ! -s encrypted/nomad.json ]; then
@@ -122,7 +122,7 @@ in {
     fi
   '';
 
-  secrets.preGenerate.cache = lib.mkIf isInstance ''
+  secrets.generate.cache = lib.mkIf isInstance ''
     export PATH="${lib.makeBinPath (with deployerPkgs; [ coreutils nixFlakes jq ])}"
 
     mkdir -p secrets encrypted
@@ -150,7 +150,7 @@ in {
     fi
   '';
 
-  secrets.preGenerate.ca = lib.mkIf isInstance ''
+  secrets.generate.ca = lib.mkIf isInstance ''
     export PATH="${
       lib.makeBinPath (with deployerPkgs; [ cfssl jq coreutils terraform-with-plugins ])
     }"

@@ -3,7 +3,7 @@
 let
   inherit (pkgs) ensureDependencies;
   inherit (lib) mkOverride mkIf attrNames concatStringsSep optional forEach;
-  inherit (config.cluster) domain kms region adminNames;
+  inherit (config.cluster) domain region adminNames;
   inherit (config.instance) privateIP;
 
   exportConsulMaster = ''
@@ -312,7 +312,7 @@ in {
               sops \
               --input-type json \
               --output-type json \
-              --kms "${kms}" \
+              --kms "$(cat /run/keys/kms)" \
               --encrypt \
               /dev/stdin > vault.enc.json.tmp
 
