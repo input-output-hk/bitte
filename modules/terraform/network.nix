@@ -64,7 +64,7 @@ in {
     };
 
     resource.aws_s3_bucket.bucket = {
-      bucket = "iohk-mantispw-bitte";
+      bucket = "iohk-${config.cluster.name}-bitte";
       acl = "private";
       force_destroy = false;
     };
