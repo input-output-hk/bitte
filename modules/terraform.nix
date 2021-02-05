@@ -62,7 +62,8 @@ let
 
       secrets = mkOption { type = path; };
 
-      letsEncrypt.useStaging = mkOption { type = bool; default = true; };
+      letsEncrypt.useStaging = mkOption { type = bool; default = !cfg.production; };
+      production = mkOption { type = bool; default = false; };
 
       terraformOrganization = mkOption { type = str; };
 

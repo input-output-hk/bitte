@@ -66,7 +66,8 @@ in {
     resource.aws_s3_bucket.bucket = {
       bucket = "iohk-${config.cluster.name}-bitte";
       acl = "private";
-      force_destroy = false;
+      force_destroy = !config.cluster.production;
+      lifecycle = lib.mkIf config.cluster.production [{ prevent_destroy = true; }];
     };
 
     resource.aws_kms_key.key = {
