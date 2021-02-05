@@ -8,6 +8,7 @@
     ./vault/client.nix
     ./secrets.nix
     ./reaper.nix
+    ./builder.nix
   ];
 
   services = {

@@ -11,6 +11,7 @@ in {
     ./secrets.nix
     ./telegraf.nix
     ./vault/client.nix
+    ./builder.nix
   ];
 
   services = {
