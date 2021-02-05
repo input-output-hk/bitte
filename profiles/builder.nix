@@ -5,7 +5,7 @@ let
   isMonitoring = nodeName == "monitoring";
 in {
   secrets.generate.nix-key-file = ''
-    export PATH="${lib.makeBinPath (with pkgs; [ nixFlakes sops ])}"
+    export PATH="${lib.makeBinPath (with pkgs; [ nixFlakes sops coreutils ])}"
     esk=encrypted/nix-secret-key-file
     ssk=secrets/nix-secret-key-file
     if [ ! -s "$esk" ]; then
