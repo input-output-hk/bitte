@@ -7,6 +7,7 @@
     ./telegraf.nix
     ./vault/client.nix
     ./secrets.nix
+    ./reaper.nix
   ];
 
   services = {
