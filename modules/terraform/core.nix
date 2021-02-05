@@ -11,6 +11,7 @@ let
 
   kms    = var "data.terraform_remote_state.network.outputs.cluster.kms";
   bucket = var "data.terraform_remote_state.network.outputs.cluster.s3_bucket";
+  s3_cache = var "data.terraform_remote_state.network.outputs.cluster.s3_cache";
 in {
   tf.core.configuration = {
     terraform.backend.remote = {
@@ -24,6 +25,7 @@ in {
         name = config.cluster.name;
         nix = deployerPkgs.nixFlakes;
         region = config.cluster.region;
+        s3-cache = s3_cache;
 
         roles = lib.flip lib.mapAttrs config.cluster.iam.roles
           (name: role: { arn = var "aws_iam_role.${role.uid}.arn"; });
