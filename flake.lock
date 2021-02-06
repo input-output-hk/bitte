@@ -4,15 +4,14 @@
       "inputs": {
         "crystal": "crystal",
         "nixpkgs": "nixpkgs_2",
-        "nixpkgs/nixos-rebuild-no-systemctl": "nixpkgs/nixos-rebuild-no-systemctl",
         "utils": "utils_2"
       },
       "locked": {
-        "lastModified": 1611951865,
-        "narHash": "sha256-7+0izAFLkzUrXCgMaenFO1UUW7D7esIu1kiVDcdSySo=",
+        "lastModified": 1612386194,
+        "narHash": "sha256-8yG7IobXq/UjDepEI88UlIcVBrxtzP9znQLL362oXTY=",
         "owner": "input-output-hk",
         "repo": "bitte-cli",
-        "rev": "781ac00f80b27967041b63f115ba3f2a7a706fd2",
+        "rev": "aa0d804ca6854340ce7a7380b04a18a430432bd5",
         "type": "github"
       },
       "original": {
@@ -37,6 +36,21 @@
       "original": {
         "owner": "kreisys",
         "repo": "crystal",
+        "type": "github"
+      }
+    },
+    "devshell": {
+      "locked": {
+        "lastModified": 1612486691,
+        "narHash": "sha256-WluAIsf/HMYeg8PnM1sODRmiEOzt1wjjY+l8tbttLSI=",
+        "owner": "numtide",
+        "repo": "devshell",
+        "rev": "02933029b06747c7523f3a6f677df06d4cfdfc7b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "devshell",
         "type": "github"
       }
     },
@@ -107,34 +121,20 @@
         "type": "indirect"
       }
     },
-    "nixpkgs/nixos-rebuild-no-systemctl": {
-      "locked": {
-        "lastModified": 1603912078,
-        "narHash": "sha256-T6zhWX0PG6J+yWXGjG3D7khiTeHzLu0pQ2MTHGwRz2A=",
-        "owner": "kreisys",
-        "repo": "nixpkgs",
-        "rev": "b02d5ae5a23b0532023453e5c0e861fd507b726c",
-        "type": "github"
-      },
-      "original": {
-        "owner": "kreisys",
-        "ref": "nixos-rebuild-no-systemctl",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1608147201,
-        "narHash": "sha256-Th+tiy5RH2hiXBvS++3wtuyj9h7JZy/kiY2cvgBdFxY=",
+        "lastModified": 1612282043,
+        "narHash": "sha256-MzoN8nI1eydYHuWBAXBcw9Na0XndZHa/VjoxZRWSX68=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "ca2723567e629e9f1542c34bf20ba20f7c6d4dc9",
+        "rev": "fab6fcdceb2560a4ab943830a2b1632458c7a6ff",
         "type": "github"
       },
       "original": {
-        "id": "nixpkgs",
-        "type": "indirect"
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
       }
     },
     "nixpkgs_3": {
@@ -202,6 +202,7 @@
     "root": {
       "inputs": {
         "cli": "cli",
+        "devshell": "devshell",
         "levant-source": "levant-source",
         "nix": "nix",
         "nixpkgs": "nixpkgs_4",
