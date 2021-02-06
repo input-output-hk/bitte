@@ -67,19 +67,11 @@ in
   , nixConf ? null
   }: let
     cfg = self.clusters.${final.system}.${cluster}.proto.config.cluster;
+  in final.genericShell ({
+    inherit cluster profile nixConf;
     inherit (cfg) domain region;
-  in final.genericShell.overrideAttrs (o: {
-    BITTE_CLUSTER = cluster;
-    AWS_PROFILE = profile;
-    AWS_DEFAULT_REGION = region;
-    VAULT_ADDR = "https://vault.${domain}";
-    NOMAD_ADDR = "https://nomad.${domain}";
-    CONSUL_HTTP_ADDR = "https://consul.${domain}";
-    NIX_USER_CONF_FILES = with lib; concatStringsSep ":"
-    ((toList o.NIX_USER_CONF_FILES) ++ (optional (nixConf != null) nixConf));
   } // lib.optionalAttrs (cfg.letsEncrypt.useStaging) {
-    CONSUL_CACERT = "${./profiles/acme-staging-root.pem}";
-    VAULT_CACERT = "${./profiles/acme-staging-root.pem}";
+    caCert = "${./profiles/acme-staging-root.pem}";
   });
 
   consulRegister = prev.callPackage ./pkgs/consul-register.nix { };

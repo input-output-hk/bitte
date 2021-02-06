@@ -5,6 +5,7 @@
     utils.url = "github:kreisys/flake-utils";
     cli.url = "github:input-output-hk/bitte-cli";
     nix.url = "github:NixOS/nix/4e9cec79bf5302108a031b3910f63baccf719eb5";
+    devshell.url = "github:numtide/devshell";
 
     # TODO use upstream/nixpkgs
     terranix = {
@@ -25,7 +26,7 @@
     };
   };
 
-  outputs = { self, ops-lib, nix, nixpkgs, terranix, utils, cli, ... }:
+  outputs = { self, devshell, ops-lib, nix, nixpkgs, terranix, utils, cli, ... }:
   (utils.lib.simpleFlake {
     inherit nixpkgs;
     name = "bitte";
@@ -33,6 +34,7 @@
 
     overlays = [
       cli
+      devshell
       ./overlay.nix
       (final: prev: {
         inherit (nix.packages.${final.system}) nix;
