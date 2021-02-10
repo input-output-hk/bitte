@@ -1,6 +1,11 @@
-{ rootDir, pkgs, flake, domain # E.g. "mantis.ws"
-, dockerRegistry ? "docker." + domain, dockerRole ? "developer"
-, vaultDockerPasswordKey ? "kv/nomad-cluster/docker-developer-password" }:
+{ rootDir
+, pkgs
+, flake
+, domain # E.g. "mantis.ws"
+, dockerRegistry ? "docker." + domain
+, dockerRole ? "developer"
+, vaultDockerPasswordKey ? "kv/nomad-cluster/docker-developer-password"
+}:
 
 let
   lib = pkgs.lib;
@@ -120,7 +125,7 @@ in lib.makeScope pkgs.newScope (self:
   with self; {
     inherit rootDir;
 
-    nomadJobs = recursiveCallPackage (rootDir + "/jobs") prod-pkgs.callPackage;
+    nomadJobs = recursiveCallPackage (rootDir + "/jobs") prod-pkgs.callPackages;
 
     dockerImages = let
       images =
