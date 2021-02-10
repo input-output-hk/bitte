@@ -17,6 +17,18 @@ let
 
   # Recurse through a directory and evaluate all expressions
   #
+  # Directory -> AttrSet
+  createNomadJobs = rootPath:
+    let
+      contents = builtins.readDir rootPath;
+      toImport = name: type: type == "regular" && lib.hasSuffix ".nix" name;
+      fileNames = builtins.attrNames (lib.filterAttrs toImport contents);
+      imported = lib.forEach fileNames
+        (fileName: (import (rootPath + "/${fileName}")) { inherit (prod-pkgs) mkNomadJob; });
+    in lib.foldl' lib.recursiveUpdate { } imported;
+
+  # Recurse through a directory and evaluate all expressions
+  #
   # Directory -> callPackage(s) -> AttrSet
   recursiveCallPackage = rootPath: callPackage:
     let
@@ -125,7 +137,7 @@ in lib.makeScope pkgs.newScope (self:
   with self; {
     inherit rootDir;
 
-    nomadJobs = recursiveCallPackage (rootDir + "/jobs") prod-pkgs.callPackages;
+    nomadJobs = createNomadJobs (rootDir + "/jobs");
 
     dockerImages = let
       images =
