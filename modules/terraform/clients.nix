@@ -125,8 +125,8 @@ in {
             lifecycle = [{ create_before_destroy = true; }];
 
             root_block_device = {
-              volume_type = "gp2";
-              volume_size = 100;
+              volume_type = group.volumeType;
+              volume_size = group.volumeSize;
               delete_on_termination = true;
             };
           }

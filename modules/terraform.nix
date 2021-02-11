@@ -708,6 +708,16 @@ let
         default = "t3a.medium";
       };
 
+      volumeSize = mkOption {
+        type = ints.positive;
+        default = 100;
+      };
+
+      volumeType = mkOption {
+        type = str;
+        default = "gp2";
+      };
+
       tags = mkOption {
         type = attrsOf str;
         default = { };
