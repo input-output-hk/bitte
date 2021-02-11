@@ -23,6 +23,7 @@ let
     us-east-2 = "ami-0492aa69cf46f79c3";
     eu-central-1 = "ami-0839f2c610f876d2d";
     eu-west-1 = "ami-0f765805e4520b54d";
+    us-east-1 = "ami-02700dd542e3304cd";
   };
 
   vpcMap = lib.pipe [
