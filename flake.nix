@@ -29,7 +29,6 @@
   outputs = { self, devshell, ops-lib, nix, nixpkgs, terranix, utils, cli, ... }:
   (utils.lib.simpleFlake {
     inherit nixpkgs;
-    name = "bitte";
     systems = [ "x86_64-darwin" "x86_64-linux" ];
 
     overlays = [
@@ -47,6 +46,7 @@
         });
         lib = nixpkgs.lib.extend (final: prev: {
           terranix = import (terranix + "/core");
+          bitte = self.lib;
         });
       })
     ];
