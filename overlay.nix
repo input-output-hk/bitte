@@ -69,7 +69,7 @@ in
     cfg = self.clusters.${final.system}.${cluster}.proto.config.cluster;
   in final.genericShell ({
     inherit cluster profile nixConf;
-    inherit (cfg) domain region;
+    inherit (cfg) domain region terraformOrganization;
   } // lib.optionalAttrs (cfg.letsEncrypt.useStaging) {
     caCert = "${./profiles/acme-staging-root.pem}";
   });

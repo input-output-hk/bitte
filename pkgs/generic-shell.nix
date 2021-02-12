@@ -24,6 +24,7 @@
 , domain
 , region
 , profile
+, terraformOrganization
 , nixConf ? null
 }: let
 
@@ -53,6 +54,7 @@ in devshell.mkShell {
       VAULT_ADDR = "https://vault.${domain}";
       NOMAD_ADDR = "https://nomad.${domain}";
       CONSUL_HTTP_ADDR = "https://consul.${domain}";
+      TERRAFORM_ORGANIZATION = terraformOrganization;
   } // lib.optionalAttrs (caCert != null) {
       CONSUL_CACERT = caCert;
       VAULT_CACERT  = caCert;
