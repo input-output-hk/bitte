@@ -11,6 +11,7 @@ let
     in
     {
       inherit nixpkgs;
+      ansi = import ./ansi.nix;
       clusters = callLibs ./clusters.nix;
       net = callLibs ./net.nix;
       mkHashiStack = callLibs ./mk-hashi-stack.nix;

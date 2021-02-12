@@ -60,6 +60,11 @@ in devshell.mkShell {
       VAULT_CACERT  = caCert;
   };
 
+  motd = with lib.bitte.ansi; ''
+    ${orange}Willkommen in Bitte!${reset}
+    Dies ist ${bold}${cluster}${reset}.
+  '';
+
   packages = [
     bitte
     nixos-rebuild
