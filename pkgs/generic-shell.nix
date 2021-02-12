@@ -28,6 +28,12 @@
 }: let
 
 in devshell.mkShell {
+  bash.extra = ''
+    set +e
+    export CONSUL_HTTP_TOKEN="$(vault read -field token consul/creds/admin 2> /dev/null)"
+    export NOMAD_TOKEN="$(vault read -field secret_id nomad/creds/admin 2> /dev/null)"
+    set -e
+  '';
   # for bitte-cli
   env = {
     LOG_LEVEL = "debug";
