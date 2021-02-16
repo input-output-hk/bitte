@@ -38,6 +38,7 @@ in devshell.mkShell {
   # for bitte-cli
   env = {
     LOG_LEVEL = "debug";
+    RUST_LOG = "debug";
 
     NIX_USER_CONF_FILES = let
       default = writeText "nix.conf" ''
