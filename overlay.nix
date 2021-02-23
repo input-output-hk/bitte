@@ -23,6 +23,8 @@ in final: prev: {
 
   consul = prev.callPackage ./pkgs/consul { };
 
+  cue = final.callPackage ./pkgs/cue.nix { };
+
   terraform-with-plugins =
     nixpkgs-terraform.legacyPackages.${system}.terraform_0_12.withPlugins
     (plugins:
