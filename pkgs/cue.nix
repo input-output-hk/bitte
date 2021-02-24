@@ -6,8 +6,8 @@ buildGoModule rec {
 
   src = fetchgit {
     url = "https://cue.googlesource.com/cue";
-    rev = "v${version}";
-    sha256 = "sha256-H3PCMM7oVsZx6pVveIEeZjv6KcevhSL9NOhh3j3mS0Q=";
+    rev = "38f0f63459188f7e93cb146a408e7cc9cff77fd0";
+    sha256 = "sha256-rqB5HOdppWwW2J8qiS+ffxu55yUcntD9CRCPbnjhMIQ=";
   };
 
   vendorSha256 = "sha256-9ai1Wbk6ftcXHjVEWaL8drxZnhgAwF8+OXNI95CrNjc=";
