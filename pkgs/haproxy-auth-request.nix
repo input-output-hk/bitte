@@ -5,7 +5,8 @@ stdenv.mkDerivation {
 
   src = fetchGit {
     url = "https://github.com/TimWolla/haproxy-auth-request.git";
-    rev = "30bb1c3695786a2dfd320b5a589d19ccef0abab4";
+    ref = "main";
+    rev = "c3c9349166fb4aa9a9b3964267f3eaa03117c3a3";
     submodules = true;
   };
 
