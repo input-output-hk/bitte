@@ -98,6 +98,8 @@ in final: prev: {
 
   systemdSandbox = final.callPackage ./lib/systemd-sandbox.nix { };
 
+  vault-backend = final.callPackage ./pkgs/vault-backend.nix { };
+
   zfsAmi = {
     # attrs of interest:
     # * config.system.build.zfsImage
