@@ -39,10 +39,15 @@ let
   tags = { Cluster = config.cluster.name; };
 in {
   tf.network.configuration = {
-    terraform.backend.remote = {
-      organization = config.cluster.terraformOrganization;
-      workspaces = [{ prefix = "${config.cluster.name}_"; }];
-    };
+    terraform.backend.http =
+      let vbk = "https://vbk.infra.aws.iohkdev.io/state/${config.cluster.name}/network";
+      in {
+        address = vbk;
+        lock_address = vbk;
+        unlock_address = vbk;
+      };
+
+    terraform.required_providers = pkgs.terraform-provider-versions;
 
     provider.aws = [{ region = config.cluster.region; }] ++ (lib.forEach regions
       (region: {

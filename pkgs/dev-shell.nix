@@ -16,7 +16,6 @@ mkShellNoCC {
     dnsutils
     ipcalc
     jq
-    nixFlakes
     nixfmt
     nixos-rebuild
     nomad

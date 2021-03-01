@@ -25,20 +25,25 @@ in final: prev: {
 
   cue = final.callPackage ./pkgs/cue.nix { };
 
-  terraform-with-plugins =
-    nixpkgs-terraform.legacyPackages.${system}.terraform_0_12.withPlugins
-    (plugins:
-      lib.attrVals [
-        "acme"
-        "aws"
-        "consul"
-        "local"
-        "nomad"
-        "null"
-        "sops"
-        "tls"
-        "vault"
-      ] plugins);
+  terraform-provider-names =
+    [ "acme" "aws" "consul" "local" "nomad" "null" "sops" "tls" "vault" ];
+
+  terraform-provider-versions = lib.listToAttrs (map (name:
+    let
+      provider = final.terraform-providers.${name};
+      provider-source-address = provider.provider-source-address or "registry.terraform.io/nixpkgs/${name}";
+      parts = lib.splitString "/" provider-source-address;
+      source = lib.concatStringsSep "/" (lib.tail parts);
+    in lib.nameValuePair name {
+      inherit source;
+      version = "= ${provider.version}";
+    }) final.terraform-provider-names);
+
+  inherit (nixpkgs-terraform.legacyPackages.${system})
+    terraform_0_14 terraform-providers;
+
+  terraform-with-plugins = final.terraform_0_14.withPlugins
+    (plugins: lib.attrVals final.terraform-provider-names plugins);
 
   mkShellNoCC = prev.mkShell.override { stdenv = prev.stdenvNoCC; };
 

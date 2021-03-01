@@ -6,10 +6,16 @@ let
   mapVpcs = pkgs.terralib.mapVpcs config.cluster;
 in {
   tf.clients.configuration = {
-    terraform.backend.remote = {
-      organization = config.cluster.terraformOrganization;
-      workspaces = [{ prefix = "${config.cluster.name}_"; }];
-    };
+
+    terraform.backend.http =
+      let vbk = "https://vbk.infra.aws.iohkdev.io/state/${config.cluster.name}/clients";
+      in {
+        address = vbk;
+        lock_address = vbk;
+        unlock_address = vbk;
+      };
+
+    terraform.required_providers = pkgs.terraform-provider-versions;
 
     output.cluster = {
       value = {

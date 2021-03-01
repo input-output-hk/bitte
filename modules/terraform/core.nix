@@ -10,10 +10,15 @@ let
   merge = lib.foldl' lib.recursiveUpdate { };
 in {
   tf.core.configuration = {
-    terraform.backend.remote = {
-      organization = config.cluster.terraformOrganization;
-      workspaces = [{ prefix = "${config.cluster.name}_"; }];
-    };
+    terraform.backend.http =
+      let vbk = "https://vbk.infra.aws.iohkdev.io/state/${config.cluster.name}/core";
+      in {
+        address = vbk;
+        lock_address = vbk;
+        unlock_address = vbk;
+      };
+
+    terraform.required_providers = pkgs.terraform-provider-versions;
 
     output.cluster = {
       value = {

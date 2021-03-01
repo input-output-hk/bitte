@@ -409,10 +409,16 @@ in {
             | jq -e -r .SecretID
           )"
 
-          echo '{}' \
-          | jq --arg token "$vaultToken" '.storage.consul.token = $token' \
-          | jq --arg token "$vaultToken" '.service_registration.consul.token = $token' \
-          > /etc/vault.d/consul-token.json.new
+          ${if cfg.storage.raft.retryJoin == [] then ''
+            echo '{}' \
+            | jq --arg token "$vaultToken" '.storage.consul.token = $token' \
+            | jq --arg token "$vaultToken" '.service_registration.consul.token = $token' \
+            > /etc/vault.d/consul-token.json.new
+          '' else ''
+            echo '{}' \
+            | jq --arg token "$vaultToken" '.service_registration.consul.token = $token' \
+            > /etc/vault.d/consul-token.json.new
+          ''}
 
           mv /etc/vault.d/consul-token.json.new /etc/vault.d/consul-token.json
         '';

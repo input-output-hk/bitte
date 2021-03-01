@@ -109,18 +109,13 @@
     },
     "nixpkgs-terraform": {
       "locked": {
-        "lastModified": 1601377216,
-        "narHash": "sha256-tYwmPuCgibq72ReYrSTXND4RlZllsP9sVrpncggnBz0=",
-        "owner": "manveru",
-        "repo": "nixpkgs",
-        "rev": "e23f63315b452837bfd49b7f17a4fe9cba6e9094",
-        "type": "github"
+        "narHash": "sha256-j8InLwtqcFPp8CU4ch4jXXr2JkUsy7LXRTx+E6PAqsM=",
+        "path": "/home/manveru/github/nixos/nixpkgs",
+        "type": "path"
       },
       "original": {
-        "owner": "manveru",
-        "ref": "terraform-providers",
-        "repo": "nixpkgs",
-        "type": "github"
+        "path": "/home/manveru/github/nixos/nixpkgs",
+        "type": "path"
       }
     },
     "nixpkgs_2": {
