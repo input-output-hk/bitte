@@ -40,9 +40,12 @@ in final: prev: {
     }) final.terraform-provider-names);
 
   inherit (nixpkgs-terraform.legacyPackages.${system})
-    terraform_0_14 terraform-providers;
+    terraform_0_13 terraform_0_14 terraform-providers;
 
-  terraform-with-plugins = final.terraform_0_14.withPlugins
+  # terraform-with-plugins = final.terraform_0_14.withPlugins
+  #   (plugins: lib.attrVals final.terraform-provider-names plugins);
+
+  terraform-with-plugins = final.terraform_0_13.withPlugins
     (plugins: lib.attrVals final.terraform-provider-names plugins);
 
   mkShellNoCC = prev.mkShell.override { stdenv = prev.stdenvNoCC; };
