@@ -1,21 +1,15 @@
-{ system, self }:
+inputs:
 let
-  inherit (self.inputs)
-    nixpkgs nix ops-lib nixpkgs-terraform crystal bitte-cli inclusive;
+  inherit (inputs)
+    nixpkgs nix ops-lib nixpkgs-terraform bitte-cli inclusive;
   inherit (builtins) fromJSON toJSON trace mapAttrs genList foldl';
   inherit (nixpkgs) lib;
 in final: prev: {
-  inherit self;
-
-  nixos-rebuild = let
-    nixos = lib.nixosSystem {
-      inherit system;
-      modules = [{ nix.package = prev.nixFlakes; }];
-    };
-  in nixos.config.system.build.nixos-rebuild;
+  nixos-rebuild = bitte-cli.packages.${final.system}.nixos-rebuild;
+  bitte = bitte-cli.defaultPackage.${final.system};
 
   # nix = prev.nixFlakes;
-  nixFlakes = self.inputs.nix.packages.${system}.nix;
+  nixFlakes = inputs.nix.packages.${final.system}.nix;
 
   vault-bin = prev.callPackage ./pkgs/vault-bin.nix { };
 
@@ -39,7 +33,7 @@ in final: prev: {
       version = "= ${provider.version}";
     }) final.terraform-provider-names);
 
-  inherit (nixpkgs-terraform.legacyPackages.${system})
+  inherit (nixpkgs-terraform.legacyPackages.${final.system})
     terraform_0_13 terraform_0_14 terraform-providers;
 
   # terraform-with-plugins = final.terraform_0_14.withPlugins
@@ -72,15 +66,13 @@ in final: prev: {
 
   consulRegister = prev.callPackage ./pkgs/consul-register.nix { };
 
-  systemd-runner = final.callPackage ./pkgs/systemd_runner { };
-
   envoy = prev.callPackage ./pkgs/envoy.nix { };
 
   nomad =
-    prev.callPackage ./pkgs/nomad.nix { inherit (self.inputs) nomad-source; };
+    prev.callPackage ./pkgs/nomad.nix { inherit (inputs) nomad-source; };
 
   levant =
-    prev.callPackage ./pkgs/levant.nix { inherit (self.inputs) levant-source; };
+    prev.callPackage ./pkgs/levant.nix { inherit (inputs) levant-source; };
 
   seaweedfs = prev.callPackage ./pkgs/seaweedfs.nix { };
 
@@ -103,8 +95,6 @@ in final: prev: {
   toPrettyJSON = prev.callPackage ./lib/to-pretty-json.nix { };
 
   mkNomadJob = final.callPackage ./lib/mk-nomad-job.nix { };
-
-  systemdSandbox = final.callPackage ./lib/systemd-sandbox.nix { };
 
   vault-backend = final.callPackage ./pkgs/vault-backend.nix { };
 

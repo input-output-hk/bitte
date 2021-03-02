@@ -2,16 +2,14 @@
   description = "Flake containing Bitte clusters";
 
   inputs = {
-    crystal.follows = "bitte-cli/crystal";
     nixpkgs.url =
       "github:NixOS/nixpkgs?rev=b8c367a7bd05e3a514c2b057c09223c74804a21b";
     # nixpkgs-terraform.url = "github:anandsuresh/nixpkgs/backport";
     nixpkgs-terraform.url = "github:manveru/nixpkgs/iohk-terraform";
     inclusive.url = "github:input-output-hk/nix-inclusive";
     utils.url = "github:numtide/flake-utils";
-    bitte-cli.url = "github:input-output-hk/bitte-cli";
+    bitte-cli.url = "github:input-output-hk/bitte-cli/nur-rost";
     nix.url = "github:NixOS/nix?rev=b19aec7eeb8353be6c59b2967a511a5072612d99";
-    # bitte-cli.url = "/home/manveru/github/input-output-hk/bitte-cli";
     ops-lib = {
       url = "github:input-output-hk/ops-lib";
       flake = false;
@@ -25,16 +23,15 @@
       flake = false;
     };
     levant-source = {
-      url = "github:hashicorp/levant?rev=05c6c36fdf24237af32a191d2b14756dbb2a4f24";
+      url =
+        "github:hashicorp/levant?rev=05c6c36fdf24237af32a191d2b14756dbb2a4f24";
       flake = false;
     };
   };
 
-  outputs = { self, crystal, nixpkgs, utils, bitte-cli, ... }:
+  outputs = { self, nixpkgs, utils, bitte-cli, ... }@inputs:
     (utils.lib.eachSystem [ "x86_64-linux" "x86_64-darwin" ] (system: rec {
-      overlay = nixpkgs.lib.composeExtensions
-        bitte-cli.overlay
-        (import ./overlay.nix { inherit system self; });
+      overlay = import ./overlay.nix inputs;
 
       legacyPackages = import nixpkgs {
         inherit system;
@@ -46,8 +43,8 @@
 
       packages = {
         inherit (legacyPackages)
-          bitte nixos-rebuild nixFlakes sops crystal terraform-with-plugins
-          ssm-agent cfssl consul;
+          bitte nixos-rebuild nixFlakes sops terraform-with-plugins ssm-agent
+          cfssl consul;
       };
 
       hydraJobs = packages;
