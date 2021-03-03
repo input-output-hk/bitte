@@ -1,7 +1,6 @@
 inputs:
 let
-  inherit (inputs)
-    nixpkgs nix ops-lib nixpkgs-terraform bitte-cli inclusive;
+  inherit (inputs) nixpkgs nix ops-lib nixpkgs-terraform bitte-cli inclusive;
   inherit (builtins) fromJSON toJSON trace mapAttrs genList foldl';
   inherit (nixpkgs) lib;
 in final: prev: {
@@ -25,7 +24,8 @@ in final: prev: {
   terraform-provider-versions = lib.listToAttrs (map (name:
     let
       provider = final.terraform-providers.${name};
-      provider-source-address = provider.provider-source-address or "registry.terraform.io/nixpkgs/${name}";
+      provider-source-address =
+        provider.provider-source-address or "registry.terraform.io/nixpkgs/${name}";
       parts = lib.splitString "/" provider-source-address;
       source = lib.concatStringsSep "/" (lib.tail parts);
     in lib.nameValuePair name {
@@ -68,8 +68,7 @@ in final: prev: {
 
   envoy = prev.callPackage ./pkgs/envoy.nix { };
 
-  nomad =
-    prev.callPackage ./pkgs/nomad.nix { inherit (inputs) nomad-source; };
+  nomad = prev.callPackage ./pkgs/nomad.nix { inherit (inputs) nomad-source; };
 
   levant =
     prev.callPackage ./pkgs/levant.nix { inherit (inputs) levant-source; };
@@ -182,6 +181,7 @@ in final: prev: {
       transit_gateway_id = null;
       vpc_peering_connection_id = null;
       gateway_id = null;
+      vpc_endpoint_id = null;
     };
 
     vpcs = cluster:

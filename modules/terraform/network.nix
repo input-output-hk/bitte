@@ -37,16 +37,28 @@ let
   mapVpcPeers = f: lib.listToAttrs (lib.forEach peeringPairs f);
 
   tags = { Cluster = config.cluster.name; };
-in {
-  tf.network.configuration = {
-    terraform.backend.http =
-      let vbk = "https://vbk.infra.aws.iohkdev.io/state/${config.cluster.name}/network";
+
+  stateMigration = cluster: name: original: {
+    tf."${name}-vault".configuration = original.tf.${name}.configuration // {
+      terraform.backend.http = let
+        vbk = "https://vbk.infra.aws.iohkdev.io/state/${cluster.name}/${name}";
       in {
         address = vbk;
         lock_address = vbk;
         unlock_address = vbk;
       };
+    };
 
+    tf."${name}".configuration = original.tf.${name}.configuration // {
+      terraform.backend.remote = {
+        organization = cluster.terraformOrganization;
+        workspaces = [{ prefix = "${cluster.name}_"; }];
+      };
+    };
+  };
+
+in stateMigration config.cluster "network" {
+  tf.network.configuration = {
     terraform.required_providers = pkgs.terraform-provider-versions;
 
     provider.aws = [{ region = config.cluster.region; }] ++ (lib.forEach regions

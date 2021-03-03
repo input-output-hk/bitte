@@ -5,16 +5,28 @@ let
     nullRoute;
 
   bucketArn = "arn:aws:s3:::${config.cluster.s3Bucket}";
-in {
-  tf.iam.configuration = {
-    terraform.backend.http =
-      let vbk = "https://vbk.infra.aws.iohkdev.io/state/${config.cluster.name}/iam";
+
+  stateMigration = cluster: name: original: {
+    tf."${name}-vault".configuration = original.tf.${name}.configuration // {
+      terraform.backend.http = let
+        vbk = "https://vbk.infra.aws.iohkdev.io/state/${cluster.name}/${name}";
       in {
         address = vbk;
         lock_address = vbk;
         unlock_address = vbk;
       };
+    };
 
+    tf."${name}".configuration = original.tf.${name}.configuration // {
+      terraform.backend.remote = {
+        organization = cluster.terraformOrganization;
+        workspaces = [{ prefix = "${cluster.name}_"; }];
+      };
+    };
+  };
+
+in stateMigration config.cluster "iam" {
+  tf.iam.configuration = {
     terraform.required_providers = pkgs.terraform-provider-versions;
 
     provider = {
@@ -190,8 +202,8 @@ in {
         };
 
         policies = let
-          s3Secrets =
-            allowS3For "secrets" "infra/secrets/${config.cluster.name}/${config.cluster.kms}" [
+          s3Secrets = allowS3For "secrets"
+            "infra/secrets/${config.cluster.name}/${config.cluster.kms}" [
               "client"
               "source"
             ];
@@ -294,8 +306,8 @@ in {
         };
 
         policies = let
-          s3Secrets =
-            allowS3For "secret" "infra/secrets/${config.cluster.name}/${config.cluster.kms}" [
+          s3Secrets = allowS3For "secret"
+            "infra/secrets/${config.cluster.name}/${config.cluster.kms}" [
               "server"
               "client"
               "source"

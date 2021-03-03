@@ -8,16 +8,28 @@ let
   mapVpcsToList = pkgs.terralib.mapVpcsToList config.cluster;
 
   merge = lib.foldl' lib.recursiveUpdate { };
-in {
-  tf.core.configuration = {
-    terraform.backend.http =
-      let vbk = "https://vbk.infra.aws.iohkdev.io/state/${config.cluster.name}/core";
+
+  stateMigration = cluster: name: original: {
+    tf."${name}-vault".configuration = original.tf.${name}.configuration // {
+      terraform.backend.http = let
+        vbk = "https://vbk.infra.aws.iohkdev.io/state/${cluster.name}/${name}";
       in {
         address = vbk;
         lock_address = vbk;
         unlock_address = vbk;
       };
+    };
 
+    tf."${name}".configuration = original.tf.${name}.configuration // {
+      terraform.backend.remote = {
+        organization = cluster.terraformOrganization;
+        workspaces = [{ prefix = "${cluster.name}_"; }];
+      };
+    };
+  };
+
+in stateMigration config.cluster "core" {
+  tf.core.configuration = {
     terraform.required_providers = pkgs.terraform-provider-versions;
 
     output.cluster = {

@@ -4,17 +4,28 @@ let
     id var regions awsProviderNameFor awsProviderFor merge mkSecurityGroupRule;
 
   mapVpcs = pkgs.terralib.mapVpcs config.cluster;
-in {
-  tf.clients.configuration = {
 
-    terraform.backend.http =
-      let vbk = "https://vbk.infra.aws.iohkdev.io/state/${config.cluster.name}/clients";
+  stateMigration = cluster: name: original: {
+    tf."${name}-vault".configuration = original.tf.${name}.configuration // {
+      terraform.backend.http = let
+        vbk = "https://vbk.infra.aws.iohkdev.io/state/${cluster.name}/${name}";
       in {
         address = vbk;
         lock_address = vbk;
         unlock_address = vbk;
       };
+    };
 
+    tf."${name}".configuration = original.tf.${name}.configuration // {
+      terraform.backend.remote = {
+        organization = cluster.terraformOrganization;
+        workspaces = [{ prefix = "${cluster.name}_"; }];
+      };
+    };
+  };
+
+in stateMigration config.cluster "clients" {
+  tf.clients.configuration = {
     terraform.required_providers = pkgs.terraform-provider-versions;
 
     output.cluster = {
