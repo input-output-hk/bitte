@@ -39,7 +39,7 @@ let
   tags = { Cluster = config.cluster.name; };
 
   stateMigration = cluster: name: original: {
-    tf."${name}-vault".configuration = original.tf.${name}.configuration // {
+    tf."${name}-vault".configuration = lib.recursiveUpdate original.tf.${name}.configuration {
       terraform.backend.http = let
         vbk = "https://vbk.infra.aws.iohkdev.io/state/${cluster.name}/${name}";
       in {
@@ -49,7 +49,7 @@ let
       };
     };
 
-    tf."${name}".configuration = original.tf.${name}.configuration // {
+    tf."${name}".configuration = lib.recursiveUpdate original.tf.${name}.configuration {
       terraform.backend.remote = {
         organization = cluster.terraformOrganization;
         workspaces = [{ prefix = "${cluster.name}_"; }];
