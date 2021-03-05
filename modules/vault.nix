@@ -410,13 +410,13 @@ in {
           )"
 
           ${if ((lib.hasAttrByPath [ "storage" "raft" "retryJoin" ] cfg)
-            && (cfg.storage.raft.retryJoin == [ ])) then ''
+            && (cfg.storage.raft.retryJoin != [ ])) then ''
               echo '{}' \
-              | jq --arg token "$vaultToken" '.storage.consul.token = $token' \
               | jq --arg token "$vaultToken" '.service_registration.consul.token = $token' \
               > /etc/vault.d/consul-token.json.new
             '' else ''
               echo '{}' \
+              | jq --arg token "$vaultToken" '.storage.consul.token = $token' \
               | jq --arg token "$vaultToken" '.service_registration.consul.token = $token' \
               > /etc/vault.d/consul-token.json.new
             ''}
