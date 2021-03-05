@@ -7,15 +7,16 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1614868123,
-        "narHash": "sha256-AXov0czGefDgcyyVKtwmcWaeD2TIPmx2JCyrYJOqHOE=",
+        "lastModified": 1614780239,
+        "narHash": "sha256-TkOf/ji/GQguyKOTFXGG0RY6a8cVYomw78RyFAWHVeQ=",
         "owner": "input-output-hk",
         "repo": "bitte-cli",
-        "rev": "ee04b48c2f116455ef9223ff069a08f541f29ab5",
+        "rev": "01f6f51751ad8d383b5e28004ecfb7389b1243ea",
         "type": "github"
       },
       "original": {
         "owner": "input-output-hk",
+        "ref": "nur-rost",
         "repo": "bitte-cli",
         "type": "github"
       }
