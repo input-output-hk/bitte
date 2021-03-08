@@ -504,18 +504,12 @@ let
           args = [
             "${pkgs.bitte}/bin/bitte"
             "provision"
-            "--name"
-            this.config.name
-            "--cluster"
-            cfg.name
-            "--cache"
-            cfg.s3Cache
-            "--ip"
             ip
-            "--flake"
-            "."
-            "--attr"
-            "${cfg.name}-${this.config.name}"
+            this.config.name # name
+            cfg.name # cluster name
+            "." # flake path
+            "${cfg.name}-${this.config.name}" # flake attr
+            cfg.s3Cache
           ];
           rev = reverseList args;
           command = builtins.head rev;
