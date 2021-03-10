@@ -10,6 +10,8 @@
           echo "killing $pid"
           ps "$pid"
           kill "$pid"
+          sleep 30
+          kill -9 "$pid"
         done
         sleep 60
       done
