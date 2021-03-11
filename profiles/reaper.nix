@@ -11,7 +11,7 @@
           ps "$pid"
           kill "$pid"
           sleep 30
-          kill -9 "$pid"
+          kill -9 "$pid" || true
         done
         sleep 60
       done
