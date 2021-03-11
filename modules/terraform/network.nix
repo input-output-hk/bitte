@@ -37,7 +37,7 @@ let
   mapVpcPeers = f: lib.listToAttrs (lib.forEach peeringPairs f);
 
   tags = { Cluster = config.cluster.name; };
-in stateMigration config.cluster "network" {
+in {
   tf.network.configuration = {
     terraform.backend.http = let
       vbk = "https://vbk.infra.aws.iohkdev.io/state/${config.cluster.name}/network";
