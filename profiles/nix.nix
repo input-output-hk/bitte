@@ -9,6 +9,7 @@
       tarball-ttl = ${toString (60 * 60 * 72)}
       show-trace = true
       experimental-features = nix-command flakes ca-references recursive-nix
+      builders-use-substitutes = true
     '';
     registry.nixpkgs = {
       flake = self.inputs.nixpkgs;

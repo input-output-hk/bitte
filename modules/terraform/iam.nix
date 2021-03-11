@@ -4,24 +4,18 @@ let
     var id pp regions awsProviderNameFor awsProviderFor mkSecurityGroupRule
     nullRoute;
 
-  inherit (builtins) foldl';
-  inherit (pkgs.terralib) sops2kms sops2region cidrsOf;
-  inherit (lib) splitString forEach unique flatten;
-  inherit (config) cluster;
-  inherit (cluster) s3Bucket kms;
-
-  mapVpcs = pkgs.terralib.mapVpcs config.cluster;
-  mapVpcsToList = pkgs.terralib.mapVpcsToList config.cluster;
-
-  merge = lib.foldl' lib.recursiveUpdate { };
-
-  bucketArn = "arn:aws:s3:::${s3Bucket}";
+  bucketArn = "arn:aws:s3:::${config.cluster.s3Bucket}";
 in {
   tf.iam.configuration = {
-    terraform.backend.remote = {
-      organization = config.cluster.terraformOrganization;
-      workspaces = [{ prefix = "${config.cluster.name}_"; }];
-    };
+      terraform.backend.http = let
+        vbk = "https://vbk.infra.aws.iohkdev.io/state/${cluster.name}/iam";
+      in {
+        address = vbk;
+        lock_address = vbk;
+        unlock_address = vbk;
+      };
+
+    terraform.required_providers = pkgs.terraform-provider-versions;
 
     provider = {
       aws = [{ region = config.cluster.region; }] ++ (lib.forEach regions
@@ -148,8 +142,8 @@ in {
       pathPrefix = rootDir: dir:
         let
           fullPath = "${rootDir}/${dir}";
-          splitPath = splitString "/" fullPath;
-          cascade = foldl' (s: v:
+          splitPath = lib.splitString "/" fullPath;
+          cascade = lib.foldl' (s: v:
             let p = "${s.path}${v}/";
             in {
               acc = s.acc ++ [ p ];
@@ -171,7 +165,7 @@ in {
           effect = "Allow";
           actions = [ "s3:ListBucket" ];
           resources = [ bucketArn ];
-          condition = forEach bucketDirs (dir: {
+          condition = lib.forEach bucketDirs (dir: {
             test = "StringLike";
             variable = "s3:prefix";
             values = pathPrefix rootDir dir;
@@ -181,7 +175,7 @@ in {
         "${prefix}-s3-directory-actions" = {
           effect = "Allow";
           actions = [ "s3:*" ];
-          resources = unique (flatten (forEach bucketDirs (dir: [
+          resources = lib.unique (lib.flatten (lib.forEach bucketDirs (dir: [
             "${bucketArn}/${rootDir}/${dir}/*"
             "${bucketArn}/${rootDir}/${dir}"
           ])));
@@ -196,8 +190,8 @@ in {
         };
 
         policies = let
-          s3Secrets =
-            allowS3For "secrets" "infra/secrets/${cluster.name}/${kms}" [
+          s3Secrets = allowS3For "secrets"
+            "infra/secrets/${config.cluster.name}/${config.cluster.kms}" [
               "client"
               "source"
             ];
@@ -286,7 +280,7 @@ in {
 
           kms = {
             effect = "Allow";
-            resources = [ kms ];
+            resources = [ config.cluster.kms ];
             actions = [ "kms:Encrypt" "kms:Decrypt" "kms:DescribeKey" ];
           };
         };
@@ -300,8 +294,8 @@ in {
         };
 
         policies = let
-          s3Secrets =
-            allowS3For "secret" "infra/secrets/${cluster.name}/${kms}" [
+          s3Secrets = allowS3For "secret"
+            "infra/secrets/${config.cluster.name}/${config.cluster.kms}" [
               "server"
               "client"
               "source"
@@ -310,7 +304,7 @@ in {
         in s3Secrets // s3Cache // {
           kms = {
             effect = "Allow";
-            resources = [ kms ];
+            resources = [ config.cluster.kms ];
             actions = [ "kms:Encrypt" "kms:Decrypt" "kms:DescribeKey" ];
           };
 
@@ -334,9 +328,9 @@ in {
           assumeRole = {
             effect = "Allow";
             resources = [
-              cluster.instances.core-1.iam.instanceProfile.tfArn
-              cluster.instances.core-2.iam.instanceProfile.tfArn
-              cluster.instances.core-3.iam.instanceProfile.tfArn
+              config.cluster.instances.core-1.iam.instanceProfile.tfArn
+              config.cluster.instances.core-2.iam.instanceProfile.tfArn
+              config.cluster.instances.core-3.iam.instanceProfile.tfArn
             ];
             actions = [ "sts:AssumeRole" ];
           };

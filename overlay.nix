@@ -1,21 +1,14 @@
-{ system, self }:
+inputs:
 let
-  inherit (self.inputs)
-    nixpkgs nix ops-lib nixpkgs-terraform crystal bitte-cli inclusive;
+  inherit (inputs) nixpkgs nix ops-lib nixpkgs-terraform bitte-cli inclusive;
   inherit (builtins) fromJSON toJSON trace mapAttrs genList foldl';
   inherit (nixpkgs) lib;
 in final: prev: {
-  inherit self;
-
-  nixos-rebuild = let
-    nixos = lib.nixosSystem {
-      inherit system;
-      modules = [{ nix.package = prev.nixFlakes; }];
-    };
-  in nixos.config.system.build.nixos-rebuild;
+  nixos-rebuild = bitte-cli.packages.${final.system}.nixos-rebuild;
+  bitte = bitte-cli.defaultPackage.${final.system};
 
   # nix = prev.nixFlakes;
-  nixFlakes = self.inputs.nix.packages.${system}.nix;
+  nixFlakes = inputs.nix.packages.${final.system}.nix;
 
   vault-bin = prev.callPackage ./pkgs/vault-bin.nix { };
 
@@ -25,20 +18,29 @@ in final: prev: {
 
   cue = final.callPackage ./pkgs/cue.nix { };
 
-  terraform-with-plugins =
-    nixpkgs-terraform.legacyPackages.${system}.terraform_0_12.withPlugins
-    (plugins:
-      lib.attrVals [
-        "acme"
-        "aws"
-        "consul"
-        "local"
-        "nomad"
-        "null"
-        "sops"
-        "tls"
-        "vault"
-      ] plugins);
+  terraform-provider-names =
+    [ "acme" "aws" "consul" "local" "nomad" "null" "sops" "tls" "vault" ];
+
+  terraform-provider-versions = lib.listToAttrs (map (name:
+    let
+      provider = final.terraform-providers.${name};
+      provider-source-address =
+        provider.provider-source-address or "registry.terraform.io/nixpkgs/${name}";
+      parts = lib.splitString "/" provider-source-address;
+      source = lib.concatStringsSep "/" (lib.tail parts);
+    in lib.nameValuePair name {
+      inherit source;
+      version = "= ${provider.version}";
+    }) final.terraform-provider-names);
+
+  inherit (nixpkgs-terraform.legacyPackages.${final.system})
+    terraform_0_13 terraform_0_14 terraform-providers;
+
+  # terraform-with-plugins = final.terraform_0_14.withPlugins
+  #   (plugins: lib.attrVals final.terraform-provider-names plugins);
+
+  terraform-with-plugins = final.terraform_0_13.withPlugins
+    (plugins: lib.attrVals final.terraform-provider-names plugins);
 
   mkShellNoCC = prev.mkShell.override { stdenv = prev.stdenvNoCC; };
 
@@ -64,15 +66,12 @@ in final: prev: {
 
   consulRegister = prev.callPackage ./pkgs/consul-register.nix { };
 
-  systemd-runner = final.callPackage ./pkgs/systemd_runner { };
-
   envoy = prev.callPackage ./pkgs/envoy.nix { };
 
-  nomad =
-    prev.callPackage ./pkgs/nomad.nix { inherit (self.inputs) nomad-source; };
+  nomad = prev.callPackage ./pkgs/nomad.nix { inherit (inputs) nomad-source; };
 
   levant =
-    prev.callPackage ./pkgs/levant.nix { inherit (self.inputs) levant-source; };
+    prev.callPackage ./pkgs/levant.nix { inherit (inputs) levant-source; };
 
   seaweedfs = prev.callPackage ./pkgs/seaweedfs.nix { };
 
@@ -95,8 +94,6 @@ in final: prev: {
   toPrettyJSON = prev.callPackage ./lib/to-pretty-json.nix { };
 
   mkNomadJob = final.callPackage ./lib/mk-nomad-job.nix { };
-
-  systemdSandbox = final.callPackage ./lib/systemd-sandbox.nix { };
 
   vault-backend = final.callPackage ./pkgs/vault-backend.nix { };
 
@@ -184,6 +181,7 @@ in final: prev: {
       transit_gateway_id = null;
       vpc_peering_connection_id = null;
       gateway_id = null;
+      vpc_endpoint_id = null;
     };
 
     vpcs = cluster:

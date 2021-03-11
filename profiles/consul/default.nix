@@ -78,6 +78,7 @@ in {
     enable = true;
     extraConfig = ''
       server=/consul/127.0.0.1#8600
+      server=/internal/169.254.169.253#53
       rev-server=10.0.0.0/8,127.0.0.1#8600
       rev-server=127.0.0.1/8,127.0.0.1#8600
       local-service

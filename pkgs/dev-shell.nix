@@ -12,11 +12,9 @@ mkShellNoCC {
     cfssl
     consul
     consul-template
-    crystal
     dnsutils
     ipcalc
     jq
-    nixFlakes
     nixfmt
     nixos-rebuild
     nomad
