@@ -102,7 +102,7 @@
 
         endpoint = {
           # Defines the address of the Consul server.
-          address = "127.0.0.1:${config.services.consul.ports.http}";
+          address = "127.0.0.1:${toString config.services.consul.ports.http}";
 
           scheme = "http";
 
