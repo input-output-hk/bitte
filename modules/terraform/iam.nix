@@ -5,28 +5,16 @@ let
     nullRoute;
 
   bucketArn = "arn:aws:s3:::${config.cluster.s3Bucket}";
-
-  stateMigration = cluster: name: original: {
-    tf."${name}-vault".configuration = lib.recursiveUpdate original.tf.${name}.configuration {
+in {
+  tf.iam.configuration = {
       terraform.backend.http = let
-        vbk = "https://vbk.infra.aws.iohkdev.io/state/${cluster.name}/${name}";
+        vbk = "https://vbk.infra.aws.iohkdev.io/state/${cluster.name}/iam";
       in {
         address = vbk;
         lock_address = vbk;
         unlock_address = vbk;
       };
-    };
 
-    tf."${name}".configuration = lib.recursiveUpdate original.tf.${name}.configuration {
-      terraform.backend.remote = {
-        organization = cluster.terraformOrganization;
-        workspaces = [{ prefix = "${cluster.name}_"; }];
-      };
-    };
-  };
-
-in stateMigration config.cluster "iam" {
-  tf.iam.configuration = {
     terraform.required_providers = pkgs.terraform-provider-versions;
 
     provider = {
