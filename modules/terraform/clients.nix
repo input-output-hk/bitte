@@ -7,7 +7,7 @@ let
 in {
   tf.clients.configuration = {
     terraform.backend.http = let
-      vbk = "https://vbk.infra.aws.iohkdev.io/state/${cluster.name}/clients";
+      vbk = "https://vbk.infra.aws.iohkdev.io/state/${config.cluster.name}/clients";
     in {
       address = vbk;
       lock_address = vbk;

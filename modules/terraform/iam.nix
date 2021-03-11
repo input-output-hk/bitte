@@ -8,7 +8,7 @@ let
 in {
   tf.iam.configuration = {
       terraform.backend.http = let
-        vbk = "https://vbk.infra.aws.iohkdev.io/state/${cluster.name}/iam";
+        vbk = "https://vbk.infra.aws.iohkdev.io/state/${config.cluster.name}/iam";
       in {
         address = vbk;
         lock_address = vbk;

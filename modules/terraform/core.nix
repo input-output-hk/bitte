@@ -11,7 +11,7 @@ let
 in {
   tf.core.configuration = {
     terraform.backend.http =
-      let vbk = "https://vbk.infra.aws.iohkdev.io/state/${cluster.name}/core";
+      let vbk = "https://vbk.infra.aws.iohkdev.io/state/${config.cluster.name}/core";
       in {
         address = vbk;
         lock_address = vbk;

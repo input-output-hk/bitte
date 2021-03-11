@@ -40,7 +40,7 @@ let
 in stateMigration config.cluster "network" {
   tf.network.configuration = {
     terraform.backend.http = let
-      vbk = "https://vbk.infra.aws.iohkdev.io/state/${cluster.name}/network";
+      vbk = "https://vbk.infra.aws.iohkdev.io/state/${config.cluster.name}/network";
     in {
       address = vbk;
       lock_address = vbk;
