@@ -1,10 +1,10 @@
 { self, lib, pkgs, config, ... }: {
   imports = [
-    ./profiles/common.nix
-    ./profiles/consul/client.nix
-    ./profiles/secrets.nix
-    ./profiles/telegraf.nix
-    ./profiles/vault/client.nix
+    ./common.nix
+    ./consul/client.nix
+    ./secrets.nix
+    ./telegraf.nix
+    ./vault/client.nix
   ];
 
   services.amazon-ssm-agent.enable = true;
