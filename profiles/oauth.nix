@@ -1,4 +1,4 @@
-{ config, ... }: {
+{ config, lib, pkgs, ... }: {
   services.oauth2_proxy = {
     enable = true;
     extraConfig.whitelist-domain = ".${config.cluster.domain}";
