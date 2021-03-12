@@ -4,14 +4,15 @@ let
   acme-full = "/etc/ssl/certs/${config.cluster.domain}-full.pem";
 in {
   imports = [
+    ./builder.nix
     ./common.nix
     ./consul/client.nix
     ./docker-registry.nix
     ./loki.nix
+    ./oauth.nix
     ./secrets.nix
     ./telegraf.nix
     ./vault/client.nix
-    ./builder.nix
   ];
 
   services = {
@@ -26,22 +27,6 @@ in {
       enable = true;
       vaultAddress =
         "https://${config.cluster.instances.core-1.privateIP}:8200";
-    };
-
-    oauth2_proxy = {
-      enable = true;
-      extraConfig.whitelist-domain = ".${domain}";
-      # extraConfig.github-org = "input-output-hk";
-      # extraConfig.github-repo = "input-output-hk/mantis-ops";
-      # extraConfig.github-user = "manveru,johnalotoski";
-      extraConfig.pass-user-headers = "true";
-      extraConfig.set-xauthrequest = "true";
-      extraConfig.reverse-proxy = "true";
-      provider = "google";
-      keyFile = "/run/keys/oauth-secrets";
-
-      email.domains = [ "iohk.io" ];
-      cookie.domain = ".${domain}";
     };
 
     victoriametrics = {
@@ -126,19 +111,4 @@ in {
       | sops -d /dev/stdin \
       > /var/lib/grafana/password
   '';
-
-  users.extraGroups.keys.members = [ "oauth2_proxy" ];
-
-  secrets.install.oauth.script = ''
-    export PATH="${lib.makeBinPath (with pkgs; [ sops coreutils ])}"
-
-    cat ${config.secrets.encryptedRoot + "/oauth-secrets"} \
-      | sops -d /dev/stdin \
-      > /run/keys/oauth-secrets
-
-    chown root:keys /run/keys/oauth-secrets
-    chmod g+r /run/keys/oauth-secrets
-  '';
-
-  systemd.services.oauth2_proxy.after = [ "secret-oauth.service" ];
 }
