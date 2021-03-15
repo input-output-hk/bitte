@@ -92,6 +92,17 @@ let
             target_label = "image_name";
           }
         ];
+
+        pipeline_stages = [
+          {
+            json.expressions = {
+              sev = "sev";
+            };
+          }
+          {
+            labels.level = [ "level" "sev" ];
+          }
+        ];
       }
     ];
   };
