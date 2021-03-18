@@ -7,11 +7,11 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1616077571,
-        "narHash": "sha256-RYIhRKnUhJ746pLo3wYlULiFrMits8LuqWMjr8QoMz0=",
+        "lastModified": 1616082385,
+        "narHash": "sha256-jgLHDzbqHenCEFlrx2Xcg8XEXpPAG6piXqWTTGi0AiI=",
         "owner": "input-output-hk",
         "repo": "bitte-cli",
-        "rev": "539838f30f701306169dd0cf54c5bf9fbed8cfcb",
+        "rev": "0e71cfd18aafc4656eeffcb5d2b7874c95a42a63",
         "type": "github"
       },
       "original": {
