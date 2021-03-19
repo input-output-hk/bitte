@@ -32,7 +32,7 @@ let
       lib.makeBinPath (with pkgs; [ coreutils systemd curl ])
     }"
 
-    systemctl restart consul.service || true
+    systemctl reload consul.service || true
 
     if curl -s -k https://127.0.0.1:4646/v1/status/leader &> /dev/null; then
       systemctl restart nomad.service || true
@@ -47,7 +47,7 @@ let
   vaultAgentConfig = pkgs.toPrettyJSON "vault-agent" {
     pid_file = "./vault-agent.pid";
     vault.address = "https://vault.${domain}:8200";
-    # exit_after_auth = true;
+
     auto_auth = {
       method = [{
         type = "aws";
@@ -70,34 +70,46 @@ let
     templates = compact [
       {
         template = {
-          command = reload-cvn;
           destination = "/etc/ssl/certs/full.pem";
+
           contents = ''
             {{ with secret ${pkiSecret} }}{{ .Data.certificate }}
             {{ range .Data.ca_chain }}{{ . }}
             {{ end }}{{ end }}
+          '';
+
+          command = writeShellScript "update-cert" ''
+            systemctl restart certs-updated.service || true
           '';
         };
       }
 
       {
         template = {
-          command = reload-cvn;
           destination = "/etc/ssl/certs/cert.pem";
+
           contents = ''
             {{ with secret ${pkiSecret} }}{{ .Data.certificate }}
             {{ range .Data.ca_chain }}{{ . }}
             {{ end }}{{ end }}
+          '';
+
+          command = writeShellScript "update-cert" ''
+            systemctl restart certs-updated.service || true
           '';
         };
       }
 
       {
         template = {
-          command = reload-cvn;
           destination = "/etc/ssl/certs/cert-key.pem";
+
           contents = ''
             {{ with secret ${pkiSecret} }}{{ .Data.private_key }}{{ end }}
+          '';
+
+          command = writeShellScript "update-cert" ''
+            systemctl restart certs-updated.service || true
           '';
         };
       }
@@ -105,7 +117,7 @@ let
       (runIf config.services.consul.enable {
         template = {
           destination = "/etc/consul.d/tokens.json";
-          command = reload-cvn;
+
           contents = ''
             {
               "encrypt": "{{ with secret "kv/bootstrap/clients/consul" }}{{ .Data.data.encrypt }}{{ end }}",
@@ -121,23 +133,39 @@ let
               }
             }
           '';
+
+          command = writeShellScript "reload-consul" ''
+            set -xu
+            ${pkgs.systemd}/bin/systemctl reload consul || true
+          '';
         };
       })
 
       (runIf config.services.nomad.enable {
         template = {
-          command = reload-cvn;
           destination = "/run/keys/nomad-consul-token";
+
           contents = ''
             {{ with secret "consul/creds/nomad-client" }}{{ .Data.token }}{{ end }}
+          '';
+
+          command = writeShellScript "restart-nomad" ''
+            set -xu
+            export PATH="${lib.makeBinPath [ pkgs.curl pkgs.systemd ]}"
+
+            if curl -s -k https://127.0.0.1:4646/v1/status/leader &> /dev/null; then
+              systemctl restart nomad.service || true
+            else
+              systemctl start nomad.service || true
+            fi
           '';
         };
       })
 
       (runIf config.services.vault.enable {
         template = {
-          command = reload-cvn;
           destination = "/etc/vault.d/consul-token.json";
+
           contents = ''
             {{ with secret "consul/creds/vault-client" }}
             {
@@ -156,6 +184,11 @@ let
             }
             {{ end }}
           '';
+
+          command = writeShellScript "restart-vault" ''
+            set -xu
+            systemctl restart vault.service || true
+          '';
         };
       })
 
@@ -169,6 +202,43 @@ in {
   };
 
   config = mkIf config.services.vault-agent-client.enable {
+    systemd.services.certs-updated = {
+      path = with pkgs; [ coreutils curl systemd ];
+
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        Restart = "on-failure";
+        RestartSec = "20s";
+        ExecStartPre = writeShellScript "wait-for-certs" ''
+          set -exuo pipefail
+
+             test -f /etc/ssl/certs/full.pem \
+          && test -f /etc/ssl/certs/cert.pem \
+          && test -f /etc/ssl/certs/cert-key.pem
+        '';
+      };
+
+      script = ''
+        set -xu
+
+        # this service will be invoked 3 times in short succession, so we try
+        # to run this only once per certificate change to keep restarts to a
+        # minimum
+        sleep 10
+
+        systemctl reload consul.service
+
+        systemctl restart vault.service
+
+        if curl -s -k https://127.0.0.1:4646/v1/status/leader &> /dev/null; then
+          systemctl restart nomad.service
+        else
+          systemctl start nomad.service
+        fi
+      '';
+    };
+
     systemd.services.vault-agent = {
       before = (optional config.services.vault.enable "vault.service")
         ++ (optional config.services.consul.enable "consul.service")
@@ -178,9 +248,7 @@ in {
       environment = {
         inherit (config.environment.variables) AWS_DEFAULT_REGION VAULT_FORMAT;
         VAULT_ADDR = "https://vault.${domain}";
-        # VAULT_CACERT = "/etc/ssl/certs/full.pem";
         CONSUL_HTTP_ADDR = "127.0.0.1:8500";
-        # CONSUL_CACERT = "/etc/ssl/certs/full.pem";
         VAULT_SKIP_VERIFY = "true";
       };
 
