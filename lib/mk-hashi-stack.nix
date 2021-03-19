@@ -47,7 +47,7 @@ let
         fi
 
         if [ -z "$dockerLoginDone" ]; then
-          echo "$dockerPassword" | docker login docker.mantis.ws -u ${dockerRole} --password-stdin
+          echo "$dockerPassword" | docker login ${registry} -u ${dockerRole} --password-stdin
           dockerLoginDone=1
         fi
 
