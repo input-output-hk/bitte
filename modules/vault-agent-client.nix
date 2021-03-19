@@ -25,25 +25,6 @@ let
 
   pkiSecret = ''"pki/issue/client" ${toString pkiArgs}'';
 
-  reload-cvn = writeShellScript "reload-cvn" ''
-    set -x
-
-    export PATH="$PATH:${
-      lib.makeBinPath (with pkgs; [ coreutils systemd curl ])
-    }"
-
-    systemctl reload consul.service || true
-
-    if curl -s -k https://127.0.0.1:4646/v1/status/leader &> /dev/null; then
-      systemctl restart nomad.service || true
-    else
-      systemctl start nomad.service || true
-    fi
-
-    systemctl restart vault.service || true
-    exit 0
-  '';
-
   vaultAgentConfig = pkgs.toPrettyJSON "vault-agent" {
     pid_file = "./vault-agent.pid";
     vault.address = "https://vault.${domain}:8200";
@@ -79,7 +60,7 @@ let
           '';
 
           command = writeShellScript "update-cert" ''
-            systemctl restart certs-updated.service || true
+            ${pkgs.systemd}/bin/systemctl restart certs-updated.service || true
           '';
         };
       }
@@ -95,7 +76,7 @@ let
           '';
 
           command = writeShellScript "update-cert" ''
-            systemctl restart certs-updated.service || true
+            ${pkgs.systemd}/bin/systemctl restart certs-updated.service || true
           '';
         };
       }
@@ -109,7 +90,7 @@ let
           '';
 
           command = writeShellScript "update-cert" ''
-            systemctl restart certs-updated.service || true
+            ${pkgs.systemd}/bin/systemctl restart certs-updated.service || true
           '';
         };
       }
@@ -187,7 +168,7 @@ let
 
           command = writeShellScript "restart-vault" ''
             set -xu
-            systemctl restart vault.service || true
+            ${pkgs.systemd}/bin/systemctl restart vault.service || true
           '';
         };
       })
