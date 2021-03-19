@@ -115,7 +115,7 @@ let
 
       (runIf (config.services.consul.enable) {
         template = {
-          destination = "/run/keys/consul-server-default-token";
+          destination = "/run/keys/consul-default-token";
           command = "${pkgs.systemd}/bin/systemctl reload consul.service";
           contents = ''
             {{ with secret "consul/creds/consul-server-default" }}{{ .Data.token }}{{ end }}

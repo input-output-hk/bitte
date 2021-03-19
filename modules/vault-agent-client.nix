@@ -115,10 +115,19 @@ let
             }
           '';
 
-          command = writeShellScript "reload-consul" ''
-            set -xu
-            ${pkgs.systemd}/bin/systemctl reload consul || true
+          command = "${pkgs.systemd}/bin/systemctl reload consul";
+        };
+      })
+
+      (runIf config.services.consul.enable {
+        template = {
+          destination = "/run/keys/consul-default-token";
+
+          contents = ''
+            {{ with secret "consul/creds/consul-default" }}{{ .Data.token }}{{ end }}
           '';
+
+          command = "${pkgs.systemd}/bin/systemctl reload consul.service";
         };
       })
 
