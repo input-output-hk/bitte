@@ -127,6 +127,20 @@ let
 
   nanoseconds = coercedTo str toNanoseconds ints.unsigned;
 
+  lifecycleType = attrsOf (submodule ({ name, ...}: {
+    options = {
+      hook = mkOption {
+        type = nullOr (enum [ "prestart" "poststart" "poststop" ]);
+        default = null;
+      };
+
+      sidecar = mkOption {
+        type = bool;
+        default = false;
+      };
+    };
+  }));
+
   serviceType = attrsOf (submodule ({ name, ... }: {
     options = {
       name = mkOption {
@@ -933,6 +947,15 @@ let
           See the driver documentation for what is available.
           Examples include docker, qemu, java and exec.
           https://www.nomadproject.io/docs/drivers
+        '';
+      };
+
+      lifecycle = mkOption {
+        type = nullOr lifecycleType;
+        description = ''
+          Used to express task dependencies in Nomad by configuring
+          when a task is run within the lifecycle of a task group.
+          https://www.nomadproject.io/docs/job-specification/lifecycle
         '';
       };
 
