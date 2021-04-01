@@ -79,7 +79,8 @@ in final: prev: {
 
   haproxy = prev.callPackage ./pkgs/haproxy.nix { };
 
-  inherit (inputs.nixpkgs-unstable.legacyPackages.${final.system}) grafana-loki grafana traefik;
+  inherit (inputs.nixpkgs-unstable.legacyPackages.${final.system})
+    grafana-loki grafana traefik;
 
   victoriametrics = prev.callPackage ./pkgs/victoriametrics.nix { };
 
@@ -94,6 +95,10 @@ in final: prev: {
   vault-backend = final.callPackage ./pkgs/vault-backend.nix { };
 
   oauth2_proxy = final.callPackage ./pkgs/oauth2_proxy.nix { };
+
+  filebeat = final.callPackage ./pkgs/filebeat.nix {
+    inherit (inputs.nixpkgs-unstable.legacyPackages.${final.system}) buildGoModule;
+  };
 
   zfsAmi = {
     # attrs of interest:
