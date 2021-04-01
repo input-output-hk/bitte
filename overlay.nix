@@ -48,8 +48,6 @@ in final: prev: {
 
   recImport = prev.callPackage ./lib/rec-import.nix { };
 
-  escapeUserData = prev.callPackage ./lib/escape-user-data.nix { };
-
   snakeCase = prev.callPackage ./lib/snake-case.nix { };
 
   inherit (inclusive.lib) inclusive;
