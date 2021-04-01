@@ -81,7 +81,7 @@ in final: prev: {
 
   haproxy = prev.callPackage ./pkgs/haproxy.nix { };
 
-  inherit (inputs.nixpkgs-unstable.legacyPackages.${final.system}) grafana-loki grafana;
+  inherit (inputs.nixpkgs-unstable.legacyPackages.${final.system}) grafana-loki grafana traefik;
 
   victoriametrics = prev.callPackage ./pkgs/victoriametrics.nix { };
 
