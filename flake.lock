@@ -7,11 +7,11 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1617352053,
-        "narHash": "sha256-6pyPFIr+Gqhe7Mgp7ZD8V33Hj8si1NZWcKEOOgDNXF8=",
+        "lastModified": 1617363086,
+        "narHash": "sha256-JMuc1uqG51T4TJnklfOt4w8U6LmHslttZRRtY4KFFN8=",
         "owner": "input-output-hk",
         "repo": "bitte-cli",
-        "rev": "278d2b69d3fedfb3d131b1efb6fb694778d03c21",
+        "rev": "baba7e7fa5e2908cfb19fc73dc4cc7504db4125d",
         "type": "github"
       },
       "original": {
@@ -208,11 +208,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1614256663,
-        "narHash": "sha256-cFew8eXUJfmlaLh4f3Z+TxAAo2Syh2xWB/3Xa/Ebd70=",
+        "lastModified": 1617363019,
+        "narHash": "sha256-w9VUHPPndNPGPSumta4cEhhRQBUL1jMxiZmZtwYY8JU=",
         "owner": "input-output-hk",
         "repo": "rust.nix",
-        "rev": "e2d4e8e5225739c4607614f98f60d2667c794558",
+        "rev": "2fd5fce3ec67e6915cb79cbf132f023e147b31ba",
         "type": "github"
       },
       "original": {
