@@ -84,10 +84,13 @@
         servicePrefix = allRead;
       };
 
+      # Shared between Consul and Nomad, due to inability of Nomad to reload
+      # tokens.
       consul-default = {
         agentPrefix = allWrite;
         nodePrefix = allWrite;
-        servicePrefix = allRead;
+        servicePrefix = allWrite;
+        keyPrefix = allRead;
       };
 
       consul-server-default = {
@@ -140,6 +143,7 @@
         acl = "write";
       };
 
+      # Not used anymore...
       nomad-client = {
         agentPrefix = allRead;
         nodePrefix = allRead;
@@ -147,6 +151,7 @@
         keyPrefix = allRead;
       };
 
+      # Not used anymore...
       ingress = {
         nodePrefix = allRead;
         servicePrefix = allRead;
