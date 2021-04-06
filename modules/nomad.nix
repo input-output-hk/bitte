@@ -1157,7 +1157,9 @@ in {
           ${pkgs.ensureDependencies [ "consul" "vault" ]}
           cp /etc/ssl/certs/cert-key.pem .
           cp /run/keys/vault-token .
-          cp /run/keys/nomad-consul-token .
+          ${lib.optionalString config.services.vault-agent-core.enable ''
+            cp /run/keys/nomad-consul-token .
+          ''}
           chown --reference . *.pem
         '';
       in {
@@ -1181,8 +1183,10 @@ in {
           token="$(vault token create -policy ${cfg.tokenPolicy} -period 72h -orphan -field token)"
           export VAULT_TOKEN="$token"
 
-          CONSUL_HTTP_TOKEN="$(< nomad-consul-token)"
-          export CONSUL_HTTP_TOKEN
+          ${lib.optionalString config.services.vault-agent-core.enable ''
+            CONSUL_HTTP_TOKEN_FILE="$PWD/nomad-consul-token"
+            export CONSUL_HTTP_TOKEN_FILE
+          ''}
 
           exec ${lib.concatStringsSep " " args}
         '';

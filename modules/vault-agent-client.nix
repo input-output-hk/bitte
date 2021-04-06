@@ -131,27 +131,6 @@ let
         };
       })
 
-      (runIf config.services.nomad.enable {
-        template = {
-          destination = "/run/keys/nomad-consul-token";
-
-          contents = ''
-            {{ with secret "consul/creds/nomad-client" }}{{ .Data.token }}{{ end }}
-          '';
-
-          command = writeShellScript "restart-nomad" ''
-            set -xu
-            export PATH="${lib.makeBinPath [ pkgs.curl pkgs.systemd ]}"
-
-            if curl -s -k https://127.0.0.1:4646/v1/status/leader &> /dev/null; then
-              systemctl restart nomad.service || true
-            else
-              systemctl start nomad.service || true
-            fi
-          '';
-        };
-      })
-
       (runIf config.services.vault.enable {
         template = {
           destination = "/etc/vault.d/consul-token.json";
