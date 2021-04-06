@@ -45,7 +45,7 @@
       packages = {
         inherit (legacyPackages)
           bitte nixos-rebuild nixFlakes sops terraform-with-plugins ssm-agent
-          cfssl consul;
+          cfssl consul fetch-hashi-creds;
       };
 
       hydraJobs = packages;

@@ -95,6 +95,17 @@ in final: prev: {
 
   vault-backend = final.callPackage ./pkgs/vault-backend.nix { };
 
+  fetch-hashi-creds = final.writeShellScriptBin "fetch_hashi_creds" ''
+    vault read consul/creds/developer &>/dev/null || {
+      echo "Please login to vault first"
+      exit 1
+    }
+
+    export NOMAD_TOKEN="$(vault read -field secret_id nomad/creds/developer)"
+    export CONSUL_HTTP_TOKEN="$(vault read -field token consul/creds/developer)"
+  '';
+
+
   zfsAmi = {
     # attrs of interest:
     # * config.system.build.zfsImage
