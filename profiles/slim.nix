@@ -11,7 +11,6 @@
     bat
     bind
     di
-    envoy
     fd
     file
     gitMinimal
@@ -19,7 +18,6 @@
     jq
     lsof
     ncdu
-    nomad-autoscaler
     openssl
     ripgrep
     tcpdump
