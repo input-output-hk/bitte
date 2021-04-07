@@ -48,6 +48,8 @@ in final: prev: {
 
   recImport = prev.callPackage ./lib/rec-import.nix { };
 
+  sanitize = prev.callPackage ./lib/sanitize.nix { };
+
   snakeCase = prev.callPackage ./lib/snake-case.nix { };
 
   inherit (inclusive.lib) inclusive;
