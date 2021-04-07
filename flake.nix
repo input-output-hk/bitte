@@ -54,5 +54,9 @@
 
     })) // {
       mkHashiStack = import ./lib/mk-hashi-stack.nix;
+      checks.x86_64-linux = import ./tests {
+        pkgs = self.legacyPackages.x86_64-linux;
+        lib = self.legacyPackages.x86_64-linux.lib;
+      };
     };
 }
