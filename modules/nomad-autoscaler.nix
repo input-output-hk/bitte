@@ -366,9 +366,6 @@ in
       serviceConfig = {
         StateDirectory = "nomad-autoscaler";
         RuntimeDirectory = "nomad-autoscaler";
-        DynamicUser = true;
-        User = "nomad-autoscaler";
-        Group = "nomad-autoscaler";
         ExecStart =
           "${cfg.package}/bin/nomad-autoscaler agent -config /etc/nomad-autoscaler.d/config.json";
         # support reloading
