@@ -1,8 +1,32 @@
 { lib, config, pkgs, ... }:
-let cfg = config.services.nomad-autoscaler;
+let
+  cfg = config.services.nomad-autoscaler;
   inherit (lib) mkOption mkEnableOption types mkIf;
   inherit (types) enum path package attrsOf submodule port str bool int listOf;
   inherit (pkgs) sanitize;
+
+  pluginModule = submodule ({ name, ... }: {
+    options = {
+      args = mkOption {
+        type = listOf str;
+        default = [ ];
+        description =
+          "Specifies a set of arguments to pass to the plugin binary when it is executed.";
+      };
+      driver = mkOption {
+        type = str;
+        default = "";
+        description =
+          "The plugin's executable name relative to to the plugin_dir. If the plugin has a suffix, such as .exe, this should be omitted.";
+      };
+      config = mkOption {
+        type = attrsOf str;
+        default = { };
+        description =
+          "Specifies configuration values for the plugin either as HCL or JSON. The accepted values are plugin specific. Please refer to the individual plugin's documentation.";
+      };
+    };
+  });
 in
 {
   options.services.nomad-autoscaler = {
@@ -298,48 +322,74 @@ in
           "Specifies a special tag which will be used to select a Circonus Broker when a Broker ID is not provided. The best use of this is to as a hint for which broker should be used based on where this particular instance is running (e.g., a specific geographic location or datacenter, dc:sfo).";
       };
     };
+
+    apm = mkOption {
+      default = { };
+
+      type = attrsOf pluginModule;
+
+      description =
+        "The apm block is used to configure application performance metric (APM) plugins.";
+    };
+
+
+    target = mkOption {
+      default = { };
+
+      type = attrsOf pluginModule;
+
+      description =
+        "The target block is used to configure scaling target plugins.";
+    };
+
+    strategy = mkOption {
+      default = { };
+
+      type = attrsOf pluginModule;
+
+      description =
+        "The strategy block is used to configure scaling strategy plugins.";
+    };
   };
 
-  config = mkIf
-    cfg.enable
-    {
-      environment.etc."nomad-autoscaler.d/config.json".source =
-        pkgs.toPrettyJSON "config" (sanitize {
-          inherit (cfg) pluginDir logJson logLevel http nomad policy
-            policyEval telemetry;
-        });
+  config = mkIf cfg.enable {
+    environment.etc."nomad-autoscaler.d/config.json".source =
+      pkgs.toPrettyJSON "config" (sanitize {
+        inherit (cfg) pluginDir logJson logLevel http nomad policy
+          policyEval telemetry apm target strategy;
+      });
 
-      systemd.services.nomad-autoscaler = {
-        description = "Nomad Autoscaler Service";
-        after = [ "network.target" ];
-        wantedBy = [ "multi-user.target" ];
-        serviceConfig = {
-          StateDirectory = "nomad-autoscaler";
-          RuntimeDirectory = "nomad-autoscaler";
-          DynamicUser = true;
-          User = "nomad-autoscaler";
-          Group = "nomad-autoscaler";
-          ExecStart =
-            "${cfg.package}/bin/nomad-autoscaler agent -config /etc/nomad-autoscaler.d/config.json";
-          # support reloading
-          ExecReload = [
-          ];
-          Restart = "on-failure";
-          StartLimitInterval = "20s";
-          StartLimitBurst = 10;
-          TimeoutStopSec = "30s";
-          RestartSec = "5s";
-          # upstream hardening options
-          NoNewPrivileges = true;
-          ProtectHome = true;
-          # ProtectSystem = "strict";
-          ProtectKernelTunables = true;
-          ProtectKernelModules = true;
-          ProtectControlGroups = true;
-          SystemCallFilter =
-            "~@cpu-emulation @keyring @module @obsolete @raw-io @reboot @swap @sync";
-        };
-
+    systemd.services.nomad-autoscaler = {
+      description = "Nomad Autoscaler Service";
+      after = [ "network.target" ];
+      wantedBy = [ "multi-user.target" ];
+      serviceConfig = {
+        StateDirectory = "nomad-autoscaler";
+        RuntimeDirectory = "nomad-autoscaler";
+        DynamicUser = true;
+        User = "nomad-autoscaler";
+        Group = "nomad-autoscaler";
+        ExecStart =
+          "${cfg.package}/bin/nomad-autoscaler agent -config /etc/nomad-autoscaler.d/config.json";
+        # support reloading
+        ExecReload = [
+        ];
+        Restart = "on-failure";
+        StartLimitInterval = "20s";
+        StartLimitBurst = 10;
+        TimeoutStopSec = "30s";
+        RestartSec = "5s";
+        # upstream hardening options
+        NoNewPrivileges = true;
+        ProtectHome = true;
+        # ProtectSystem = "strict";
+        ProtectKernelTunables = true;
+        ProtectKernelModules = true;
+        ProtectControlGroups = true;
+        SystemCallFilter =
+          "~@cpu-emulation @keyring @module @obsolete @raw-io @reboot @swap @sync";
       };
+
     };
+  };
 }
