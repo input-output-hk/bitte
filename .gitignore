@@ -5,5 +5,5 @@
 /*.plan
 /encrypted
 /config.tf.json
-/result
+/result*
 /.lego

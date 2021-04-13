@@ -9,6 +9,7 @@
     ./secrets.nix
     ./reaper.nix
     ./builder.nix
+    ./zfs-arc.nix
   ];
 
   services = {
