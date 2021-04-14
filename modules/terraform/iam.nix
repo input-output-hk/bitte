@@ -371,7 +371,14 @@ in {
           nomad = {
             effect = "Allow";
             resources = [ "*" ];
-            actions = [ "autoscaling:SetInstanceHealth" ];
+            actions = [
+              "autoscaling:CreateOrUpdateTags"
+              "autoscaling:DescribeAutoScalingGroups"
+              "autoscaling:DescribeScalingActivities"
+              "autoscaling:SetInstanceHealth"
+              "autoscaling:TerminateInstanceInAutoScalingGroup"
+              "autoscaling:UpdateAutoScalingGroup"
+            ];
           };
 
           consul = {
