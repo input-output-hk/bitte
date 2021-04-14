@@ -123,6 +123,7 @@ let
         };
       })
 
+      # TODO: remove duplication
       (runIf config.services.nomad.enable {
         template = {
           command = "${pkgs.systemd}/bin/systemctl restart nomad.service";
@@ -143,6 +144,17 @@ let
           destination = "/run/keys/nomad-consul-token";
           contents = ''
             {{- with secret "consul/creds/nomad-server" }}{{ .Data.token }}{{ end -}}
+          '';
+        };
+      })
+
+      (runIf config.services.nomad-autoscaler.enable {
+        template = {
+          command =
+            "${pkgs.systemd}/bin/systemctl restart nomad-autoscaler.service";
+          destination = "/run/keys/nomad-autoscaler-token";
+          contents = ''
+            {{- with secret "nomad/creds/nomad-autoscaler" }}{{ .Data.secret_id }}{{ end -}}
           '';
         };
       })
