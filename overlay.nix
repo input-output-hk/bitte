@@ -99,8 +99,19 @@ in final: prev: {
   oauth2_proxy = final.callPackage ./pkgs/oauth2_proxy.nix { };
 
   filebeat = final.callPackage ./pkgs/filebeat.nix {
-    inherit (inputs.nixpkgs-unstable.legacyPackages.${final.system}) buildGoModule;
+    inherit (inputs.nixpkgs-unstable.legacyPackages.${final.system})
+      buildGoModule;
   };
+
+  # Little convenience function helping us to containing the bash
+  # madness: forcing our bash scripts to be shellChecked.
+  writeBashChecked = final.writers.makeScriptWriter {
+    interpreter = "${final.bash}/bin/bash";
+    check = final.writers.writeBash "shellcheck-check" ''
+      ${final.shellcheck}/bin/shellcheck "$1"
+    '';
+  };
+  writeBashBinChecked = name: final.writeBashChecked "/bin/${name}";
 
   zfsAmi = {
     # attrs of interest:

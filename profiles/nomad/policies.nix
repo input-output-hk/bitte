@@ -50,5 +50,11 @@
       operator.policy = "write";
       plugin.policy = "list";
     };
+
+    nomad-autoscaler = {
+      description = "Nomad Autoscaler";
+
+      namespace.default.policy = "scale";
+    };
   };
 }

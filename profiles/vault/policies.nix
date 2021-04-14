@@ -69,6 +69,7 @@ in {
       "auth/token/create".capabilities = [ c r u d l s ];
       "auth/token/create/nomad-cluster".capabilities = [ u ];
       "auth/token/create/nomad-server".capabilities = [ u ];
+      "auth/token/create/nomad-autoscaler".capabilities = [ u ];
       "auth/token/create-orphan".capabilities = [ c r u d l ];
       "auth/token/lookup".capabilities = [ u ];
       "auth/token/lookup-self".capabilities = [ r ];
@@ -76,10 +77,12 @@ in {
       "auth/token/revoke-accessor".capabilities = [ u ];
       "auth/token/roles/nomad-cluster".capabilities = [ r ];
       "auth/token/roles/nomad-server".capabilities = [ r ];
+      "auth/token/roles/nomad-autoscaler".capabilities = [ r ];
       "consul/creds/consul-server-agent".capabilities = [ r ];
       "consul/creds/consul-server-default".capabilities = [ r ];
       "consul/creds/nomad-server".capabilities = [ r ];
       "consul/creds/vault-server".capabilities = [ r ];
+      "consul/creds/nomad-autoscaler".capabilities = [ r ];
       "consul/creds/ingress".capabilities = [ r ];
       "kv/data/bootstrap/ca".capabilities = [ c r u d l ];
       "kv/data/bootstrap/*".capabilities = [ r ];
