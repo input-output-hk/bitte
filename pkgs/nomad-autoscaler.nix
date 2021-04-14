@@ -1,4 +1,4 @@
-{ stdenv, fetchFromGitHub, buildGoModule }:
+{ stdenv, fetchFromGitHub, buildGoModule, go, removeReferencesTo }:
 buildGoModule rec {
   pname = "nomad-autoscaler";
   version = "0.3.2";
@@ -11,6 +11,19 @@ buildGoModule rec {
   };
 
   subPackages = [ "." ];
+
+  nativeBuildInputs = [ removeReferencesTo ];
+
+  postBuild = ''
+    make plugins
+
+    mkdir -p $out/share
+
+    for plugin in bin/plugins/*; do
+      remove-references-to -t ${go} "$plugin"
+      cp "$plugin" $out/share/"$(basename "$plugin")"
+    done
+  '';
 
   vendorSha256 = "sha256-hU8aOQMOSSRs1+/2yUinh6w0PjmefpkC3NQtqG3YxCY=";
 }

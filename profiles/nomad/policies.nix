@@ -54,7 +54,12 @@
     nomad-autoscaler = {
       description = "Nomad Autoscaler";
 
-      namespace.default.policy = "scale";
+      namespace.default = {
+        policy = "scale";
+        capabilities = ["read-job"];
+      };
+
+      node.policy = "read";
     };
   };
 }
