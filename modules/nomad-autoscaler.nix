@@ -384,6 +384,11 @@ in {
       description = "Nomad Autoscaler Service";
       after = [ "network.target" ];
       wantedBy = [ "multi-user.target" ];
+
+      restartTriggers = lib.mapAttrsToList (_: d: d.source)
+        (lib.filterAttrs (n: _: lib.hasPrefix "nomad-autoscaler.d/" n)
+          config.environment.etc);
+
       serviceConfig = {
         StateDirectory = "nomad-autoscaler";
         RuntimeDirectory = "nomad-autoscaler";
