@@ -52,7 +52,7 @@ in {
 
     plugin_dir = mkOption {
       type = path;
-      default = "${cfg.package.src}/plugins";
+      default = "${cfg.package}/share";
       description = ''
         The plugin directory is used to discover Nomad Autoscaler plugins.
       '';
@@ -421,10 +421,7 @@ in {
         ProtectKernelTunables = true;
         ProtectKernelModules = true;
         ProtectControlGroups = true;
-        SystemCallFilter =
-          "~@cpu-emulation @keyring @module @obsolete @raw-io @reboot @swap @sync";
       };
-
     };
   };
 }
