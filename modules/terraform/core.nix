@@ -258,7 +258,7 @@ in {
 
     resource.acme_registration.reg = {
       account_key_pem = var "tls_private_key.private_key.private_key_pem";
-      email_address = "michael.fellinger@iohk.io";
+      email_address = "devops@iohk.io";
     };
 
     resource.acme_certificate.certificate = {
