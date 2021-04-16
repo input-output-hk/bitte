@@ -6,8 +6,8 @@ let
 
   configJson = pkgs.toPrettyJSON "promtail" {
     server = {
-      grpc_listen_port = 0;
-      http_listen_port = 3101;
+      http_listen_port = cfg.server.http_listen_port;
+      grpc_listen_port = cfg.server.grpc_listen_port;
     };
 
     clients = [{
@@ -99,9 +99,21 @@ in {
   options = {
     services.promtail = {
       enable = mkEnableOption "Enable Promtail";
-      config = mkOption {
-        type = attrsOf undefined;
-        default = { };
+
+      server = mkOption {
+        type = submodule {
+          options = {
+            http_listen_port = mkOption {
+              type = port;
+              default = 3101;
+            }
+
+            grpc_listen_port = mkOption {
+              type = port;
+              default = 0;
+            };
+          };
+        };
       };
     };
   };
