@@ -16,7 +16,7 @@ let
   memoryQuery = mkQuery "memory";
   cpuQuery = mkQuery "cpu";
 
-  policies = lib.mapAttrs' asgs (name: asg: {
+  policies = lib.flip lib.mapAttrs' asgs (name: asg: {
     name = "nomad-autoscaler.d/policies/${name}.json";
     value.source = pkgs.toPrettyJSON "${name}.json" {
       scaling.cluster_policy = {

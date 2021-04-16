@@ -1,7 +1,7 @@
 { pkgs, lib, config, ... }:
 let
   inherit (lib) mkIf mkEnableOption mkOption;
-  inherit (lib.types) undefined attrsOf;
+  inherit (lib.types) undefined attrsOf submodule port;
   cfg = config.services.promtail;
 
   configJson = pkgs.toPrettyJSON "promtail" {
@@ -101,12 +101,13 @@ in {
       enable = mkEnableOption "Enable Promtail";
 
       server = mkOption {
+        default = {};
         type = submodule {
           options = {
             http_listen_port = mkOption {
               type = port;
               default = 3101;
-            }
+            };
 
             grpc_listen_port = mkOption {
               type = port;
