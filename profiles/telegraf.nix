@@ -42,11 +42,21 @@ in {
           percentile_limit = 1000;
         };
 
-        prometheus = {
-          #urls = [ "http://127.0.0.1:3101/metrics" "http://127.0.0.1:9334" ];
-          urls = [ "http://127.0.0.1:3101/metrics" ]
-            ++ optional config.services.loki.enable
-            "http://127.0.0.1:3100/metrics";
+        prometheus = let
+          promtail = "http://127.0.0.1:${
+              toString config.services.promtail.server.http_listen_port
+            }/metrics";
+          autoscaling = "http://127.0.0.1:${
+              toString config.services.nomad-autoscaler.http.bind_port
+            }/v1/metrics?format=prometheus";
+          loki = "http://127.0.0.1:${
+              toString
+              config.services.loki.configuration.server.http_listen_port
+            }/metrics";
+        in {
+          urls = optional config.services.promtail.enable promtail
+            ++ optional config.services.loki.enable loki
+            ++ optional config.services.nomad-autoscaler.enable autoscaling;
           metric_version = 2;
         };
 
