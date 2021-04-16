@@ -59,7 +59,7 @@
         capabilities = ["read-job"];
       };
 
-      node.policy = "read";
+      node.policy = "write";
     };
   };
 }
