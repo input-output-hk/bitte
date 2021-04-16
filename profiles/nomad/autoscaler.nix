@@ -6,11 +6,11 @@ let
     { region, ... }:
     lib.replaceStrings [ "\n" " " ] [ "" "" ] ''
       sum(
-        nomad_client_allocated_${type}_value{datacenter=\"${region}\"}
+        nomad_client_allocated_${type}_value{datacenter="${region}"}
         * 100
-        / ( nomad_client_unallocated_${type}_value{datacenter=\"${region}\"}
-          + nomad_client_allocated_${type}_value{datacenter=\"${region}\"} )
-      ) / count(nomad_client_allocated_${type}_value{datacenter=\"${region}\"})
+        / ( nomad_client_unallocated_${type}_value{datacenter="${region}"}
+          + nomad_client_allocated_${type}_value{datacenter="${region}"} )
+      ) / count(nomad_client_allocated_${type}_value{datacenter="${region}"})
     '';
 
   memoryQuery = mkQuery "memory";
