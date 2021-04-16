@@ -19,7 +19,7 @@ let
   policies = lib.flip lib.mapAttrs' asgs (name: asg: {
     name = "nomad-autoscaler.d/policies/${name}.json";
     value.source = pkgs.toPrettyJSON "${name}.json" {
-      scaling.cluster_policy = {
+      scaling."${name}-policy" = {
         enabled = true;
         min = 1;
         max = 3;
