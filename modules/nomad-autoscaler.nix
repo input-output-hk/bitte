@@ -65,6 +65,7 @@ in {
         default = "127.0.0.1";
         description = "The HTTP address that the server will bind to.";
       };
+
       bind_port = mkOption {
         type = port;
         default = 8080;
@@ -179,12 +180,14 @@ in {
         description =
           "The time limit that an eval must be ACK'd before being considered N";
       };
+
       delivery_limit = mkOption {
         type = int;
         default = 1;
         description =
           "The maximum number of times a policy evaluation can be dequeued from the b";
       };
+
       workers = mkOption {
         type = attrsOf int;
         default = {
@@ -209,6 +212,7 @@ in {
         default = false;
         description = "Enable adding hostname to metric labels.";
       };
+
       collection_interval = mkOption {
         type = str;
         default = "1s";
@@ -386,9 +390,8 @@ in {
       after = [ "network.target" ];
       wantedBy = [ "multi-user.target" ];
 
-      restartTriggers = lib.mapAttrsToList (_: d: d.source)
-        (lib.filterAttrs (n: _: lib.hasPrefix "nomad-autoscaler.d/" n)
-          config.environment.etc);
+      restartTriggers =
+        [ config.environment.etc."nomad-autoscaler.d/config.json".source ];
 
       serviceConfig = {
         StateDirectory = "nomad-autoscaler";
