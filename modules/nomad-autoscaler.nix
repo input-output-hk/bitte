@@ -3,7 +3,7 @@ let
   cfg = config.services.nomad-autoscaler;
   inherit (lib) mkOption mkEnableOption types mkIf;
   inherit (types) enum path package attrsOf submodule port str bool int ints
-    listOf;
+    listOf nullOr;
   inherit (pkgs) sanitize;
 
   pluginModule = submodule ({ name, ... }: {
