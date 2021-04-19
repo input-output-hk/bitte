@@ -16,52 +16,48 @@ let
   memoryQuery = mkQuery "memory";
   cpuQuery = mkQuery "cpu";
 
-  policies = lib.flip lib.mapAttrs' asgs (name: asg: {
-    name = "nomad-autoscaler.d/policies/${name}.json";
-    value.source = pkgs.toPrettyJSON "${name}.json" {
-      scaling."${name}-policy" = {
-        enabled = true;
-        min = 1;
-        max = 3;
+  policies = lib.flip lib.mapAttrs asgs (name: asg: {
+    enabled = true;
+    min = 1;
+    max = 3;
 
-        policy = {
-          cooldown = "2m";
-          evaluation_interval = "1m";
+    policy = {
+      cooldown = "2m";
+      evaluation_interval = "1m";
 
-          check.cpu_allocated_percentage = {
-            source = "victoriametrics";
-            query = cpuQuery asg;
-            strategy.target-value.target = 70;
-          };
+      check.cpu_allocated_percentage = {
+        source = "victoriametrics";
+        query = cpuQuery asg;
+        strategy.target-value.target = 70.0;
+      };
 
-          check.mem_allocated_percentage = {
-            source = "victoriametrics";
-            query = memoryQuery asg;
-            strategy.target-value.target = 70;
-          };
+      check.mem_allocated_percentage = {
+        source = "victoriametrics";
+        query = memoryQuery asg;
+        strategy.target-value.target = 70.0;
+      };
 
-          target."${name}" = {
-            dry-run = "true";
+      target."${name}" = {
+        dry-run = true;
 
-            aws_asg_name = asg.uid;
-            node_class = "client";
-            node_drain_deadline = "5m";
-            node_drain_ignore_system_jobs = "false";
-            node_purge = "true";
-            nomad_selector_strategy = "empty_ignore_system";
-          };
-        };
+        aws_asg_name = asg.uid;
+        node_class = "client";
+        node_drain_deadline = "5m";
+        node_drain_ignore_system_jobs = false;
+        node_purge = true;
+        node_selector_strategy = "empty_ignore_system";
       };
     };
   });
 in {
-  environment.etc = policies;
 
   services.nomad-autoscaler = {
     enable = true;
     log_level = "DEBUG";
     policy.dir = "/etc/nomad-autoscaler.d/policies";
     telemetry.prometheus_metrics = true;
+
+    inherit policies;
 
     nomad = {
       address = "https://127.0.0.1:4646";

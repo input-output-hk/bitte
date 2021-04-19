@@ -9,6 +9,7 @@ let
       lambda = throw "Cannot sanitize functions";
       bool = obj;
       int = obj;
+      float = obj;
       string = obj;
       path = toString obj;
       list = map sanitize obj;

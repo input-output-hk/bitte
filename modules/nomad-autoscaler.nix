@@ -2,8 +2,9 @@
 let
   cfg = config.services.nomad-autoscaler;
   inherit (lib) mkOption mkEnableOption types mkIf;
-  inherit (types) enum path package attrsOf submodule port str bool int ints
-    listOf nullOr;
+  inherit (types)
+    enum path package attrsOf submodule port str bool int ints listOf nullOr
+    float;
   inherit (pkgs) sanitize;
 
   pluginModule = submodule ({ name, ... }: {
@@ -39,75 +40,69 @@ let
   });
 
   scalingModule = submodule ({ name, ... }: {
-    enabled = mkOption {
-      type = bool;
-      default = true;
-      description = ''
+    options = {
+      enabled = mkEnableOption ''
         A boolean flag that allows operators to administratively disable a
         policy from active evaluation.
       '';
-    };
 
-    min = mkOption {
-      type = ints.positive;
-      description = ''
-        The minimum running count of the targeted resource. This can be 0 or
-        any positive integer.
-      '';
-    };
-
-    max = mkOption {
-      type = ints.positive;
-      description = ''
-        The maximum running count of the targeted resource. This can be 0 or
-        any positive integer.
-      '';
-    };
-
-    policy = mkOption { type = attrsOf policyModule; };
-  });
-
-  policyModule = submodule ({ name, ... }: {
-    options = {
-      cooldown = mkOption {
-        type = nullOr str;
-        default = null;
+      min = mkOption {
+        type = ints.positive;
         description = ''
-          A time interval after a scaling action during which no additional
-          scaling will be performed on the resource. It should be provided
-          as a duration (e.g.: "5s", "1m"). If omitted the configuration
-          value policy_default_cooldown from the agent will be used.
+          The minimum running count of the targeted resource. This can be 0 or
+          any positive integer.
         '';
       };
 
-      evaluation_interval = mkOption {
-        type = nullOr str;
-        default = null;
+      max = mkOption {
+        type = ints.positive;
         description = ''
-          Defines how often the policy is evaluated by the Autoscaler. It
-          should be provided as a duration (e.g.: "5s", "1m"). If omitted
-          the configuration value default_evaluation_interval from the
-          agent will be used.
+          The maximum running count of the targeted resource. This can be 0 or
+          any positive integer.
         '';
       };
 
-      target = mkOption {
-        # although there are more types, this is the only one we use.
-        type = attrsOf targetAwsAsgModule;
-        default = {};
-        description = ''
-          Defines where the autoscaling target is running. Detailed information on
-          the configuration options can be found on the Target Plugins page.
-        '';
-      };
+      policy = {
+        cooldown = mkOption {
+          type = nullOr str;
+          default = null;
+          description = ''
+            A time interval after a scaling action during which no additional
+            scaling will be performed on the resource. It should be provided
+            as a duration (e.g.: "5s", "1m"). If omitted the configuration
+            value policy_default_cooldown from the agent will be used.
+          '';
+        };
 
-      check = mkOption {
-        type = attrsOf checkModule;
-        default = { };
-        description = ''
-          Specifies one or more checks to be executed when determining if a scaling
-          action is required.
-        '';
+        evaluation_interval = mkOption {
+          type = nullOr str;
+          default = null;
+          description = ''
+            Defines how often the policy is evaluated by the Autoscaler. It
+            should be provided as a duration (e.g.: "5s", "1m"). If omitted
+            the configuration value default_evaluation_interval from the
+            agent will be used.
+          '';
+        };
+
+        target = mkOption {
+          # although there are more types, this is the only one we use.
+          type = attrsOf targetAwsAsgModule;
+          default = { };
+          description = ''
+            Defines where the autoscaling target is running. Detailed information on
+            the configuration options can be found on the Target Plugins page.
+          '';
+        };
+
+        check = mkOption {
+          type = attrsOf checkModule;
+          default = { };
+          description = ''
+            Specifies one or more checks to be executed when determining if a scaling
+            action is required.
+          '';
+        };
       };
     };
   });
@@ -143,7 +138,8 @@ let
       };
 
       strategy = mkOption {
-        type = str;
+        type = attrsOf checkStrategyModule;
+        default = { };
         description = ''
           The strategy to use, and it's configuration when
           calculating the desired state based on the current count
@@ -155,8 +151,21 @@ let
     };
   });
 
+  checkStrategyModule = submodule ({ name, ... }: {
+    options = {
+      target = mkOption { type = float; };
+
+      threshold = mkOption {
+        type = float;
+        default = 1.0e-2;
+      };
+    };
+  });
+
   targetAwsAsgModule = submodule ({ name, ... }: {
     options = {
+      dry-run = mkEnableOption "Whether to deploy in dry-run mode";
+
       aws_asg_name = mkOption {
         type = str;
         description = ''
@@ -557,15 +566,26 @@ in {
       description =
         "The strategy block is used to configure scaling strategy plugins.";
     };
+
+    policies = mkOption {
+      default = { };
+      type = attrsOf scalingModule;
+    };
   };
 
   config = mkIf cfg.enable {
-    environment.etc."nomad-autoscaler.d/config.json".source =
-      pkgs.toPrettyJSON "config" (sanitize {
-        inherit (cfg)
-          plugin_dir log_json log_level http nomad policy policy_eval telemetry
-          apm target strategy;
-      });
+    environment.etc = {
+      "nomad-autoscaler.d/config.json".source = pkgs.toPrettyJSON "config"
+        (sanitize {
+          inherit (cfg)
+            plugin_dir log_json log_level http nomad policy policy_eval
+            telemetry apm target strategy;
+        });
+    } // lib.flip lib.mapAttrs' (sanitize cfg.policies) (name: scaling: {
+      name = "nomad-autoscaler.d/policies/${name}.json";
+      value.source =
+        pkgs.toPrettyJSON "${name}.json" { scaling.${name} = scaling; };
+    });
 
     systemd.services.nomad-autoscaler = {
       description = "Nomad Autoscaler Service";
