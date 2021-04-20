@@ -31,6 +31,7 @@ in {
       "auth/token/lookup-self".capabilities = [ r ];
       "auth/token/renew-self".capabilities = [ u ];
       "auth/token/revoke-accessor".capabilities = [ u ];
+      "auth/token/revoke".capabilities = [ u ];
       "auth/token/roles/*".capabilities = [ c r u d l ];
       "auth/token/roles/nomad-cluster".capabilities = [ c r u d l ];
       "auth/token/roles/nomad-server".capabilities = [ r ];
