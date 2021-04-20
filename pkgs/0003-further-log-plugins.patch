@@ -1,0 +1,36 @@
+From e854dc77edb5df7ca3789d40ddcce1994f2b2617 Mon Sep 17 00:00:00 2001
+From: Timothy DeHerrera <tim.deherrera@iohk.io>
+Date: Tue, 20 Apr 2021 11:53:13 -0600
+Subject: [PATCH 3/3] further log plugins
+
+---
+ plugins/manager/manager.go | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/plugins/manager/manager.go b/plugins/manager/manager.go
+index 7b6e721..9cdf908 100644
+--- a/plugins/manager/manager.go
++++ b/plugins/manager/manager.go
+@@ -181,6 +181,10 @@ func (pm *PluginManager) killPluginLocked(pID plugins.PluginID) {
+ // PluginInstance from storage if we have it.
+ func (pm *PluginManager) Dispense(name, pluginType string) (PluginInstance, error) {
+ 
++	for x, _ := range pm.pluginInstances {
++		fmt.Printf("known instance: %s\n", x.String())
++	}
++
+ 	// Measure the time taken to dispense a plugin. This helps identify
+ 	// contention and pressure obtaining plugin client handles.
+ 	labels := []metrics.Label{{Name: "plugin_name", Value: name}, {Name: "plugin_type", Value: pluginType}}
+@@ -196,6 +200,8 @@ func (pm *PluginManager) Dispense(name, pluginType string) (PluginInstance, erro
+ 	//  dispense the plugin. We should also check the plugin instance has not
+ 	//  exited.
+ 	inst, ok := pm.pluginInstances[plugins.PluginID{Name: name, PluginType: pluginType}]
++	fmt.Printf("Dispense plugin: %v %v\n", name, pluginType)
++
+ 	if !ok {
+ 		return nil, fmt.Errorf("failed to dispense plugin: %q of type %q is not stored", name, pluginType)
+ 	}
+-- 
+2.30.1
+

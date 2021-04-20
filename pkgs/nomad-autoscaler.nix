@@ -13,6 +13,7 @@ buildGoModule rec {
   patches = [
     ./0001-print-region-on-failed-scale-job.patch
     ./0002-log-region-before-api-call.patch
+    ./0003-further-log-plugins.patch
   ];
 
   subPackages = [ "." ];

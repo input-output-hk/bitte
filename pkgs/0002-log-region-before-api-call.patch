@@ -1,7 +1,7 @@
 From 1e86906f5deb8021974cdb88b88a5cf285b3c5ea Mon Sep 17 00:00:00 2001
 From: Timothy DeHerrera <tim.deherrera@iohk.io>
 Date: Tue, 20 Apr 2021 11:21:26 -0600
-Subject: [PATCH 2/2] log region before api call
+Subject: [PATCH 2/3] log region before api call
 
 ---
  plugins/builtin/target/aws-asg/plugin/plugin.go | 2 ++
