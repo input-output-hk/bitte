@@ -124,7 +124,7 @@ in {
           ${lib.optionalString (cfg.target != null && cfg.source != null) ''
             target="${toString cfg.target}"
             mkdir -p "$(dirname "$target")"
-            sops --decrypt --input-type ${cfg.inputType} ${cfg.source} > "$target.new"
+            sops --decrypt --input-type ${cfg.inputType} --output-type ${cfg.outputType} ${cfg.source} > "$target.new"
             test -s "$target.new"
             mv "$target.new" "$target"
           ''}
