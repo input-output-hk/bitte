@@ -1,0 +1,34 @@
+From 4664850f6fa3efa13a3aaf09be4f58522d11fe81 Mon Sep 17 00:00:00 2001
+From: Timothy DeHerrera <tim.deherrera@iohk.io>
+Date: Tue, 20 Apr 2021 11:08:15 -0600
+Subject: [PATCH] print region on failed scale job
+
+---
+ plugins/builtin/target/aws-asg/plugin/plugin.go | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/plugins/builtin/target/aws-asg/plugin/plugin.go b/plugins/builtin/target/aws-asg/plugin/plugin.go
+index d21d8c1..0957bbe 100644
+--- a/plugins/builtin/target/aws-asg/plugin/plugin.go
++++ b/plugins/builtin/target/aws-asg/plugin/plugin.go
+@@ -112,7 +112,7 @@ func (t *TargetPlugin) Scale(action sdk.ScalingAction, config map[string]string)
+ 	// call it once.
+ 	curASG, err := t.describeASG(ctx, asgName)
+ 	if err != nil {
+-		return fmt.Errorf("failed to describe AWS Autoscaling Group: %v", err)
++		return fmt.Errorf("failed to describe AWS Autoscaling Group %s: %v", asgName, err)
+ 	}
+ 
+ 	// The AWS ASG target requires different details depending on which
+@@ -162,7 +162,7 @@ func (t *TargetPlugin) Status(config map[string]string) (*sdk.TargetStatus, erro
+ 
+ 	asg, err := t.describeASG(ctx, asgName)
+ 	if err != nil {
+-		return nil, fmt.Errorf("failed to describe AWS Autoscaling Group: %v", err)
++		return nil, fmt.Errorf("failed to describe AWS Autoscaling Group %s: %v", asgName, err)
+ 	}
+ 
+ 	events, err := t.describeActivities(ctx, asgName, nil)
+-- 
+2.30.1
+
