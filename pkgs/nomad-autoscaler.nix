@@ -10,7 +10,10 @@ buildGoModule rec {
     sha256 = "sha256-fiVFKv89ZwEetSmZqMZDP33URy0iF/O90vnQMHp7h2g=";
   };
 
-  patches = [ ./0001-print-region-on-failed-scale-job.patch ];
+  patches = [
+    ./0001-print-region-on-failed-scale-job.patch
+    ./0002-log-region-before-api-call.patch
+  ];
 
   subPackages = [ "." ];
 
