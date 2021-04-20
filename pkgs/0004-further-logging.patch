@@ -1,0 +1,37 @@
+From 344307be5be10c863f0b077a35aa1c76effaf2b2 Mon Sep 17 00:00:00 2001
+From: Timothy DeHerrera <tim.deherrera@iohk.io>
+Date: Tue, 20 Apr 2021 12:46:42 -0600
+Subject: [PATCH 4/4] further logging
+
+---
+ plugins/builtin/target/aws-asg/plugin/plugin.go | 1 +
+ policy/handler.go                               | 1 +
+ 2 files changed, 2 insertions(+)
+
+diff --git a/plugins/builtin/target/aws-asg/plugin/plugin.go b/plugins/builtin/target/aws-asg/plugin/plugin.go
+index 8412f9a..bb79817 100644
+--- a/plugins/builtin/target/aws-asg/plugin/plugin.go
++++ b/plugins/builtin/target/aws-asg/plugin/plugin.go
+@@ -67,6 +67,7 @@ func NewAWSASGPlugin(log hclog.Logger) *TargetPlugin {
+ 
+ // SetConfig satisfies the SetConfig function on the base.Base interface.
+ func (t *TargetPlugin) SetConfig(config map[string]string) error {
++	t.logger.Debug("TargetPlugin.config: %#v\n", config)
+ 
+ 	t.config = config
+ 
+diff --git a/policy/handler.go b/policy/handler.go
+index 160c9d0..02c2863 100644
+--- a/policy/handler.go
++++ b/policy/handler.go
+@@ -254,6 +254,7 @@ func (h *Handler) generateEvaluation(policy *sdk.ScalingPolicy) (*sdk.ScalingEva
+ 		return nil, nil
+ 	}
+ 
++	h.log.Debug("policy: %#v", policy)
+ 	// Dispense an instance of target plugin used by the policy.
+ 	targetPlugin, err := h.pluginManager.Dispense(policy.Target.Name, sdk.PluginTypeTarget)
+ 	if err != nil {
+-- 
+2.30.1
+
