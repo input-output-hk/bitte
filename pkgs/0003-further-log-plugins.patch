@@ -1,7 +1,7 @@
 From e854dc77edb5df7ca3789d40ddcce1994f2b2617 Mon Sep 17 00:00:00 2001
 From: Timothy DeHerrera <tim.deherrera@iohk.io>
 Date: Tue, 20 Apr 2021 11:53:13 -0600
-Subject: [PATCH 3/4] further log plugins
+Subject: [PATCH 3/5] further log plugins
 
 ---
  plugins/manager/manager.go | 6 ++++++

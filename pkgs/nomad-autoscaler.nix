@@ -15,6 +15,7 @@ buildGoModule rec {
     ./0002-log-region-before-api-call.patch
     ./0003-further-log-plugins.patch
     ./0004-further-logging.patch
+    ./0005-really-don-t-care-anymore.patch
   ];
 
   subPackages = [ "." ];
@@ -22,7 +23,10 @@ buildGoModule rec {
   nativeBuildInputs = [ removeReferencesTo ];
 
   postBuild = ''
-    make plugins
+    make bin/plugins/nomad-target
+    make bin/plugins/prometheus
+    make bin/plugins/target-value
+    make bin/plugins/aws-asg
 
     mkdir -p $out/share
 

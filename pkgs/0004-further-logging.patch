@@ -1,7 +1,7 @@
 From 344307be5be10c863f0b077a35aa1c76effaf2b2 Mon Sep 17 00:00:00 2001
 From: Timothy DeHerrera <tim.deherrera@iohk.io>
 Date: Tue, 20 Apr 2021 12:46:42 -0600
-Subject: [PATCH 4/4] further logging
+Subject: [PATCH 4/5] further logging
 
 ---
  plugins/builtin/target/aws-asg/plugin/plugin.go | 1 +

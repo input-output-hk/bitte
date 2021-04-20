@@ -1,7 +1,7 @@
 From 4664850f6fa3efa13a3aaf09be4f58522d11fe81 Mon Sep 17 00:00:00 2001
 From: Timothy DeHerrera <tim.deherrera@iohk.io>
 Date: Tue, 20 Apr 2021 11:08:15 -0600
-Subject: [PATCH 1/4] print region on failed scale job
+Subject: [PATCH 1/5] print region on failed scale job
 
 ---
  plugins/builtin/target/aws-asg/plugin/plugin.go | 4 ++--

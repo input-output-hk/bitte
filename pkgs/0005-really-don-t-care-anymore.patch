@@ -1,0 +1,25 @@
+From d1c70b3fe234bb137dee87c73203053c7d01bb4b Mon Sep 17 00:00:00 2001
+From: Timothy DeHerrera <tim.deherrera@iohk.io>
+Date: Tue, 20 Apr 2021 12:56:47 -0600
+Subject: [PATCH 5/5] really don't care anymore
+
+---
+ policy/handler.go | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/policy/handler.go b/policy/handler.go
+index 02c2863..c5acc60 100644
+--- a/policy/handler.go
++++ b/policy/handler.go
+@@ -254,7 +254,7 @@ func (h *Handler) generateEvaluation(policy *sdk.ScalingPolicy) (*sdk.ScalingEva
+ 		return nil, nil
+ 	}
+ 
+-	h.log.Debug("policy: %#v", policy)
++	h.log.Debug("policy.Target: %#v", policy.Target)
+ 	// Dispense an instance of target plugin used by the policy.
+ 	targetPlugin, err := h.pluginManager.Dispense(policy.Target.Name, sdk.PluginTypeTarget)
+ 	if err != nil {
+-- 
+2.30.1
+
