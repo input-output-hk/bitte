@@ -232,7 +232,7 @@ in {
     };
 
     log_level = mkOption {
-      type = enum [ "DEBUG" "INFO" "WARN" ];
+      type = enum [ "DEBUG" "INFO" "WARN" "TRACE" ];
       default = "INFO";
       description = ''
         Specify the verbosity level of Nomad Autoscaler's logs.
@@ -581,11 +581,10 @@ in {
             plugin_dir log_json log_level http nomad policy policy_eval
             telemetry apm target strategy;
         });
-    } // lib.flip lib.mapAttrs' (sanitize cfg.policies) (name: scaling: {
-      name = "nomad-autoscaler.d/policies/${name}.json";
-      value.source =
-        pkgs.toPrettyJSON "${name}.json" { scaling.${name} = scaling; };
-    });
+      "nomad-autoscaler.d/policies/policies.json".source = pkgs.toPrettyJSON "policies.json" {
+        scaling = sanitize cfg.policies;
+      };
+    };
 
     systemd.services.nomad-autoscaler = {
       description = "Nomad Autoscaler Service";
@@ -613,6 +612,7 @@ in {
 
           NOMAD_TOKEN="$(< nomad-autoscaler-token)"
           export NOMAD_TOKEN
+          unset AWS_DEFAULT_REGION
 
           set -x
           ${cfg.package}/bin/nomad-autoscaler agent -config /etc/nomad-autoscaler.d/config.json

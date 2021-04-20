@@ -38,7 +38,7 @@ let
       };
 
       target."${name}" = {
-        dry-run = true;
+        dry-run = false;
 
         aws_asg_name = asg.uid;
         node_class = "client";
