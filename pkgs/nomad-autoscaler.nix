@@ -6,8 +6,9 @@ buildGoModule rec {
   src = fetchFromGitHub {
     owner = "hashicorp";
     repo = "nomad-autoscaler";
-    rev = "v${version}";
-    sha256 = "sha256-fiVFKv89ZwEetSmZqMZDP33URy0iF/O90vnQMHp7h2g=";
+    # branch: b-gh-472
+    rev = "4c58449a37da711db2499489201ceaeb80abd237";
+    sha256 = "sha256-TfJCu/sCYQg9JKXLLbPMuOKJm00uNillaqoOxIC1LcM=";
   };
 
   subPackages = [ "." ];
@@ -28,5 +29,5 @@ buildGoModule rec {
     done
   '';
 
-  vendorSha256 = "sha256-hU8aOQMOSSRs1+/2yUinh6w0PjmefpkC3NQtqG3YxCY=";
+  vendorSha256 = "sha256-C9zl6u6RQ9gPUeXa/nTgf47rFMNVfb+4Hx7Ruo5YGbk=";
 }
