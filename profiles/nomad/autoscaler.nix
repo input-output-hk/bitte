@@ -49,13 +49,6 @@ let
       };
     };
   });
-
-  asPkg = config.services.nomad-autoscaler.package;
-
-  awsWrapper = pkgs.writeBashBinChecked "aws-asg" ''
-    export AWS_DEFAULT_REGION="$1"
-    exec ${asPkg}/share/aws-asg
-  '';
 in {
 
   services.nomad-autoscaler = {
@@ -63,13 +56,6 @@ in {
     log_level = "DEBUG";
     policy.dir = "/etc/nomad-autoscaler.d/policies";
     telemetry.prometheus_metrics = true;
-    plugin_dir = pkgs.symlinkJoin {
-      name = "autoscaler-plugins";
-      paths = [
-        "${config.services.nomad-autoscaler.package}/share"
-        "${awsWrapper}/bin"
-      ];
-    };
 
     inherit policies;
 
@@ -88,7 +74,6 @@ in {
     };
 
     target = lib.flip lib.mapAttrs asgs (name: asg: {
-      args = [ asg.region ];
       driver = "aws-asg";
       config.aws_region = asg.region;
     });
