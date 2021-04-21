@@ -34,7 +34,7 @@ let
       check.mem_allocated_percentage = {
         source = "victoriametrics";
         query = memoryQuery asg;
-        strategy.target-value.target = 70.0;
+        strategy.target-value.target = 90.0;
       };
 
       target."${name}" = {
