@@ -15,7 +15,10 @@ buildGoModule rec {
   nativeBuildInputs = [ removeReferencesTo ];
 
   postBuild = ''
-    make plugins
+    make bin/plugins/nomad-target
+    make bin/plugins/prometheus
+    make bin/plugins/target-value
+    make bin/plugins/aws-asg
 
     mkdir -p $out/share
 
