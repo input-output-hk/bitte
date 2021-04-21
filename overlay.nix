@@ -247,7 +247,7 @@ in final: prev: {
 
         from-cidr = (lib.nameValuePair
           "${prefix}-${rule.type}-${protocol}-${rule.name}-cidr"
-          (common // { cidr_blocks = rule.cidrs; }));
+          (common // { cidr_blocks = lib.unique rule.cidrs; }));
 
         from-ssgi = (lib.nameValuePair
           "${prefix}-${rule.type}-${protocol}-${rule.name}-ssgi" (common // {
