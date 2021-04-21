@@ -52,8 +52,9 @@ let
 
   asPkg = config.services.nomad-autoscaler.package;
 
-  awsWrapper = pkgs.writeScriptBin "aws-asg.sh" ''
-    AWS_DEFAULT_REGION="$1" ${asPkg}/share/aws-asg
+  awsWrapper = pkgs.writeBashBinChecked "aws-asg" ''
+    export AWS_DEFAULT_REGION="$1"
+    exec ${asPkg}/share/aws-asg
   '';
 in {
 
@@ -88,7 +89,7 @@ in {
 
     target = lib.flip lib.mapAttrs asgs (name: asg: {
       args = [ asg.region ];
-      driver = "aws-asg.sh";
+      driver = "aws-asg";
       config.aws_region = asg.region;
     });
 

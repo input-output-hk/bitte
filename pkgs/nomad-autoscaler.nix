@@ -16,6 +16,7 @@ buildGoModule rec {
     ./0003-further-log-plugins.patch
     ./0004-further-logging.patch
     ./0005-really-don-t-care-anymore.patch
+    ./0006-manveru.patch
   ];
 
   subPackages = [ "." ];

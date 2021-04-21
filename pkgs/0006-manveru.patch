@@ -1,0 +1,36 @@
+diff --git a/plugins/builtin/target/aws-asg/plugin/aws.go b/plugins/builtin/target/aws-asg/plugin/aws.go
+index f798833..2727a98 100644
+--- a/plugins/builtin/target/aws-asg/plugin/aws.go
++++ b/plugins/builtin/target/aws-asg/plugin/aws.go
+@@ -38,10 +38,8 @@ func (t *TargetPlugin) setupAWSClients(config map[string]string) error {
+ 	}
+ 
+ 	// If the default config is empty, update it.
+-	if cfg.Region == "" {
+-		t.logger.Trace("setting AWS region for client", "region", region)
+-		cfg.Region = region
+-	}
++	t.logger.Debug("setting AWS region for client", "region", region)
++	cfg.Region = region
+ 
+ 	// Attempt to pull access credentials for the AWS client from the user
+ 	// supplied configuration. In order to use these static credentials both
+diff --git a/plugins/manager/manager.go b/plugins/manager/manager.go
+index 7b6e721..33200c6 100644
+--- a/plugins/manager/manager.go
++++ b/plugins/manager/manager.go
+@@ -333,8 +333,12 @@ func (pm *PluginManager) pluginLaunchCheck(id plugins.PluginID, info *pluginInfo
+ 	// has returned its metadata that is different to the configured. This is a
+ 	// problem, particularly in the PluginType sense as it means it will be
+ 	// unable to fulfill its role.
+-	if pluginInfo.Name != info.driver || pluginInfo.PluginType != id.PluginType {
+-		return nil, fmt.Errorf("plugin %s remote info doesn't match local config: %v", id.Name, err)
++	if pluginInfo.Name != info.driver {
++		return nil, fmt.Errorf("plugin %s remote Name doesn't match local config: %s != %s", id.Name, pluginInfo.Name, info.driver)
++	}
++
++	if pluginInfo.PluginType != id.PluginType {
++		return nil, fmt.Errorf("plugin %s remote PluginType doesn't match local config: %s != %s", id.Name, pluginInfo.PluginType, id.PluginType)
+ 	}
+ 
+ 	return pluginInfo, nil
