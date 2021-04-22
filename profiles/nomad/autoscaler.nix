@@ -18,8 +18,8 @@ let
 
   policies = lib.flip lib.mapAttrs asgs (name: asg: {
     enabled = true;
-    min = 1;
-    max = 3;
+    min = lib.mkDefault 1;
+    max = lib.mkDefault 5;
 
     policy = {
       cooldown = "2m";
