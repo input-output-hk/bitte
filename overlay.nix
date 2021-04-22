@@ -7,9 +7,6 @@ in final: prev: {
   nixos-rebuild = bitte-cli.packages.${final.system}.nixos-rebuild;
   bitte = bitte-cli.defaultPackage.${final.system};
 
-  # nix = prev.nixFlakes;
-  nixFlakes = inputs.nix.packages.${final.system}.nix;
-
   vault-bin = prev.callPackage ./pkgs/vault-bin.nix { };
 
   ssm-agent = prev.callPackage ./pkgs/ssm-agent { };
