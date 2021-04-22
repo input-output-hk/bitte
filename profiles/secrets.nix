@@ -71,7 +71,7 @@ let
 
 in {
   secrets.generate.consul = lib.mkIf isInstance ''
-    export PATH="${lib.makeBinPath (with pkgs; [ consul toybox jq coreutils ])}"
+    export PATH="${lib.makeBinPath (with pkgs; [ consul utillinux jq coreutils ])}"
 
     encrypt="$(consul keygen)"
 
