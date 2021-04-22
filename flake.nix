@@ -31,8 +31,9 @@
   };
 
   outputs = { self, nixpkgs, utils, bitte-cli, ... }@inputs:
-    (utils.lib.eachSystem [ "x86_64-linux" "x86_64-darwin" ] (system: rec {
+    let
       overlay = import ./overlay.nix inputs;
+    in (utils.lib.eachSystem [ "x86_64-linux" "x86_64-darwin" ] (system: rec {
 
       legacyPackages = import nixpkgs {
         inherit system;
@@ -53,6 +54,7 @@
       apps.bitte = utils.lib.mkApp { drv = legacyPackages.bitte; };
 
     })) // {
+      inherit overlay;
       mkHashiStack = import ./lib/mk-hashi-stack.nix;
     };
 }
