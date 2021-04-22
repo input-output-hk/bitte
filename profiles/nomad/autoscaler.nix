@@ -28,13 +28,13 @@ let
       check.cpu_allocated_percentage = {
         source = "victoriametrics";
         query = cpuQuery asg;
-        strategy.target-value.target = 70.0;
+        strategy.target-value.target = lib.mkDefault 70.0;
       };
 
       check.mem_allocated_percentage = {
         source = "victoriametrics";
         query = memoryQuery asg;
-        strategy.target-value.target = 90.0;
+        strategy.target-value.target = lib.mkDefault 70.0;
       };
 
       target."${name}" = {
