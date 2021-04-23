@@ -62,7 +62,7 @@ let
                   '';
                 in "${script}/bin/${name}") config.secrets.generate);
           in pkgs.writeShellScriptBin "generate-secrets" ''
-            set -euo pipefail
+            set -exuo pipefail
 
             export PATH="$PATH:${
               lib.makeBinPath (with pkgs; [ utillinux git ])
