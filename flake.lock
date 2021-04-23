@@ -92,16 +92,16 @@
     },
     "nixpkgs-terraform": {
       "locked": {
-        "lastModified": 1614717568,
-        "narHash": "sha256-a8lJVguNDT8324CE4FE7G0NdWaA1kG1Sq8hw+PH/UHo=",
-        "owner": "manveru",
+        "lastModified": 1619087317,
+        "narHash": "sha256-gw7K6C+lh4tTKH2YKZih3Y4X7BqjNBziHSAFNYTss9A=",
+        "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "80cbbeff5eb5bc62afc61bb170e6d88cd450aec6",
+        "rev": "665a613811eb6b49868900e81226f36826c73503",
         "type": "github"
       },
       "original": {
-        "owner": "manveru",
-        "ref": "iohk-terraform",
+        "owner": "nixos",
+        "ref": "nixpkgs-unstable",
         "repo": "nixpkgs",
         "type": "github"
       }

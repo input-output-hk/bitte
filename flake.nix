@@ -5,7 +5,7 @@
     nixpkgs.url =
       "github:NixOS/nixpkgs?rev=b8c367a7bd05e3a514c2b057c09223c74804a21b";
     # nixpkgs-terraform.url = "github:anandsuresh/nixpkgs/backport";
-    nixpkgs-terraform.url = "github:manveru/nixpkgs/iohk-terraform";
+    nixpkgs-terraform.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     inclusive.url = "github:input-output-hk/nix-inclusive";
     utils.url = "github:numtide/flake-utils";
