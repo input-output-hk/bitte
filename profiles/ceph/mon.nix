@@ -118,7 +118,7 @@ in {
       | jq --arg val "$(< secrets/ceph.mon.keyring)"          '.mon_keyring = $val' \
       | jq --arg val "$(< secrets/ceph.client.admin.keyring)" '.client_admin_keyring = $val' \
       | jq --arg val "$(< secrets/ceph.keyring)"              '.keyring = $val' \
-      | sops --encrypt kms '${config.cluster.kms}' /dev/stdin \
+      | sops --encrypt --kms '${config.cluster.kms}' --input-type json --output-type json /dev/stdin \
       > "$target.tmp"
       mv "$target.tmp" "$target"
     fi

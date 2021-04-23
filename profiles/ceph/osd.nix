@@ -15,7 +15,9 @@ in {
   };
 
   secrets.generate.osd = ''
-    export PATH="${lib.makeBinPath (with pkgs; [ coreutils sops toybox ceph jq ])}"
+    set -exuo pipefail
+
+    export PATH="${lib.makeBinPath (with pkgs; [ coreutils sops utillinux ceph jq ])}"
     target="encrypted/${keyFile}"
 
     if [ ! -s "$target" ]; then
@@ -25,7 +27,7 @@ in {
       echo '{}' \
       | jq --arg uuid "$uuid" '.uuid = $uuid' \
       | jq --arg key "$key" '.cephx_secret = $key' \
-      | sops --encrypt kms '${config.cluster.kms}' /dev/stdin \
+      | sops --encrypt --kms '${config.cluster.kms}' --input-type json --output-type json /dev/stdin \
       > "$target.tmp"
       mv "$target.tmp" "$target"
     fi
