@@ -34,7 +34,33 @@ in final: prev: {
     }) final.terraform-provider-names);
 
   inherit (nixpkgs-terraform.legacyPackages.${final.system})
-    terraform_0_13 terraform_0_14 terraform-providers;
+    terraform_0_13 terraform_0_14;
+
+  terraform-providers = let
+    orig = nixpkgs-terraform.legacyPackages.${final.system}.terraform-providers;
+    data = {
+      owner = "hashicorp";
+      provider-source-address = "registry.terraform.io/hashicorp/aws";
+      repo = "terraform-provider-aws";
+      rev = "v3.37.0";
+      sha256 = "sha256-SOqYu6WpPQU7oDN4SOUUqGXgkjj4AzIfpWvvt7Fkugw=";
+      vendorSha256 = "sha256-j0M15EKBhHzNseyjaY8MmPhntsAOMvDA//z8gZU/xTA=";
+      version = "3.37.0";
+    };
+  in orig // {
+    aws = final.buildGoModule {
+      pname = data.repo;
+      version = data.version;
+      subPackages = [ "." ];
+      src = final.fetchFromGitHub { inherit (data) owner repo rev sha256; };
+      vendorSha256 = data.vendorSha256 or null;
+
+      # Terraform allow checking the provider versions, but this breaks
+      # if the versions are not provided via file paths.
+      postBuild = "mv $NIX_BUILD_TOP/go/bin/${data.repo}{,_v${data.version}}";
+      passthru = data;
+    };
+  };
 
   # terraform-with-plugins = final.terraform_0_14.withPlugins
   #   (plugins: lib.attrVals final.terraform-provider-names plugins);
