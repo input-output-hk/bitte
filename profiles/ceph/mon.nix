@@ -81,7 +81,7 @@ in {
   };
 
   secrets.generate.mon = ''
-    export PATH="${lib.makeBinPath (with pkgs; [ coreutils sops toybox ceph ])}"
+    export PATH="${lib.makeBinPath (with pkgs; [ coreutils sops toybox ceph jq ])}"
     target="encrypted/${keyFile}"
 
     if [ ! -s "$target" ]; then

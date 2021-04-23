@@ -15,7 +15,7 @@ in {
   };
 
   secrets.generate.osd = ''
-    export PATH="${lib.makeBinPath (with pkgs; [ coreutils sops toybox ceph ])}"
+    export PATH="${lib.makeBinPath (with pkgs; [ coreutils sops toybox ceph jq ])}"
     target="encrypted/${keyFile}"
 
     if [ ! -s "$target" ]; then
@@ -39,7 +39,7 @@ in {
   systemd.services.ceph-osd-setup = {
     wantedBy = [ "multi-user.target" ];
     before = [ "ceph-osd-${nodeName}" ];
-    path = with pkgs; [ systemd ceph gnugrep vault ];
+    path = with pkgs; [ systemd ceph gnugrep vault jq ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
