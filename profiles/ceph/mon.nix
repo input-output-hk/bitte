@@ -1,4 +1,4 @@
-{ config, ... }:
+{ pkgs, lib, config, ... }:
 let
   keyFile = "mon.json";
   cfg = config.services.ceph;
@@ -8,25 +8,29 @@ let
 in {
   imports = [ ./default.nix ];
 
-  services.ceph = {
-    mon = {
-      enable = true;
-      daemons = [ "monA" ];
+  services = {
+    telegraf.extraConfig.global_tags.role = "ceph-mon";
+
+    ceph = {
+      mon = {
+        enable = true;
+        daemons = [ "monA" ];
+      };
+
+      mgr = {
+        enable = true;
+        daemons = [ "monA" ];
+      };
     };
 
-    mgr = {
-      enable = true;
-      daemons = [ "monA" ];
-    };
-  };
-
-  networking = {
-    firewall = {
-      allowedTCPPorts = [ 6789 3300 ];
-      allowedTCPPortRanges = [{
-        from = 6800;
-        to = 7300;
-      }];
+    networking = {
+      firewall = {
+        allowedTCPPorts = [ 6789 3300 ];
+        allowedTCPPortRanges = [{
+          from = 6800;
+          to = 7300;
+        }];
+      };
     };
   };
 
@@ -114,7 +118,7 @@ in {
       | jq --arg val "$(< secrets/ceph.mon.keyring)"          '.mon_keyring = $val' \
       | jq --arg val "$(< secrets/ceph.client.admin.keyring)" '.client_admin_keyring = $val' \
       | jq --arg val "$(< secrets/ceph.keyring)"              '.keyring = $val' \
-      | sops --encrypt kms '${kms}' /dev/stdin \
+      | sops --encrypt kms '${config.cluster.kms}' /dev/stdin \
       > "$target.tmp"
       mv "$target.tmp" "$target"
     fi

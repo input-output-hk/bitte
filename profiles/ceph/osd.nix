@@ -1,12 +1,16 @@
-{ nodeName, ... }:
-let keyfile = "osd-${nodeName}.json";
+{ nodeName, pkgs, lib, config, ... }:
+let keyFile = "osd-${nodeName}.json";
 in {
   imports = [ ./default.nix ];
 
-  services.ceph = {
-    osd = {
-      enable = true;
-      daemons = [ nodeName ];
+  services = {
+    telegraf.extraConfig.global_tags.role = "ceph-osd";
+
+    ceph = {
+      osd = {
+        enable = true;
+        daemons = [ nodeName ];
+      };
     };
   };
 
@@ -21,7 +25,7 @@ in {
       echo '{}' \
       | jq --arg uuid "$uuid" '.uuid = $uuid' \
       | jq --arg key "$key" '.cephx_secret = $key' \
-      | sops --encrypt kms '${kms}' /dev/stdin \
+      | sops --encrypt kms '${config.cluster.kms}' /dev/stdin \
       > "$target.tmp"
       mv "$target.tmp" "$target"
     fi
@@ -32,17 +36,16 @@ in {
     target = /run/keys/osd.json;
   };
 
-  systemd.services.ceph-osd-setup = let name = "mon-0";
-  in {
+  systemd.services.ceph-osd-setup = {
     wantedBy = [ "multi-user.target" ];
-    before = [ "ceph-mon-${name}" ];
+    before = [ "ceph-osd-${nodeName}" ];
     path = with pkgs; [ systemd ceph gnugrep vault ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
       Restart = "on-failure";
       RestartSec = "20s";
-      ExecStart = pkgs.writeBashChecked "ceph-mon-setup.sh" ''
+      ExecStart = pkgs.writeBashChecked "ceph-osd-setup.sh" ''
         set -exuo pipefail
 
         key="$(jq -e -r .cephx_secret < /run/keys/osd.json)"
@@ -68,5 +71,4 @@ in {
       '';
     };
   };
-
 }

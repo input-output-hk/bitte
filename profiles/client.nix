@@ -1,4 +1,4 @@
-{ self, pkgs, config, lib, ... }: {
+{ lib, ... }: {
   imports = [
     ./common.nix
     ./consul/client.nix
@@ -13,7 +13,6 @@
   ];
 
   services = {
-    amazon-ssm-agent.enable = true;
     vault-agent-client.enable = true;
     nomad.enable = true;
     telegraf.extraConfig.global_tags.role = "consul-client";
@@ -26,6 +25,5 @@
 
   disabledModules = [ "virtualisation/amazon-image.nix" ];
   networking = { hostId = "9474d585"; };
-  boot.initrd.postDeviceCommands = "echo FINDME; lsblk";
   boot.loader.grub.device = lib.mkForce "/dev/nvme0n1";
 }
