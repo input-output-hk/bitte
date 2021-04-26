@@ -2,9 +2,12 @@
 
 let
   inherit (pkgs) ensureDependencies;
-  inherit (lib) mkOverride mkIf attrNames concatStringsSep optional forEach;
+  inherit (lib) mkOption mkOverride mkIf attrNames concatStringsSep optional forEach types;
+  inherit (types) lines;
   inherit (config.cluster) domain kms region adminNames;
   inherit (config.instance) privateIP;
+
+  cfg = config.services.bootstrap;
 
   exportConsulMaster = ''
     set +x
@@ -29,7 +32,30 @@ let
     } | vault kv put kv/bootstrap/cache/nix-key -
   '';
 in {
-  options = { };
+  options = {
+    services.bootstrap = {
+      extraConsulInitialTokensConfig = mkOption {
+        type = lines;
+        default = "";
+        description = "Extra Consul initial tokens configuration.";
+      };
+      extraNomadBootstrapConfig = mkOption {
+        type = lines;
+        default = "";
+        description = "Extra Nomad bootstrap configuration.";
+      };
+      extraVaultBootstrapConfig = mkOption {
+        type = lines;
+        default = "";
+        description = "Extra Vault bootstrap configuration.";
+      };
+      extraVaultSetupConfig = mkOption {
+        type = lines;
+        default = "";
+        description = "Extra Vault setup configuration.";
+      };
+    };
+  };
 
   config = {
     systemd.services.consul-initial-tokens =
@@ -104,6 +130,12 @@ in {
 
             mv /etc/nomad.d/consul-token.json.new /etc/nomad.d/consul-token.json
           fi
+
+          ################
+          # Extra Config #
+          ################
+
+          ${cfg.extraConsulInitialTokensConfig}
         '';
       };
 
@@ -188,6 +220,12 @@ in {
         ''))}
 
         ${initialVaultSecrets}
+
+        ################
+        # Extra Config #
+        ################
+
+        ${cfg.extraVaultSetupConfig}
       '';
     };
 
@@ -251,6 +289,12 @@ in {
             ca_cert="$(< ${config.services.nomad.tls.ca_file})" \
             client_cert="$(< ${config.services.nomad.tls.cert_file})" \
             client_key="$(< ${config.services.nomad.tls.key_file})"
+
+        ################
+        # Extra Config #
+        ################
+
+        ${cfg.extraNomadBootstrapConfig}
 
         touch /var/lib/nomad/.bootstrap-done
       '';
@@ -396,6 +440,12 @@ in {
           max_ttl=12h
 
         ${initialVaultSecrets}
+
+        ################
+        # Extra Config #
+        ################
+
+        ${cfg.extraVaultBootstrapConfig}
 
         touch .bootstrap-done
       '';
