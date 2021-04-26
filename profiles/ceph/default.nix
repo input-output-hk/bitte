@@ -11,8 +11,8 @@
 
       global = {
         fsid = "7603b881-c1f8-487c-995e-50ac5d2ee0ee";
-        monHost = config.cluster.instances.mon-0.privateIP;
-        monInitialMembers = "mon-0";
+        monHost = config.cluster.instances.monitoring.privateIP;
+        monInitialMembers = "monitoring";
       };
     };
   };
