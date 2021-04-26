@@ -9,7 +9,7 @@
     ./secrets.nix
     ./reaper.nix
     ./builder.nix
-    ./zfs-arc.nix
+    ./zfs-client-options.nix
   ];
 
   services = {
@@ -17,6 +17,7 @@
     vault-agent-client.enable = true;
     nomad.enable = true;
     telegraf.extraConfig.global_tags.role = "consul-client";
+    zfs-client-options.enable = true;
   };
 
   boot.cleanTmpDir = true;
