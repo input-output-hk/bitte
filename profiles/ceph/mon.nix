@@ -38,7 +38,7 @@ in {
   in {
     wantedBy = [ "multi-user.target" ];
     before = [ "ceph-mon-${name}" ];
-    path = with pkgs; [ systemd ceph gnugrep vault ];
+    path = with pkgs; [ systemd ceph gnugrep vault xfsprogs ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
