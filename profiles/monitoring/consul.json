@@ -1189,13 +1189,13 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg_over_time(consul_dns_domain_query_count[1h]) default 0",
+          "expr": "avg_over_time(union(consul_dns_domain_query_count,label_set(0,\"host\",\"baseline\"))[1h]) default 0",
           "interval": "",
           "legendFormat": "{{host}}",
           "refId": "A"
         },
         {
-          "expr": "sum(avg_over_time(consul_dns_domain_query_count{host=~\"core.*\"}[1h])) default 0",
+          "expr": "sum(avg_over_time(union(consul_dns_domain_query_count{host=~\"core.*\"},label_set(0,\"host\",\"baseline\"))[1h])) default 0",
           "hide": false,
           "interval": "",
           "legendFormat": "core-node-sum",
