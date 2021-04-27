@@ -1102,42 +1102,6 @@
       "type": "row"
     },
     {
-      "alert": {
-        "alertRuleTags": {},
-        "conditions": [
-          {
-            "evaluator": {
-              "params": [
-                0.1
-              ],
-              "type": "lt"
-            },
-            "operator": {
-              "type": "and"
-            },
-            "query": {
-              "params": [
-                "B",
-                "5m",
-                "now"
-              ]
-            },
-            "reducer": {
-              "params": [],
-              "type": "avg"
-            },
-            "type": "query"
-          }
-        ],
-        "executionErrorState": "alerting",
-        "for": "5m",
-        "frequency": "1m",
-        "handler": 1,
-        "message": "Average DNS queries from core nodes over the past hour is less than 1.\nThe consul servers may not be functioning correctly (ex: dnsmasq service).",
-        "name": "[Consul] DNS core queries alert",
-        "noDataState": "alerting",
-        "notifications": []
-      },
       "aliasColors": {},
       "bars": false,
       "dashLength": 10,
@@ -1189,13 +1153,13 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg_over_time(consul_dns_domain_query_count[1h]) default 0",
+          "expr": "avg_over_time(union(consul_dns_domain_query_count,label_set(0,\"host\",\"baseline\"))[1h]) default 0",
           "interval": "",
           "legendFormat": "{{host}}",
           "refId": "A"
         },
         {
-          "expr": "sum(avg_over_time(consul_dns_domain_query_count{host=~\"core.*\"}[1h])) default 0",
+          "expr": "sum(avg_over_time(union(consul_dns_domain_query_count{host=~\"core.*\"},label_set(0,\"host\",\"baseline\"))[1h])) default 0",
           "hide": false,
           "interval": "",
           "legendFormat": "core-node-sum",
