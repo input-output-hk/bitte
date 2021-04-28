@@ -1,5 +1,12 @@
 { config, lib, ... }: {
-  imports = [ ./nix.nix ./ssh.nix ./slim.nix ./promtail.nix ];
+  imports = [
+    ./consul/default.nix
+    ./nix.nix
+    ./promtail.nix
+    ./slim.nix
+    ./ssh.nix
+    ./vault/default.nix
+  ];
 
   services = {
     amazon-ssm-agent.enable = true;

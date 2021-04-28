@@ -321,6 +321,7 @@ in {
       verifyServerHostname = mkEnableOption "Verify server hostname";
 
       ports = mkOption {
+        default = {};
         type = submodule {
           options = {
             grpc = mkOption {
