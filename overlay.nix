@@ -72,8 +72,6 @@ in final: prev: {
 
   nomad = prev.callPackage ./pkgs/nomad.nix { inherit (inputs) nomad-source; };
 
-  glusterfs = prev.callPackage ./pkgs/glusterfs.nix { };
-
   boundary = prev.callPackage ./pkgs/boundary.nix { };
 
   grpcdump = prev.callPackage ./pkgs/grpcdump.nix { };
@@ -81,7 +79,11 @@ in final: prev: {
   haproxy = prev.callPackage ./pkgs/haproxy.nix { };
 
   inherit (inputs.nixpkgs-unstable.legacyPackages.${final.system})
-    grafana-loki grafana traefik glusterfs;
+    grafana-loki grafana traefik;
+
+  glusterfs =
+    (inputs.nixpkgs-unstable.legacyPackages.${final.system}).callPackage
+    ./pkgs/glusterfs.nix { };
 
   victoriametrics = prev.callPackage ./pkgs/victoriametrics.nix { };
 
