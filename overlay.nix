@@ -72,9 +72,6 @@ in final: prev: {
 
   nomad = prev.callPackage ./pkgs/nomad.nix { inherit (inputs) nomad-source; };
 
-  levant =
-    prev.callPackage ./pkgs/levant.nix { inherit (inputs) levant-source; };
-
   glusterfs = prev.callPackage ./pkgs/glusterfs.nix { };
 
   boundary = prev.callPackage ./pkgs/boundary.nix { };
