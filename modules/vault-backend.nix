@@ -7,7 +7,7 @@ in {
     };
   };
 
-  config = {
+  config = lib.mkIf cfg.enable {
     systemd.services.vault-backend = {
       wantedBy = [ "multi-user.target" ];
       after = [ "network.target" ];
