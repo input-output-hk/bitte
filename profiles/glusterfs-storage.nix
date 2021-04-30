@@ -68,6 +68,7 @@
         gluster volume start gv0 force
 
         size="$(lsblk /dev/nvme1n1 -J | jq -r -e '.blockdevices[0].size')B"
+        gluster volume quota gv0 enable
         gluster volume quota gv0 limit-usage / "$size"
       '';
     };
