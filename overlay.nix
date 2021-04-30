@@ -75,7 +75,7 @@ in final: prev: {
   levant =
     prev.callPackage ./pkgs/levant.nix { inherit (inputs) levant-source; };
 
-  seaweedfs = prev.callPackage ./pkgs/seaweedfs.nix { };
+  glusterfs = prev.callPackage ./pkgs/glusterfs.nix { };
 
   boundary = prev.callPackage ./pkgs/boundary.nix { };
 
