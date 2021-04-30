@@ -23,6 +23,7 @@
     ./terraform.nix
     ./vault-agent-client.nix
     ./vault-agent-server.nix
+    ./vault-backend.nix
     ./vault.nix
     ./vault-policies.nix
     ./victoriametrics.nix
