@@ -58,10 +58,10 @@ in stdenv.mkDerivation rec {
   version = "9.1";
 
   src = fetchFromGitHub {
-    owner = "gluster";
+    owner = "manveru";
     repo = pname;
-    rev = "v${version}";
-    sha256 = "sha256-HoQmqh+EAjZKydtYoxxi13bgFmoiUtpNo5c5+1aHaKs=";
+    rev = "c7a098cdbea819fa2b0d04bec45cdf960a5340af";
+    sha256 = "sha256-VhLLRH3TQVh80PaLGG8uzdo1GxGtzKVLCvLTcSB1m5s=";
   };
   inherit buildInputs propagatedBuildInputs;
 
