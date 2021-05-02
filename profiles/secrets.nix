@@ -106,6 +106,9 @@ in {
   secrets.install.consul-clients = lib.mkIf (!isInstance) {
     source = config.secrets.encryptedRoot + "/consul-clients.json";
     target = /etc/consul.d/secrets.json;
+    script = ''
+      ${pkgs.systemd}/bin/systemctl restart consul.service
+    '';
   };
 
   secrets.generate.nomad = lib.mkIf isInstance ''
