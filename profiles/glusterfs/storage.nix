@@ -1,4 +1,11 @@
-{ config, self, pkgs, lib, nodeName, ... }: {
+{ config, self, pkgs, lib, nodeName, ... }:
+let
+  # with 3 storage nodes, and redundancy at 1, we have 2/3 of size*3. We only
+  # want to use 90% to ensure the quota is actually applied in time, so ew set
+  # it to 2*0.9 = 1.8.
+  quotaSize =
+    config.tf.core.configuration.resource.aws_ebs_volume.${nodeName}.size * 1.8;
+in {
   imports =
     [ ../common.nix ../telegraf.nix ../secrets.nix ../vault/client.nix ];
 
@@ -94,12 +101,9 @@
 
         gluster volume start gv0 force
 
+        gluster volume bitrot gv0 enable || true
         gluster volume quota gv0 enable || true
-        gluster volume quota gv0 limit-usage / ${
-          toString
-          (config.tf.core.configuration.resource.aws_ebs_volume.${nodeName}.size
-            * 0.9)
-        }GB
+        gluster volume quota gv0 limit-usage / ${toString quotaSize}GB
       '';
     };
   };
