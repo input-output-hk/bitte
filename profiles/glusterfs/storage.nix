@@ -3,6 +3,7 @@
     [ ../common.nix ../telegraf.nix ../secrets.nix ../vault/client.nix ];
 
   services.glusterfs.enable = true;
+
   services.vault-agent-core = {
     enable = true;
     vaultAddress = "https://${config.cluster.instances.core-2.privateIP}:8200";
@@ -30,7 +31,6 @@
   systemd.services.storage-service = (pkgs.consulRegister {
     service = {
       name = "glusterd";
-      enable_tag_override = false;
       port = 24007;
       tags = [ "gluster" "server" ];
 
@@ -41,22 +41,19 @@
           tcp = "localhost:24007";
         };
 
-        gluster-pool = {
-          interval = "10s";
-          timeout = "5s";
-          ScriptArgs = let
-            script = pkgs.writeBashChecked "gluster-pool-check.sh" ''
-              set -euo pipefail
-              export PATH="${
-                lib.makeBinPath (with pkgs; [ glusterfs gnugrep ])
-              }"
-              gluster pool list \
-              | grep -v 'UUID|localhost' \
-              | grep Connected \
-              > /dev/null
-            '';
-          in [ script ];
-        };
+        # gluster-pool = {
+        #   interval = "10s";
+        #   timeout = "5s";
+        #   args = let
+        #     script = pkgs.writeBashChecked "gluster-pool-check.sh" ''
+        #       set -exuo pipefail
+        #       export PATH="${
+        #         lib.makeBinPath (with pkgs; [ glusterfs gnugrep ])
+        #       }"
+        #       exec gluster pool list | egrep -v 'UUID|localhost' | grep Connected
+        #     '';
+        #   in [ script ];
+        # };
       };
     };
   }).systemdService;
@@ -97,9 +94,12 @@
 
         gluster volume start gv0 force
 
-        size="$(lsblk /dev/nvme1n1 -J | jq -r -e '.blockdevices[0].size')B"
         gluster volume quota gv0 enable || true
-        gluster volume quota gv0 limit-usage / "$size"
+        gluster volume quota gv0 limit-usage / ${
+          toString
+          (config.tf.core.configuration.resource.aws_ebs_volume.${nodeName}.size
+            * 0.9)
+        }GB
       '';
     };
   };

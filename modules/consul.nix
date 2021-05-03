@@ -84,6 +84,10 @@ in {
         '';
       };
 
+      enableScriptChecks = mkEnableOption ''
+        Enable script checks.
+      '';
+
       enableLocalScriptChecks = mkEnableOption ''
         Enable script checks defined in local config files. Script checks
         defined via the HTTP API will not be allowed.
@@ -393,7 +397,7 @@ in {
           clientAddr encrypt addresses retryJoin primaryDatacenter acl connect
           caFile certFile keyFile autoEncrypt verifyServerHostname
           verifyOutgoing verifyIncoming dataDir tlsMinVersion ports
-          enableLocalScriptChecks nodeMeta telemetry nodeId enableDebug;
+          enableLocalScriptChecks nodeMeta telemetry nodeId enableDebug enableScriptChecks;
       });
 
     environment.etc."${cfg.configDir}/extra-config.json".source =
