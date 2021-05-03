@@ -19,6 +19,13 @@ in {
     services.vault = {
       logLevel = "trace";
 
+      storage.consul = lib.mkDefault {
+        address = "127.0.0.1:8500";
+        tlsCaFile = full;
+        tlsCertFile = cert;
+        tlsKeyFile = key;
+      };
+
       seal.awskms = {
         kmsKeyId = kms;
         inherit region;

@@ -1,10 +1,6 @@
-{ config, self, pkgs, nodeName, ... }: {
-  imports = [
-    (self.inputs.bitte + "/profiles/common.nix")
-    (self.inputs.bitte + "/profiles/telegraf.nix")
-    (self.inputs.bitte + "/profiles/secrets.nix")
-    (self.inputs.bitte + "/profiles/vault/client.nix")
-  ];
+{ config, self, pkgs, lib, nodeName, ... }: {
+  imports =
+    [ ../common.nix ../telegraf.nix ../secrets.nix ../vault/client.nix ];
 
   services.glusterfs.enable = true;
   services.vault-agent-core = {
@@ -30,6 +26,40 @@
       fsType = "glusterfs";
     };
   };
+
+  systemd.services.storage-service = (pkgs.consulRegister {
+    service = {
+      name = "glusterd";
+      enable_tag_override = false;
+      port = 24007;
+      tags = [ "gluster" "server" ];
+
+      checks = {
+        gluster-tcp = {
+          interval = "10s";
+          timeout = "5s";
+          tcp = "localhost:24007";
+        };
+
+        gluster-pool = {
+          interval = "10s";
+          timeout = "5s";
+          ScriptArgs = let
+            script = pkgs.writeBashChecked "gluster-pool-check.sh" ''
+              set -euo pipefail
+              export PATH="${
+                lib.makeBinPath (with pkgs; [ glusterfs gnugrep ])
+              }"
+              gluster pool list \
+              | grep -v 'UUID|localhost' \
+              | grep Connected \
+              > /dev/null
+            '';
+          in [ script ];
+        };
+      };
+    };
+  }).systemdService;
 
   systemd.services."mnt-gv0.mount" = {
     after = [ "setup-glusterfs.service" ];

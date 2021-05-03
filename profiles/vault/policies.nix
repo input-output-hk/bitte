@@ -79,11 +79,12 @@ in {
       "auth/token/roles/nomad-cluster".capabilities = [ r ];
       "auth/token/roles/nomad-server".capabilities = [ r ];
       "auth/token/roles/nomad-autoscaler".capabilities = [ r ];
+      "consul/creds/consul-register".capabilities = [ r ];
       "consul/creds/consul-server-agent".capabilities = [ r ];
       "consul/creds/consul-server-default".capabilities = [ r ];
+      "consul/creds/nomad-autoscaler".capabilities = [ r ];
       "consul/creds/nomad-server".capabilities = [ r ];
       "consul/creds/vault-server".capabilities = [ r ];
-      "consul/creds/nomad-autoscaler".capabilities = [ r ];
       "consul/creds/ingress".capabilities = [ r ];
       "kv/data/bootstrap/ca".capabilities = [ c r u d l ];
       "kv/data/bootstrap/*".capabilities = [ r ];

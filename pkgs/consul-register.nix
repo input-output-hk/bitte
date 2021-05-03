@@ -6,7 +6,7 @@ let
       checks = lib.flip lib.mapAttrsToList (service.checks or { })
         (checkName: check:
           {
-            id = service.name;
+            id = "${service.name}-${checkName}";
             service_id = service.name;
             name = checkName;
           } // check);
