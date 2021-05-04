@@ -10,11 +10,11 @@ in final: prev: {
   # nix = prev.nixFlakes;
   nixFlakes = inputs.nix.packages.${final.system}.nix;
 
-  vault-bin = prev.callPackage ./pkgs/vault-bin.nix { };
+  # vault-bin = prev.callPackage ./pkgs/vault-bin.nix { };
 
   ssm-agent = prev.callPackage ./pkgs/ssm-agent { };
 
-  consul = prev.callPackage ./pkgs/consul { };
+  # consul = prev.callPackage ./pkgs/consul { };
 
   cue = final.callPackage ./pkgs/cue.nix { };
 
@@ -86,7 +86,7 @@ in final: prev: {
 
   victoriametrics = prev.callPackage ./pkgs/victoriametrics.nix { };
 
-  consul-template = prev.callPackage ./pkgs/consul-template.nix { };
+  # consul-template = prev.callPackage ./pkgs/consul-template.nix { };
 
   nomad-autoscaler = prev.callPackage ./pkgs/nomad-autoscaler.nix { };
 

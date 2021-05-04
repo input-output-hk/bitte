@@ -34,5 +34,7 @@
     "services/monitoring/telegraf.nix"
     "services/networking/consul.nix"
     "services/security/vault.nix"
+    "services/networking/nomad.nix"
+    "services/logging/promtail.nix"
   ];
 }
