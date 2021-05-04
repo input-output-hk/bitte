@@ -7,3 +7,4 @@
 /config.tf.json
 /result*
 /.lego
+.direnv
