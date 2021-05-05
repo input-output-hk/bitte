@@ -1,21 +1,17 @@
-{ stdenv, fetchurl, unzip, makeWrapper, gawk, glibc }:
+{ lib, stdenv, fetchurl, unzip, makeWrapper, gawk }:
 
 let
-  version = "1.6.0";
+  version = "1.6.4";
 
   sources = let base = "https://releases.hashicorp.com/vault/${version}";
   in {
     x86_64-linux = fetchurl {
       url = "${base}/vault_${version}_linux_amd64.zip";
-      sha256 = "sha256-gwSOLR6/6iEv6tQuR06UfDo7zMUFalFY7TP1MPgyXjk=";
+      sha256 = "sha256-7Lh5RhQAHyGHqEG0Xp1LrcGV79qzm/Kx7lSIG6HV3H8=";
     };
     x86_64-darwin = fetchurl {
       url = "${base}/vault_${version}_darwin_amd64.zip";
-      sha256 = "sha256-EOqQtR1muFSD0Weqtr3EOj4f/PpW9uJHhMCj08uYgUI=";
-    };
-    aarch64-linux = fetchurl {
-      url = "${base}/vault_${version}_linux_arm64.zip";
-      sha256 = "sha256-//E8f3U+vunr6ojoH12N+j1i8V6g765Ch/CaTkIsCgU=";
+      sha256 = "sha256-QNuKGw4O0fC5L2FBQ3AiqtTlfPZqXmA9uKqU1cfOko8=";
     };
   };
 
@@ -36,7 +32,7 @@ in stdenv.mkDerivation {
 
     mv vault $out/bin
     wrapProgram $out/bin/vault \
-      --set PATH ${stdenv.lib.makeBinPath [ gawk glibc ]}
+      --set PATH ${stdenv.lib.makeBinPath ([ gawk ] ++ lib.optionals stdenv.isLinux [ glibc ])}
   '';
 
   meta = with stdenv.lib; {
@@ -44,10 +40,7 @@ in stdenv.mkDerivation {
     description = "A tool for managing secrets, this binary includes the UI";
     platforms = [
       "x86_64-linux"
-      "i686-linux"
       "x86_64-darwin"
-      "aarch64-linux"
-      "i686-darwin"
     ];
     license = licenses.mpl20;
     maintainers = with maintainers; [ offline psyanticy mkaito ];
