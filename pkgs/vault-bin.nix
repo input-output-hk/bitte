@@ -1,4 +1,4 @@
-{ lib, stdenv, fetchurl, unzip, makeWrapper, gawk }:
+{ lib, stdenv, glibc, fetchurl, unzip, makeWrapper, gawk }:
 
 let
   version = "1.6.4";
