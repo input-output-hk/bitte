@@ -33,7 +33,8 @@
   outputs = { self, nixpkgs, utils, bitte-cli, ... }@inputs:
     let
       overlay = import ./overlay.nix inputs;
-    in (utils.lib.eachSystem [ "x86_64-linux" ] (system: rec {
+      lib = import (nixpkgs + "/lib");
+    in (utils.lib.eachSystem [ "x86_64-linux" "x86_64-darwin" ] (system: rec {
 
       legacyPackages = import nixpkgs {
         inherit system;
@@ -44,10 +45,11 @@
       inherit (legacyPackages) devShell nixosModules;
 
       packages = {
-        inherit (legacyPackages)
-          bitte nixos-rebuild nixFlakes sops terraform-with-plugins ssm-agent
-          cfssl consul;
-      };
+        inherit (legacyPackages) bitte consul;
+        } // (lib.optionalAttrs (legacyPackages.stdenv.isLinux) {
+          inherit (legacyPackages)
+            nixos-rebuild nixFlakes sops terraform-with-plugins ssm-agent cfssl;
+        });
 
       hydraJobs = packages;
 
