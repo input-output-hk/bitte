@@ -266,7 +266,7 @@ in {
     resource.acme_certificate.certificate = {
       account_key_pem = var "acme_registration.reg.account_key_pem";
       common_name = "${config.cluster.domain}";
-      subject_alternative_names = [ "*.${config.cluster.domain}" ];
+      subject_alternative_names = [ "*.${config.cluster.domain}" ] ++ config.cluster.extraAcmeSANs;
 
       dns_challenge.provider = "route53";
     };
