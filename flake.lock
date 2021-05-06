@@ -7,11 +7,11 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1619793403,
-        "narHash": "sha256-z8x+sHkflxOh2HEP0p15LphriEwOLwUcjt4fZE9NoRs=",
+        "lastModified": 1620164670,
+        "narHash": "sha256-wdLuU6Uv/2AJZPoCjJUfCnEWTcC6eVJ3EGMamt2lzfg=",
         "owner": "input-output-hk",
         "repo": "bitte-cli",
-        "rev": "9f5727b2bfe7ec271e27f0c4a3382e3f69c905f6",
+        "rev": "04ad94bacfc54b095d20c2ae343bc2c8f838df0d",
         "type": "github"
       },
       "original": {
@@ -92,17 +92,17 @@
     },
     "nixpkgs-terraform": {
       "locked": {
-        "lastModified": 1614717568,
-        "narHash": "sha256-a8lJVguNDT8324CE4FE7G0NdWaA1kG1Sq8hw+PH/UHo=",
-        "owner": "manveru",
-        "repo": "nixpkgs",
-        "rev": "80cbbeff5eb5bc62afc61bb170e6d88cd450aec6",
+        "lastModified": 1620302505,
+        "narHash": "sha256-NQ7gIE62qcVMKzz7p2kcnRWHTRtzhUqIF2sol/icSAo=",
+        "owner": "johnalotoski",
+        "repo": "nixpkgs-terraform",
+        "rev": "03d29fe1a5481c5c2054f5f55683bc6a26b7b73a",
         "type": "github"
       },
       "original": {
-        "owner": "manveru",
+        "owner": "johnalotoski",
         "ref": "iohk-terraform",
-        "repo": "nixpkgs",
+        "repo": "nixpkgs-terraform",
         "type": "github"
       }
     },
