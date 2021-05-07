@@ -96,7 +96,10 @@ in stdenv.mkDerivation rec {
 
   nativeBuildInputs = [ rpcsvc-proto ];
 
-  makeFlags = [ "DESTDIR=$(out)" ];
+  makeFlags = [
+    "DESTDIR=$(out)"
+    "WITH_SERVER=1"
+  ];
 
   enableParallelBuilding = true;
 
