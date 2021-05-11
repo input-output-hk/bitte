@@ -5,8 +5,8 @@ let
 
 in with lib; {
   config = mkIf cfg.enable {
-    systemd.services.hydra-projects = {
-      description = "Hydra declarative projects";
+    systemd.services.hydra-declarative = {
+      description = "Hydra declarative projects and users";
       wantedBy    = [ "multi-user.target" ];
       requires    = [ "hydra-init.service" "postgresql.service" ];
       after       = [ "hydra-init.service" "postgresql.service" ];
