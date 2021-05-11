@@ -1,6 +1,6 @@
 inputs:
 let
-  inherit (inputs) nixpkgs nix ops-lib nixpkgs-terraform bitte-cli inclusive;
+  inherit (inputs) nixpkgs nix ops-lib nixpkgs-terraform bitte-cli;
   inherit (builtins) fromJSON toJSON trace mapAttrs genList foldl';
   inherit (nixpkgs) lib;
 in final: prev: {
@@ -53,8 +53,6 @@ in final: prev: {
   sanitize = prev.callPackage ./lib/sanitize.nix { };
 
   snakeCase = prev.callPackage ./lib/snake-case.nix { };
-
-  inherit (inclusive.lib) inclusive;
 
   pp = v: trace (toJSON v) v;
 
