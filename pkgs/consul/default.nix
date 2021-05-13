@@ -30,7 +30,7 @@ buildGoModule rec {
   # has a split module structure in one repo
   subPackages = [ "." "connect/certgen" ];
 
-  vendorSha256 = "sha256-JFpCp9/MOmHtfBYeAz6QANqfy0te2uOgb37XVHIXgVU=";
+  vendorSha256 = "sha256-YqrW3PeFv1Y6lmjVmMMP0SZao57iPqfut3a1afIWkI0=";
   deleteVendor = true;
 
   preBuild = ''

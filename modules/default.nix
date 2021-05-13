@@ -4,6 +4,7 @@
     ./consul.nix
     ./consul-policies.nix
     ./consul-template.nix
+    ./hydra
     ./ingress-config.nix
     ./ingress.nix
     ./nomad-autoscaler.nix
