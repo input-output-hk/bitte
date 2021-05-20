@@ -19,7 +19,6 @@ mkShellNoCC {
     nixos-rebuild
     nomad
     openssl
-    python38Packages.pyhcl
     sops
     ssm-session-manager-plugin
     terraform-with-plugins

@@ -1,6 +1,6 @@
 inputs:
 let
-  inherit (inputs) nixpkgs nix ops-lib nixpkgs-terraform bitte-cli inclusive;
+  inherit (inputs) nixpkgs nix ops-lib nixpkgs-terraform bitte-cli;
   inherit (builtins) fromJSON toJSON trace mapAttrs genList foldl';
   inherit (nixpkgs) lib;
 in final: prev: {
@@ -33,7 +33,9 @@ in final: prev: {
       version = "= ${provider.version}";
     }) final.terraform-provider-names);
 
-  inherit (nixpkgs-terraform.legacyPackages.${final.system})
+  nixpkgs-terraform-pkgs = nixpkgs-terraform.legacyPackages.${final.system};
+
+  inherit (final.nixpkgs-terraform-pkgs)
     terraform_0_13 terraform_0_14 terraform-providers;
 
   # terraform-with-plugins = final.terraform_0_14.withPlugins
@@ -52,8 +54,6 @@ in final: prev: {
 
   snakeCase = prev.callPackage ./lib/snake-case.nix { };
 
-  inherit (inclusive.lib) inclusive;
-
   pp = v: trace (toJSON v) v;
 
   haproxy-auth-request = prev.callPackage ./pkgs/haproxy-auth-request.nix { };
@@ -70,11 +70,6 @@ in final: prev: {
 
   nomad = prev.callPackage ./pkgs/nomad.nix { inherit (inputs) nomad-source; };
 
-  levant =
-    prev.callPackage ./pkgs/levant.nix { inherit (inputs) levant-source; };
-
-  seaweedfs = prev.callPackage ./pkgs/seaweedfs.nix { };
-
   boundary = prev.callPackage ./pkgs/boundary.nix { };
 
   grpcdump = prev.callPackage ./pkgs/grpcdump.nix { };
@@ -83,6 +78,10 @@ in final: prev: {
 
   inherit (inputs.nixpkgs-unstable.legacyPackages.${final.system})
     grafana-loki grafana traefik;
+
+  glusterfs =
+    (inputs.nixpkgs-unstable.legacyPackages.${final.system}).callPackage
+    ./pkgs/glusterfs.nix { };
 
   victoriametrics = prev.callPackage ./pkgs/victoriametrics.nix { };
 

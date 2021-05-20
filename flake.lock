@@ -7,34 +7,16 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1621442537,
-        "narHash": "sha256-bg2X+1CjEHrA/A1TpJ/ig+/OCjsS2jAKkhSsd3t98z0=",
+        "lastModified": 1619793403,
+        "narHash": "sha256-z8x+sHkflxOh2HEP0p15LphriEwOLwUcjt4fZE9NoRs=",
         "owner": "input-output-hk",
         "repo": "bitte-cli",
-        "rev": "8d7b21ba7b1f2979262577763735ba43a16e709b",
+        "rev": "9f5727b2bfe7ec271e27f0c4a3382e3f69c905f6",
         "type": "github"
       },
       "original": {
         "owner": "input-output-hk",
         "repo": "bitte-cli",
-        "type": "github"
-      }
-    },
-    "inclusive": {
-      "inputs": {
-        "stdlib": "stdlib"
-      },
-      "locked": {
-        "lastModified": 1594133516,
-        "narHash": "sha256-4Z9XU8QRmTU7LldCxwRqkEH5pHJwgW8XmMvqu4t2DEg=",
-        "owner": "input-output-hk",
-        "repo": "nix-inclusive",
-        "rev": "11d05e4f1ca04fd250a9734e27970ad73bbd872d",
-        "type": "github"
-      },
-      "original": {
-        "owner": "input-output-hk",
-        "repo": "nix-inclusive",
         "type": "github"
       }
     },
@@ -92,17 +74,17 @@
     },
     "nixpkgs-terraform": {
       "locked": {
-        "lastModified": 1620302505,
-        "narHash": "sha256-NQ7gIE62qcVMKzz7p2kcnRWHTRtzhUqIF2sol/icSAo=",
-        "owner": "johnalotoski",
-        "repo": "nixpkgs-terraform",
-        "rev": "03d29fe1a5481c5c2054f5f55683bc6a26b7b73a",
+        "lastModified": 1620395313,
+        "narHash": "sha256-zaNy1ZD0WNKon3ZmEEte7z74CE6PWmQ8XltwuTMGDMI=",
+        "owner": "manveru",
+        "repo": "nixpkgs",
+        "rev": "316b82563a7793a4a88bed9e41adb936d9adc969",
         "type": "github"
       },
       "original": {
-        "owner": "johnalotoski",
-        "ref": "iohk-terraform",
-        "repo": "nixpkgs-terraform",
+        "owner": "manveru",
+        "ref": "updated-terraform-providers",
+        "repo": "nixpkgs",
         "type": "github"
       }
     },
@@ -156,11 +138,11 @@
     "nomad-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1620749503,
-        "narHash": "sha256-7OEsbP/nWT08RknMYsy8fifztLuVN74wMiNQB/IV9YA=",
+        "lastModified": 1619804772,
+        "narHash": "sha256-Zm4IPjcSCCTquQD04veJVS+YsZWAqddFk4xd2l9GjD4=",
         "owner": "manveru",
         "repo": "nomad",
-        "rev": "292a0d63b2ee346fe818f7a03e493094ed2bf5ea",
+        "rev": "06cf845a5c71147f76be3b2b39c61c1b4f6b0dea",
         "type": "github"
       },
       "original": {
@@ -189,7 +171,6 @@
     "root": {
       "inputs": {
         "bitte-cli": "bitte-cli",
-        "inclusive": "inclusive",
         "levant-source": "levant-source",
         "nix": "nix",
         "nixpkgs": "nixpkgs_3",
@@ -219,21 +200,6 @@
         "owner": "input-output-hk",
         "ref": "work",
         "repo": "rust.nix",
-        "type": "github"
-      }
-    },
-    "stdlib": {
-      "locked": {
-        "lastModified": 1590026685,
-        "narHash": "sha256-E5INrVvYX/P/UpcoUFDAsuHem+lsqT+/teBs9O7oc9Q=",
-        "owner": "manveru",
-        "repo": "nix-lib",
-        "rev": "99088cf7febcdb21afd375a335dcafa959bef3ed",
-        "type": "github"
-      },
-      "original": {
-        "owner": "manveru",
-        "repo": "nix-lib",
         "type": "github"
       }
     },

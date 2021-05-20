@@ -4,10 +4,8 @@
   inputs = {
     nixpkgs.url =
       "github:NixOS/nixpkgs?rev=b8c367a7bd05e3a514c2b057c09223c74804a21b";
-    # nixpkgs-terraform.url = "github:anandsuresh/nixpkgs/backport";
-    nixpkgs-terraform.url = "github:johnalotoski/nixpkgs-terraform/iohk-terraform";
+    nixpkgs-terraform.url = "github:manveru/nixpkgs/updated-terraform-providers";
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-    inclusive.url = "github:input-output-hk/nix-inclusive";
     utils.url = "github:numtide/flake-utils";
     bitte-cli.url = "github:input-output-hk/bitte-cli";
     nix.url = "github:NixOS/nix?rev=b19aec7eeb8353be6c59b2967a511a5072612d99";
@@ -31,9 +29,8 @@
   };
 
   outputs = { self, nixpkgs, utils, bitte-cli, ... }@inputs:
-    let
-      overlay = import ./overlay.nix inputs;
-    in (utils.lib.eachSystem [ "x86_64-linux" "x86_64-darwin" ] (system: rec {
+    let overlay = import ./overlay.nix inputs;
+    in (utils.lib.eachSystem [ "x86_64-linux" ] (system: rec {
 
       legacyPackages = import nixpkgs {
         inherit system;
@@ -45,8 +42,10 @@
 
       packages = {
         inherit (legacyPackages)
-          bitte nixos-rebuild nixFlakes sops terraform-with-plugins ssm-agent
-          cfssl consul;
+          bitte cfssl consul cue glusterfs haproxy haproxy-auth-request
+          haproxy-cors nixFlakes nixos-rebuild nomad nomad-autoscaler
+          oauth2_proxy sops ssm-agent terraform-with-plugins vault-backend
+          vault-bin;
       };
 
       hydraJobs = packages;

@@ -1,4 +1,4 @@
-{ config, pkgs, ... }: {
+{ config, pkgs, lib, ... }: {
   documentation.man.enable = false;
   documentation.nixos.enable = false;
   documentation.info.enable = false;
@@ -25,4 +25,8 @@
     tree
     vim
   ];
+
+  networking.extraHosts = lib.concatStringsSep "\n"
+    (lib.mapAttrsToList (name: instance: "${instance.privateIP} ${name}")
+      config.cluster.instances);
 }

@@ -14,7 +14,6 @@
     ./promtail.nix
     ./s3-download.nix
     ./s3-upload.nix
-    ./seaweedfs.nix
     ./secrets.nix
     ./telegraf.nix
     ./terraform/clients.nix
@@ -25,6 +24,7 @@
     ./terraform.nix
     ./vault-agent-client.nix
     ./vault-agent-server.nix
+    ./vault-backend.nix
     ./vault.nix
     ./vault-policies.nix
     ./victoriametrics.nix

@@ -1,4 +1,4 @@
-{ stdenv, buildGoModule, fetchFromGitHub, nixosTests }:
+{ stdenv, buildGoModule, fetchFromGitHub, fetchurl, nixosTests }:
 
 buildGoModule rec {
   pname = "consul";
@@ -19,6 +19,10 @@ buildGoModule rec {
     inherit rev;
     sha256 = "sha256-CKezHuCbL1I79gDz7ZQiSgPbSXo0NtssQro2MqqmeXw=";
   };
+
+  patches = [
+    ./script-check.patch
+  ];
 
   passthru.tests.consul = nixosTests.consul;
 
