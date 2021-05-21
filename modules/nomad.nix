@@ -1045,52 +1045,9 @@ in {
       };
     };
 
-    # TODO: refactor this, no clue why it's so convoluted.
-    plugin = let
-      rawExecType = submodule {
-        options = { enabled = mkEnableOption "Enable raw-exec"; };
-      };
-
-      dockerAuthType = submodule {
-        options = {
-          helper = mkOption {
-            type = nullOr str;
-            default = null;
-          };
-
-          config = mkOption {
-            type = nullOr path;
-            default = null;
-          };
-        };
-      };
-
-      dockerType = submodule {
-        options = {
-          auth = mkOption {
-            type = nullOr dockerAuthType;
-            default = null;
-            apply = value: if value == null then [ ] else [ value ];
-          };
-        };
-      };
-
-      pluginType = submodule ({ name, ... }: {
-        options = {
-          raw_exec = mkOption {
-            type = nullOr rawExecType;
-            default = null;
-          };
-
-          docker = mkOption {
-            type = nullOr dockerType;
-            default = null;
-          };
-        };
-      });
-    in mkOption {
+    plugin = mkOption {
       default = null;
-      type = nullOr pluginType;
+      type = nullOr attrs;
       apply = top:
         if top == null then
           null
