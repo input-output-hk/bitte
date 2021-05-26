@@ -1,14 +1,13 @@
 { stdenv, fetchFromGitHub, buildGoModule, go, removeReferencesTo }:
 buildGoModule rec {
   pname = "nomad-autoscaler";
-  version = "0.3.2";
+  version = "0.3.3";
 
   src = fetchFromGitHub {
     owner = "hashicorp";
     repo = "nomad-autoscaler";
-    # branch: b-gh-472
-    rev = "4c58449a37da711db2499489201ceaeb80abd237";
-    sha256 = "sha256-TfJCu/sCYQg9JKXLLbPMuOKJm00uNillaqoOxIC1LcM=";
+    rev = "v${version}";
+    sha256 = "sha256-bN/U6aCf33B88ouQwTGG8CqARzWmIvXNr5JPr3l8cVI=";
   };
 
   subPackages = [ "." ];
@@ -29,5 +28,5 @@ buildGoModule rec {
     done
   '';
 
-  vendorSha256 = "sha256-C9zl6u6RQ9gPUeXa/nTgf47rFMNVfb+4Hx7Ruo5YGbk=";
+  vendorSha256 = "sha256-Ls8gkfLyxfQD8krvxjAPnZhf1r1s2MhtQfMMfp8hJII=";
 }
