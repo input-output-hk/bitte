@@ -248,22 +248,10 @@ in {
       ]
 
       [core.wait_for_unit("vault-agent") for core in cores]
-      # core0.wait_for_unit("vault-acl")
       core0.wait_for_unit("consul-acl")
-
-      admin.sleep(30)
-
-      core0.systemctl("restart vault-agent.service")
-
-      admin.sleep(30)
-
-      core0.log("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
-      core0.log(core0.succeed("journalctl -e -u vault-agent.service"))
-      core0.log("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
-
-      core0.wait_for_unit("nomad-acl")
-
       [core.wait_for_unit("nomad") for core in cores]
+      core0.wait_for_unit("nomad-acl")
+      core0.wait_for_unit("vault-acl")
 
       admin.sleep(10)
 
