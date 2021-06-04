@@ -11,7 +11,7 @@ in {
     bootstrap.path = {
       "nomad/role/+".capabilities = [ c u ];
       "consul/roles/+".capabilities = [ c u ];
-      "consul/creds/+".capabilities = [ r ];
+      "consul/creds/".capabilities = [ r ];
       "sys/policies/acl/admin".capabilities = [ u ];
       "sys/policies/acl/bootstrap".capabilities = [ u ];
       "sys/policies/acl".capabilities = [ l ];
@@ -24,11 +24,12 @@ in {
     };
 
     vault-agent-core.path = {
-      "consul/creds/nomad-server".capabilities = [ c u ];
+      "consul/creds/nomad-server".capabilities = [ r ];
       "consul/creds/consul-server-default".capabilities = [ r ];
       "consul/creds/consul-server-agent".capabilities = [ r ];
       "sys/policies/acl/admin".capabilities = [ u ];
       "nomad/role/admin".capabilities = [ u ];
+      "auth/token/create".capabilities = [ c r u d l s ];
     };
 
     admin.path = {
