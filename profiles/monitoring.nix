@@ -27,7 +27,7 @@ in {
     vault-agent-core = {
       enable = true;
       vaultAddress =
-        "https://${config.cluster.instances.core-1.privateIP}:8200";
+        "https://core-1:8200";
     };
 
     victoriametrics = {

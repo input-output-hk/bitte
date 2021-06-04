@@ -3,7 +3,6 @@
 /.terraform
 /terraform.*
 /*.plan
-/encrypted
 /config.tf.json
 /result*
 /.lego

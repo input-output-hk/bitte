@@ -69,7 +69,7 @@ in {
       ${ctName} = mkIf (cfg.enable && value.enable) {
         after = [
           "consul.service"
-          "consul-policies.service"
+          "consul-acl.service"
           "network-online.target"
         ];
         wantedBy = [ "multi-user.target" ];
@@ -78,7 +78,7 @@ in {
         serviceConfig = {
           DynamicUser = true;
           User = ctName;
-          Group = "consul-policies"; # share /tmp to exchange tokens
+          Group = "consul-acl"; # share /tmp to exchange tokens
           RuntimeDirectoryPreserve = "yes";
           StateDirectory = ctName;
           WorkingDirectory = "/var/lib/${ctName}";
@@ -90,7 +90,7 @@ in {
           #     #!${pkgs.bash}/bin/bash
           #     PATH="${PATH}"
           #     id
-          #     ls -la /var/lib/private/consul-policies/
+          #     ls -la /var/lib/private/consul-acl/
           #     jq -r -e .SecretID < /tmp/${ctName}.secret.json > consul.token
           #   '';
           # in

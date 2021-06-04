@@ -2,12 +2,35 @@
 let
   c = "create";
   r = "read";
-  u = "update";
+  u = "update"; # PUT
   d = "delete";
   l = "list";
   s = "sudo";
 in {
   services.vault.policies = {
+    bootstrap.path = {
+      "nomad/role/+".capabilities = [ c u ];
+      "consul/roles/+".capabilities = [ c u ];
+      "consul/creds/+".capabilities = [ r ];
+      "sys/policies/acl/admin".capabilities = [ u ];
+      "sys/policies/acl/bootstrap".capabilities = [ u ];
+      "sys/policies/acl".capabilities = [ l ];
+      "sys/policies/acl/client".capabilities = [ u ];
+      "sys/policies/acl/core".capabilities = [ u ];
+      "sys/policies/acl/developer".capabilities = [ u ];
+      "sys/policies/acl/nomad-cluster".capabilities = [ u ];
+      "sys/policies/acl/nomad-server".capabilities = [ u ];
+      "sys/policies/acl/vault-agent-core".capabilities = [ u ];
+    };
+
+    vault-agent-core.path = {
+      "consul/creds/nomad-server".capabilities = [ c u ];
+      "consul/creds/consul-server-default".capabilities = [ r ];
+      "consul/creds/consul-server-agent".capabilities = [ r ];
+      "sys/policies/acl/admin".capabilities = [ u ];
+      "nomad/role/admin".capabilities = [ u ];
+    };
+
     admin.path = {
       "approle/*".capabilities = [ c r u d l ];
       "aws/*".capabilities = [ c r u d l ];

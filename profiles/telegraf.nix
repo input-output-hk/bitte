@@ -6,7 +6,7 @@ in {
   systemd.services.telegraf.path = with pkgs; [ procps ];
 
   services.telegraf = {
-    enable = true;
+    enable = lib.mkDefault true;
 
     extraConfig = {
       agent = {
@@ -99,7 +99,7 @@ in {
       outputs = {
         influxdb = {
           database = "telegraf";
-          urls = [ "http://${instances.monitoring.privateIP}:8428" ];
+          urls = [ "http://monitoring:8428" ];
         };
       };
     };

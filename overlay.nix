@@ -25,6 +25,20 @@ in final: prev: {
     ];
   });
 
+  bitte-tests = final.callPackage ./tests { inherit inputs; };
+
+  fetch-ssh-keys = final.callPackage ./pkgs/fetch-ssh-keys.nix { };
+
+  agenix = inputs.agenix.packages.${final.system}.agenix;
+
+  agenix-cli = inputs.agenix-cli.packages.${final.system}.agenix;
+
+  bitte-ruby = prev.bundlerEnv {
+    ruby = prev.ruby;
+    name = "bitte-gems";
+    gemdir = ./.;
+  };
+
   ssm-agent = prev.callPackage ./pkgs/ssm-agent { };
 
   consul = prev.callPackage ./pkgs/consul { };
@@ -109,13 +123,14 @@ in final: prev: {
   mkRequired = constituents:
     let
       build-version = final.writeText "version.json" (toJSON {
-        inherit (inputs.self) lastModified lastModifiedDate narHash outPath shortRev rev;
+        inherit (inputs.self)
+          lastModified lastModifiedDate narHash outPath shortRev rev;
       });
     in final.releaseTools.aggregate {
-        name = "required";
-        constituents = (attrValues constituents) ++ [ build-version ];
-        meta.description = "All required derivations";
-      };
+      name = "required";
+      constituents = (attrValues constituents) ++ [ build-version ];
+      meta.description = "All required derivations";
+    };
 
   filebeat = final.callPackage ./pkgs/filebeat.nix { };
 

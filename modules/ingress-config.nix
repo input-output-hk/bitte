@@ -92,7 +92,7 @@ in {
         balance roundrobin
 
       resolvers consul
-        nameserver dnsmasq ${instances.core-1.privateIP}:53
+        nameserver dnsmasq core-1:53
         accepted_payload_size 8192
         hold valid 5s
 
@@ -197,7 +197,7 @@ in {
 
       environment = {
         CONSUL_HTTP_ADDR = "http://127.0.0.1:8500";
-        VAULT_ADDR = "https://${instances.core-1.privateIP}:8200";
+        VAULT_ADDR = "https://core-1:8200";
         VAULT_CACERT = "/etc/ssl/certs/full.pem";
       };
 

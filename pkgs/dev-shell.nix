@@ -6,12 +6,17 @@ mkShellNoCC {
   LOG_LEVEL = "debug";
 
   buildInputs = [
+    age
+    agenix-cli
     awscli
     bitte
+    bitte-ruby
+    bitte-ruby.wrappedRuby
     cfssl
     consul
     consul-template
     dnsutils
+    hydra-provisioner
     ipcalc
     jq
     nixfmt
@@ -21,6 +26,5 @@ mkShellNoCC {
     ssm-session-manager-plugin
     terraform-with-plugins
     vault-bin
-    hydra-provisioner
   ];
 }

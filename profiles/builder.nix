@@ -62,7 +62,7 @@ in {
         -o NumberOfPasswordPrompts=0 \
         -o StrictHostKeyChecking=accept-new \
         -i /etc/nix/builder-key \
-        builder@${config.cluster.instances.monitoring.privateIP} echo 'trust established'
+        builder@monitoring echo 'trust established'
     '';
   };
 
@@ -75,8 +75,8 @@ in {
     '';
     trustedUsers = lib.mkIf isMonitoring [ "root" "builder" ];
     buildMachines = lib.optionals isAsg [{
-      hostName = config.cluster.instances.monitoring.privateIP;
       maxJobs = 5;
+      hostName = "monitoring";
       speedFactor = 1;
       sshKey = "/etc/nix/builder-key";
       sshUser = "builder";

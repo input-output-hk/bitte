@@ -579,8 +579,6 @@ let
 
       privateIP = mkOption { type = str; };
 
-      # flake = mkOption { type = str; };
-
       subnet = mkOption {
         type = subnetType;
         default = { };

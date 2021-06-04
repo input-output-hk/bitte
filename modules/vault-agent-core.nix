@@ -10,16 +10,23 @@ let
   compact = filter (value: value != null);
 
   vaultAgentConfig = pkgs.toPrettyJSON "vault-agent" {
-    pid_file = "./vault-agent.pid";
-    vault.address = config.services.vault-agent-core.vaultAddress;
-    # exit_after_auth = true;
+    pid_file = "/run/vault-agent.pid";
+
+    vault = {
+      address = config.services.vault-agent-core.vaultAddress;
+      ca_cert = config.age.secrets.vault-ca.path;
+      client_cert = config.age.secrets.vault-client.path;
+      client_key = config.age.secrets.vault-client-key.path;
+    };
+
     auto_auth = {
       method = [{
-        type = "aws";
+        type = "cert";
         config = {
-          type = "iam";
-          role = "${config.cluster.name}-core";
-          header_value = domain;
+          name = "vault-agent-core";
+          ca_cert = config.age.secrets.vault-ca.path;
+          client_cert = config.age.secrets.vault-client.path;
+          client_key = config.age.secrets.vault-client-key.path;
         };
       }];
 
@@ -35,7 +42,7 @@ let
     templates = let
       pkiAttrs = {
         common_name = "server.${region}.consul";
-        ip_sans = [ "127.0.0.1" privateIP ];
+        ip_sans = [ "127.0.0.1" privateIP nodeName ];
         alt_names = [
           "vault.service.consul"
           "consul.service.consul"
@@ -83,14 +90,11 @@ let
       (runIf config.services.consul.enable {
         template = {
           destination = "/etc/consul.d/tokens.json";
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart consul.service";
+          command =
+            "${pkgs.systemd}/bin/systemctl try-reload-or-restart consul.service";
           contents = if nodeName == "monitoring" then ''
             {
               "acl": {
-                "default_policy": "${config.services.consul.acl.defaultPolicy}",
-                "down_policy": "${config.services.consul.acl.downPolicy}",
-                "enable_token_persistence": true,
-                "enabled": true,
                 "tokens": {
                   "agent": "{{ with secret "consul/creds/consul-server-agent" }}{{ .Data.token }}{{ end }}"
                 }
@@ -99,10 +103,6 @@ let
           '' else ''
             {
               "acl": {
-                "default_policy": "${config.services.consul.acl.defaultPolicy}",
-                "down_policy": "${config.services.consul.acl.downPolicy}",
-                "enable_token_persistence": true,
-                "enabled": true,
                 "tokens": {
                   "default": "{{ with secret "consul/creds/consul-server-default" }}{{ .Data.token }}{{ end }}",
                   "agent": "{{ with secret "consul/creds/consul-server-agent" }}{{ .Data.token }}{{ end }}"
@@ -116,7 +116,8 @@ let
       (runIf (config.services.consul.enable) {
         template = {
           destination = "/run/keys/consul-default-token";
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart consul.service";
+          command =
+            "${pkgs.systemd}/bin/systemctl try-reload-or-restart consul.service";
           contents = ''
             {{ with secret "consul/creds/consul-server-default" }}{{ .Data.token }}{{ end }}
           '';
@@ -126,7 +127,8 @@ let
       # TODO: remove duplication
       (runIf config.services.nomad.enable {
         template = {
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart nomad.service";
+          command =
+            "${pkgs.systemd}/bin/systemctl try-reload-or-restart nomad.service";
           destination = "/etc/nomad.d/consul-token.json";
           contents = ''
             {
@@ -140,7 +142,8 @@ let
 
       (runIf config.services.nomad.enable {
         template = {
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart nomad.service";
+          command =
+            "${pkgs.systemd}/bin/systemctl try-reload-or-restart nomad.service";
           destination = "/run/keys/nomad-consul-token";
           contents = ''
             {{- with secret "consul/creds/nomad-server" }}{{ .Data.token }}{{ end -}}
@@ -183,7 +186,7 @@ in {
         VAULT_FORMAT = "json";
         VAULT_CACERT = "/etc/ssl/certs/full.pem";
         CONSUL_HTTP_ADDR = "127.0.0.1:8500";
-        CONSUL_CACERT = "/etc/ssl/certs/full.pem";
+        CONSUL_CACERT = config.age.secrets.consul-ca.path;
       };
 
       path = with pkgs; [ vault-bin ];
@@ -192,7 +195,7 @@ in {
         Restart = "always";
         RestartSec = "30s";
         ExecStart =
-          "${pkgs.vault-bin}/bin/vault agent -config ${vaultAgentConfig}";
+          "@${pkgs.vault-bin}/bin/vault vault-agent agent -config ${vaultAgentConfig}";
       };
     };
   };

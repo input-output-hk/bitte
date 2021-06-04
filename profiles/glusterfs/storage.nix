@@ -14,7 +14,7 @@ in {
 
   services.vault-agent-core = {
     enable = true;
-    vaultAddress = "https://${config.cluster.instances.core-2.privateIP}:8200";
+    vaultAddress = "https://core-2:8200";
   };
 
   systemd.services.glusterd.path = with pkgs; [ nettools ];

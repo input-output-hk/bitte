@@ -9,7 +9,6 @@ in {
   };
 
   config = mkIf config.services.s3-upload.enable {
-
     systemd.services.s3-upload = {
       wantedBy = [ "multi-user.target" ];
       after = [ "network-online.target" ];

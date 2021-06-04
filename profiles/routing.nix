@@ -8,11 +8,9 @@
     ./vault/client.nix
   ];
 
-  services.amazon-ssm-agent.enable = true;
-
   services.vault-agent-core = {
     enable = true;
-    vaultAddress = "https://${config.cluster.instances.core-1.privateIP}:8200";
+    vaultAddress = "https://core-1:8200";
   };
 
   systemd.services.copy-acme-certs = {
@@ -61,7 +59,7 @@
     staticConfigOptions = {
       metrics.influxDB = {
         address =
-          "http://${config.cluster.instances.monitoring.privateIP}:8428";
+          "http://monitoring:8428";
         protocol = "http";
         database = "traefik";
         addEntryPointsLabels = true;

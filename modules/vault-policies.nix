@@ -1,27 +1,22 @@
 { pkgs, lib, config, ... }:
 let
-  inherit (builtins) toJSON typeOf toFile attrNames;
-  inherit (lib)
-    mkOption mkIf mkEnableOption mapAttrsToList concatStringsSep remove
-    listToAttrs flip forEach;
   inherit (lib.types) listOf enum attrsOf str submodule nullOr;
-  inherit (pkgs) ensureDependencies;
-  inherit (config.cluster) adminNames;
 
   rmModules = arg:
     let
-      sanitized = mapAttrsToList (name: value:
+      sanitized = lib.mapAttrsToList (name: value:
         if name == "_module" then
           null
         else {
           inherit name;
-          value = if typeOf value == "set" then rmModules value else value;
+          value =
+            if builtins.typeOf value == "set" then rmModules value else value;
         }) arg;
-    in listToAttrs (remove null sanitized);
+    in lib.listToAttrs (lib.remove null sanitized);
 
   policy2hcl = name: value:
     pkgs.runCommandLocal "json2hcl" {
-      src = toFile "${name}.json" (toJSON (rmModules value));
+      src = builtins.toFile "${name}.json" (builtins.toJSON (rmModules value));
       nativeBuildInputs = [ pkgs.json2hcl ];
     } ''
       json2hcl < "$src" > "$out"
@@ -29,7 +24,7 @@ let
 
   vaultPolicyOptionsType = submodule ({ ... }: {
     options = {
-      capabilities = mkOption {
+      capabilities = lib.mkOption {
         type =
           listOf (enum [ "create" "read" "update" "delete" "list" "sudo" ]);
       };
@@ -38,31 +33,35 @@ let
 
   vaultApproleType = submodule ({ ... }: {
     options = {
-      token_ttl = mkOption { type = str; };
-      token_max_ttl = mkOption { type = str; };
-      token_policies = mkOption { type = listOf str; };
+      token_ttl = lib.mkOption { type = str; };
+      token_max_ttl = lib.mkOption { type = str; };
+      token_policies = lib.mkOption { type = listOf str; };
     };
   });
 
   vaultPoliciesType = submodule ({ ... }: {
-    options = { path = mkOption { type = attrsOf vaultPolicyOptionsType; }; };
+    options = { path = lib.mkOption { type = attrsOf vaultPolicyOptionsType; }; };
   });
 
-  createNomadRoles = flip mapAttrsToList config.services.nomad.policies
+  createNomadRoles = lib.flip lib.mapAttrsToList config.services.nomad.policies
     (name: policy: ''vault write "nomad/role/${name}" "policies=${name}"'');
+
+  createConsulRoles =
+    map (name: ''vault write "consul/roles/${name}" "policies=${name}"'')
+    (builtins.attrNames config.services.consul.policies);
 in {
   options = {
-    services.vault.policies = mkOption {
+    services.vault.policies = lib.mkOption {
       type = attrsOf vaultPoliciesType;
       default = { };
     };
 
-    services.vault-acl.enable = mkEnableOption "Create Vault roles";
+    services.vault-acl.enable = lib.mkEnableOption "Create Vault roles";
   };
 
   # TODO: also remove them again.
-  config.systemd.services.vault-acl = mkIf config.services.vault-acl.enable {
-    after = [ "vault.service" "vault-bootstrap.service" ];
+  config.systemd.services.vault-acl = lib.mkIf config.services.vault-acl.enable {
+    after = [ "vault.service" ];
     wantedBy = [ "multi-user.target" ];
     description = "Service that creates all Vault policies.";
 
@@ -72,12 +71,16 @@ in {
       Restart = "on-failure";
       RestartSec = "20s";
       WorkingDirectory = "/var/lib/vault";
-      ExecStartPre = ensureDependencies [ "vault-bootstrap" "vault" ];
+      ExecStartPre = pkgs.ensureDependencies [ "vault" ];
     };
 
     environment = {
       inherit (config.environment.variables)
-        AWS_DEFAULT_REGION VAULT_CACERT VAULT_ADDR VAULT_FORMAT NOMAD_ADDR;
+        AWS_DEFAULT_REGION VAULT_FORMAT NOMAD_ADDR;
+      VAULT_ADDR = "https://127.0.0.1:8200";
+      VAULT_CACERT = config.age.secrets.vault-full.path;
+      VAULT_CLIENT_KEY = config.age.secrets.vault-client-key.path;
+      VAULT_CLIENT_CERT = config.age.secrets.vault-client.path;
     };
 
     path = with pkgs; [ vault-bin sops jq nomad curl cacert ];
@@ -85,20 +88,19 @@ in {
     script = ''
       set -euo pipefail
 
-      VAULT_TOKEN="$(sops -d --extract '["root_token"]' vault.enc.json)"
+      res="$(vault login -method cert -no-store)"
+      echo "Our vault token uses $(echo "$res" | jq .auth.policies)"
+      VAULT_TOKEN="$(echo "$res" | jq -e -r .auth.client_token)"
       export VAULT_TOKEN
-      export VAULT_ADDR=https://127.0.0.1:8200
-
-      set -x
 
       # Vault Policies
 
-      ${concatStringsSep "" (mapAttrsToList (name: value: ''
+      ${builtins.concatStringsSep "" (lib.mapAttrsToList (name: value: ''
         vault policy write "${name}" "${policy2hcl name value}"
       '') config.services.vault.policies)}
 
       keepNames=(default root ${
-        toString (attrNames config.services.vault.policies)
+        toString (builtins.attrNames config.services.vault.policies)
       })
       policyNames=($(vault policy list | jq -e -r '.[]'))
 
@@ -111,15 +113,32 @@ in {
         done
 
         if [ -z "$keep" ]; then
+          echo "Delete policy $name"
           vault policy delete "$name"
         fi
       done
 
+      # Consul Policies
+
+      res="$(vault login -method cert -no-store)"
+      echo "Our vault token uses $(echo "$res" | jq .auth.policies)"
+      VAULT_TOKEN="$(echo "$res" | jq -e -r .auth.client_token)"
+      export VAULT_TOKEN
+
+      echo "linking Consul roles into Vault..."
+      set -x
+      ${builtins.concatStringsSep "\n" createConsulRoles}
+      set +x
+
       # Nomad Policies
 
-      ${concatStringsSep "\n" createNomadRoles}
+      set -x
+      ${builtins.concatStringsSep "\n" createNomadRoles}
+      set +x
 
-      keepNames=(${toString (attrNames config.services.nomad.policies)})
+      keepNames=(${
+        toString (builtins.attrNames config.services.nomad.policies)
+      })
       nomadRoles=($(nomad acl policy list -json | jq -r -e '.[].Name'))
 
       for role in "''${nomadRoles[@]}"; do
@@ -131,6 +150,7 @@ in {
         done
 
         if [ -z "$keep" ]; then
+          echo "Delete vault nomad role $role"
           vault delete "nomad/role/$role"
         fi
       done

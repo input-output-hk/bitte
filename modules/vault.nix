@@ -1,56 +1,49 @@
 { lib, config, pkgs, nodeName, ... }:
 let
-  inherit (builtins) split typeOf length attrNames;
-  inherit (pkgs) ensureDependencies snakeCase;
-  inherit (lib)
-    mkIf mkEnableOption mkOption flip pipe concatMapStrings isList toLower
-    mapAttrs' nameValuePair fileContents filterAttrs hasPrefix mapAttrsToList
-    makeBinPath;
-  inherit (lib.types) attrs str enum submodule listOf ints nullOr;
-  inherit (builtins) toJSON;
+  inherit (lib.types) attrs str bool enum submodule listOf ints nullOr;
 
   sanitize = obj:
-    lib.getAttr (typeOf obj) {
+    lib.getAttr (builtins.typeOf obj) {
       bool = obj;
       int = obj;
       string = obj;
       str = obj;
       list = map sanitize obj;
       null = null;
-      set = if (length (attrNames obj) == 0) then
+      set = if (builtins.length (builtins.attrNames obj) == 0) then
         null
       else
-        pipe obj [
-          (filterAttrs
+        lib.pipe obj [
+          (lib.filterAttrs
             (name: value: name != "_module" && name != "_ref" && value != null))
-          (mapAttrs'
-            (name: value: nameValuePair (snakeCase name) (sanitize value)))
+          (lib.mapAttrs' (name: value:
+            lib.nameValuePair (pkgs.snakeCase name) (sanitize value)))
         ];
     };
 
   storageRaftType = submodule {
     options = {
-      path = mkOption {
+      path = lib.mkOption {
         type = str;
         default = cfg.storagePath;
       };
 
-      nodeId = mkOption {
+      nodeId = lib.mkOption {
         type = nullOr str;
         default = null;
       };
 
-      retryJoin = mkOption {
+      retryJoin = lib.mkOption {
         type = listOf (submodule {
           options = {
-            leaderApiAddr = mkOption {
+            leaderApiAddr = lib.mkOption {
               type = str;
               description = ''
                 Address of a possible leader node.
               '';
             };
 
-            leaderCaCertFile = mkOption {
+            leaderCaCertFile = lib.mkOption {
               type = nullOr str;
               default = null;
               description = ''
@@ -58,7 +51,7 @@ let
               '';
             };
 
-            leaderCaCert = mkOption {
+            leaderCaCert = lib.mkOption {
               type = nullOr str;
               default = null;
               description = ''
@@ -66,7 +59,7 @@ let
               '';
             };
 
-            leaderClientCertFile = mkOption {
+            leaderClientCertFile = lib.mkOption {
               type = nullOr str;
               default = null;
               description = ''
@@ -76,7 +69,7 @@ let
               '';
             };
 
-            leaderClientCert = mkOption {
+            leaderClientCert = lib.mkOption {
               type = nullOr str;
               default = null;
               description = ''
@@ -85,7 +78,7 @@ let
               '';
             };
 
-            leaderClientKeyFile = mkOption {
+            leaderClientKeyFile = lib.mkOption {
               type = nullOr str;
               default = null;
               description = ''
@@ -95,7 +88,7 @@ let
               '';
             };
 
-            leaderClientKey = mkOption {
+            leaderClientKey = lib.mkOption {
               type = nullOr str;
               default = null;
               description = ''
@@ -112,27 +105,27 @@ let
 
   storageConsulType = submodule {
     options = {
-      address = mkOption {
+      address = lib.mkOption {
         type = nullOr str;
         default = null;
       };
 
-      scheme = mkOption {
+      scheme = lib.mkOption {
         type = nullOr (enum [ "http" "https" ]);
         default = null;
       };
 
-      tlsCaFile = mkOption {
+      tlsCaFile = lib.mkOption {
         type = nullOr str;
         default = null;
       };
 
-      tlsCertFile = mkOption {
+      tlsCertFile = lib.mkOption {
         type = nullOr str;
         default = null;
       };
 
-      tlsKeyFile = mkOption {
+      tlsKeyFile = lib.mkOption {
         type = nullOr str;
         default = null;
       };
@@ -142,52 +135,52 @@ let
   cfg = config.services.vault;
 in {
   options.services.vault = {
-    enable = mkEnableOption "Vault daemon";
+    enable = lib.mkEnableOption "Vault daemon";
 
-    storagePath = mkOption {
+    storagePath = lib.mkOption {
       type = str;
       default = "/var/lib/vault";
     };
 
-    configDir = mkOption {
+    configDir = lib.mkOption {
       type = str;
       default = "vault.d";
     };
 
-    extraConfig = mkOption {
+    extraConfig = lib.mkOption {
       type = attrs;
       default = { };
     };
 
-    ui = mkEnableOption "Enable web UI";
+    ui = lib.mkEnableOption "Enable web UI";
 
-    logLevel = mkOption {
+    logLevel = lib.mkOption {
       type = enum [ "trace" "debug" "info" "warn" "err" ];
       default = "info";
     };
 
-    disableMlock = mkEnableOption "Disable mlock";
+    disableMlock = lib.mkEnableOption "Disable mlock";
 
-    apiAddr = mkOption {
+    apiAddr = lib.mkOption {
       type = nullOr str;
       default = null;
     };
 
-    clusterAddr = mkOption {
+    clusterAddr = lib.mkOption {
       type = nullOr str;
       default = null;
     };
 
-    storage = mkOption {
+    storage = lib.mkOption {
       default = null;
       type = nullOr (submodule {
         options = {
-          raft = mkOption {
+          raft = lib.mkOption {
             type = nullOr storageRaftType;
             default = null;
           };
 
-          consul = mkOption {
+          consul = lib.mkOption {
             type = nullOr storageConsulType;
             default = null;
           };
@@ -195,38 +188,38 @@ in {
       });
     };
 
-    listener = mkOption {
+    listener = lib.mkOption {
       type = submodule {
         options = {
-          tcp = mkOption {
+          tcp = lib.mkOption {
             type = submodule {
               options = {
-                address = mkOption {
+                address = lib.mkOption {
                   type = str;
                   default = "";
                 };
 
-                clusterAddress = mkOption {
+                clusterAddress = lib.mkOption {
                   type = str;
                   default = "";
                 };
 
-                tlsClientCaFile = mkOption {
+                tlsClientCaFile = lib.mkOption {
                   type = str;
                   default = "";
                 };
 
-                tlsCertFile = mkOption {
+                tlsCertFile = lib.mkOption {
                   type = str;
                   default = "";
                 };
 
-                tlsKeyFile = mkOption {
+                tlsKeyFile = lib.mkOption {
                   type = str;
                   default = "";
                 };
 
-                tlsMinVersion = mkOption {
+                tlsMinVersion = lib.mkOption {
                   type = enum [ "tls10" "tls11" "tls12" "tls13" ];
                   default = "tls12";
                 };
@@ -239,49 +232,56 @@ in {
       default = { };
     };
 
-    seal = mkOption {
-      type = submodule {
+    seal = lib.mkOption {
+      type = nullOr (submodule {
         options = {
-          awskms = mkOption {
+          awskms = lib.mkOption {
+            default = { };
             type = submodule {
               options = {
-                kmsKeyId = mkOption { type = str; };
-                region = mkOption { type = str; };
+                kmsKeyId = lib.mkOption {
+                  type = nullOr str;
+                  default = null;
+                };
+                region = lib.mkOption {
+                  type = nullOr str;
+                  default = null;
+                };
               };
             };
           };
         };
-      };
-      default = { };
+      });
+      default = null;
     };
 
-    serviceRegistration = mkOption {
+    serviceRegistration = lib.mkOption {
       type = nullOr (submodule {
         options = {
-          consul = mkOption {
+          consul = lib.mkOption {
             type = nullOr (submodule {
               options = {
-                address = mkOption {
+                address = lib.mkOption {
                   type = nullOr str;
                   default = null;
                 };
 
-                scheme = mkOption {
+                scheme = lib.mkOption {
                   type = nullOr (enum [ "http" "https" ]);
                   default = null;
                 };
 
-                tlsClientCaFile = mkOption {
+                tlsClientCaFile = lib.mkOption {
                   type = nullOr str;
                   default = null;
                 };
 
-                tlsCertFile = mkOption {
+                tlsCertFile = lib.mkOption {
                   type = nullOr str;
                   default = null;
                 };
 
-                tlsKeyFile = mkOption {
+                tlsKeyFile = lib.mkOption {
                   type = nullOr str;
                   default = null;
                 };
@@ -294,15 +294,20 @@ in {
       default = null;
     };
 
-    telemetry = mkOption {
+    telemetry = lib.mkOption {
       type = submodule {
         options = {
-          dogstatsdAddr = mkOption {
+          disableHostname = lib.mkOption {
+            type = nullOr bool;
+            default = null;
+          };
+
+          dogstatsdAddr = lib.mkOption {
             type = nullOr str;
             default = null;
           };
 
-          dogstatsdTags = mkOption {
+          dogstatsdTags = lib.mkOption {
             type = nullOr (listOf str);
             default = null;
           };
@@ -312,9 +317,9 @@ in {
   };
 
   options.services.vault-consul-token.enable =
-    mkEnableOption "Enable Vault Consul Token";
+    lib.mkEnableOption "Enable Vault Consul Token";
 
-  config = mkIf cfg.enable {
+  config = lib.mkIf cfg.enable {
     environment.systemPackages = [ pkgs.vault-bin ];
 
     environment.etc."${cfg.configDir}/config.json".source =
@@ -329,10 +334,10 @@ in {
 
     systemd.services.vault = {
       wantedBy = [ "multi-user.target" ];
-      after = [ "network.target" "consul.service" ];
+      after = [ "network.target" ];
 
-      restartTriggers = mapAttrsToList (_: d: d.source)
-        (filterAttrs (n: _: hasPrefix "${cfg.configDir}" n)
+      restartTriggers = lib.mapAttrsToList (_: d: d.source)
+        (lib.filterAttrs (n: _: lib.hasPrefix "${cfg.configDir}" n)
           config.environment.etc);
 
       unitConfig = {
@@ -343,9 +348,8 @@ in {
 
       serviceConfig = let
         preScript = pkgs.writeShellScriptBin "vault-start-pre" ''
-          export PATH="${makeBinPath [ pkgs.coreutils ]}"
+          export PATH="${lib.makeBinPath [ pkgs.coreutils ]}"
           set -exuo pipefail
-          cp /etc/ssl/certs/cert-key.pem .
           chown --reference . --recursive .
         '';
 
@@ -380,82 +384,6 @@ in {
         RestartSec = "10s";
         Restart = "on-failure";
       };
-    };
-
-    systemd.services.vault-consul-token =
-      mkIf config.services.vault-consul-token.enable {
-        after = [ "consul.service" ];
-        wantedBy = [ "vault.service" ];
-        before = [ "vault.service" ];
-        description = "provide a consul token for bootstrapping";
-
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = true;
-          Restart = "on-failure";
-          RestartSec = "20s";
-          ExecStartPre = ensureDependencies [ "consul" ];
-        };
-
-        path = with pkgs; [ consul curl jq ];
-
-        script = ''
-          set -exuo pipefail
-
-          [ -s /etc/vault.d/consul-token.json ] && exit
-          [ -s /etc/consul.d/secrets.json ]
-          jq -e .acl.tokens.master /etc/consul.d/secrets.json || exit
-
-          CONSUL_HTTP_TOKEN="$(jq -e -r .acl.tokens.master /etc/consul.d/secrets.json)"
-          export CONSUL_HTTP_TOKEN
-
-          vaultToken="$(
-            consul acl token create \
-              -policy-name=vault-server \
-              -description "vault-server ${nodeName} $(date +%Y-%m-%d-%H-%M-%S)" \
-              -format json \
-            | jq -e -r .SecretID
-          )"
-
-          ${if ((lib.hasAttrByPath [ "storage" "raft" "retryJoin" ] cfg)
-            && (cfg.storage.raft.retryJoin != [ ])) then ''
-              echo '{}' \
-              | jq --arg token "$vaultToken" '.service_registration.consul.token = $token' \
-              > /etc/vault.d/consul-token.json.new
-            '' else ''
-              echo '{}' \
-              | jq --arg token "$vaultToken" '.storage.consul.token = $token' \
-              | jq --arg token "$vaultToken" '.service_registration.consul.token = $token' \
-              > /etc/vault.d/consul-token.json.new
-            ''}
-
-          mv /etc/vault.d/consul-token.json.new /etc/vault.d/consul-token.json
-        '';
-      };
-
-    systemd.services.vault-aws-addr = {
-      wantedBy = [ "vault.service" ];
-      before = [ "vault.service" ];
-
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        Restart = "on-failure";
-        RestartSec = "20s";
-        ExecStartPre = ensureDependencies [ "consul" ];
-      };
-
-      path = with pkgs; [ curl jq ];
-
-      script = ''
-        set -exuo pipefail
-
-        ip="$(curl -f -s http://169.254.169.254/latest/meta-data/local-ipv4)"
-        addr="https://$ip"
-        echo '{"cluster_addr": "'"$addr:8201"'", "api_addr": "'"$addr:8200"'"}' \
-        | jq -S . \
-        > /etc/vault.d/address.json
-      '';
     };
   };
 }

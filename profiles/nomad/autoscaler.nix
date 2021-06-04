@@ -70,7 +70,7 @@ in {
     apm.victoriametrics = {
       driver = "prometheus";
       config.address =
-        "http://${config.cluster.instances.monitoring.privateIP}:8428";
+        "http://monitoring:8428";
     };
 
     target = lib.flip lib.mapAttrs asgs (name: asg: {

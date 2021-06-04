@@ -182,13 +182,13 @@ in {
       default = [ ];
     };
 
-    services.consul-policies.enable =
+    services.consul-acl.enable =
       mkEnableOption "Create consul policies on this machine";
   };
 
   # TODO: rename to consul-acl
-  config = mkIf config.services.consul-policies.enable {
-    systemd.services.consul-policies = {
+  config = mkIf config.services.consul-acl.enable {
+    systemd.services.consul-acl = {
       after = [ "consul.service" ];
       wants = [ "consul.service" ];
       wantedBy = [ "multi-user.target" ];
@@ -209,7 +209,7 @@ in {
           (polName: policy: pkgs.writeTextDir polName (readFile policy._json));
 
         policyDir = pkgs.symlinkJoin {
-          name = "consul-policies";
+          name = "consul-acl";
           paths = attrValues policies;
         };
 
@@ -268,12 +268,10 @@ in {
       in ''
         set -euo pipefail
 
-        # set +x
         CONSUL_HTTP_TOKEN="$(
-          jq -e -r '.acl.tokens.master' < /etc/consul.d/secrets.json
+          jq -e -r '.acl.tokens.master' < /etc/consul.d/token-master.json
         )"
         export CONSUL_HTTP_TOKEN
-        # set -x
 
         # Add/Update Consul Policies
 
@@ -312,7 +310,6 @@ in {
         done
 
         # Add/Update Consul Roles
-        set -x
 
         for role in ${rolesDir}/*; do
           [ -d "$role" ] || continue
