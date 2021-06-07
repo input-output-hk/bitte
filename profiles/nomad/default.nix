@@ -49,7 +49,7 @@ in {
     consul = {
       address = "127.0.0.1:${toString config.services.consul.ports.http}";
       ssl = false;
-      allow_unauthenticated = false;
+      allow_unauthenticated = true;
     };
 
     telemetry = {
