@@ -581,9 +581,8 @@ in {
             plugin_dir log_json log_level http nomad policy policy_eval
             telemetry apm target strategy;
         });
-      "nomad-autoscaler.d/policies/policies.json".source = pkgs.toPrettyJSON "policies.json" {
-        scaling = sanitize cfg.policies;
-      };
+      "nomad-autoscaler.d/policies/policies.json".source =
+        pkgs.toPrettyJSON "policies.json" { scaling = sanitize cfg.policies; };
     };
 
     systemd.services.nomad-autoscaler = {
@@ -591,8 +590,15 @@ in {
       after = [ "network.target" ];
       wantedBy = [ "multi-user.target" ];
 
-      restartTriggers =
-        [ config.environment.etc."nomad-autoscaler.d/config.json".source ];
+      restartTriggers = [
+        config.environment.etc."nomad-autoscaler.d/config.json".source
+        config.environment.etc."nomad-autoscaler.d/policies/policies.json".source
+      ];
+
+      # restarting causes issues for now:
+      # https://github.com/hashicorp/nomad-autoscaler/issues/410#issuecomment-789237902
+      restartIfChanged = false;
+      reloadIfChanged = true;
 
       serviceConfig = {
         StateDirectory = "nomad-autoscaler";
@@ -618,8 +624,8 @@ in {
           ${cfg.package}/bin/nomad-autoscaler agent -config /etc/nomad-autoscaler.d/config.json
         '';
 
-        # support reloading
-        ExecReload = [ ];
+        # support reloading: HUP tells autoscaler to reload config files
+        ExecReload = [ "${pkgs.coreutils}/bin/kill -HUP $MAINPID" ];
         Restart = "on-failure";
         StartLimitInterval = "20s";
         StartLimitBurst = 10;
