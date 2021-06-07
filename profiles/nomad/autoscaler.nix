@@ -41,7 +41,7 @@ let
         dry-run = false;
 
         aws_asg_name = asg.uid;
-        node_class = "client";
+        node_class = "client-${asg.region}";
         node_drain_deadline = "5m";
         node_drain_ignore_system_jobs = false;
         node_purge = true;
@@ -81,4 +81,3 @@ in {
     strategy.target-value.driver = "target-value";
   };
 }
-
