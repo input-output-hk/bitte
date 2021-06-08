@@ -286,15 +286,15 @@
     },
     "utils_3": {
       "locked": {
-        "lastModified": 1601282935,
-        "narHash": "sha256-WQAFV6sGGQxrRs3a+/Yj9xUYvhTpukQJIcMbIi7LCJ4=",
-        "owner": "numtide",
+        "lastModified": 1623182707,
+        "narHash": "sha256-JmnqZVS1VP/tSQGSeNs+ru3F3it3ceev7k2rcL4rBGw=",
+        "owner": "kreisys",
         "repo": "flake-utils",
-        "rev": "588973065fce51f4763287f0fda87a174d78bf48",
+        "rev": "f5b5f258e88d0de1ec97d2e892f20b38796f48ea",
         "type": "github"
       },
       "original": {
-        "owner": "numtide",
+        "owner": "kreisys",
         "repo": "flake-utils",
         "type": "github"
       }
