@@ -36,7 +36,7 @@
       legacyPackages = import nixpkgs {
         inherit system;
         config.allowUnfree = true; # for ssm-session-manager-plugin
-        overlays = [ overlay ];
+        overlays = [ overlay hydra-provisioner.overlay ];
       };
 
       inherit (legacyPackages) devShell;
