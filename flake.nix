@@ -30,7 +30,7 @@
   };
 
   outputs = { self, hydra-provisioner, nixpkgs, utils, bitte-cli, ... }@inputs:
-  utils.lib.simpleFlake {
+  utils.lib.simpleFlake rec {
     inherit nixpkgs;
 
     systems = [ "x86_64-linux" ];
@@ -64,7 +64,7 @@
     , vault-bin
     }@pkgs: pkgs;
 
-    hydraJobs = self.packages;
+    hydraJobs = packages;
 
     apps = { bitte }: {
       bitte = utils.lib.mkApp { drv = bitte; };
@@ -72,7 +72,7 @@
     };
 
     nixosModules = let
-      modules = self.lib.mkModules ./modules;
+      modules = lib.mkModules ./modules;
       default.imports = builtins.attrValues modules;
     in modules // { inherit default; };
   };
