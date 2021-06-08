@@ -8,6 +8,7 @@
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     utils.url = "github:numtide/flake-utils";
     bitte-cli.url = "github:input-output-hk/bitte-cli";
+    hydra-provisioner.url = "github:input-output-hk/hydra-provisioner";
     nix.url = "github:NixOS/nix?rev=b19aec7eeb8353be6c59b2967a511a5072612d99";
     ops-lib = {
       url = "github:input-output-hk/ops-lib";
@@ -28,7 +29,7 @@
     };
   };
 
-  outputs = { self, nixpkgs, utils, bitte-cli, ... }@inputs:
+  outputs = { self, hydra-provisioner, nixpkgs, utils, bitte-cli, ... }@inputs:
     let overlay = import ./overlay.nix inputs;
     in (utils.lib.eachSystem [ "x86_64-linux" ] (system: rec {
 
@@ -38,7 +39,7 @@
         overlays = [ overlay ];
       };
 
-      inherit (legacyPackages) devShell nixosModules;
+      inherit (legacyPackages) devShell;
 
       packages = {
         inherit (legacyPackages)
@@ -53,7 +54,13 @@
       apps.bitte = utils.lib.mkApp { drv = legacyPackages.bitte; };
 
     })) // {
+      lib = import ./lib { inherit (nixpkgs) lib; };
       inherit overlay;
       mkHashiStack = import ./lib/mk-hashi-stack.nix;
+
+      nixosModules = let
+        modules = self.lib.mkModules ./modules;
+        default.imports = builtins.attrValues modules;
+      in modules // { inherit default; };
     };
-}
+  }

@@ -1,7 +1,7 @@
 { lib }:
 let
   inherit (builtins) attrNames readDir;
-  inherit (lib) filterAttrs hasSuffix mapAttrs' nameValuePair;
+  inherit (lib) filterAttrs hasSuffix removeSuffix mapAttrs' nameValuePair;
 
   # mapFilterAttrs ::
   #   (name -> value -> bool )
@@ -9,13 +9,16 @@ let
   #   attrs
   mapFilterAttrs = sieve: f: attrs: filterAttrs sieve (mapAttrs' f attrs);
 
-in { dir, _import ? base: import "${dir}/${base}.nix" }:
-mapFilterAttrs (_: v: v != null) (n: v:
+  recImport = { dir, _import ? base: builtins.trace "importing ${toString dir} ${base}" (import (dir + "/${base}.nix")) }:
+  mapFilterAttrs (_: v: v != null) (n: v:
   if n != "default.nix"
-  && ((hasSuffix ".nix" n && v == "regular" && false) || v == "directory")
+  && ((hasSuffix ".nix" n && v == "regular") || v == "directory")
 
-  then
-    let name = n; in nameValuePair (name) (_import name)
+  then let
+    baseName = removeSuffix ".nix" n;
+  in nameValuePair (baseName) (if v == "regular" then _import baseName else recImport { dir = dir + "/${baseName}"; })
 
-  else
-    nameValuePair ("") (null)) (readDir dir)
+  else nameValuePair ("") (null)) (readDir dir);
+
+in recImport
+
