@@ -35,7 +35,6 @@
 
     systems = [ "x86_64-linux" ];
 
-    preOverlays = [ hydra-provisioner ];
     overlay = import ./overlay.nix inputs;
     config.allowUnfree = true; # for ssm-session-manager-plugin
 
