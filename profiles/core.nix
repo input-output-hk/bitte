@@ -21,6 +21,7 @@
     nomad.enable = lib.mkForce true;
     consul.enableDebug = lib.mkDefault false;
 
+    nomad-acl.enable = nodeName == "core0";
     consul-acl.enable = nodeName == "core0";
     vault-acl.enable = nodeName == "core0";
   };

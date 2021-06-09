@@ -23,11 +23,6 @@ let
   adminScriptPreRestart = pkgs.writeBashChecked "admin.sh" ''
     set -exuo pipefail
 
-    export PATH="${
-      lib.makeBinPath
-      (with pkgs; [ age agenix-cli consul jq coreutils openssh iproute ])
-    }"
-
     cp -r ${inputs.self} bitte
     pushd bitte
 
@@ -46,18 +41,13 @@ let
   adminScriptPostRestart = pkgs.writeBashChecked "admin.sh" ''
     set -exuo pipefail
 
-    export PATH="${
-      lib.makeBinPath
-      (with pkgs; [ age agenix-cli consul jq coreutils openssh iproute vault-bin ])
-    }"
-
     pushd bitte
 
-    echo "****************************************************************"
     ${ssh "core0"} vault operator init | tee /tmp/vault-bootstrap
 
     readarray -t keys < <(jq < /tmp/vault-bootstrap -e -r '.unseal_keys_b64[0,1,2]')
     VAULT_TOKEN="$(jq < /tmp/vault-bootstrap -e -r '.root_token')"
+    export VAULT_TOKEN
 
     set +xe
     for core in core0 core1 core2; do
@@ -84,22 +74,23 @@ let
     ${deage ../encrypted/ssl/ca.age} > /tmp/ca.pem
     ${deage ../encrypted/ssl/client.age} > /tmp/client.pem
     ${deage ../encrypted/ssl/client-key.age} > /tmp/client-key.pem
+    ${deage ../encrypted/ssl/server.age} > /tmp/server.pem
+    cat /tmp/ca.pem <(echo) /tmp/server.pem > /tmp/full.pem
 
-    export VAULT_TOKEN
     export VAULT_FORMAT=json
     export VAULT_ADDR=https://core0:8200
     export VAULT_CACERT=/tmp/ca.pem
-    export CONSUL_HTTP_ADDR=https://core0:8501
-    export CONSUL_CAPATH=/tmp/ca.pem
-    export CONSUL_CLIENT_CERT=/tmp/client.pem
-    export CONSUL_CLIENT_KEY=/tmp/client-key.pem
-    CONSUL_HTTP_TOKEN="$(${deage ../encrypted/consul/token-master.age})"
-    export CONSUL_HTTP_TOKEN
 
     for core in core1 core2; do
       vault operator raft join -address "https://$core:8200"
       vault operator raft list-peers -address "https://$core:8200"
     done
+
+    vault auth enable userpass
+
+    vault write auth/userpass/users/manveru \
+      password=letmein \
+      policies=admin
 
     vault auth enable cert
 
@@ -118,6 +109,17 @@ let
       certificate="$(${deage ../encrypted/ssl/client.age})" \
       ttl=3600
 
+    ###
+    ### Consul
+    ###
+
+    export CONSUL_HTTP_ADDR=https://core0:8501
+    export CONSUL_CAPATH=/tmp/ca.pem
+    export CONSUL_CLIENT_CERT=/tmp/client.pem
+    export CONSUL_CLIENT_KEY=/tmp/client-key.pem
+    CONSUL_HTTP_TOKEN="$(${deage ../encrypted/consul/token-master.age})"
+    export CONSUL_HTTP_TOKEN
+
     vault secrets enable consul
 
     vault_consul_token_response="$(
@@ -135,11 +137,43 @@ let
       client_key="$(${deage ../encrypted/ssl/client-key.age})" \
       token="$vault_consul_token"
 
-    vault secrets enable nomad
     vault secrets enable pki
     vault secrets enable -version=2 kv
 
-    echo "****************************************************************"
+    ###
+    ### Nomad
+    ###
+
+    vault secrets enable nomad
+
+    until nc -z -v core0 4646; do sleep 1; done
+    until nc -z -v core1 4646; do sleep 1; done
+    until nc -z -v core2 4646; do sleep 1; done
+
+    curl https://core0:4646/v1/acl/bootstrap --cacert /tmp/full.pem -f -s -X POST > /tmp/nomad-bootstrap.json
+    NOMAD_TOKEN="$(jq < /tmp/nomad-bootstrap.json -r -e .SecretID)"
+    export NOMAD_TOKEN
+
+    # TODO: replace with renewable tokens in vault-agent
+    echo "$NOMAD_TOKEN" | ${ssh "core0"} tee /var/lib/nomad/bootstrap.token
+    echo "$NOMAD_TOKEN" | ${ssh "core0"} tee /var/lib/vault/nomad_token
+
+    export NOMAD_ADDR=https://core0:4646
+    export NOMAD_CAPATH=/tmp/ca.pem
+    export NOMAD_CLIENT_CERT=/tmp/client.pem
+    export NOMAD_CLIENT_KEY=/tmp/client-key.pem
+
+    nomad_vault_token="$(
+      nomad acl token create -type management \
+      | awk '/Secret ID/ { print $4 }'
+    )"
+
+    vault write nomad/config/access \
+      address="https://127.0.0.1:4646" \
+      token="$nomad_vault_token" \
+      ca_cert="$(< /tmp/ca.pem)" \
+      client_cert="$(< /tmp/client.pem)" \
+      client_key="$(< /tmp/client-key.pem)"
   '';
 
   consulCheck = pkgs.writeBashChecked "consul.sh" ''
@@ -151,6 +185,24 @@ let
     export CONSUL_HTTP_TOKEN
 
     consul members
+  '';
+
+  developerScript = pkgs.writeBashChecked "dev.sh" ''
+    set -exuo pipefail
+
+    ${deage ../encrypted/ssl/ca.age} > /tmp/ca.pem
+    ${deage ../encrypted/ssl/client.age} > /tmp/client.pem
+    ${deage ../encrypted/ssl/client-key.age} > /tmp/client-key.pem
+
+    vault login -method userpass username=manveru password=letmein
+
+    CONSUL_HTTP_TOKEN="$(vault read -field token consul/creds/admin)"
+    export CONSUL_HTTP_TOKEN
+    NOMAD_TOKEN="$(vault read -field secret_id nomad/creds/admin)"
+    export NOMAD_TOKEN
+
+    consul members
+    nomad agent-info
   '';
 
   # cluster = import ../lib/clusters.nix {
@@ -169,8 +221,7 @@ let
 
     services.consul.bindAddr = ip;
     services.consul.advertiseAddr = ip;
-    services.consul.addresses.http =
-      ''${ip} 127.0.0.1'';
+    services.consul.addresses.http = "${ip} 127.0.0.1";
 
     networking.firewall.enable = false;
     networking.useDHCP = false;
@@ -184,30 +235,59 @@ let
     _module.args.nodeName = name;
     _module.args.self = { inherit inputs; };
   };
+
+  mkCore = name: {
+    imports =
+      [ ../clusters/test (extra name cluster.instances.${name}.privateIP) ]
+      ++ cluster.instances.${name}.modules;
+  };
+
+  sessionVariables = {
+    VAULT_ADDR = "https://core0:8200";
+    VAULT_CACERT = "/tmp/ca.pem";
+
+    CONSUL_HTTP_ADDR = "https://core0:8501";
+    CONSUL_CAPATH = "/tmp/ca.pem";
+    CONSUL_CLIENT_CERT = "/tmp/client.pem";
+    CONSUL_CLIENT_KEY = "/tmp/client-key.pem";
+
+    NOMAD_ADDR = "https://core0:4646";
+    NOMAD_CAPATH = "/tmp/ca.pem";
+    NOMAD_CLIENT_CERT = "/tmp/client.pem";
+    NOMAD_CLIENT_KEY = "/tmp/client-key.pem";
+  };
 in {
   testBitte = pkgs.nixosTest {
     name = "bitte";
 
     nodes = {
-      admin = { };
+      developer = {
+        environment.systemPackages = with pkgs; [
+          age
+          agenix-cli
+          consul
+          coreutils
+          curl
+          gawk
+          iproute
+          jq
+          netcat
+          nomad
+          openssh
+          vault-bin
+        ];
 
-      core0 = {
-        imports =
-          [ ../clusters/test (extra "core0" cluster.instances.core0.privateIP) ]
-          ++ cluster.instances.core0.modules;
+        environment.sessionVariables = sessionVariables;
       };
 
-      core1 = {
-        imports =
-          [ ../clusters/test (extra "core1" cluster.instances.core1.privateIP) ]
-          ++ cluster.instances.core1.modules;
+      admin = {
+        environment.systemPackages = with pkgs; [ age consul nomad vault-bin ];
+        environment.sessionVariables = sessionVariables;
       };
+      core0 = mkCore "core0";
+      core1 = mkCore "core1";
+      core2 = mkCore "core2";
 
-      core2 = {
-        imports =
-          [ ../clusters/test (extra "core2" cluster.instances.core2.privateIP) ]
-          ++ cluster.instances.core2.modules;
-      };
     };
 
     testScript = ''
@@ -224,8 +304,6 @@ in {
 
       [core.wait_for_unit("vault") for core in cores]
       [core.wait_for_open_port("8200") for core in cores]
-
-      core0.log(core0.succeed("bat /etc/consul.d/*"))
 
       admin.log(admin.succeed("${adminScriptPostRestart}"))
 
@@ -246,9 +324,7 @@ in {
       core0.wait_for_unit("nomad-acl")
       core0.wait_for_unit("vault-acl")
 
-      admin.sleep(10)
-
-      core0.log(core0.succeed("journalctl -e -u nomad.service"))
+      developer.log(developer.succeed("${developerScript}"))
     '';
   };
 }

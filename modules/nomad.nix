@@ -6,7 +6,7 @@ let
   inherit (lib)
     mkOption mkEnableOption mkIf mapAttrsToList filterAttrs hasPrefix
     makeBinPath pipe mapAttrs' nameValuePair flip concatMapStrings isList
-    toLower optionalString;
+    toLower;
   inherit (lib.types)
     attrs nullOr attrsOf path package str submodule bool listOf enum port ints;
   inherit (pkgs) snakeCase;
@@ -1131,25 +1131,28 @@ in {
               "-plugin-dir"
               (toString cfg.pluginDir)
             ]);
-        in pkgs.writeShellScript "nomad" ''
-          # TODO: caching this
-          set -euo pipefail
+          script = pkgs.writeShellScript "nomad" ''
+              # TODO: caching this
+              set -euo pipefail
 
-          ${optionalString cfg.server.enabled ''
-            VAULT_TOKEN="$(< vault-token)"
-            export VAULT_TOKEN
+            ${lib.optionalString cfg.server.enabled ''
+              VAULT_TOKEN="$(< vault-token)"
+              export VAULT_TOKEN
 
-            token="$(vault token create -policy ${cfg.tokenPolicy} -period 72h -orphan -field token)"
-            export VAULT_TOKEN="$token"
-          ''}
+              token="$(vault token create -policy ${cfg.tokenPolicy} -period 72h -orphan -field token)"
+              export VAULT_TOKEN="$token"
+            ''}
 
-          ${lib.optionalString config.services.vault-agent-core.enable ''
-            CONSUL_HTTP_TOKEN_FILE="$PWD/nomad-consul-token"
-            export CONSUL_HTTP_TOKEN_FILE
-          ''}
+              ${
+                lib.optionalString config.services.vault-agent-core.enable ''
+                  CONSUL_HTTP_TOKEN_FILE="$PWD/nomad-consul-token"
+                  export CONSUL_HTTP_TOKEN_FILE
+                ''
+              }
 
-          exec ${lib.concatStringsSep " " args}
-        '';
+              exec ${lib.concatStringsSep " " args}
+          '';
+        in "@${script} nomad";
 
         KillMode = "process";
         LimitNOFILE = "infinity";

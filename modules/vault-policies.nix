@@ -81,6 +81,9 @@ in {
       VAULT_CACERT = config.age.secrets.vault-full.path;
       VAULT_CLIENT_KEY = config.age.secrets.vault-client-key.path;
       VAULT_CLIENT_CERT = config.age.secrets.vault-client.path;
+      NOMAD_CAPATH = config.age.secrets.nomad-ca.path;
+      NOMAD_CLIENT_CERT = config.age.secrets.nomad-client.path;
+      NOMAD_CLIENT_KEY = config.age.secrets.nomad-client-key.path;
     };
 
     path = with pkgs; [ vault-bin sops jq nomad curl cacert ];
@@ -132,10 +135,11 @@ in {
 
       # Nomad Policies
 
-      set -x
+      echo "linking Nomad roles into Vault..."
       ${builtins.concatStringsSep "\n" createNomadRoles}
-      set +x
 
+      export NOMAD_TOKEN="$(< /var/lib/vault/nomad_token)"
+      nomad acl policy list
       keepNames=(${
         toString (builtins.attrNames config.services.nomad.policies)
       })
