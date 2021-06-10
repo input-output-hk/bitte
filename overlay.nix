@@ -63,8 +63,6 @@ in final: prev: {
 
   devShell = final.callPackage ./pkgs/dev-shell.nix { };
 
-  nixosModules = import ./pkgs/nixos-modules.nix { inherit nixpkgs lib; };
-
   consulRegister = prev.callPackage ./pkgs/consul-register.nix { };
 
   envoy = prev.callPackage ./pkgs/envoy.nix { };
