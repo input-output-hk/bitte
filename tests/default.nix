@@ -18,6 +18,9 @@ let
     echo "$key" | ${ssh machine} chmod 0600 /etc/ssh/ssh_host_ed25519_key
     echo "$(< ${../. + "/encrypted/ssh/${machine}.pub"})" \
       | ${ssh machine} tee /etc/ssh/ssh_host_ed25519_key.pub
+
+    # The activate script can now decrypt all secrets
+    ${ssh machine} /run/current-system/activate
   '');
 
   adminScriptPreRestart = pkgs.writeBashChecked "admin.sh" ''
@@ -31,6 +34,34 @@ let
 
     ${lib.concatStringsSep "\n" copyKeys}
   '';
+
+  # TODO: it's very hard to get a flake built without internet connection.
+  #
+  # This was an idea of running nixos-rebuild after fetching the automatically
+  # generated SSH keys from each host and re-encrypting the files in
+  # ./encrypted/
+  # That way we wouldn't need to keep the private host keys in the repo and
+  # simplify adding new machines.
+  #
+  # agenixJSON="$(remarshal -if toml -of json < .agenix.toml)"
+  #
+  # while read -r line; do
+  #   echo line: "$line"
+  #   agenixJSON="$(
+  #     echo "$agenixJSON" | jq \
+  #       --arg host "$(echo "$line" | awk '{print $1}')" \
+  #       --arg key "$(echo "$line" | awk '{print $2 " " $3}')" \
+  #       '.identities[$host] = $key'
+  #   )"
+  # done < <(ssh-keyscan -t ed25519 core0 core1 core2)
+  #
+  # echo "$agenixJSON" | remarshal -if json -of toml > .agenix.toml
+  #
+  # fd . -e age encrypted -x agenix -i ${./age-bootstrap} --rekey
+  #
+  # for host in core0 core1 core2; do
+  #   nixos-rebuild switch --flake ".#test-$host" --target-host "$host"
+  # done
 
   bootstrapVaultPolicy = pkgs.writeText "bootstrap.hcl" ''
     path "*" {
@@ -230,7 +261,7 @@ let
       address = ip;
       prefixLength = 16;
     }];
-    services.amazon-ssm-agent.enable = false;
+    services.ssm-agent.enable = false;
 
     _module.args.nodeName = name;
     _module.args.self = { inherit inputs; };
@@ -280,8 +311,21 @@ in {
         environment.sessionVariables = sessionVariables;
       };
 
-      admin = {
-        environment.systemPackages = with pkgs; [ age consul nomad vault-bin ];
+      admin = { pkgs, ... }: {
+        _module.args.self = { inherit inputs; };
+        imports = [ ../profiles/nix.nix ];
+        environment.systemPackages = with pkgs; [
+          age
+          agenix-cli
+          consul
+          fd
+          jq
+          nomad
+          remarshal
+          vault-bin
+          nixFlakes
+          which
+        ];
         environment.sessionVariables = sessionVariables;
       };
       core0 = mkCore "core0";
@@ -298,9 +342,6 @@ in {
 
       admin.systemctl("is-system-running --wait")
       admin.log(admin.succeed("${adminScriptPreRestart}"))
-
-      [core.shutdown() for core in cores]
-      [core.start() for core in cores]
 
       [core.wait_for_unit("vault") for core in cores]
       [core.wait_for_open_port("8200") for core in cores]
