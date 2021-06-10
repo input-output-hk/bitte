@@ -11,7 +11,7 @@
   ];
 
   services = {
-    amazon-ssm-agent.enable = lib.mkDefault true;
+    ssm-agent.enable = lib.mkDefault true;
     vault.enable = lib.mkDefault true;
     consul.enable = lib.mkDefault true;
   };
