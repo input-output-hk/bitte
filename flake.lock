@@ -138,16 +138,16 @@
     "nomad-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1622657457,
-        "narHash": "sha256-gOs4hN4DaEoB9P1PBGguRVbloOZaY034tvcpsVcL9mo=",
+        "lastModified": 1623434122,
+        "narHash": "sha256-3cPp8STtTKMHtA2+rWqAjHVevAnUorRtZFWRnmaLLJc=",
         "owner": "input-output-hk",
         "repo": "nomad",
-        "rev": "ee73dd5b5a3641618cad70b99a64d110e627e505",
+        "rev": "1e35d887c0de086d344d7f9514eb0f63c3c68199",
         "type": "github"
       },
       "original": {
         "owner": "input-output-hk",
-        "ref": "release-1.1.0",
+        "ref": "release-1.1.1",
         "repo": "nomad",
         "type": "github"
       }

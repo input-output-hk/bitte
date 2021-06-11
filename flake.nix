@@ -18,7 +18,7 @@
       flake = false;
     };
     nomad-source = {
-      url = "github:input-output-hk/nomad/release-1.1.0";
+      url = "github:input-output-hk/nomad/release-1.1.1";
       flake = false;
     };
     levant-source = {
