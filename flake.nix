@@ -4,7 +4,7 @@
   inputs = {
     nixpkgs.url =
       "github:NixOS/nixpkgs?rev=b8c367a7bd05e3a514c2b057c09223c74804a21b";
-    nixpkgs-terraform.url = "github:manveru/nixpkgs/updated-terraform-providers";
+    nixpkgs-terraform.url = "github:johnalotoski/nixpkgs-terraform/iohk-terraform-2021-06";
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     utils.url = "github:numtide/flake-utils";
     bitte-cli.url = "github:input-output-hk/bitte-cli";
