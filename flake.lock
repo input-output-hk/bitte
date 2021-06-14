@@ -76,15 +76,15 @@
       "locked": {
         "lastModified": 1623440955,
         "narHash": "sha256-4hM9akwZ2RojC1CT5geV4IZhek/fUPpFitb5ItdoK5s=",
-        "owner": "johnalotoski",
-        "repo": "nixpkgs-terraform",
+        "owner": "input-output-hk",
+        "repo": "nixpkgs",
         "rev": "f94bea476f46784adf587e1cb3a5af9587fe9652",
         "type": "github"
       },
       "original": {
-        "owner": "johnalotoski",
+        "owner": "input-output-hk",
         "ref": "iohk-terraform-2021-06",
-        "repo": "nixpkgs-terraform",
+        "repo": "nixpkgs",
         "type": "github"
       }
     },
