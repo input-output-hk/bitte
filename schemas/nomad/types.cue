@@ -6,6 +6,8 @@
 //   https://www.nomadproject.io/api-docs/json-jobs
 //
 // Not all valid Nomad JSON job options may be included here yet; this file can be extended as needed.
+// If expected Nomad job properties are still not appearing in deployed jobs, check that bitte-cli
+// is allowing the expected JSON through the [de]serialization parsing.
 //
 // In bitte end use repos, this file normally lives at:
 //
@@ -73,7 +75,7 @@ import (
 		Type:     *null | "host" | "csi"
 		Source:   string
 		ReadOnly: bool | *false
-		MountOptions: {
+		MountOptions: *null | {
 			FsType:     *null | string
 			mountFlags: *null | string
 		}
@@ -130,7 +132,7 @@ import (
 		ReschedulePolicy:          #json.ReschedulePolicy
 		EphemeralDisk:             *null | {
 			Migrate: bool
-			Size:    uint
+			SizeMB:  uint
 			Sticky:  bool
 		}
 		Migrate:                   #json.Migrate
@@ -281,8 +283,7 @@ import (
 	}
 }
 
-let durationType = string & =~"^[1-9]\\d*[hms]$"
-
+#duration:    =~"^[1-9]\\d*[hms]$"
 #gitRevision: =~"^[a-f0-9]{40}$"
 #flake:       =~"^(github|git\\+ssh|git):[0-9a-zA-Z_-]+/[0-9a-zA-Z_-]+"
 
@@ -392,7 +393,7 @@ let durationType = string & =~"^[1-9]\\d*[hms]$"
 
 		if tg.ephemeral_disk != null {
 			EphemeralDisk: {
-				Size:    tg.ephemeral_disk.size
+				SizeMB:  tg.ephemeral_disk.size
 				Migrate: tg.ephemeral_disk.migrate
 				Sticky:  tg.ephemeral_disk.sticky
 			}
@@ -502,6 +503,13 @@ let durationType = string & =~"^[1-9]\\d*[hms]$"
 				Operand: c.operator
 			}]
 
+			if t.logs != null {
+				LogConfig: {
+					MaxFiles:      t.logs.max_files
+					MaxFileSizeMB: t.logs.max_file_size
+				}
+			}
+
 			if t.restart_policy != null {
 				RestartPolicy: {
 					Interval: time.ParseDuration(t.restart_policy.interval)
@@ -577,9 +585,11 @@ let durationType = string & =~"^[1-9]\\d*[hms]$"
 				Type:     vol.type
 				Source:   vol.source
 				ReadOnly: vol.read_only
-				MountOptions: {
-					FsType:     vol.mount_options.fs_type
-					mountFlags: vol.mount_options.mount_flags
+				if vol.type == "csi" {
+					MountOptions: {
+						FsType:     vol.mount_options.fs_type
+						mountFlags: vol.mount_options.mount_flags
+					}
 				}
 			}
 		}
@@ -654,18 +664,18 @@ let durationType = string & =~"^[1-9]\\d*[hms]$"
 
 		if #type == "batch" {
 			attempts:       uint | *1
-			delay:          durationType | *"5s"
+			delay:          #duration | *"5s"
 			delay_function: *"constant" | "exponential" | "fibonacci"
-			interval:       durationType | *"24h"
+			interval:       #duration | *"24h"
 			unlimited:      bool | *false
 		}
 
 		if #type == "service" || #type == "system" {
-			interval:       durationType | *"0m"
+			interval:       #duration | *"0m"
 			attempts:       uint | *0
-			delay:          durationType | *"30s"
+			delay:          #duration | *"30s"
 			delay_function: "constant" | *"exponential" | "fibonacci"
-			max_delay:      durationType | *"1h"
+			max_delay:      #duration | *"1h"
 			// if unlimited is true, interval and attempts are ignored
 			unlimited:      bool | *true
 		}
@@ -692,13 +702,13 @@ let durationType = string & =~"^[1-9]\\d*[hms]$"
 		// Specifies the duration to wait before restarting a task. This is
 		// specified using a label suffix like "30s" or "1h". A random jitter of up
 		// to 25% is added to the delay.
-		delay: durationType | *"15s"
+		delay: #duration | *"15s"
 
 		// Specifies the duration which begins when the first task starts and
 		// ensures that only attempts number of restarts happens within it. If more
 		// than attempts number of failures happen, behavior is controlled by mode.
 		// This is specified using a label suffix like "30s" or "1h".
-		interval: durationType
+		interval: #duration
 
 		// Controls the behavior when the task fails more than attempts times in an
 		// interval.
@@ -706,18 +716,18 @@ let durationType = string & =~"^[1-9]\\d*[hms]$"
 
 		if #type == "batch" {
 			attempts: uint | *3
-			interval: durationType | *"24h"
+			interval: #duration | *"24h"
 		}
 
 		if #type == "service" || #type == "system" {
 			attempts: uint | *2
-			interval: durationType | *"30m"
+			interval: #duration | *"30m"
 		}
 	}
 
 	check_restart: *null | {
 		limit:           uint
-		grace:           durationType
+		grace:           #duration
 		ignore_warnings: bool | *false
 	}
 
@@ -735,8 +745,8 @@ let durationType = string & =~"^[1-9]\\d*[hms]$"
 		address_mode:             "alloc" | "driver" | *"host"
 		type:                     "http" | "tcp" | "script" | "grpc"
 		port:                     string
-		interval:                 durationType
-		timeout:                  durationType
+		interval:                 #duration
+		timeout:                  #duration
 		check_restart:            #stanza.check_restart | *null
 		header:                   [string]: [...string]
 		body:                     string | *null
@@ -792,6 +802,11 @@ let durationType = string & =~"^[1-9]\\d*[hms]$"
 		sidecar: *null | bool
 	}
 
+	logs: {
+		max_files:     uint & >0
+		max_file_size: uint & >0
+	}
+
 	task: {
 		affinities:  [...#stanza.affinity]
 		constraints: [...#stanza.constraint]
@@ -821,9 +836,11 @@ let durationType = string & =~"^[1-9]\\d*[hms]$"
 			kill_signal: "SIGTERM"
 		}
 
-		kill_timeout: *null | durationType
+		kill_timeout: *null | #duration
 
 		lifecycle: *null | #stanza.lifecycle
+
+		logs: *null | #stanza.logs
 
 		resources: {
 			cpu:    uint & >=100
@@ -842,7 +859,7 @@ let durationType = string & =~"^[1-9]\\d*[hms]$"
 			perms:           *"0644" | =~"^[0-7]{4}$"
 			left_delimiter:  string | *"{{"
 			right_delimiter: string | *"}}"
-			splay:           durationType | *"3s"
+			splay:           #duration | *"3s"
 		}
 
 		vault: *null | #stanza.vault
@@ -851,9 +868,9 @@ let durationType = string & =~"^[1-9]\\d*[hms]$"
 	}
 
 	restart_policy: {
-		interval: durationType
+		interval: #duration
 		attempts: uint
-		delay:    durationType
+		delay:    #duration
 		mode:     "delay" | "fail"
 	}
 
@@ -862,11 +879,11 @@ let durationType = string & =~"^[1-9]\\d*[hms]$"
 		auto_revert:       bool | *false
 		canary:            uint | *0
 		health_check:      *"checks" | "task_states" | "manual"
-		healthy_deadline:  durationType | *"5m"
+		healthy_deadline:  #duration | *"5m"
 		max_parallel:      uint | *1
-		min_healthy_time:  durationType | *"10s"
-		progress_deadline: durationType | *"10m"
-		stagger:           durationType | *"30s"
+		min_healthy_time:  #duration | *"10s"
+		progress_deadline: #duration | *"10m"
+		stagger:           #duration | *"30s"
 	}
 
 	vault: {
@@ -881,9 +898,11 @@ let durationType = string & =~"^[1-9]\\d*[hms]$"
 		type:      "host" | "csi"
 		source:    string
 		read_only: bool | *false
-		mount_options: {
-			fs_type:     *null | string
-			mount_flags: *null | string
+		if type == "csi" {
+			mount_options: {
+				fs_type:     *null | string
+				mount_flags: *null | string
+			}
 		}
 	}
 
