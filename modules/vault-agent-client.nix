@@ -142,6 +142,9 @@ let
                 "consul": {
                   "token": "{{ .Data.token }}",
                   "address": "127.0.0.1:8500",
+                  "tlsCaFile": "/etc/ssl/certs/full.pem",
+                  "tlsCertFile": "/etc/ssl/certs/cert.pem",
+                  "tlsKeyFile": "/var/lib/vault/cert-key.pem"
                 }
               },
               "service_registration": {

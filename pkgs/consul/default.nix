@@ -2,7 +2,7 @@
 
 buildGoModule rec {
   pname = "consul";
-  version = "1.9.5";
+  version = "1.9.6";
   rev = "v${version}";
 
   # Note: Currently only release tags are supported, because they have the Consul UI
@@ -17,7 +17,7 @@ buildGoModule rec {
     owner = "hashicorp";
     repo = pname;
     inherit rev;
-    sha256 = "sha256-CKezHuCbL1I79gDz7ZQiSgPbSXo0NtssQro2MqqmeXw=";
+    sha256 = "sha256-SuG/Q5Tjet4etd4Qy5NBQLYEe2QO0K8QHKmgxYMl09U=";
   };
 
   patches = [
@@ -30,7 +30,7 @@ buildGoModule rec {
   # has a split module structure in one repo
   subPackages = [ "." "connect/certgen" ];
 
-  vendorSha256 = "sha256-YqrW3PeFv1Y6lmjVmMMP0SZao57iPqfut3a1afIWkI0=";
+  vendorSha256 = "sha256-ix1GMv0n7NrcSqqd5widTa+K3bg8lA43nZVGI8M0Cb4=";
   deleteVendor = true;
 
   preBuild = ''

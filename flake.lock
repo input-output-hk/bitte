@@ -74,16 +74,16 @@
     },
     "nixpkgs-terraform": {
       "locked": {
-        "lastModified": 1620395313,
-        "narHash": "sha256-zaNy1ZD0WNKon3ZmEEte7z74CE6PWmQ8XltwuTMGDMI=",
-        "owner": "manveru",
+        "lastModified": 1623440955,
+        "narHash": "sha256-4hM9akwZ2RojC1CT5geV4IZhek/fUPpFitb5ItdoK5s=",
+        "owner": "input-output-hk",
         "repo": "nixpkgs",
-        "rev": "316b82563a7793a4a88bed9e41adb936d9adc969",
+        "rev": "f94bea476f46784adf587e1cb3a5af9587fe9652",
         "type": "github"
       },
       "original": {
-        "owner": "manveru",
-        "ref": "updated-terraform-providers",
+        "owner": "input-output-hk",
+        "ref": "iohk-terraform-2021-06",
         "repo": "nixpkgs",
         "type": "github"
       }
@@ -138,16 +138,16 @@
     "nomad-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1622657457,
-        "narHash": "sha256-gOs4hN4DaEoB9P1PBGguRVbloOZaY034tvcpsVcL9mo=",
+        "lastModified": 1623434122,
+        "narHash": "sha256-3cPp8STtTKMHtA2+rWqAjHVevAnUorRtZFWRnmaLLJc=",
         "owner": "input-output-hk",
         "repo": "nomad",
-        "rev": "ee73dd5b5a3641618cad70b99a64d110e627e505",
+        "rev": "1e35d887c0de086d344d7f9514eb0f63c3c68199",
         "type": "github"
       },
       "original": {
         "owner": "input-output-hk",
-        "ref": "release-1.1.0",
+        "ref": "release-1.1.1",
         "repo": "nomad",
         "type": "github"
       }
