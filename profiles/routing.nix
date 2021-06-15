@@ -58,8 +58,7 @@
 
     staticConfigOptions = {
       metrics.influxDB = {
-        address =
-          "http://monitoring:8428";
+        address = "http://monitoring:8428";
         protocol = "http";
         database = "traefik";
         addEntryPointsLabels = true;

@@ -47,9 +47,8 @@ in listToAttrs (forEach clusterFiles (file:
 
     tf = proto.config.tf;
 
-    nodes = mapAttrs (name: instance:
-      mkSystem name
-      ([ file ] ++ instance.modules))
+    nodes =
+      mapAttrs (name: instance: mkSystem name ([ file ] ++ instance.modules))
       proto.config.cluster.instances;
 
     groups =

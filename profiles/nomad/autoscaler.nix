@@ -69,8 +69,7 @@ in {
 
     apm.victoriametrics = {
       driver = "prometheus";
-      config.address =
-        "http://monitoring:8428";
+      config.address = "http://monitoring:8428";
     };
 
     target = lib.flip lib.mapAttrs asgs (name: asg: {

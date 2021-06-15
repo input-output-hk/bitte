@@ -7,7 +7,8 @@
     ./vault/server.nix
   ];
 
-  age.secrets.nomad-encrypt.file = ../encrypted/nomad/encrypt.age;
+  age.secrets.nomad-encrypt.file = config.age.encryptedRoot
+    + "/nomad/encrypt.age";
 
   services = {
     promtail.enable = lib.mkForce false;

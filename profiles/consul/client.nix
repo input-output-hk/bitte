@@ -1,4 +1,4 @@
-{ ... }: {
+{ lib, ... }: {
   imports = [ ./default.nix ];
 
   services.consul = {

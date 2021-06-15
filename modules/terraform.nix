@@ -579,6 +579,11 @@ let
 
       privateIP = mkOption { type = str; };
 
+      datacenter = mkOption {
+        type = str;
+        default = this.config.region;
+      };
+
       subnet = mkOption {
         type = subnetType;
         default = { };

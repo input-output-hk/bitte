@@ -1,4 +1,4 @@
-{ pkgs, config, ... }: {
+{ pkgs, config, nodeName, ... }: {
   imports = [ ./default.nix ];
 
   services.nomad = {
@@ -7,15 +7,15 @@
     client = {
       enabled = true;
       gc_interval = "12h";
-      chroot_env = {
-        # "/usr/bin/env" = "/usr/bin/env";
-        "${builtins.unsafeDiscardStringContext pkgs.pkgsStatic.busybox}" =
-          "/usr";
+      chroot_env = let
+        busybox = builtins.unsafeDiscardStringContext pkgs.pkgsStatic.busybox;
+      in {
+        "${busybox}" = "/usr";
         "/etc/passwd" = "/etc/passwd";
       };
     };
 
-    datacenter = config.asg.region;
+    datacenter = config.cluster.instances.${nodeName}.datacenter;
 
     plugin.raw_exec.enabled = false;
 

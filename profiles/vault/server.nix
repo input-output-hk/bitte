@@ -1,4 +1,4 @@
-{ config, nodeName, lib, ... }:
+{ config, nodeName, ... }:
 let inherit (config.cluster.instances.${nodeName}) privateIP;
 in {
   imports = [ ./default.nix ./policies.nix ];

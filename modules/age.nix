@@ -9,7 +9,8 @@ let
 
   users = config.users.users;
 
-  identities = builtins.concatStringsSep " " (map (path: "-i ${path}") cfg.sshKeyPaths);
+  identities =
+    builtins.concatStringsSep " " (map (path: "-i ${path}") cfg.sshKeyPaths);
   installSecret = secretType: ''
     echo "decrypting ${secretType.file} to ${secretType.path}..."
 
@@ -30,14 +31,22 @@ let
     mv -f "$TMP_FILE" '${secretType.path}'
   '';
 
-  isRootSecret = st: (st.owner == "root" || st.owner == "0") && (st.group == "root" || st.group == "0");
+  isRootSecret = st:
+    (st.owner == "root" || st.owner == "0")
+    && (st.group == "root" || st.group == "0");
   isNotRootSecret = st: !(isRootSecret st);
 
-  rootOwnedSecrets = builtins.filter isRootSecret (builtins.attrValues cfg.secrets);
-  installRootOwnedSecrets = builtins.concatStringsSep "\n" ([ "echo '[agenix] decrypting root secrets...'" ] ++ (map installSecret rootOwnedSecrets));
+  rootOwnedSecrets =
+    builtins.filter isRootSecret (builtins.attrValues cfg.secrets);
+  installRootOwnedSecrets = builtins.concatStringsSep "\n"
+    ([ "echo '[agenix] decrypting root secrets...'" ]
+      ++ (map installSecret rootOwnedSecrets));
 
-  nonRootSecrets = builtins.filter isNotRootSecret (builtins.attrValues cfg.secrets);
-  installNonRootSecrets = builtins.concatStringsSep "\n" ([ "echo '[agenix] decrypting non-root secrets...'" ] ++ (map installSecret nonRootSecrets));
+  nonRootSecrets =
+    builtins.filter isNotRootSecret (builtins.attrValues cfg.secrets);
+  installNonRootSecrets = builtins.concatStringsSep "\n"
+    ([ "echo '[agenix] decrypting non-root secrets...'" ]
+      ++ (map installSecret nonRootSecrets));
 
   secretType = types.submodule ({ config, ... }: {
     options = {
@@ -97,9 +106,10 @@ let
       };
     };
   });
-in
-{
+in {
   options.age = {
+    encryptedRoot = lib.mkOption { type = types.path; };
+
     secrets = mkOption {
       type = types.attrsOf secretType;
       default = { };
@@ -107,12 +117,14 @@ in
         Attrset of secrets.
       '';
     };
+
     sshKeyPaths = mkOption {
       type = types.listOf types.path;
-      default =
-        if config.services.openssh.enable then
-          map (e: e.path) (lib.filter (e: e.type == "ed25519") config.services.openssh.hostKeys)
-        else [ ];
+      default = if config.services.openssh.enable then
+        map (e: e.path)
+        (lib.filter (e: e.type == "ed25519") config.services.openssh.hostKeys)
+      else
+        [ ];
       description = ''
         Path to SSH keys to be used as identities in age decryption.
       '';
@@ -130,6 +142,7 @@ in
     system.activationScripts.users.deps = [ "agenixRoot" ];
 
     # Other secrets need to wait for users and groups to exist.
-    system.activationScripts.agenix = stringAfter [ "users" "groups" ] installNonRootSecrets;
+    system.activationScripts.agenix =
+      stringAfter [ "users" "groups" ] installNonRootSecrets;
   };
 }

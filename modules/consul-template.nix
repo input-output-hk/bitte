@@ -67,11 +67,8 @@ in {
       ctName = "ct-${name}";
     in {
       ${ctName} = mkIf (cfg.enable && value.enable) {
-        after = [
-          "consul.service"
-          "consul-acl.service"
-          "network-online.target"
-        ];
+        after =
+          [ "consul.service" "consul-acl.service" "network-online.target" ];
         wantedBy = [ "multi-user.target" ];
         requires = [ "network-online.target" ];
 

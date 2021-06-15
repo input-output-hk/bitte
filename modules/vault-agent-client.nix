@@ -73,7 +73,8 @@ let
             {{ end }}{{ end }}
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart certs-updated.service";
+          command =
+            "${pkgs.systemd}/bin/systemctl try-reload-or-restart certs-updated.service";
         };
       }
 
@@ -87,7 +88,8 @@ let
             {{ end }}{{ end }}
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart certs-updated.service";
+          command =
+            "${pkgs.systemd}/bin/systemctl try-reload-or-restart certs-updated.service";
         };
       }
 
@@ -99,7 +101,8 @@ let
             {{ with secret ${pkiSecret} }}{{ .Data.private_key }}{{ end }}
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart certs-updated.service";
+          command =
+            "${pkgs.systemd}/bin/systemctl try-reload-or-restart certs-updated.service";
         };
       }
 
@@ -111,8 +114,8 @@ let
             {
               "encrypt": "{{ with secret "kv/bootstrap/clients/consul" }}{{ .Data.data.encrypt }}{{ end }}",
               "acl": {
-                "default_policy": "${config.services.consul.acl.defaultPolicy}",
-                "down_policy": "${config.services.consul.acl.downPolicy}",
+                "default_policy": "deny",
+                "down_policy": "extend-cache",
                 "enable_token_persistence": true,
                 "enabled": true,
                 "tokens": {
@@ -123,7 +126,8 @@ let
             }
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart consul";
+          command =
+            "${pkgs.systemd}/bin/systemctl try-reload-or-restart consul";
         };
       })
 
@@ -135,7 +139,8 @@ let
             {{ with secret "consul/creds/consul-default" }}{{ .Data.token }}{{ end }}
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart consul.service";
+          command =
+            "${pkgs.systemd}/bin/systemctl try-reload-or-restart consul.service";
         };
       })
 
@@ -146,15 +151,6 @@ let
           contents = ''
             {{ with secret "consul/creds/vault-client" }}
             {
-              "storage": {
-                "consul": {
-                  "token": "{{ .Data.token }}",
-                  "address": "127.0.0.1:8500",
-                  "tlsCaFile": "/etc/ssl/certs/full.pem",
-                  "tlsCertFile": "/etc/ssl/certs/cert.pem",
-                  "tlsKeyFile": "/var/lib/vault/cert-key.pem"
-                }
-              },
               "service_registration": {
                 "consul": {
                   "token": "{{ .Data.token }}",
@@ -165,7 +161,8 @@ let
             {{ end }}
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart vault.service";
+          command =
+            "${pkgs.systemd}/bin/systemctl try-reload-or-restart vault.service";
         };
       })
 

@@ -273,6 +273,12 @@ let
       ++ cluster.instances.${name}.modules;
   };
 
+  mkWork = name: {
+    imports =
+      [ ../clusters/test (extra name cluster.instances.${name}.privateIP) ]
+      ++ cluster.instances.${name}.modules;
+  };
+
   sessionVariables = {
     VAULT_ADDR = "https://core0:8200";
     VAULT_CACERT = "/tmp/ca.pem";
@@ -328,10 +334,12 @@ in {
         ];
         environment.sessionVariables = sessionVariables;
       };
+
       core0 = mkCore "core0";
       core1 = mkCore "core1";
       core2 = mkCore "core2";
 
+      work0 = mkWork "work0";
     };
 
     testScript = ''
