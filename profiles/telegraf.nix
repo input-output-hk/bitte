@@ -42,7 +42,8 @@ in {
 
         prometheus = let
           promtail = "http://127.0.0.1:${
-              toString config.services.promtail.server.http_listen_port
+              toString
+              config.services.promtail.configuration.server.http_listen_port
             }/metrics";
           autoscaling = "http://127.0.0.1:${
               toString config.services.nomad-autoscaler.http.bind_port

@@ -108,6 +108,8 @@ let
   });
 in {
   options.age = {
+    encryptedRoot = lib.mkOption { type = types.path; };
+
     secrets = mkOption {
       type = types.attrsOf secretType;
       default = { };
@@ -115,6 +117,7 @@ in {
         Attrset of secrets.
       '';
     };
+
     sshKeyPaths = mkOption {
       type = types.listOf types.path;
       default = if config.services.openssh.enable then

@@ -111,8 +111,8 @@ let
             {
               "encrypt": "{{ with secret "kv/bootstrap/clients/consul" }}{{ .Data.data.encrypt }}{{ end }}",
               "acl": {
-                "default_policy": "${config.services.consul.acl.defaultPolicy}",
-                "down_policy": "${config.services.consul.acl.downPolicy}",
+                "default_policy": "deny",
+                "down_policy": "extend-cache",
                 "enable_token_persistence": true,
                 "enabled": true,
                 "tokens": {
@@ -148,15 +148,6 @@ let
           contents = ''
             {{ with secret "consul/creds/vault-client" }}
             {
-              "storage": {
-                "consul": {
-                  "token": "{{ .Data.token }}",
-                  "address": "127.0.0.1:8500",
-                  "tlsCaFile": "/etc/ssl/certs/full.pem",
-                  "tlsCertFile": "/etc/ssl/certs/cert.pem",
-                  "tlsKeyFile": "/var/lib/vault/cert-key.pem"
-                }
-              },
               "service_registration": {
                 "consul": {
                   "token": "{{ .Data.token }}",

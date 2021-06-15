@@ -1,4 +1,6 @@
 _: {
+  age.encryptedRoot = ../../encrypted;
+
   cluster = {
     name = "test";
     domain = "test.local";
@@ -24,6 +26,12 @@ _: {
       core2 = {
         privateIP = "172.16.2.10";
         modules = [ ../../profiles/core.nix ];
+      };
+
+      work0 = {
+        privateIP = "172.16.3.1";
+        modules = [ ../../profiles/work.nix ];
+        datacenter = "dc0";
       };
     };
   };

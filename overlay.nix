@@ -205,8 +205,6 @@ in final: prev: {
     pp = v: trace (toJSON v) v;
 
     readJSON = file: fromJSON (lib.fileContents file);
-    sops2kms = file: (lib.elemAt (readJSON file).sops.kms 0).arn;
-    sops2region = file: lib.elemAt (lib.splitString ":" (sops2kms file)) 3;
 
     cidrsOf = lib.mapAttrsToList (_: subnet: subnet.cidr);
 

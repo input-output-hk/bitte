@@ -63,19 +63,24 @@ module Convencience
         'identities' => identities
       }
     end
+
+    def ssh_pubs
+      MACHINES.map do |machine|
+        File.join 'encrypted/ssh', "#{machine}.pub"
+      end
+    end
   end
 end
 
 using Convencience
 
+MACHINES = %w[core0 core1 core2 builder].freeze
+
 # Working around agenix limitations. It demans you type your things in an editor.
 ENV['EDITOR'] = File.join __dir__, 'pipe.sh'
 
-task default: %w[
+task default: ssh_pubs + %w[
   .agenix.toml
-  encrypted/ssh/core0.pub
-  encrypted/ssh/core1.pub
-  encrypted/ssh/core2.pub
   encrypted/consul/encrypt.age
   encrypted/consul/token-master.age
   encrypted/nix/key.age
@@ -221,7 +226,7 @@ file 'encrypted/ssl/server-full.age' => ['encrypted/ssl/server-key.age', 'encryp
   end
 end
 
-%w[core0 core1 core2].each do |name|
+MACHINES.each do |name|
   file "encrypted/ssh/#{name}.pub" => ["encrypted/ssh/#{name}.age"]
 
   file "encrypted/ssh/#{name}.age" => ['encrypted/ssh'] do

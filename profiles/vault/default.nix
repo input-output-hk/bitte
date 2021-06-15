@@ -7,32 +7,32 @@ in {
   config = lib.mkIf cfg.enable {
     age.secrets = {
       vault-full = {
-        file = ../../encrypted/ssl/server-full.age;
+        file = config.age.encryptedRoot + "/ssl/server-full.age";
         path = "/var/lib/vault/full.pem";
       };
 
       vault-ca = {
-        file = ../../encrypted/ssl/ca.age;
+        file = config.age.encryptedRoot + "/ssl/ca.age";
         path = "/var/lib/vault/ca.pem";
       };
 
       vault-server = {
-        file = ../../encrypted/ssl/server.age;
+        file = config.age.encryptedRoot + "/ssl/server.age";
         path = "/var/lib/vault/server.pem";
       };
 
       vault-server-key = {
-        file = ../../encrypted/ssl/server-key.age;
+        file = config.age.encryptedRoot + "/ssl/server-key.age";
         path = "/var/lib/vault/server-key.pem";
       };
 
       vault-client = {
-        file = ../../encrypted/ssl/client.age;
+        file = config.age.encryptedRoot + "/ssl/client.age";
         path = "/var/lib/vault/client.pem";
       };
 
       vault-client-key = {
-        file = ../../encrypted/ssl/client-key.age;
+        file = config.age.encryptedRoot + "/ssl/client-key.age";
         path = "/var/lib/vault/client-key.pem";
       };
     };

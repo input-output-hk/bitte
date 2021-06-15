@@ -4,7 +4,7 @@ in {
   config = lib.mkIf config.services.consul.enable {
     age.secrets = {
       consul-encrypt = {
-        file = ../../encrypted/consul/encrypt.age;
+        file = config.age.encryptedRoot + "/consul/encrypt.age";
         path = "/etc/consul.d/encrypt.json";
         mode = "0444";
         script = ''
@@ -24,7 +24,7 @@ in {
           enabled = true;
         };
       in {
-        file = ../../encrypted/consul/token-master.age;
+        file = config.age.encryptedRoot + "/consul/token-master.age";
         path = "/etc/consul.d/token-master.json";
         mode = "0444";
         script = ''
@@ -37,17 +37,17 @@ in {
       };
 
       consul-ca = {
-        file = ../../encrypted/ssl/ca.age;
+        file = config.age.encryptedRoot + "/ssl/ca.age";
         path = "/var/lib/consul/ca.pem";
       };
 
       consul-server = {
-        file = ../../encrypted/ssl/server.age;
+        file = config.age.encryptedRoot + "/ssl/server.age";
         path = "/var/lib/consul/server.pem";
       };
 
       consul-server-key = {
-        file = ../../encrypted/ssl/server-key.age;
+        file = config.age.encryptedRoot + "/ssl/server-key.age";
         path = "/var/lib/consul/server-key.pem";
       };
     };

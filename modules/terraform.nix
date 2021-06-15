@@ -597,6 +597,11 @@ let
 
         # flake = lib.mkOption { type = with lib.types; str; };
 
+        datacenter = lib.mkOption {
+          type = with lib.types; str;
+          default = this.config.region;
+        };
+
         subnet = lib.mkOption {
           type = with lib.types; subnetType;
           default = { };

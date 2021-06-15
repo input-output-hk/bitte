@@ -6,6 +6,38 @@ in {
       "https://127.0.0.1:${toString config.services.nomad.ports.http}";
   };
 
+  age.secrets = {
+    nomad-ca = {
+      file = ../../encrypted/ssl/ca.age;
+      path = "/var/lib/nomad/ca.pem";
+    };
+
+    nomad-client = {
+      file = ../../encrypted/ssl/client.age;
+      path = "/var/lib/nomad/client.pem";
+    };
+
+    nomad-client-key = {
+      file = ../../encrypted/ssl/client-key.age;
+      path = "/var/lib/nomad/client-key.pem";
+    };
+
+    nomad-full = {
+      file = ../../encrypted/ssl/server-full.age;
+      path = "/var/lib/nomad/full.pem";
+    };
+
+    nomad-server = {
+      file = ../../encrypted/ssl/server.age;
+      path = "/var/lib/nomad/server.pem";
+    };
+
+    nomad-server-key = {
+      file = ../../encrypted/ssl/server-key.age;
+      path = "/var/lib/nomad/server-key.pem";
+    };
+  };
+
   services.nomad = {
     data_dir = /var/lib/nomad;
     log_level = "DEBUG";

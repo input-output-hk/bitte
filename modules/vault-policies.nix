@@ -146,7 +146,6 @@ in {
 
         export NOMAD_TOKEN="$(< /var/lib/vault/nomad_token)"
         nomad acl policy list
-
         keepNames=(${
           toString (builtins.attrNames config.services.nomad.policies)
         })
