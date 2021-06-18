@@ -16,8 +16,6 @@ in final: prev: {
 
   consul = prev.callPackage ./pkgs/consul { };
 
-  cue = final.callPackage ./pkgs/cue.nix { };
-
   terraform-provider-names =
     [ "acme" "aws" "consul" "local" "nomad" "null" "sops" "tls" "vault" ];
 
@@ -77,7 +75,7 @@ in final: prev: {
   haproxy = prev.callPackage ./pkgs/haproxy.nix { };
 
   inherit (inputs.nixpkgs-unstable.legacyPackages.${final.system})
-    grafana-loki grafana traefik;
+    grafana-loki grafana traefik cue;
 
   glusterfs =
     (inputs.nixpkgs-unstable.legacyPackages.${final.system}).callPackage

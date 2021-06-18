@@ -29,10 +29,10 @@ import (
 		Type:        "service" | "system" | "batch"
 		Priority:    uint
 		Datacenters: list.MinItems(1)
-		TaskGroups:  [...TaskGroup]
-		Affinities:  [...Affinity]
+		TaskGroups: [...TaskGroup]
+		Affinities: [...Affinity]
 		Constraints: [...Constraint]
-		Spreads:     [...Spread]
+		Spreads: [...Spread]
 		ConsulToken: *null | string
 		VaultToken:  *null | string
 		Vault:       *null | #json.Vault
@@ -53,8 +53,8 @@ import (
 	}
 
 	Spread: {
-		Attribute:    string
-		Weight:       uint & >=-100 & <=100 | *null
+		Attribute: string
+		Weight:    uint & >=-100 & <=100 | *null
 		SpreadTarget: [...SpreadTargetElem]
 	}
 
@@ -71,10 +71,10 @@ import (
 	}
 
 	Volume: {
-		Name:     string
-		Type:     *null | "host" | "csi"
-		Source:   string
-		ReadOnly: bool | *false
+		Name:         string
+		Type:         *null | "host" | "csi"
+		Source:       string
+		ReadOnly:     bool | *false
 		MountOptions: *null | {
 			FsType:     *null | string
 			mountFlags: *null | string
@@ -117,27 +117,27 @@ import (
 	}
 
 	TaskGroup: {
-		Affinities:                [...Affinity]
-		Constraints:               [...Constraint]
-		Spreads:                   [...Spread]
-		Count:                     int & >0 | *1
-		Meta:                      [string]: string
-		Name:                      string
-		RestartPolicy:             *null | #json.RestartPolicy
-		Restart:                   #json.Restart
-		Services:                  [...Service]
-		ShutdownDelay:             uint | *0
-		Tasks:                     [...Task]
-		Volumes:                   [string]: #json.Volume
-		ReschedulePolicy:          #json.ReschedulePolicy
-		EphemeralDisk:             *null | {
+		Affinities: [...Affinity]
+		Constraints: [...Constraint]
+		Spreads: [...Spread]
+		Count: int & >0 | *1
+		Meta: [string]: string
+		Name:          string
+		RestartPolicy: *null | #json.RestartPolicy
+		Restart:       #json.Restart
+		Services: [...Service]
+		ShutdownDelay: uint | *0
+		Tasks: [...Task]
+		Volumes: [string]: #json.Volume
+		ReschedulePolicy: #json.ReschedulePolicy
+		EphemeralDisk:    *null | {
 			Migrate: bool
 			SizeMB:  uint
 			Sticky:  bool
 		}
-		Migrate:                   #json.Migrate
-		Update:                    *null | #json.Update
-		Networks:                  [...#json.Network]
+		Migrate: #json.Migrate
+		Update:  *null | #json.Update
+		Networks: [...#json.Network]
 		StopAfterClientDisconnect: *null | uint
 		Scaling:                   null
 		Vault:                     *null | #json.Vault
@@ -202,44 +202,44 @@ import (
 	}
 
 	Service: {
-		Id:                string | *""
-		Name:              string
-		Tags:              [...string]
+		Id:   string | *""
+		Name: string
+		Tags: [...string]
 		CanaryTags:        [...string] | *[]
 		EnableTagOverride: bool | *false
 		PortLabel:         string
 		AddressMode:       "alloc" | "auto" | "driver" | "host"
-		Checks:            [...ServiceCheck]
-		CheckRestart:      #json.CheckRestart
-		Connect:           null
-		Meta:              [string]: string
-		TaskName:          string | *""
+		Checks: [...ServiceCheck]
+		CheckRestart: #json.CheckRestart
+		Connect:      null
+		Meta: [string]: string
+		TaskName: string | *""
 	}
 
 	Task: {
-		Name:            string
-		Driver:          "exec" | "docker" | "nspawn"
-		Config:          #stanza.taskConfig & {#driver: Driver}
-		Constraints:     [...Constraint]
-		Affinities:      [...Affinity]
-		Env:             [string]: string
-		Services:        [...Service]
+		Name:   string
+		Driver: "exec" | "docker" | "nspawn"
+		Config: #stanza.taskConfig & {#driver: Driver}
+		Constraints: [...Constraint]
+		Affinities: [...Affinity]
+		Env: [string]: string
+		Services: [...Service]
 		Resources: {
 			CPU:      uint & >=100 | *100
 			MemoryMB: uint & >=32 | *300
 			DiskMB:   *null | uint
 		}
-		Meta:            {}
-		RestartPolicy:   *null | #json.RestartPolicy
-		ShutdownDelay:   uint | *0
-		User:            string | *""
-		Lifecycle:       *null | #json.Lifecycle
-		KillTimeout:     *null | uint
-		LogConfig:       #json.LogConfig
-		Artifacts:       [...#json.Artifact]
-		Templates:       [...#json.Template]
+		Meta: {}
+		RestartPolicy: *null | #json.RestartPolicy
+		ShutdownDelay: uint | *0
+		User:          string | *""
+		Lifecycle:     *null | #json.Lifecycle
+		KillTimeout:   *null | uint
+		LogConfig:     #json.LogConfig
+		Artifacts: [...#json.Artifact]
+		Templates: [...#json.Template]
 		DispatchPayload: null
-		VolumeMounts:    [...#json.VolumeMount]
+		VolumeMounts: [...#json.VolumeMount]
 		Leader:          bool | *false
 		KillSignal:      string
 		ScalingPolicies: null
@@ -286,7 +286,6 @@ import (
 #duration:    =~"^[1-9]\\d*[hms]$"
 #gitRevision: =~"^[a-f0-9]{40}$"
 #flake:       =~"^(github|git\\+ssh|git):[0-9a-zA-Z_-]+/[0-9a-zA-Z_-]+"
-
 
 // The #toJson block is evaluated from deploy.cue during rendering of the namespace jobs.
 // #job and #jobName are passed to #toJson during this evaluation.
@@ -339,8 +338,8 @@ import (
 	}]
 
 	Spreads: [ for s in #job.spreads {
-		Attribute:    s.attribute
-		Weight:       s.weight
+		Attribute: s.attribute
+		Weight:    s.weight
 		SpreadTarget: [ for t in s.target {
 			Value:   t.value
 			Percent: t.percent
@@ -366,8 +365,8 @@ import (
 		}]
 
 		Spreads: [ for s in tg.spreads {
-			Attribute:    s.attribute
-			Weight:       s.weight
+			Attribute: s.attribute
+			Weight:    s.weight
 			SpreadTarget: [ for t in s.target {
 				Value:   t.value
 				Percent: t.percent
@@ -451,10 +450,10 @@ import (
 			}
 			Checks: [ for cName, c in s.check {
 				{
-					AddressMode:            c.address_mode
-					Type:                   c.type
-					PortLabel:              c.port
-					Interval:               time.ParseDuration(c.interval)
+					AddressMode: c.address_mode
+					Type:        c.type
+					PortLabel:   c.port
+					Interval:    time.ParseDuration(c.interval)
 					if c.type == "http" {
 						Path:     c.path
 						Method:   c.method
@@ -596,20 +595,19 @@ import (
 	}]
 }
 
-
 // Definitions for stanzas referenced throughout this file
 #stanza: {
 	job: {
 		datacenters: list.MinItems(1)
 		namespace:   string
 		type:        "batch" | *"service" | "system"
-		affinities:  [...#stanza.affinity]
+		affinities: [...#stanza.affinity]
 		constraints: [...#stanza.constraint]
-		spreads:     [...#stanza.spread]
-		group:       [string]: #stanza.group & {#type: type}
-		update:      #stanza.update | *null
-		vault:       #stanza.vault | *null
-		priority:    uint | *50
+		spreads: [...#stanza.spread]
+		group: [string]: #stanza.group & {#type: type}
+		update:   #stanza.update | *null
+		vault:    #stanza.vault | *null
+		priority: uint | *50
 	}
 
 	affinity: {
@@ -628,7 +626,7 @@ import (
 	spread: {
 		attribute: string | *null
 		weight:    uint & >=-100 & <=100 | *null
-		target:    [...#stanza.targetElem]
+		target: [...#stanza.targetElem]
 	}
 
 	targetElem: {
@@ -643,16 +641,16 @@ import (
 	}
 
 	group: {
-		#type:          "service" | "batch" | "system"
-		affinities:     [...#stanza.affinity]
-		constraints:    [...#stanza.constraint]
-		spreads:        [...#stanza.spread]
+		#type: "service" | "batch" | "system"
+		affinities: [...#stanza.affinity]
+		constraints: [...#stanza.constraint]
+		spreads: [...#stanza.spread]
 		ephemeral_disk: #stanza.ephemeral_disk
 		network:        *null | #stanza.network
-		service:        [string]: #stanza.service
-		task:           [string]: #stanza.task
-		count:          uint | *1
-		volume:         [string]: #stanza.volume
+		service: [string]: #stanza.service
+		task: [string]:    #stanza.task
+		count: uint | *1
+		volume: [string]: #stanza.volume
 		restart:        #stanza.restart & {#type: #type}
 		vault:          *null | #stanza.vault
 		restart_policy: *null | #stanza.restart_policy
@@ -677,7 +675,7 @@ import (
 			delay_function: "constant" | *"exponential" | "fibonacci"
 			max_delay:      #duration | *"1h"
 			// if unlimited is true, interval and attempts are ignored
-			unlimited:      bool | *true
+			unlimited: bool | *true
 		}
 	}
 
@@ -735,20 +733,20 @@ import (
 		check_restart: #stanza.check_restart | *null
 		port:          string
 		address_mode:  "alloc" | "driver" | *"auto" | "host"
-		tags:          [...string]
-		task:          string | *""
-		check:         [string]: #stanza.check
-		meta:          [string]:  string
+		tags: [...string]
+		task: string | *""
+		check: [string]: #stanza.check
+		meta: [string]:  string
 	}
 
 	check: {
-		address_mode:             "alloc" | "driver" | *"host"
-		type:                     "http" | "tcp" | "script" | "grpc"
-		port:                     string
-		interval:                 #duration
-		timeout:                  #duration
-		check_restart:            #stanza.check_restart | *null
-		header:                   [string]: [...string]
+		address_mode:  "alloc" | "driver" | *"host"
+		type:          "http" | "tcp" | "script" | "grpc"
+		port:          string
+		interval:      #duration
+		timeout:       #duration
+		check_restart: #stanza.check_restart | *null
+		header: [string]: [...string]
 		body:                     string | *null
 		initial_status:           "passing" | "warning" | "critical" | *""
 		success_before_passing:   uint | *0
@@ -756,15 +754,15 @@ import (
 		tls_skip_verify:          bool | *false
 
 		if type == "http" {
-			method:          *"GET" | "POST"
-			path:            string
-			protocol:        *"http" | "https"
+			method:   *"GET" | "POST"
+			path:     string
+			protocol: *"http" | "https"
 		}
 
 		if type != "http" {
-			method:          ""
-			path:            ""
-			protocol:        ""
+			method:   ""
+			path:     ""
+			protocol: ""
 		}
 	}
 
@@ -773,7 +771,7 @@ import (
 	execConfig: {
 		flake:   string
 		command: string
-		args:    [...string]
+		args: [...string]
 	}
 
 	#label: [string]: string
@@ -781,14 +779,14 @@ import (
 	dockerConfig: {
 		image:   string
 		command: *null | string
-		args:    [...string]
-		ports:   [...string]
-		labels:  [...#label]
+		args: [...string]
+		ports: [...string]
+		labels: [...#label]
 		logging: dockerConfigLogging
 	}
 
 	dockerConfigLogging: {
-		type:   "journald"
+		type: "journald"
 		config: [...dockerConfigLoggingConfig]
 	}
 
@@ -808,7 +806,7 @@ import (
 	}
 
 	task: {
-		affinities:  [...#stanza.affinity]
+		affinities: [...#stanza.affinity]
 		constraints: [...#stanza.constraint]
 
 		artifact: [Destination=_]: {
@@ -891,7 +889,7 @@ import (
 		change_signal: string | *""
 		env:           bool | *true
 		namespace:     string | *""
-		policies:      [...string]
+		policies: [...string]
 	}
 
 	volume: {
