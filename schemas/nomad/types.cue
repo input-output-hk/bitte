@@ -37,6 +37,8 @@ import (
 		VaultToken:  *null | string
 		Vault:       *null | #json.Vault
 		Update:      *null | #json.Update
+		Migrate:     *null | #json.Migrate
+		Periodic:    *null | #json.Periodic
 	}
 
 	Affinity: {
@@ -104,6 +106,14 @@ import (
 		MinHealthyTime:  uint | *10000000000
 	}
 
+	Periodic: {
+		Enabled:         bool | *false
+		TimeZone:        string | *"UTC"
+		SpecType:        "cron"
+		Spec:            string
+		ProhibitOverlap: bool | *false
+	}
+
 	Update: {
 		AutoPromote:      bool | *false
 		AutoRevert:       bool | *false
@@ -120,7 +130,7 @@ import (
 		Affinities: [...Affinity]
 		Constraints: [...Constraint]
 		Spreads: [...Spread]
-		Count: int & >0 | *1
+		Count: uint & >0
 		Meta: [string]: string
 		Name:          string
 		RestartPolicy: *null | #json.RestartPolicy
@@ -135,7 +145,7 @@ import (
 			SizeMB:  uint
 			Sticky:  bool
 		}
-		Migrate: #json.Migrate
+		Migrate: *null | #json.Migrate
 		Update:  *null | #json.Update
 		Networks: [...#json.Network]
 		StopAfterClientDisconnect: *null | uint
@@ -311,6 +321,26 @@ import (
 			MinHealthyTime:   time.ParseDuration(u.min_healthy_time)
 			ProgressDeadline: time.ParseDuration(u.progress_deadline)
 			Stagger:          time.ParseDuration(u.stagger)
+		}
+	}
+
+	if #job.migrate != null {
+		let m = #job.migrate
+		Migrate: {
+			HealthCheck:     m.health_check
+			HealthyDeadline: m.healthy_deadline
+			MaxParallel:     m.max_parallel
+			MinHealthyTime:  m.min_healthy_time
+		}
+	}
+
+	if #job.periodic != null {
+		let p = #job.periodic
+		Periodic: {
+			Enabled:         true
+			TimeZone:        p.time_zone
+			Spec:            p.cron
+			ProhibitOverlap: p.prohibit_overlap
 		}
 	}
 
@@ -530,6 +560,8 @@ import (
 				MemoryMB: t.resources.memory
 			}
 
+			Leader: t.leader
+
 			Templates: [ for tplName, tpl in t.template {
 				DestPath:     tplName
 				EmbeddedTmpl: tpl.data
@@ -608,6 +640,21 @@ import (
 		update:   #stanza.update | *null
 		vault:    #stanza.vault | *null
 		priority: uint | *50
+		periodic: #stanza.periodic | *null
+		migrate:  #stanza.migrate | *null
+	}
+
+	migrate: {
+		health_check:     *"checks" | "task_states"
+		healthy_deadline: uint | *500000000000
+		max_parallel:     uint | *1
+		min_healthy_time: uint | *10000000000
+	}
+
+	periodic: {
+		time_zone:        string | *"UTC"
+		prohibit_overlap: bool | *false
+		cron:             string
 	}
 
 	affinity: {
@@ -649,7 +696,7 @@ import (
 		network:        *null | #stanza.network
 		service: [string]: #stanza.service
 		task: [string]:    #stanza.task
-		count: uint | *1
+		count: uint
 		volume: [string]: #stanza.volume
 		restart:        #stanza.restart & {#type: #type}
 		vault:          *null | #stanza.vault
@@ -863,6 +910,7 @@ import (
 		vault: *null | #stanza.vault
 		volume_mount: [string]: #stanza.volume_mount
 		restart_policy: *null | #stanza.restart_policy
+		leader:         bool | *false
 	}
 
 	restart_policy: {
