@@ -4,8 +4,6 @@
     ./consul/client.nix
     ./nomad/client.nix
     ./telegraf.nix
-    ./vault/client.nix
-    ./secrets.nix
     ./reaper.nix
     ./builder.nix
     ./zfs-client-options.nix
@@ -16,6 +14,8 @@
     nomad.enable = true;
     telegraf.extraConfig.global_tags.role = "consul-client";
     zfs-client-options.enable = true;
+    telegraf.enable = false;
+    promtail.enable = false;
   };
 
   time.timeZone = "UTC";

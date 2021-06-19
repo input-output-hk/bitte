@@ -1106,6 +1106,7 @@ in {
         # certificates get rotated often, we got no way to update them while
         # the jobs are running...
         VAULT_SKIP_VERIFY = "true";
+        VAULT_ADDR = "https://vault.service.consul:8200";
         HOME = "/var/lib/nomad";
       };
 

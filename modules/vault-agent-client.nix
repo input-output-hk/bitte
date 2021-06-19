@@ -23,11 +23,17 @@ let
     else
       ''"${name}=${toString value}"'');
 
-  pkiSecret = ''"pki/issue/client" ${toString pkiArgs}'';
+  pkiSecret = toString ([ ''"pki/issue/client"'' ] ++ pkiArgs);
 
   vaultAgentConfig = pkgs.toPrettyJSON "vault-agent" {
-    pid_file = "./vault-agent.pid";
-    vault.address = "https://vault.${domain}:8200";
+    pid_file = "/run/vault-agent.pid";
+
+    vault = {
+      address = config.services.vault-agent-client.vaultAddress;
+      ca_cert = config.age.secrets.vault-ca.path;
+      client_cert = config.age.secrets.vault-client.path;
+      client_key = config.age.secrets.vault-client-key.path;
+    };
 
     # listener.unix = {
     #   address = "/run/vault/socket";
@@ -45,11 +51,12 @@ let
 
     auto_auth = {
       method = [{
-        type = "aws";
+        type = "cert";
         config = {
-          type = "iam";
-          role = "${config.cluster.name}-client";
-          header_value = domain;
+          name = "vault-agent-client";
+          ca_cert = config.age.secrets.vault-ca.path;
+          client_cert = config.age.secrets.vault-client.path;
+          client_key = config.age.secrets.vault-client-key.path;
         };
       }];
 
@@ -112,7 +119,6 @@ let
 
           contents = ''
             {
-              "encrypt": "{{ with secret "kv/bootstrap/clients/consul" }}{{ .Data.data.encrypt }}{{ end }}",
               "acl": {
                 "default_policy": "deny",
                 "down_policy": "extend-cache",
@@ -171,8 +177,14 @@ let
 
 in {
   options = {
-    services.vault-agent-client.enable =
-      mkEnableOption "Start vault-agent for clients";
+    services.vault-agent-client = {
+      enable = mkEnableOption "Start vault-agent for clients";
+
+      vaultAddress = lib.mkOption {
+        type = lib.types.str;
+        default = "https://vault.service.consul:8200";
+      };
+    };
   };
 
   config = mkIf config.services.vault-agent-client.enable {
@@ -231,7 +243,7 @@ in {
         Restart = "always";
         RestartSec = "30s";
         ExecStart =
-          "${pkgs.vault-bin}/bin/vault agent -config ${vaultAgentConfig}";
+          "@${pkgs.vault-bin}/bin/vault vault-agent agent -config ${vaultAgentConfig}";
       };
     };
   };
