@@ -11,11 +11,11 @@ let
 
   deage = path: "age -d -i ${./age-bootstrap} ${path}";
 
-  copyKeys = lib.forEach [ "core0" "core1" "core2" ] (machine: ''
+  copyKeys = lib.forEach [ "core0" "core1" "core2" "work0" ] (machine: ''
     key="$(${deage ../. + "/encrypted/ssh/${machine}.age"})"
 
     echo "$key" | ${ssh machine} tee /etc/ssh/ssh_host_ed25519_key
-    echo "$key" | ${ssh machine} chmod 0600 /etc/ssh/ssh_host_ed25519_key
+    ${ssh machine} chmod 0600 /etc/ssh/ssh_host_ed25519_key
     echo "$(< ${../. + "/encrypted/ssh/${machine}.pub"})" \
       | ${ssh machine} tee /etc/ssh/ssh_host_ed25519_key.pub
 
@@ -23,7 +23,7 @@ let
     ${ssh machine} /run/current-system/activate
   '');
 
-  adminScriptPreRestart = pkgs.writeBashChecked "admin.sh" ''
+  adminScriptPreRestart = pkgs.writeBashChecked "admin-pre.sh" ''
     set -exuo pipefail
 
     cp -r ${inputs.self} bitte
@@ -69,7 +69,7 @@ let
     }
   '';
 
-  adminScriptPostRestart = pkgs.writeBashChecked "admin.sh" ''
+  adminScriptPostRestart = pkgs.writeBashChecked "admin-post.sh" ''
     set -exuo pipefail
 
     pushd bitte
@@ -140,6 +140,12 @@ let
       certificate="$(${deage ../encrypted/ssl/client.age})" \
       ttl=3600
 
+    vault write auth/cert/certs/vault-agent-client \
+      display_name=vault-agent-client \
+      policies=vault-agent-client \
+      certificate="$(${deage ../encrypted/ssl/client.age})" \
+      ttl=3600
+
     ###
     ### Consul
     ###
@@ -177,9 +183,12 @@ let
 
     vault secrets enable nomad
 
-    until nc -z -v core0 4646; do sleep 1; done
-    until nc -z -v core1 4646; do sleep 1; done
-    until nc -z -v core2 4646; do sleep 1; done
+    for core in core{0,1,2}; do
+      echo waiting for "$core" ...
+      set +x
+      until nc -z -v "$core" 4646; do sleep 1; done
+      set -x
+    done
 
     curl https://core0:4646/v1/acl/bootstrap --cacert /tmp/full.pem -f -s -X POST > /tmp/nomad-bootstrap.json
     NOMAD_TOKEN="$(jq < /tmp/nomad-bootstrap.json -r -e .SecretID)"
@@ -218,6 +227,22 @@ let
     consul members
   '';
 
+  nomadJob = builtins.toFile "hello.hcl" ''
+    job "test" {
+      datacenters = ["dc0"]
+      group "test" {
+        task "hello" {
+          driver = "exec"
+
+          config {
+            command = "hello"
+            args = ["Hello World!"]
+          }
+        }
+      }
+    }
+  '';
+
   developerScript = pkgs.writeBashChecked "dev.sh" ''
     set -exuo pipefail
 
@@ -234,6 +259,10 @@ let
 
     consul members
     nomad agent-info
+
+    nomad job run ${nomadJob}
+
+    sleep 60
   '';
 
   # cluster = import ../lib/clusters.nix {
@@ -313,7 +342,6 @@ in {
           openssh
           vault-bin
         ];
-
         environment.sessionVariables = sessionVariables;
       };
 
@@ -347,6 +375,7 @@ in {
       start_all()
 
       [core.wait_for_unit("sshd") for core in cores]
+      work0.wait_for_unit("sshd")
 
       admin.systemctl("is-system-running --wait")
       admin.log(admin.succeed("${adminScriptPreRestart}"))
@@ -372,6 +401,14 @@ in {
       [core.wait_for_unit("nomad") for core in cores]
       core0.wait_for_unit("nomad-acl")
       core0.wait_for_unit("vault-acl")
+
+      work0.wait_for_unit("vault-agent")
+      work0.sleep(30)
+      work0.log(work0.succeed("journalctl -o cat -e -u vault-agent.service"))
+      work0.log(work0.succeed("bat /etc/consul.d/*"))
+      work0.log(work0.succeed("bat /etc/nomad.d/*"))
+      work0.wait_for_unit("consul")
+      work0.wait_for_unit("nomad")
 
       developer.log(developer.succeed("${developerScript}"))
     '';
