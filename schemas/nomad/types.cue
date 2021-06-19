@@ -92,13 +92,6 @@ import (
 		Unlimited:     *null | bool
 	}
 
-	Restart: {
-		Attempts: uint
-		Delay:    uint
-		Interval: uint
-		Mode:     "fail" | "delay"
-	}
-
 	Migrate: {
 		HealthCheck:     *"checks" | "task_states"
 		HealthyDeadline: uint | *500000000000
@@ -134,7 +127,6 @@ import (
 		Meta: [string]: string
 		Name:          string
 		RestartPolicy: *null | #json.RestartPolicy
-		Restart:       #json.Restart
 		Services: [...Service]
 		ShutdownDelay: uint | *0
 		Tasks: [...Task]
@@ -428,12 +420,12 @@ import (
 			}
 		}
 
-		if tg.restart_policy != null {
+		if tg.restart != null {
 			RestartPolicy: {
-				Interval: time.ParseDuration(tg.restart_policy.interval)
-				Attempts: tg.restart_policy.attempts
-				Delay:    time.ParseDuration(tg.restart_policy.delay)
-				Mode:     tg.restart_policy.mode
+				Interval: time.ParseDuration(tg.restart.interval)
+				Attempts: tg.restart.attempts
+				Delay:    time.ParseDuration(tg.restart.delay)
+				Mode:     tg.restart.mode
 			}
 		}
 
@@ -457,13 +449,6 @@ import (
 						HostNetwork: nValue.host_network
 					}]
 			}]
-		}
-
-		Restart: {
-			Attempts: tg.restart.attempts
-			Delay:    time.ParseDuration(tg.restart.delay)
-			Interval: time.ParseDuration(tg.restart.interval)
-			Mode:     tg.restart.mode
 		}
 
 		Services: [ for sName, s in tg.service {
@@ -539,12 +524,12 @@ import (
 				}
 			}
 
-			if t.restart_policy != null {
+			if t.restart != null {
 				RestartPolicy: {
-					Interval: time.ParseDuration(t.restart_policy.interval)
-					Attempts: t.restart_policy.attempts
-					Delay:    time.ParseDuration(t.restart_policy.delay)
-					Mode:     t.restart_policy.mode
+					Interval: time.ParseDuration(t.restart.interval)
+					Attempts: t.restart.attempts
+					Delay:    time.ParseDuration(t.restart.delay)
+					Mode:     t.restart.mode
 				}
 			}
 
@@ -698,9 +683,9 @@ import (
 		task: [string]:    #stanza.task
 		count: uint
 		volume: [string]: #stanza.volume
-		restart:        #stanza.restart & {#type: #type}
 		vault:          *null | #stanza.vault
-		restart_policy: *null | #stanza.restart_policy
+		restart:        *null | #stanza.restart
+		restart_policy: *null | #stanza.restart
 		reschedule:     #stanza.reschedule & {#type: #type}
 	}
 
@@ -735,38 +720,6 @@ import (
 			static:       *null | uint
 			to:           *null | uint
 			host_network: *"" | string
-		}
-	}
-
-	restart: {
-		#type: "batch" | *"service" | "system"
-
-		// Specifies the number of restarts allowed in the configured interval.
-		attempts: uint
-
-		// Specifies the duration to wait before restarting a task. This is
-		// specified using a label suffix like "30s" or "1h". A random jitter of up
-		// to 25% is added to the delay.
-		delay: #duration | *"15s"
-
-		// Specifies the duration which begins when the first task starts and
-		// ensures that only attempts number of restarts happens within it. If more
-		// than attempts number of failures happen, behavior is controlled by mode.
-		// This is specified using a label suffix like "30s" or "1h".
-		interval: #duration
-
-		// Controls the behavior when the task fails more than attempts times in an
-		// interval.
-		mode: *"fail" | "delay"
-
-		if #type == "batch" {
-			attempts: uint | *3
-			interval: #duration | *"24h"
-		}
-
-		if #type == "service" || #type == "system" {
-			attempts: uint | *2
-			interval: #duration | *"30m"
 		}
 	}
 
@@ -892,8 +845,6 @@ import (
 			memory: uint & >=32
 		}
 
-		restart: #stanza.restart & {#type: #type}
-
 		template: [Destination=_]: {
 			destination:     Destination
 			data:            *"" | string
@@ -909,11 +860,12 @@ import (
 
 		vault: *null | #stanza.vault
 		volume_mount: [string]: #stanza.volume_mount
-		restart_policy: *null | #stanza.restart_policy
+		restart:        *null | #stanza.restart
+		restart_policy: *null | #stanza.restart
 		leader:         bool | *false
 	}
 
-	restart_policy: {
+	restart: {
 		interval: #duration
 		attempts: uint
 		delay:    #duration
