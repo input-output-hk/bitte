@@ -32,7 +32,7 @@ let
       else
         s ++ [{
           name = substring 0 ((stringLength cat) - 4) cat;
-          value = import car;
+          value = car;
         }]) sum input;
 
   folded = result [ ] tree;
