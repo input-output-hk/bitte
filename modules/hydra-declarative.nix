@@ -36,7 +36,7 @@ let
       };
 
       owner = mkOption {
-        type = enum (lib.attrNames config.services.hydra.users);
+        type = enum (attrNames config.services.hydra.users);
       };
 
       declfile = mkOption {
@@ -112,6 +112,53 @@ in {
     projects = mkOption {
       type = attrsOf projectType;
       default = {};
+    };
+  };
+
+  config = mkIf cfg.enable {
+    systemd.services.hydra-declarative = {
+      description = "Hydra declarative projects and users";
+      wantedBy    = [ "multi-user.target" ];
+      requires    = [ "hydra-init.service" "postgresql.service" ];
+      after       = [ "hydra-init.service" "postgresql.service" ];
+
+      path = [ config.services.postgresql.package ];
+
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        User = "hydra";
+      };
+
+      script = ''
+        cat <<EOF | psql
+        BEGIN;
+
+        DELETE FROM users WHERE username not in (${concatMapStringsSep "," (username: "'${username}'") (attrNames cfg.users)});
+        DELETE FROM userroles;
+        UPDATE projects SET enabled = 0;
+
+        ${concatMapStringsSep "\n" (username: with cfg.users.${username}; let
+          cols = "(username,fullname,emailaddress,password,emailonerror,type,publicdashboard)";
+          vals = "('${email}','${fullName}','${email}','!',${emailOnError},'google','${publicDashboard}')";
+        in  ''
+          INSERT INTO users ${cols} VALUES ${vals} ON CONFLICT (username) DO UPDATE SET ${cols} = ${vals};
+
+          ${concatMapStringsSep "\n" (role: ''
+            INSERT INTO userroles (username,role) VALUES ('${username}','${role}');
+          '') roles}
+        '') (attrNames cfg.users)}
+
+        ${concatMapStringsSep "\n" (projectName: with cfg.projects.${projectName}; let
+          cols = "(name,declfile,decltype,declvalue,displayname,description,homepage,owner,enabled,hidden)";
+          vals = "('${projectName}','${declfile}','${decltype}','${declvalue}','${displayName}','${description}','${homepage}','${owner}',${enable},${hidden})";
+        in  ''
+          INSERT INTO projects ${cols} VALUES ${vals} ON CONFLICT (name) DO UPDATE SET ${cols} = ${vals};
+        '') (attrNames cfg.projects)}
+
+        COMMIT;
+        EOF
+      '';
     };
   };
 }

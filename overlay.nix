@@ -35,6 +35,7 @@ in final: prev: {
 
   nixpkgs-terraform-pkgs = nixpkgs-terraform.legacyPackages.${final.system};
 
+  inherit (inputs.hydra-provisioner.packages.${final.system}) hydra-provisioner;
   inherit (final.nixpkgs-terraform-pkgs)
     terraform_0_13 terraform_0_14 terraform-providers;
 
@@ -61,8 +62,6 @@ in final: prev: {
   haproxy-cors = prev.callPackage ./pkgs/haproxy-cors.nix { };
 
   devShell = final.callPackage ./pkgs/dev-shell.nix { };
-
-  nixosModules = import ./pkgs/nixos-modules.nix { inherit nixpkgs lib; };
 
   consulRegister = prev.callPackage ./pkgs/consul-register.nix { };
 

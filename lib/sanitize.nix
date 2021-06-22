@@ -1,7 +1,6 @@
-{ pkgs }:
+{ lib, snakeCase }:
 let
   inherit (builtins) typeOf;
-  inherit (pkgs) lib snakeCase;
   inherit (lib) length attrNames pipe filterAttrs nameValuePair mapAttrs';
 
   sanitize = obj:
