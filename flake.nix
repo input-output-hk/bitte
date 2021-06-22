@@ -48,6 +48,7 @@
     , consul
     , cue
     , glusterfs
+    , grafana-loki
     , haproxy
     , haproxy-auth-request
     , haproxy-cors
