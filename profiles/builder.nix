@@ -76,7 +76,7 @@ in {
     trustedUsers = lib.mkIf isMonitoring [ "root" "builder" ];
     buildMachines = lib.optionals isAsg [{
       hostName = config.cluster.instances.monitoring.privateIP;
-      maxJobs = 1;
+      maxJobs = 5;
       speedFactor = 1;
       sshKey = "/etc/nix/builder-key";
       sshUser = "builder";
