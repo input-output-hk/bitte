@@ -8,6 +8,7 @@ let
   convert = prefix: d:
     let
       entries = readDir d;
+      filterNix = lib.filterAttrs (n: v: lib.strings.hasSuffix ".nix" n);
       expanded = mapAttrs (name: type:
         if type == "regular" then [
           (join prefix name)
@@ -16,7 +17,7 @@ let
           (join prefix name)
           (convert (join prefix name) (d + "/${name}"))
         ] else
-          null) entries;
+          null) (filterNix entries);
     in attrValues expanded;
 
   tree = convert "" dir;
