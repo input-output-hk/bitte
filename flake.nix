@@ -30,15 +30,16 @@
   };
 
   outputs = { self, hydra-provisioner, nixpkgs, utils, bitte-cli, ... }@inputs:
-  utils.lib.simpleFlake rec {
-    inherit nixpkgs;
+  let
+    lib = import ./lib { inherit (nixpkgs) lib; };
+  in utils.lib.simpleFlake rec {
+    inherit lib nixpkgs;
 
     systems = [ "x86_64-linux" ];
 
     overlay = import ./overlay.nix inputs;
     config.allowUnfree = true; # for ssm-session-manager-plugin
 
-    lib = import ./lib { inherit (nixpkgs) lib; };
 
     shell = { devShell }: devShell;
 
@@ -75,5 +76,8 @@
       modules = lib.mkModules ./modules;
       default.imports = builtins.attrValues modules;
     in modules // { inherit default; };
+
+  } // {
+    profiles = lib.mkModules ./profiles;
   };
 }
