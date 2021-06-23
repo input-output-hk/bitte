@@ -61,6 +61,7 @@ in final: prev: {
   haproxy-cors = prev.callPackage ./pkgs/haproxy-cors.nix { };
 
   devShell = final.callPackage ./pkgs/dev-shell.nix { };
+  genericShell = final.callPackage ./pkgs/generic-shell.nix { };
 
   consulRegister = prev.callPackage ./pkgs/consul-register.nix { };
 

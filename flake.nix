@@ -10,6 +10,7 @@
     utils.url = "github:kreisys/flake-utils";
     bitte-cli.url = "github:input-output-hk/bitte-cli";
     hydra-provisioner.url = "github:input-output-hk/hydra-provisioner";
+    devshell.url = "github:numtide/devshell";
     nix.url = "github:NixOS/nix?rev=b19aec7eeb8353be6c59b2967a511a5072612d99";
     ops-lib = {
       url = "github:input-output-hk/ops-lib";
@@ -30,7 +31,7 @@
     };
   };
 
-  outputs = { self, hydra-provisioner, nixpkgs, utils, bitte-cli, nixpkgs-2105, ... }@inputs:
+  outputs = { self, hydra-provisioner, devshell, nixpkgs, utils, bitte-cli, nixpkgs-2105, ... }@inputs:
   let
     lib = import ./lib { inherit (nixpkgs) lib; };
   in utils.lib.simpleFlake rec {
@@ -38,6 +39,7 @@
 
     systems = [ "x86_64-linux" ];
 
+    preOverlays = [ devshell ];
     overlay = import ./overlay.nix inputs;
     config.allowUnfree = true; # for ssm-session-manager-plugin
 
