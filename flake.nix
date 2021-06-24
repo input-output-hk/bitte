@@ -2,13 +2,12 @@
   description = "Flake containing Bitte clusters";
 
   inputs = {
-    nixpkgs.url =
-      "github:NixOS/nixpkgs?rev=b8c367a7bd05e3a514c2b057c09223c74804a21b";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     nixpkgs-terraform.url = "github:input-output-hk/nixpkgs/iohk-terraform-2021-06";
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     nixpkgs-2105.url = "github:nixos/nixpkgs/nixos-21.05";
     utils.url = "github:kreisys/flake-utils";
-    bitte-cli.url = "github:input-output-hk/bitte-cli";
+    bitte-cli.url = "github:input-output-hk/bitte-cli/refresh";
     hydra-provisioner.url = "github:input-output-hk/hydra-provisioner";
     ops-lib = {
       url = "github:input-output-hk/ops-lib";

@@ -8,9 +8,6 @@ in final: prev: {
   # this is temporary until we switch over
   inherit (nixpkgs-2105.legacyPackages.${final.system}) consul-template cue vault-bin haproxy;
 
-  # nix = prev.nixFlakes;
-  nixFlakes = final.nixUnstable;
-
   ssm-agent = prev.callPackage ./pkgs/ssm-agent { };
 
   consul = prev.callPackage ./pkgs/consul { };
@@ -71,12 +68,18 @@ in final: prev: {
 
   grpcdump = prev.callPackage ./pkgs/grpcdump.nix { };
 
+<<<<<<< HEAD
   inherit (inputs.nixpkgs-unstable.legacyPackages.${final.system})
     grafana-loki grafana traefik hydra-unstable nixUnstable;
 
   glusterfs =
     (inputs.nixpkgs-unstable.legacyPackages.${final.system}).callPackage
     ./pkgs/glusterfs.nix { };
+=======
+  haproxy = prev.callPackage ./pkgs/haproxy.nix { };
+
+  glusterfs = final.callPackage ./pkgs/glusterfs.nix { };
+>>>>>>> 6068576 (Unpin nixpkgs, follow nixpkgs-unstable)
 
   victoriametrics = prev.callPackage ./pkgs/victoriametrics.nix { };
 
@@ -90,10 +93,7 @@ in final: prev: {
 
   oauth2_proxy = final.callPackage ./pkgs/oauth2_proxy.nix { };
 
-  filebeat = final.callPackage ./pkgs/filebeat.nix {
-    inherit (inputs.nixpkgs-unstable.legacyPackages.${final.system})
-      buildGoModule;
-  };
+  filebeat = final.callPackage ./pkgs/filebeat.nix { };
 
   # Little convenience function helping us to containing the bash
   # madness: forcing our bash scripts to be shellChecked.
