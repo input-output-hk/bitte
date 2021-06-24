@@ -1,4 +1,4 @@
-{ stdenv, buildGoModule, fetchFromGitHub }:
+{ lib, buildGoModule, fetchFromGitHub }:
 
 buildGoModule rec {
   pname = "boundary";
@@ -29,7 +29,7 @@ buildGoModule rec {
 
   preBuild = let
     tags = [ "ui" ];
-    tagsString = stdenv.lib.concatStringsSep " " tags;
+    tagsString = lib.concatStringsSep " " tags;
   in ''
     export buildFlagsArray=(
       -tags="${tagsString}"
