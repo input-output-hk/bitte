@@ -37,6 +37,7 @@
 
     systems = [ "x86_64-linux" ];
 
+    preOverlays = [ bitte-cli ];
     overlay = import ./overlay.nix inputs;
     config.allowUnfree = true; # for ssm-session-manager-plugin
 

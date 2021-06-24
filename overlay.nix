@@ -1,11 +1,9 @@
 inputs:
 let
-  inherit (inputs) nixpkgs nixpkgs-2105 nix ops-lib nixpkgs-terraform bitte-cli;
+  inherit (inputs) nixpkgs nixpkgs-2105 nix ops-lib nixpkgs-terraform;
   inherit (builtins) fromJSON toJSON trace mapAttrs genList foldl';
   inherit (nixpkgs) lib;
 in final: prev: {
-  nixos-rebuild = bitte-cli.packages.${final.system}.nixos-rebuild;
-  bitte = bitte-cli.defaultPackage.${final.system};
 
   # this is temporary until we switch over
   inherit (nixpkgs-2105.legacyPackages.${final.system}) consul-template cue vault-bin haproxy;
