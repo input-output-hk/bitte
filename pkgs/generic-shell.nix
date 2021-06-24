@@ -29,7 +29,7 @@
 , nixConf ? null
 }: let
 
-in mkShell {
+in mkShell ({
   # for bitte-cli
   LOG_LEVEL = "debug";
 
@@ -39,8 +39,8 @@ in mkShell {
         substituters = https://cache.nixos.org
         trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
     '';
-      in with lib; concatStringsSep ":"
-      ((toList default) ++ (optional (nixConf != null) nixConf));
+  in with lib; concatStringsSep ":"
+  ((toList default) ++ (optional (nixConf != null) nixConf));
 
   BITTE_CLUSTER = cluster;
   AWS_PROFILE = profile;
@@ -68,7 +68,7 @@ in mkShell {
     nixFlakes
     jq
   ] ++ extraPackages;
-} // lib.optionalAttrs (caCert != null) {
+} // (lib.optionalAttrs (caCert != null) {
   CONSUL_CACERT = caCert;
   VAULT_CACERT  = caCert;
-} // extraEnv
+}) // extraEnv)
