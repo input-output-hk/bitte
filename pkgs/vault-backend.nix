@@ -4,7 +4,6 @@ buildGoModule rec {
   pname = "vault-backend";
   version = "0.3.0";
 
-  goPackagePath = "github.com/gherynos/vault-backend";
   subPackages = [ "." ];
 
   src = fetchFromGitHub {
