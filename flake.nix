@@ -5,7 +5,7 @@
     nixpkgs.url =
       "github:NixOS/nixpkgs?rev=b8c367a7bd05e3a514c2b057c09223c74804a21b";
     nixpkgs-terraform.url = "github:input-output-hk/nixpkgs/iohk-terraform-2021-06";
-    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/master";
     utils.url = "github:kreisys/flake-utils";
     bitte-cli.url = "github:input-output-hk/bitte-cli";
     hydra-provisioner.url = "github:input-output-hk/hydra-provisioner";
@@ -53,6 +53,7 @@
     , haproxy
     , haproxy-auth-request
     , haproxy-cors
+    , hydra-unstable
     , nixFlakes
     , nixos-rebuild
     , nomad
