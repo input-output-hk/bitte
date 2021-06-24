@@ -186,6 +186,9 @@ in {
         TimeoutStopSec = "30s";
         RestartSec = "10s";
         Restart = "on-failure";
+      };
+
+      unitConfig = {
         StartLimitInterval = "20s";
         StartLimitBurst = 10;
       };

@@ -600,6 +600,11 @@ in {
       restartIfChanged = false;
       reloadIfChanged = true;
 
+      unitConfig = {
+        StartLimitInterval = "20s";
+        StartLimitBurst = 10;
+      };
+
       serviceConfig = {
         StateDirectory = "nomad-autoscaler";
         RuntimeDirectory = "nomad-autoscaler";
@@ -627,8 +632,6 @@ in {
         # support reloading: HUP tells autoscaler to reload config files
         ExecReload = [ "${pkgs.coreutils}/bin/kill -HUP $MAINPID" ];
         Restart = "on-failure";
-        StartLimitInterval = "20s";
-        StartLimitBurst = 10;
         TimeoutStopSec = "30s";
         RestartSec = "5s";
         # upstream hardening options

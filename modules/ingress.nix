@@ -10,6 +10,12 @@
       description = "HAProxy (ingress)";
       after = [ "network.target" ];
       wantedBy = [ "multi-user.target" ];
+
+      unitConfig = {
+        StartLimitInterval = "20s";
+        StartLimitBurst = 10;
+      };
+
       serviceConfig = let
         preScript = pkgs.writeShellScript "ingress-start-pre" ''
           export PATH="${lib.makeBinPath [ pkgs.coreutils ]}"
@@ -50,8 +56,6 @@
         KillMode = "mixed";
         SuccessExitStatus = "143";
         Restart = "always";
-        StartLimitInterval = "20s";
-        StartLimitBurst = 10;
         TimeoutStopSec = "30s";
         RestartSec = "5s";
         # upstream hardening options

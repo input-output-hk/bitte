@@ -335,7 +335,11 @@ in {
         (filterAttrs (n: _: hasPrefix "${cfg.configDir}" n)
           config.environment.etc);
 
-      unitConfig.RequiresMountsFor = [ cfg.storagePath ];
+      unitConfig = {
+        RequiresMountsFor = [ cfg.storagePath ];
+        StartLimitInterval = "60s";
+        StartLimitBurst = 3;
+      };
 
       serviceConfig = let
         preScript = pkgs.writeShellScriptBin "vault-start-pre" ''
@@ -369,8 +373,6 @@ in {
         TimeoutStopSec = "30s";
         RestartSec = "10s";
         Restart = "on-failure";
-        StartLimitInterval = "60s";
-        StartLimitBurst = 3;
       };
     };
 
