@@ -40,7 +40,7 @@ in mkShell {
         trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
     '';
       in with lib; concatStringsSep ":"
-      ((optional (nixConf != null) nixConf) ++ (toList default));
+      ((toList default) ++ (optional (nixConf != null) nixConf));
 
   BITTE_CLUSTER = cluster;
   AWS_PROFILE = profile;
