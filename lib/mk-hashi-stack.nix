@@ -1,9 +1,12 @@
-{ rootDir, pkgs, flake, domain # E.g. "mantis.ws"
+{ flake, domain # E.g. "mantis.ws"
 , dockerRegistry ? "docker." + domain, dockerRole ? "developer"
 , vaultDockerPasswordKey ? "kv/nomad-cluster/docker-developer-password" }:
 
 let
-  lib = pkgs.lib;
+  inherit (flake.inputs) nixpkgs;
+  inherit (nixpkgs) lib;
+
+  pkgs = nixpkgs.legacyPackages.x86_64-linux.extend flake.overlay;
 
   # extend package set with deployment specifc items
   prod-pkgs = pkgs.extend (final: prev: {
@@ -118,13 +121,11 @@ let
 
 in lib.makeScope pkgs.newScope (self:
   with self; {
-    inherit rootDir;
-
-    nomadJobs = recursiveCallPackage (rootDir + "/jobs") prod-pkgs.callPackage;
+    nomadJobs = recursiveCallPackage (flake + "/jobs") prod-pkgs.callPackage;
 
     dockerImages = let
       images =
-        recursiveCallPackage (rootDir + "/docker") prod-pkgs.callPackages;
+        recursiveCallPackage (flake + "/docker") prod-pkgs.callPackages;
     in lib.mapAttrs imageAttrToCommands images;
 
     push-docker-images = callPackage push-docker-images { };
@@ -134,7 +135,7 @@ in lib.makeScope pkgs.newScope (self:
     consulTemplates = callPackage buildConsulTemplates { };
 
     clusters = pkgs.mkClusters {
-      root = (rootDir + "/clusters");
+      root = flake + "/clusters";
       self = flake;
       inherit (pkgs.hostPlatform) system;
     };
