@@ -11,7 +11,7 @@ in final: prev: {
   inherit (nixpkgs-2105.legacyPackages.${final.system}) consul-template cue vault-bin haproxy;
 
   # nix = prev.nixFlakes;
-  nixFlakes = inputs.nix.packages.${final.system}.nix;
+  nixFlakes = final.nixUnstable;
 
   ssm-agent = prev.callPackage ./pkgs/ssm-agent { };
 
@@ -74,7 +74,7 @@ in final: prev: {
   grpcdump = prev.callPackage ./pkgs/grpcdump.nix { };
 
   inherit (inputs.nixpkgs-unstable.legacyPackages.${final.system})
-    grafana-loki grafana traefik;
+    grafana-loki grafana traefik hydra-unstable nixUnstable;
 
   glusterfs =
     (inputs.nixpkgs-unstable.legacyPackages.${final.system}).callPackage
