@@ -35,7 +35,7 @@
 
     systems = [ "x86_64-linux" ];
 
-    preOverlays = [ bitte-cli ];
+    preOverlays = [ bitte-cli hydra-provisioner ];
     overlay = import ./overlay.nix inputs;
     config.allowUnfree = true; # for ssm-session-manager-plugin
 
@@ -72,19 +72,16 @@
 
     nixosModules = (lib.mkModules ./modules) // {
       inherit (hydra.nixosModules) hydra;
-
-      hydra-provisioner = { lib, ... }: {
-        imports = [ hydra-provisioner.nixosModule ];
-        services.hydra.provisioner.useFlakeOverlay = lib.mkDefault false;
-      };
+      hydra-provisioner = hydra-provisioner.nixosModule;
     };
+
+    # Nix supports both singular `nixosModule` and plural `nixosModules`
+    # so I use the singular as a `defaultNixosModule` that won't spew a warning.
+    nixosModule.imports = builtins.attrValues self.nixosModules;
 
     # Outputs that aren't directly supported by simpleFlake can go here
     # instead of having to doubleslash.
     extraOutputs = {
-      # Nix supports both singular `nixosModule` and plural `nixosModules`
-      # so I use the singular as a `defaultNixosModule` that won't spew a warning.
-      nixosModule.imports = builtins.attrValues self.nixosModules;
       profiles = lib.mkModules ./profiles;
     };
   };
