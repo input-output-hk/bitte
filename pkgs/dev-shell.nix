@@ -8,7 +8,6 @@ mkShellNoCC {
   buildInputs = [
     awscli
     bitte
-    cachix
     cfssl
     consul
     consul-template
