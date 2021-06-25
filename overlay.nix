@@ -68,18 +68,7 @@ in final: prev: {
 
   grpcdump = prev.callPackage ./pkgs/grpcdump.nix { };
 
-<<<<<<< HEAD
-  inherit (inputs.nixpkgs-unstable.legacyPackages.${final.system})
-    grafana-loki grafana traefik hydra-unstable nixUnstable;
-
-  glusterfs =
-    (inputs.nixpkgs-unstable.legacyPackages.${final.system}).callPackage
-    ./pkgs/glusterfs.nix { };
-=======
-  haproxy = prev.callPackage ./pkgs/haproxy.nix { };
-
   glusterfs = final.callPackage ./pkgs/glusterfs.nix { };
->>>>>>> 6068576 (Unpin nixpkgs, follow nixpkgs-unstable)
 
   victoriametrics = prev.callPackage ./pkgs/victoriametrics.nix { };
 

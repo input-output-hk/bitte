@@ -28,7 +28,7 @@
     };
   };
 
-  outputs = { self, hydra-provisioner, devshell, nixpkgs, utils, bitte-cli, nixpkgs-2105, ... }@inputs:
+  outputs = { self, hydra-provisioner, nixpkgs, utils, bitte-cli, nixpkgs-2105, ... }@inputs:
   let
     lib = import ./lib { inherit (nixpkgs) lib; };
   in utils.lib.simpleFlake rec {
