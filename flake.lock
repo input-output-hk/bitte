@@ -50,11 +50,11 @@
         "utils": "utils_2"
       },
       "locked": {
-        "lastModified": 1624638852,
-        "narHash": "sha256-HyxBaQCUL9DBSxzQKuqbPLRWVHsduQPU6BK+7o6o5uc=",
+        "lastModified": 1624639428,
+        "narHash": "sha256-GJWuxbKMy5OKOEgGfvH5akaobDVBmn5+3UiwzPdkvvk=",
         "owner": "input-output-hk",
         "repo": "hydra-provisioner",
-        "rev": "ed3ea28c85b8fa1bd0a49b54d50fdda24bd6d73c",
+        "rev": "24506e1c4742e63b754e6b0fb2b28b71b8b23231",
         "type": "github"
       },
       "original": {
