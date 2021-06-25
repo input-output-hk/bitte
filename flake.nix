@@ -5,7 +5,7 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixos-21.05";
     nixpkgs-terraform.url = "github:input-output-hk/nixpkgs/iohk-terraform-2021-06";
     utils.url = "github:kreisys/flake-utils";
-    bitte-cli.url = "github:input-output-hk/bitte-cli/refresh";
+    bitte-cli.url = "github:input-output-hk/bitte-cli";
     hydra.url = "github:NixOS/hydra";
     hydra-provisioner.url = "github:input-output-hk/hydra-provisioner";
     ops-lib = {
