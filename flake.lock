@@ -7,16 +7,15 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1624557343,
-        "narHash": "sha256-CdQv4ACY2DI7WI0HBzIe/7bZt7KK4Art3P/ToE5ikYc=",
+        "lastModified": 1624639938,
+        "narHash": "sha256-nyCfJna1RVM2Cs92EasF9R2pKphhNz+SaH/JKKalaVU=",
         "owner": "input-output-hk",
         "repo": "bitte-cli",
-        "rev": "e369d41f86d89c9a10ea87d66112d2b777a7df44",
+        "rev": "3cb9947a67807bfe8df38eb8e7bf9f8b07d6893b",
         "type": "github"
       },
       "original": {
         "owner": "input-output-hk",
-        "ref": "refresh",
         "repo": "bitte-cli",
         "type": "github"
       }
@@ -50,11 +49,11 @@
         "utils": "utils_2"
       },
       "locked": {
-        "lastModified": 1624639428,
-        "narHash": "sha256-GJWuxbKMy5OKOEgGfvH5akaobDVBmn5+3UiwzPdkvvk=",
+        "lastModified": 1624639894,
+        "narHash": "sha256-c02yr/p12X4mHyW4syovFHUmbMot86DoCO9dlKH61w8=",
         "owner": "input-output-hk",
         "repo": "hydra-provisioner",
-        "rev": "24506e1c4742e63b754e6b0fb2b28b71b8b23231",
+        "rev": "a367f946981a1f1f3a30a98137d111367f1f13ed",
         "type": "github"
       },
       "original": {
