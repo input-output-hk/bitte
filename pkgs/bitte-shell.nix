@@ -33,7 +33,7 @@ in mkShell ({
   # for bitte-cli
   LOG_LEVEL = "debug";
 
-  NIX_CONFIG = writeText "nix.conf" ''
+  NIX_CONFIG = ''
         extra-experimental-features = nix-command flakes ca-references recursive-nix
         extra-substituters = https://hydra.iohk.io
         extra-trusted-public-keys = hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=
