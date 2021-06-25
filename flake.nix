@@ -6,6 +6,7 @@
     nixpkgs-terraform.url = "github:input-output-hk/nixpkgs/iohk-terraform-2021-06";
     utils.url = "github:kreisys/flake-utils";
     bitte-cli.url = "github:input-output-hk/bitte-cli/refresh";
+    hydra.url = "github:NixOS/hydra";
     hydra-provisioner.url = "github:input-output-hk/hydra-provisioner";
     ops-lib = {
       url = "github:input-output-hk/ops-lib";
@@ -26,7 +27,7 @@
     };
   };
 
-  outputs = { self, hydra-provisioner, nixpkgs, utils, bitte-cli, ... }@inputs:
+  outputs = { self, hydra, hydra-provisioner, nixpkgs, utils, bitte-cli, ... }@inputs:
   let
     lib = import ./lib { inherit (nixpkgs) lib; };
   in utils.lib.simpleFlake rec {
@@ -69,12 +70,15 @@
       defaultApp = utils.lib.mkApp { drv = bitte; };
     };
 
-    nixosModules = let
-      modules = lib.mkModules ./modules;
-      default.imports = builtins.attrValues modules;
-    in modules // { inherit default; };
+    nixosModules = (lib.mkModules ./modules) // {
+      inherit (hydra.nixosModules) hydra;
+    };
 
-  } // {
-    profiles = lib.mkModules ./profiles;
+    # Outputs that aren't directly supported by simpleFlake can go here
+    # instead of having to doubleslash.
+    extraOutputs = {
+      nixosModule.imports = builtins.attrValues self.nixosModules;
+      profiles = lib.mkModules ./profiles;
+    };
   };
 }
