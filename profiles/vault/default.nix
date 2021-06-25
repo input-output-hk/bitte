@@ -5,41 +5,8 @@ let
   cfg = config.services.vault;
 in {
   config = lib.mkIf cfg.enable {
-    age.secrets = {
-      vault-full = {
-        file = config.age.encryptedRoot + "/ssl/server-full.age";
-        path = "/var/lib/vault/full.pem";
-      };
-
-      vault-ca = {
-        file = config.age.encryptedRoot + "/ssl/ca.age";
-        path = "/var/lib/vault/ca.pem";
-      };
-
-      vault-server = {
-        file = config.age.encryptedRoot + "/ssl/server.age";
-        path = "/var/lib/vault/server.pem";
-      };
-
-      vault-server-key = {
-        file = config.age.encryptedRoot + "/ssl/server-key.age";
-        path = "/var/lib/vault/server-key.pem";
-      };
-
-      vault-client = {
-        file = config.age.encryptedRoot + "/ssl/client.age";
-        path = "/var/lib/vault/client.pem";
-      };
-
-      vault-client-key = {
-        file = config.age.encryptedRoot + "/ssl/client-key.age";
-        path = "/var/lib/vault/client-key.pem";
-      };
-    };
-
     environment.variables = {
       VAULT_FORMAT = "json";
-      VAULT_ADDR = "https://127.0.0.1:8200";
       VAULT_CACERT = config.age.secrets.vault-full.path;
     };
 

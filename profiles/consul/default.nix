@@ -38,17 +38,17 @@ in {
 
       consul-ca = {
         file = config.age.encryptedRoot + "/ssl/ca.age";
-        path = "/var/lib/consul/ca.pem";
+        path = "/var/lib/private/consul/ca.pem";
       };
 
       consul-server = {
         file = config.age.encryptedRoot + "/ssl/server.age";
-        path = "/var/lib/consul/server.pem";
+        path = "/var/lib/private/consul/server.pem";
       };
 
       consul-server-key = {
         file = config.age.encryptedRoot + "/ssl/server-key.age";
-        path = "/var/lib/consul/server-key.pem";
+        path = "/var/lib/private/consul/server-key.pem";
       };
     };
 
@@ -63,9 +63,10 @@ in {
       verifyOutgoing = true;
       verifyServerHostname = true;
 
-      caFile = "/var/lib/consul/ca.pem";
-      certFile = "/var/lib/consul/server.pem";
-      keyFile = "/var/lib/consul/server-key.pem";
+      caFile = config.age.secrets.consul-ca.path;
+      certFile = config.age.secrets.consul-server.path;
+      keyFile = config.age.secrets.consul-server-key.path;
+
 
       telemetry = {
         dogstatsdAddr = "localhost:8125";

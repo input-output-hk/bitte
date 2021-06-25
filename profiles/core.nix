@@ -15,6 +15,7 @@
     telegraf.enable = lib.mkForce false;
 
     vault-agent-core.enable = true;
+    vault.enable = lib.mkDefault true;
     # nomad.enable = true;
     # telegraf.extraConfig.global_tags.role = "consul-server";
     # vault-consul-token.enable = true;

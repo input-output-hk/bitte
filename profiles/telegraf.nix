@@ -76,7 +76,7 @@ in {
 
         systemd_units = { unittype = "service"; };
 
-        x509_cert = { sources = [ "/etc/ssl/certs/cert.pem" ]; };
+        x509_cert = { sources = [ "/var/lib/vault/ca.pem" ]; };
 
         kernel = { };
         linux_sysctl_fs = { };

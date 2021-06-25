@@ -32,6 +32,10 @@ in {
       "auth/token/create".capabilities = [ c r u d l s ];
     };
 
+    vault-agent-client.path = {
+      "auth/token/create".capabilities = [ c r u d l s ];
+    };
+
     admin.path = {
       "approle/*".capabilities = [ c r u d l ];
       "aws/*".capabilities = [ c r u d l ];

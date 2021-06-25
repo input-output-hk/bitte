@@ -74,10 +74,10 @@ end
 
 using Convencience
 
-MACHINES = %w[core0 core1 core2 builder].freeze
+MACHINES = %w[core0 core1 core2 work0 builder].freeze
 
 # Working around agenix limitations. It demans you type your things in an editor.
-ENV['EDITOR'] = File.join __dir__, 'pipe.sh'
+ENV['EDITOR'] = File.join __dir__, 'scripts/pipe.sh'
 
 task default: ssh_pubs + %w[
   .agenix.toml

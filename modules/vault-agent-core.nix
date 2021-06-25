@@ -168,6 +168,7 @@ in {
   options = {
     services.vault-agent-core = {
       enable = mkEnableOption "Start vault-agent for cores";
+
       vaultAddress = lib.mkOption {
         type = lib.types.str;
         default = "https://127.0.0.1:8200";
