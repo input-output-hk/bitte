@@ -35,7 +35,7 @@
 
     systems = [ "x86_64-linux" ];
 
-    preOverlays = [ bitte-cli hydra-provisioner ];
+    preOverlays = [ bitte-cli hydra-provisioner hydra ];
     overlay = import ./overlay.nix inputs;
     config.allowUnfree = true; # for ssm-session-manager-plugin
 
