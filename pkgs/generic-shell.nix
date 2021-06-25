@@ -35,9 +35,9 @@ in mkShell ({
 
   NIX_USER_CONF_FILES = let
     default = writeText "nix.conf" ''
-        experimental-features = nix-command flakes ca-references recursive-nix
-        substituters = https://cache.nixos.org
-        trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
+        extra-experimental-features = nix-command flakes ca-references recursive-nix
+        extra-substituters = https://hydra.iohk.io
+        extra-trusted-public-keys = hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=
     '';
   in with lib; concatStringsSep ":"
   ((toList default) ++ (optional (nixConf != null) nixConf));
