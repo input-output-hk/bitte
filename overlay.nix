@@ -1,22 +1,21 @@
 inputs:
 let
-  inherit (inputs) nixpkgs nix ops-lib nixpkgs-terraform bitte-cli;
+  inherit (inputs) nixpkgs nixpkgs-2105 nix ops-lib nixpkgs-terraform bitte-cli;
   inherit (builtins) fromJSON toJSON trace mapAttrs genList foldl';
   inherit (nixpkgs) lib;
 in final: prev: {
   nixos-rebuild = bitte-cli.packages.${final.system}.nixos-rebuild;
   bitte = bitte-cli.defaultPackage.${final.system};
 
+  # this is temporary until we switch over
+  inherit (nixpkgs-2105.legacyPackages.${final.system}) consul-template cue vault-bin haproxy;
+
   # nix = prev.nixFlakes;
   nixFlakes = inputs.nix.packages.${final.system}.nix;
-
-  vault-bin = prev.callPackage ./pkgs/vault-bin.nix { };
 
   ssm-agent = prev.callPackage ./pkgs/ssm-agent { };
 
   consul = prev.callPackage ./pkgs/consul { };
-
-  cue = final.callPackage ./pkgs/cue.nix { };
 
   terraform-provider-names =
     [ "acme" "aws" "consul" "local" "nomad" "null" "sops" "tls" "vault" ];
@@ -73,8 +72,6 @@ in final: prev: {
 
   grpcdump = prev.callPackage ./pkgs/grpcdump.nix { };
 
-  haproxy = prev.callPackage ./pkgs/haproxy.nix { };
-
   inherit (inputs.nixpkgs-unstable.legacyPackages.${final.system})
     grafana-loki grafana traefik;
 
@@ -83,8 +80,6 @@ in final: prev: {
     ./pkgs/glusterfs.nix { };
 
   victoriametrics = prev.callPackage ./pkgs/victoriametrics.nix { };
-
-  consul-template = prev.callPackage ./pkgs/consul-template.nix { };
 
   nomad-autoscaler = prev.callPackage ./pkgs/nomad-autoscaler.nix { };
 
