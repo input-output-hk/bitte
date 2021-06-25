@@ -1,12 +1,9 @@
 inputs:
 let
-  inherit (inputs) nixpkgs nixpkgs-2105 nix ops-lib nixpkgs-terraform;
+  inherit (inputs) nixpkgs ops-lib nixpkgs-terraform;
   inherit (builtins) fromJSON toJSON trace mapAttrs genList foldl';
   inherit (nixpkgs) lib;
 in final: prev: {
-
-  # this is temporary until we switch over
-  inherit (nixpkgs-2105.legacyPackages.${final.system}) consul-template cue vault-bin haproxy;
 
   ssm-agent = prev.callPackage ./pkgs/ssm-agent { };
 

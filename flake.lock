@@ -89,22 +89,6 @@
         "type": "indirect"
       }
     },
-    "nixpkgs-2105": {
-      "locked": {
-        "lastModified": 1624522661,
-        "narHash": "sha256-BjkxYyGQYck5muCpPMfCtEQv/wRmD4kVEE7tiAQOS+Y=",
-        "owner": "nixos",
-        "repo": "nixpkgs",
-        "rev": "0b8b127125e5271f5c8636680b6fe274844aaa9d",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nixos",
-        "ref": "nixos-21.05",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
     "nixpkgs-terraform": {
       "locked": {
         "lastModified": 1623440955,
@@ -117,22 +101,6 @@
       "original": {
         "owner": "input-output-hk",
         "ref": "iohk-terraform-2021-06",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
-    "nixpkgs-unstable": {
-      "locked": {
-        "lastModified": 1624593539,
-        "narHash": "sha256-FUwEa2Nhd705VeMN5aZu2G9OYF5MxplR9Xef/yqvYWk=",
-        "owner": "nixos",
-        "repo": "nixpkgs",
-        "rev": "c223fd60072771c8dea3bba2f8f866302aa4c956",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nixos",
-        "ref": "nixpkgs-unstable",
         "repo": "nixpkgs",
         "type": "github"
       }
@@ -169,16 +137,16 @@
     },
     "nixpkgs_4": {
       "locked": {
-        "lastModified": 1624492865,
-        "narHash": "sha256-y0sgj+z1qdfdtd5gmYbdSK3zx1SsJnyM8gZqZVH2g5c=",
-        "owner": "NixOS",
+        "lastModified": 1624522661,
+        "narHash": "sha256-BjkxYyGQYck5muCpPMfCtEQv/wRmD4kVEE7tiAQOS+Y=",
+        "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "65db0350fe3962c41b8604046ec9166976f80793",
+        "rev": "0b8b127125e5271f5c8636680b6fe274844aaa9d",
         "type": "github"
       },
       "original": {
-        "owner": "NixOS",
-        "ref": "nixpkgs-unstable",
+        "owner": "nixos",
+        "ref": "nixos-21.05",
         "repo": "nixpkgs",
         "type": "github"
       }
@@ -222,9 +190,7 @@
         "hydra-provisioner": "hydra-provisioner",
         "levant-source": "levant-source",
         "nixpkgs": "nixpkgs_4",
-        "nixpkgs-2105": "nixpkgs-2105",
         "nixpkgs-terraform": "nixpkgs-terraform",
-        "nixpkgs-unstable": "nixpkgs-unstable",
         "nomad-source": "nomad-source",
         "ops-lib": "ops-lib",
         "terranix": "terranix",
