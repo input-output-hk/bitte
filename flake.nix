@@ -72,11 +72,18 @@
 
     nixosModules = (lib.mkModules ./modules) // {
       inherit (hydra.nixosModules) hydra;
+
+      hydra-provisioner = { lib, ... }: {
+        imports = [ hydra-provisioner.nixosModule ];
+        services.hydra.provisioner.useFlakeOverlay = lib.mkDefault false;
+      };
     };
 
     # Outputs that aren't directly supported by simpleFlake can go here
     # instead of having to doubleslash.
     extraOutputs = {
+      # Nix supports both singular `nixosModule` and plural `nixosModules`
+      # so I use the singular as a `defaultNixosModule` that won't spew a warning.
       nixosModule.imports = builtins.attrValues self.nixosModules;
       profiles = lib.mkModules ./profiles;
     };
