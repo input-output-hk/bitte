@@ -26,21 +26,19 @@
 , extraPackages ? []
 , region
 , profile
-, nixConf ? null
+, nixConfig ? null
 }: let
 
 in mkShell ({
   # for bitte-cli
   LOG_LEVEL = "debug";
 
-  NIX_USER_CONF_FILES = let
-    default = writeText "nix.conf" ''
+  NIX_CONFIG = writeText "nix.conf" ''
         extra-experimental-features = nix-command flakes ca-references recursive-nix
         extra-substituters = https://hydra.iohk.io
         extra-trusted-public-keys = hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=
-    '';
-  in with lib; concatStringsSep ":"
-  ((toList default) ++ (optional (nixConf != null) nixConf));
+        bash-prompt = [bitte]
+  '' + (lib.optionalString (nixConfig != null) nixConfig);
 
   BITTE_CLUSTER = cluster;
   AWS_PROFILE = profile;
