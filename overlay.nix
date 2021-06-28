@@ -4,7 +4,6 @@ let
   inherit (builtins) fromJSON toJSON trace mapAttrs genList foldl';
   inherit (nixpkgs) lib;
 in final: prev: {
-  nixos-rebuild = bitte-cli.packages.${final.system}.nixos-rebuild;
   bitte = bitte-cli.defaultPackage.${final.system};
 
   # this is temporary until we switch over

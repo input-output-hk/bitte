@@ -55,7 +55,6 @@
     , haproxy-auth-request
     , haproxy-cors
     , nixFlakes
-    , nixos-rebuild
     , nomad
     , nomad-autoscaler
     , oauth2_proxy
