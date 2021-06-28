@@ -15,7 +15,6 @@ mkShellNoCC {
     ipcalc
     jq
     nixfmt
-    nixos-rebuild
     nomad
     openssl
     sops

@@ -12,6 +12,10 @@ in final: prev: {
 
   consul = prev.callPackage ./pkgs/consul { };
 
+  cue = prev.callPackage ./pkgs/cue.nix { };
+
+  vault-bin = prev.callPackage ./pkgs/vault-bin.nix { };
+
   terraform-provider-names =
     [ "acme" "aws" "consul" "local" "nomad" "null" "sops" "tls" "vault" ];
 
