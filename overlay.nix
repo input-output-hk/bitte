@@ -8,7 +8,8 @@ in final: prev: {
   bitte = bitte-cli.defaultPackage.${final.system};
 
   # this is temporary until we switch over
-  inherit (nixpkgs-2105.legacyPackages.${final.system}) consul-template cue vault-bin haproxy;
+  inherit (nixpkgs-2105.legacyPackages.${final.system})
+    consul-template vault-bin haproxy;
 
   # nix = prev.nixFlakes;
   nixFlakes = inputs.nix.packages.${final.system}.nix;
@@ -16,6 +17,8 @@ in final: prev: {
   ssm-agent = prev.callPackage ./pkgs/ssm-agent { };
 
   consul = prev.callPackage ./pkgs/consul { };
+
+  cue = prev.callPackage ./pkgs/cue.nix { };
 
   terraform-provider-names =
     [ "acme" "aws" "consul" "local" "nomad" "null" "sops" "tls" "vault" ];
