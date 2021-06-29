@@ -681,7 +681,7 @@ import (
 		network:        *null | #stanza.network
 		service: [string]: #stanza.service
 		task: [string]:    #stanza.task
-		count: uint
+		count: uint | *1
 		volume: [string]: #stanza.volume
 		vault:          *null | #stanza.vault
 		restart:        *null | #stanza.restart
