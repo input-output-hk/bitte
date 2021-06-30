@@ -2,15 +2,12 @@
   description = "Flake containing Bitte clusters";
 
   inputs = {
-    nixpkgs.url =
-      "github:NixOS/nixpkgs?rev=b8c367a7bd05e3a514c2b057c09223c74804a21b";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-21.05";
     nixpkgs-terraform.url = "github:input-output-hk/nixpkgs/iohk-terraform-2021-06";
-    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-    nixpkgs-2105.url = "github:nixos/nixpkgs/nixos-21.05";
     utils.url = "github:kreisys/flake-utils";
     bitte-cli.url = "github:input-output-hk/bitte-cli";
+    hydra.url = "github:NixOS/hydra";
     hydra-provisioner.url = "github:input-output-hk/hydra-provisioner";
-    nix.url = "github:NixOS/nix?rev=b19aec7eeb8353be6c59b2967a511a5072612d99";
     ops-lib = {
       url = "github:input-output-hk/ops-lib";
       flake = false;
@@ -30,7 +27,7 @@
     };
   };
 
-  outputs = { self, hydra-provisioner, nixpkgs, utils, bitte-cli, nixpkgs-2105, ... }@inputs:
+  outputs = { self, hydra, hydra-provisioner, nixpkgs, utils, bitte-cli, ... }@inputs:
   let
     lib = import ./lib { inherit (nixpkgs) lib; };
   in utils.lib.simpleFlake rec {
@@ -38,9 +35,9 @@
 
     systems = [ "x86_64-linux" ];
 
+    preOverlays = [ bitte-cli hydra-provisioner hydra ];
     overlay = import ./overlay.nix inputs;
     config.allowUnfree = true; # for ssm-session-manager-plugin
-
 
     shell = { devShell }: devShell;
 
@@ -72,12 +69,19 @@
       defaultApp = utils.lib.mkApp { drv = bitte; };
     };
 
-    nixosModules = let
-      modules = lib.mkModules ./modules;
-      default.imports = builtins.attrValues modules;
-    in modules // { inherit default; };
+    nixosModules = (lib.mkModules ./modules) // {
+      inherit (hydra.nixosModules) hydra;
+      hydra-provisioner = hydra-provisioner.nixosModule;
+    };
 
-  } // {
-    profiles = lib.mkModules ./profiles;
+    # Nix supports both singular `nixosModule` and plural `nixosModules`
+    # so I use the singular as a `defaultNixosModule` that won't spew a warning.
+    nixosModule.imports = builtins.attrValues self.nixosModules;
+
+    # Outputs that aren't directly supported by simpleFlake can go here
+    # instead of having to doubleslash.
+    extraOutputs = {
+      profiles = lib.mkModules ./profiles;
+    };
   };
 }

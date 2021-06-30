@@ -24,7 +24,7 @@ let
     self.inputs.nixpkgs.lib.nixosSystem {
       inherit pkgs system;
       modules = [
-        self.inputs.bitte.nixosModules.default
+        self.inputs.bitte.nixosModule
         (self.inputs.nixpkgs + "/nixos/modules/virtualisation/amazon-image.nix")
       ] ++ modules;
       specialArgs = { inherit nodeName self; };
@@ -37,7 +37,7 @@ in listToAttrs (forEach clusterFiles (file:
     proto = self.inputs.nixpkgs.lib.nixosSystem {
       inherit pkgs system;
       modules = [
-        self.inputs.bitte.nixosModules.default
+        self.inputs.bitte.nixosModule
         ../profiles/nix.nix
         ../profiles/consul/policies.nix
         file

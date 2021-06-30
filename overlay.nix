@@ -1,16 +1,12 @@
 inputs:
 let
-  inherit (inputs) nixpkgs nixpkgs-2105 nix ops-lib nixpkgs-terraform bitte-cli;
+  inherit (inputs) nixpkgs ops-lib nixpkgs-terraform;
   inherit (builtins) fromJSON toJSON trace mapAttrs genList foldl';
   inherit (nixpkgs) lib;
 in final: prev: {
-  bitte = bitte-cli.defaultPackage.${final.system};
-
-  # this is temporary until we switch over
-  inherit (nixpkgs-2105.legacyPackages.${final.system}) consul-template haproxy;
-
-  # nix = prev.nixFlakes;
-  nixFlakes = inputs.nix.packages.${final.system}.nix;
+  # Without this the `nixos-rebuild` included in `nixpkgs` would
+  # try to use Nix 2.3 with `--experimental-features` and thereby croak and die.
+  nix = final.nixUnstable;
 
   ssm-agent = prev.callPackage ./pkgs/ssm-agent { };
 
@@ -37,7 +33,6 @@ in final: prev: {
 
   nixpkgs-terraform-pkgs = nixpkgs-terraform.legacyPackages.${final.system};
 
-  inherit (inputs.hydra-provisioner.packages.${final.system}) hydra-provisioner;
   inherit (final.nixpkgs-terraform-pkgs)
     terraform_0_13 terraform_0_14 terraform-providers;
 
@@ -64,6 +59,8 @@ in final: prev: {
   haproxy-cors = prev.callPackage ./pkgs/haproxy-cors.nix { };
 
   devShell = final.callPackage ./pkgs/dev-shell.nix { };
+  bitteShell = final.callPackage ./pkgs/bitte-shell.nix { };
+  bitteSchoell = final.bitteShell;
 
   consulRegister = prev.callPackage ./pkgs/consul-register.nix { };
 
@@ -75,12 +72,7 @@ in final: prev: {
 
   grpcdump = prev.callPackage ./pkgs/grpcdump.nix { };
 
-  inherit (inputs.nixpkgs-unstable.legacyPackages.${final.system})
-    grafana-loki grafana traefik;
-
-  glusterfs =
-    (inputs.nixpkgs-unstable.legacyPackages.${final.system}).callPackage
-    ./pkgs/glusterfs.nix { };
+  glusterfs = final.callPackage ./pkgs/glusterfs.nix { };
 
   victoriametrics = prev.callPackage ./pkgs/victoriametrics.nix { };
 
@@ -94,10 +86,7 @@ in final: prev: {
 
   oauth2_proxy = final.callPackage ./pkgs/oauth2_proxy.nix { };
 
-  filebeat = final.callPackage ./pkgs/filebeat.nix {
-    inherit (inputs.nixpkgs-unstable.legacyPackages.${final.system})
-      buildGoModule;
-  };
+  filebeat = final.callPackage ./pkgs/filebeat.nix { };
 
   # Little convenience function helping us to containing the bash
   # madness: forcing our bash scripts to be shellChecked.
