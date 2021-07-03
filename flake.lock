@@ -58,23 +58,6 @@
         "type": "github"
       }
     },
-    "levant-source": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1607520931,
-        "narHash": "sha256-yKLT61uCcgkUWPtaOmruy2uXhJ/ON94QqhoYg2Gulww=",
-        "owner": "hashicorp",
-        "repo": "levant",
-        "rev": "05c6c36fdf24237af32a191d2b14756dbb2a4f24",
-        "type": "github"
-      },
-      "original": {
-        "owner": "hashicorp",
-        "repo": "levant",
-        "rev": "05c6c36fdf24237af32a191d2b14756dbb2a4f24",
-        "type": "github"
-      }
-    },
     "lowdown-src": {
       "flake": false,
       "locked": {
@@ -274,7 +257,6 @@
         "bitte-cli": "bitte-cli",
         "hydra": "hydra",
         "hydra-provisioner": "hydra-provisioner",
-        "levant-source": "levant-source",
         "nixpkgs": "nixpkgs_6",
         "nixpkgs-terraform": "nixpkgs-terraform",
         "nomad-source": "nomad-source",

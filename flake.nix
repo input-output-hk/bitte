@@ -21,11 +21,6 @@
       url = "github:input-output-hk/nomad/release-1.1.1";
       flake = false;
     };
-    levant-source = {
-      url =
-        "github:hashicorp/levant?rev=05c6c36fdf24237af32a191d2b14756dbb2a4f24";
-      flake = false;
-    };
   };
 
   outputs = { self, hydra, hydra-provisioner, nixpkgs, utils, bitte-cli, ... }@inputs:
