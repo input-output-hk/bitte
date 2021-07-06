@@ -25,8 +25,9 @@
 
   outputs = { self, hydra, hydra-provisioner, nixpkgs, utils, bitte-cli, ... }@inputs:
   let
-    lib = import ./lib { inherit (nixpkgs) lib; };
-  in utils.lib.simpleFlake rec {
+    lib = import ./lib { inherit (nixpkgs) lib; }
+      // { inherit (utils.lib) simpleFlake; };
+  in lib.simpleFlake rec {
     inherit lib nixpkgs;
 
     systems = [ "x86_64-linux" ];
