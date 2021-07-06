@@ -179,7 +179,8 @@ in {
       wantedBy = [ "multi-user.target" ];
 
       environment = {
-        inherit (config.environment.variables) AWS_DEFAULT_REGION VAULT_FORMAT;
+        inherit (config.environment.variables) AWS_DEFAULT_REGION;
+        VAULT_FORMAT = "json";
         VAULT_CACERT = "/etc/ssl/certs/full.pem";
         CONSUL_HTTP_ADDR = "127.0.0.1:8500";
         CONSUL_CACERT = "/etc/ssl/certs/full.pem";
