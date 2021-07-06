@@ -26,6 +26,7 @@
 , extraPackages ? []
 , region
 , profile
+, namespace ? cluster
 , nixConfig ? null
 }: let
 
@@ -43,6 +44,7 @@ in mkShell ({
   BITTE_CLUSTER = cluster;
   AWS_PROFILE = profile;
   AWS_DEFAULT_REGION = region;
+  NOMAD_NAMESPACE = namespace;
   VAULT_ADDR = "https://vault.${domain}";
   NOMAD_ADDR = "https://nomad.${domain}";
   CONSUL_HTTP_ADDR = "https://consul.${domain}";
