@@ -1,9 +1,12 @@
-{ lib }: dir:
+{ lib }:
+dir:
 
 let
   join = a: b: if a == "" then b else "${a}-${b}";
 
-  inherit (builtins) readDir mapAttrs attrValues foldl' elemAt typeOf substring stringLength listToAttrs trace;
+  inherit (builtins)
+    readDir mapAttrs attrValues foldl' elemAt typeOf substring stringLength
+    listToAttrs filter;
 
   convert = prefix: d:
     let
@@ -17,7 +20,7 @@ let
           (convert (join prefix name) (d + "/${name}"))
         ] else
           null) entries;
-    in attrValues expanded;
+    in filter (a: a != null) (attrValues expanded);
 
   tree = convert "" dir;
 
