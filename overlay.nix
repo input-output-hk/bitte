@@ -81,7 +81,7 @@ in final: prev: {
 
   ci-env = prev.symlinkJoin {
     name = "ci-env";
-    paths = with prev; [ coreutils bashInteractive git hello nixfmt ];
+    paths = with prev; [ coreutils bashInteractive git cacert hello nixfmt ];
   };
 
   consulRegister = prev.callPackage ./pkgs/consul-register.nix { };
