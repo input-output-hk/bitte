@@ -10,7 +10,7 @@
 
   services = {
     amazon-ssm-agent.enable = true;
-    vault.enable = true;
+    vault.enable = lib.mkDefault true;
     consul.enable = true;
   };
 
