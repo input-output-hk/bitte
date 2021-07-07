@@ -1103,6 +1103,7 @@ in {
         CONSUL_HTTP_ADDR = "http://127.0.0.1:8500";
         # certificates get rotated often, we got no way to update them while
         # the jobs are running...
+        VAULT_ADDR = cfg.vault.address;
         VAULT_SKIP_VERIFY = "true";
         HOME = "/var/lib/nomad";
       };
