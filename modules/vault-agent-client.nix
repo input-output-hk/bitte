@@ -149,8 +149,6 @@ in {
 
         systemctl reload consul.service
 
-        systemctl restart vault.service
-
         if curl -s -k https://127.0.0.1:4646/v1/status/leader &> /dev/null; then
           systemctl restart nomad.service
         else
