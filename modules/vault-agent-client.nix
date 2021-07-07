@@ -30,7 +30,7 @@ in {
     services.vault-agent = {
       enable = true;
       role = "client";
-      vaultAddress = "https://vault.${domain}:8200";
+      vaultAddress = "https://vault.${domain}";
       autoAuthMethod = "aws";
       autoAuthConfig = {
         type = "iam";
