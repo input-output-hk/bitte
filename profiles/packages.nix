@@ -17,6 +17,5 @@
     tmux
     tree
     vim
-    envoy
   ];
 }
