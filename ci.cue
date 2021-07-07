@@ -12,11 +12,6 @@ ci: steps: [
 		]
 		command: ["/bin/bash", "pkgs/check_fmt.sh"]
 	},
-	{
-    flake: "github:NixOS/nixpkgs/nixos-21.05#nixfmt"
-		label:   "nixfmt"
-		command: "nixfmt"
-	},
 ]
 
 isMaster: pull_request.base.ref == "master"

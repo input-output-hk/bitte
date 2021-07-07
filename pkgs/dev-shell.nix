@@ -22,5 +22,6 @@ mkShellNoCC {
     terraform-with-plugins
     vault-bin
     hydra-provisioner
+    cue
   ];
 }
