@@ -46,7 +46,7 @@ in {
             {{ end }}{{ end }}
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl restart certs-updated.service";
+          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart certs-updated.service";
         };
         "/etc/ssl/certs/cert.pem" = {
           contents = ''
@@ -55,7 +55,7 @@ in {
             {{ end }}{{ end }}
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl restart certs-updated.service";
+          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart certs-updated.service";
         };
 
         "/etc/ssl/certs/cert-key.pem" = {
@@ -63,7 +63,7 @@ in {
             {{ with secret ${pkiSecret} }}{{ .Data.private_key }}{{ end }}
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl restart certs-updated.service";
+          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart certs-updated.service";
         };
 
         "/etc/consul.d/tokens.json" = mkIf config.services.consul.enable {
@@ -83,7 +83,7 @@ in {
             }
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl reload consul";
+          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart consul";
         };
 
         "/run/keys/consul-default-token" = mkIf config.services.consul.enable {
@@ -91,7 +91,7 @@ in {
             {{ with secret "consul/creds/consul-default" }}{{ .Data.token }}{{ end }}
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl reload consul.service";
+          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart consul.service";
         };
 
         "/etc/vault.d/consul-token.json" = mkIf config.services.vault.enable {
@@ -117,7 +117,7 @@ in {
             {{ end }}
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl restart vault.service";
+          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart vault.service";
         };
       };
     };
