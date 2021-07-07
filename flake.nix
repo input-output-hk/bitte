@@ -57,6 +57,7 @@
     , terraform-with-plugins
     , vault-backend
     , vault-bin
+    , ci-env
     }@pkgs: pkgs;
 
     hydraJobs = packages;
