@@ -86,6 +86,7 @@ in {
 
   users.extraUsers = lib.mkIf isMonitoring {
     builder = {
+      isSystemUser = true;
       openssh.authorizedKeys.keyFiles =
         [ (config.secrets.encryptedRoot + "/nix-builder-key.pub") ];
       shell = pkgs.bashInteractive;
