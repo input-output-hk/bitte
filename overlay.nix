@@ -86,8 +86,6 @@ in final: prev: {
 
   consulRegister = prev.callPackage ./pkgs/consul-register.nix { };
 
-  envoy = prev.callPackage ./pkgs/envoy.nix { };
-
   nomad = prev.callPackage ./pkgs/nomad.nix { inherit (inputs) nomad-source; };
 
   boundary = prev.callPackage ./pkgs/boundary.nix { };
