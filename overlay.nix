@@ -9,15 +9,17 @@ in final: prev: {
   nix = final.nixUnstable;
 
   hydra-unstable = prev.hydra-unstable.overrideAttrs (oldAttrs: {
-    patches = (oldAttrs.patches or []) ++ [
+    patches = (oldAttrs.patches or [ ]) ++ [
       # allow evaluator_restrict_eval to be configured
       (prev.fetchpatch {
-        url = "https://github.com/NixOS/hydra/pull/888/commits/de203436cdbfa521ac3a231fafbcc7490c10766e.patch";
+        url =
+          "https://github.com/NixOS/hydra/pull/888/commits/de203436cdbfa521ac3a231fafbcc7490c10766e.patch";
         sha256 = "sha256-TCJEmTkycUWTx7U433jaGzKwpbCyNdXqiv9UfhsHnfs=";
       })
       # allow evaluator_pure_eval to be configured
       (prev.fetchpatch {
-        url = "https://github.com/NixOS/hydra/pull/981/commits/24959a3ca6608cb1a1b11c2bf8436c800e5811f8.patch";
+        url =
+          "https://github.com/NixOS/hydra/pull/981/commits/24959a3ca6608cb1a1b11c2bf8436c800e5811f8.patch";
         sha256 = "sha256-JXhmtI8IDjv6VAXwLwDoGnWywBbIbZYh4uFWlP5UdSU=";
       })
     ];
@@ -76,6 +78,11 @@ in final: prev: {
   devShell = final.callPackage ./pkgs/dev-shell.nix { };
   bitteShell = final.callPackage ./pkgs/bitte-shell.nix { };
   bitteSchoell = final.bitteShell;
+
+  ci-env = prev.symlinkJoin {
+    name = "ci-env";
+    paths = with prev; [ bashInteractive hello nixfmt ];
+  };
 
   consulRegister = prev.callPackage ./pkgs/consul-register.nix { };
 

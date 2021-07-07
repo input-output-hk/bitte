@@ -2,7 +2,7 @@ package ci
 
 ci: steps: [
 	{
-    flake: "github:NixOS/nixpkgs/nixos-21.05#hello"
+    flake: "github:input-output-hk/bitte#ci-env"
 		label:   "hello"
 		command: "hello"
 	},
