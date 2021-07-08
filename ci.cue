@@ -10,7 +10,7 @@ ci: steps: [
 			"github:NixOS/nixpkgs/nixos-21.05#cacert",
 			"github:NixOS/nixpkgs/nixos-21.05#gnugrep",
 		]
-		command: ["/bin/bash", "pkgs/check_fmt.sh"]
+		command: ["/bin/bash", "pkgs/check_nixfmt.sh"]
 	},
 ]
 
