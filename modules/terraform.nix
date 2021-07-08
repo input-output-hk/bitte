@@ -100,6 +100,11 @@ let
         default = [ ];
       };
 
+      adminGithubTeamNames = mkOption {
+        type = listOf str;
+        default = [ "devops" ];
+      };
+
       developerGithubTeamNames = mkOption {
         type = listOf str;
         default = [ ];

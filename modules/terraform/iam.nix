@@ -7,13 +7,13 @@ let
   bucketArn = "arn:aws:s3:::${config.cluster.s3Bucket}";
 in {
   tf.iam.configuration = {
-      terraform.backend.http = let
-        vbk = "https://vbk.infra.aws.iohkdev.io/state/${config.cluster.name}/iam";
-      in {
-        address = vbk;
-        lock_address = vbk;
-        unlock_address = vbk;
-      };
+    terraform.backend.http = let
+      vbk = "https://vbk.infra.aws.iohkdev.io/state/${config.cluster.name}/iam";
+    in {
+      address = vbk;
+      lock_address = vbk;
+      unlock_address = vbk;
+    };
 
     terraform.required_providers = pkgs.terraform-provider-versions;
 
@@ -32,19 +32,23 @@ in {
       path = "github-employees";
     };
 
-    resource.vault_github_team = {
-      devops = {
-        backend = var "vault_github_auth_backend.employee.path";
-        team = "devops";
-        policies = [ "admin" "default" ];
-      };
-    } // (lib.listToAttrs (lib.forEach config.cluster.developerGithubTeamNames
-      (name:
-        lib.nameValuePair name {
-          backend = var "vault_github_auth_backend.employee.path";
-          team = name;
-          policies = [ "developer" "default" ];
-        })));
+    resource.vault_github_team = let
+      admins = lib.listToAttrs (lib.forEach config.cluster.adminGithubTeamNames
+        (name:
+          lib.nameValuePair name {
+            backend = var "vault_github_auth_backend.employee.path";
+            team = name;
+            policies = [ "admin" "default" ];
+          }));
+
+      developers = lib.listToAttrs
+        (lib.forEach config.cluster.developerGithubTeamNames (name:
+          lib.nameValuePair name {
+            backend = var "vault_github_auth_backend.employee.path";
+            team = name;
+            policies = [ "developer" "default" ];
+          }));
+    in admins // developers;
 
     resource.vault_github_user =
       lib.mkIf (builtins.length config.cluster.developerGithubNames > 0)
