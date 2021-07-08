@@ -3,7 +3,13 @@ package ci
 ci: steps: [
 	{
 		label: "nixfmt"
-		dependencies: "github:NixOS/nixpkgs/nixos-21.05": ["bashInteractive", "coreutils", "git", "cacert", "gnugrep"]
+		flakes: [
+			"github:NixOS/nixpkgs/nixos-21.05#bashInteractive",
+			"github:NixOS/nixpkgs/nixos-21.05#coreutils",
+			"github:NixOS/nixpkgs/nixos-21.05#git",
+			"github:NixOS/nixpkgs/nixos-21.05#cacert",
+			"github:NixOS/nixpkgs/nixos-21.05#gnugrep",
+		]
 		command: ["/bin/bash", "pkgs/check_fmt.sh"]
 	},
 ]
