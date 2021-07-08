@@ -2,9 +2,9 @@ package ci
 
 ci: steps: [
 	{
-		flake: "github:input-output-hk/bitte?rev=fa03cb3ab0ba2bee8700daccbddc30b2993d501a#ci-env"
-		label: "hello"
-		command: ["hello", "world"]
+		label: "nixfmt"
+		dependencies: "github:NixOS/nixpkgs/nixos-21.05": ["bashInteractive", "coreutils", "git", "cacert", "gnugrep"]
+		command: ["/bin/bash", "pkgs/check_fmt.sh"]
 	},
 ]
 
