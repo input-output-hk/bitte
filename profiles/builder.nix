@@ -90,7 +90,6 @@ in {
       openssh.authorizedKeys.keyFiles =
         [ (config.secrets.encryptedRoot + "/nix-builder-key.pub") ];
       shell = pkgs.bashInteractive;
-      isSystemUser = true;
     };
   };
 }
