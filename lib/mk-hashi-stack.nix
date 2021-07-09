@@ -142,6 +142,15 @@ in lib.makeScope pkgs.newScope (self:
 
     nixosConfigurations = pkgs.mkNixosConfigurations self.clusters;
 
-    hydraJobs.x86_64-linux = lib.mapAttrs (_: { config, ... }: config.system.build.toplevel) self.nixosConfigurations;
+    hydraJobs.x86_64-linux = let
+      nixosConfigurations = lib.mapAttrs (_: { config, ... }:
+        config.system.build.toplevel) self.nixosConfigurations;
+    in nixosConfigurations // {
+      nixosConfigurations = pkgs.releaseTools.aggregate {
+        name = "nixosConfigurations";
+        constituents = builtins.attrValues nixosConfigurations;
+        meta.description = "All NixOS Configurations";
+      };
+    };
   })
 
