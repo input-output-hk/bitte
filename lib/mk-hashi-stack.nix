@@ -141,5 +141,7 @@ in lib.makeScope pkgs.newScope (self:
     };
 
     nixosConfigurations = pkgs.mkNixosConfigurations self.clusters;
+
+    hydraJobs.x86_64-linux = lib.mapAttrs (_: { config, ... }: config.system.build.toplevel) self.nixosConfigurations;
   })
 
