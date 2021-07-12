@@ -879,6 +879,20 @@ let
     };
   });
 
+  lifecycleType = submodule {
+    options = {
+      hook = mkOption {
+        type = nullOr (enum [ "prestart" "poststart" "poststop" ]);
+        default = null;
+      };
+
+      sidecar = mkOption {
+        type = nullOr bool;
+        default = null;
+      };
+    };
+  };
+
   taskType = submodule ({ name, ... }: {
     options = {
       volumeMounts = mkOption {
@@ -900,6 +914,11 @@ let
           go-getter also has a CLI tool to validate its URL and can be used to
           check if the Nomad artifact is valid.
         '';
+      };
+
+      lifecycle = mkOption {
+        type = lifecycleType;
+        default = { };
       };
 
       templates = mkOption {
