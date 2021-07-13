@@ -2,7 +2,8 @@
 let
   inherit (config.cluster) domain region instances kms;
   acme-full = "/etc/ssl/certs/${config.cluster.domain}-full.pem";
-in {
+in
+{
   imports = [
     ./builder.nix
     ./common.nix
@@ -47,6 +48,7 @@ in {
         AUTH_PROXY_ENABLED = "true";
         AUTH_PROXY_HEADER_NAME = "X-Authenticated-User";
         AUTH_SIGNOUT_REDIRECT_URL = "/oauth2/sign_out";
+        USERS_AUTO_ASSIGN_ORG_ROLE = "Editor";
       };
       rootUrl = "https://monitoring.${domain}/";
       provision = {
