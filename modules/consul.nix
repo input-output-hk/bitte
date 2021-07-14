@@ -424,6 +424,18 @@ in {
           '';
         in "!${start-pre}/bin/consul-start-pre";
 
+        postScript = let
+          start-pre = pkgs.writeShellScriptBin "consul-start-post" ''
+            set -exuo pipefail
+            PATH="${makeBinPath [ pkgs.jq cfg.package pkgs.coreutils ]}"
+            set +x
+            CONSUL_HTTP_TOKEN="$(< /run/keys/consul-default-token)"
+            export CONSUL_HTTP_TOKEN
+            set -x
+            while ! consul info &>/dev/null; do sleep 3; done
+          '';
+        in "!${start-pre}/bin/consul-start-post";
+
         reloadScript = let
           reload = pkgs.writeShellScriptBin "consul-reload" ''
             set -exuo pipefail
@@ -443,6 +455,7 @@ in {
         ExecReload = reloadScript;
         ExecStart =
           "@${cfg.package}/bin/consul consul agent -config-dir /etc/${cfg.configDir}";
+        ExecStartPost = postScript;
         Restart = "on-failure";
         RestartSec = "10s";
         DynamicUser = true;
