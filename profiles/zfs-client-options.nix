@@ -6,7 +6,8 @@ let
 
   cfg = config.services.zfs-client-options;
 
-in {
+in
+{
   options = {
     services.zfs-client-options = {
       enable = mkEnableOption "Client ZFS options";
@@ -33,7 +34,7 @@ in {
         '';
       };
 
-      enableZfsArcMaxControl= mkOption {
+      enableZfsArcMaxControl = mkOption {
         type = bool;
         default = true;
         description = ''
@@ -54,7 +55,7 @@ in {
         '';
       };
 
-      enableZfsScrub= mkOption {
+      enableZfsScrub = mkOption {
         type = bool;
         default = true;
         description = "Enable client ZFS scrubbing";
@@ -94,6 +95,7 @@ in {
       trim.enable = mkIf cfg.enableZfsTrim true;
     };
 
+
     systemd = {
       timers = {
         zfs-arc-max-control-enable = mkIf cfg.enableZfsArcMaxControl {
@@ -110,6 +112,24 @@ in {
       };
 
       services = {
+        zfs-snapshot-enable = {
+          serviceConfig.Type = "oneshot";
+          path = [ pkgs.zfs ];
+          script = ''
+            set -euo pipefail
+            echo "The current state of zfs autosnapshots is:"
+            zfs get com.sun:auto-snapshot
+            echo " "
+            zfs set com.sun:auto-snapshot=true tank
+            echo "The new state of zfs autosnapshots is:"
+            zfs get com.sun:auto-snapshot
+            echo " "
+            echo "The current size of existing zfs snapshots is:"
+            zfs list -o space -t filesystem,snapshot
+            echo " "
+          '';
+        };
+
         zfs-arc-max-control-enable = mkIf cfg.enableZfsArcMaxControl {
           serviceConfig.Type = "oneshot";
           path = with pkgs; [ gawk gnugrep zfs ];
