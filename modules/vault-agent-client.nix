@@ -229,7 +229,8 @@ in {
       wantedBy = [ "multi-user.target" ];
 
       environment = {
-        inherit (config.environment.variables) AWS_DEFAULT_REGION VAULT_FORMAT;
+        inherit (config.environment.variables) AWS_DEFAULT_REGION;
+        VAULT_FORMAT = "json";
         VAULT_ADDR = "https://vault.${domain}";
         CONSUL_HTTP_ADDR = "127.0.0.1:8500";
         VAULT_SKIP_VERIFY = "true";
