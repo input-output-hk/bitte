@@ -15,6 +15,7 @@
   services = {
     amazon-ssm-agent.enable = true;
     vault-agent-client.enable = true;
+    vault.enable = lib.mkForce false;
     nomad.enable = true;
     telegraf.extraConfig.global_tags.role = "consul-client";
     zfs-client-options.enable = true;
