@@ -1079,7 +1079,7 @@ in {
     };
 
     systemd.services.nomad = {
-      after = [ "network-online.target" ];
+      after = [ "network-online.target" "vault.service" ];
       wantedBy = [ "multi-user.target" ];
 
       restartTriggers = mapAttrsToList (_: d: d.source)
