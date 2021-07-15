@@ -180,6 +180,24 @@ in {
           '';
         };
       };
+
+      zfs-snapshot-enable = {
+        serviceConfig.Type = "oneshot";
+        path = [ pkgs.zfs ];
+        script = ''
+          set -euo pipefail
+          echo "The current state of zfs autosnapshots is:"
+          zfs get com.sun:auto-snapshot
+          echo " "
+          zfs set com.sun:auto-snapshot=true tank
+          echo "The new state of zfs autosnapshots is:"
+          zfs get com.sun:auto-snapshot
+          echo " "
+          echo "The current size of existing zfs snapshots is:"
+          zfs list -o space -t filesystem,snapshot
+          echo " "
+        '';
+      };
     };
   };
 }
