@@ -34,10 +34,11 @@ let
     #   tls_disable = true;
     # };
 
-    listener.tcp = {
+    listener = [{
+      type = "tcp";
       address = "127.0.0.1:8200";
       tls_disable = true;
-    };
+    }];
 
     auto_auth = {
       method = [{
