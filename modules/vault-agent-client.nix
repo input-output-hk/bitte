@@ -34,6 +34,9 @@ let
     #   tls_disable = true;
     # };
 
+    # This requires at least one listener
+    # but a listener defined without this would be silently ignored (https://github.com/hashicorp/vault/issues/8953)
+    cache.use_auto_auth_token = true;
     listener = [{
       type = "tcp";
       address = "127.0.0.1:8200";
