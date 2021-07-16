@@ -1,23 +1,6 @@
-{ bitte
-, lib
-, writeText
-, mkShell
-, nixos-rebuild
-, terraform-with-plugins
-, scaler-guard
-, sops
-, vault
-, openssl
-, cfssl
-, nixfmt
-, awscli
-, nomad
-, consul
-, consul-template
-, python38Packages
-, direnv
-, nixFlakes
-, jq }:
+{ bitte, lib, writeText, mkShell, nixos-rebuild, terraform-with-plugins
+, scaler-guard, sops, vault, openssl, cfssl, nixfmt, awscli, nomad, consul
+, consul-template, python38Packages, direnv, jq }:
 
 { cluster
 , caCert ? null
@@ -65,7 +48,6 @@ in mkShell ({
     consul-template
     python38Packages.pyhcl
     direnv
-    nixFlakes
     jq
   ] ++ extraPackages;
 } // (lib.optionalAttrs (caCert != null) {
