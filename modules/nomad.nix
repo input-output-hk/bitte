@@ -618,7 +618,7 @@ in {
 
           key_file = mkOption {
             type = nullOr str;
-            default = path;
+            default = null;
             description = ''
               The path to the key file to use for Nomad's TLS communication.
             '';
@@ -1021,7 +1021,7 @@ in {
 
           key_file = mkOption {
             type = nullOr str;
-            default = path;
+            default = null;
             description = ''
               The path to the key file to use for Nomad's TLS communication.
             '';
@@ -1043,6 +1043,8 @@ in {
           };
         };
       };
+
+      apply = filterAttrs (_: v: v != null);
     };
 
     plugin = mkOption {
