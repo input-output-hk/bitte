@@ -20,9 +20,7 @@ buildGoModule rec {
     sha256 = "sha256-SuG/Q5Tjet4etd4Qy5NBQLYEe2QO0K8QHKmgxYMl09U=";
   };
 
-  patches = [
-    ./script-check.patch
-  ];
+  patches = [ ./script-check.patch ];
 
   passthru.tests.consul = nixosTests.consul;
 

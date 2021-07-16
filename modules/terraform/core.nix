@@ -10,13 +10,14 @@ let
   merge = lib.foldl' lib.recursiveUpdate { };
 in {
   tf.core.configuration = {
-    terraform.backend.http =
-      let vbk = "https://vbk.infra.aws.iohkdev.io/state/${config.cluster.name}/core";
-      in {
-        address = vbk;
-        lock_address = vbk;
-        unlock_address = vbk;
-      };
+    terraform.backend.http = let
+      vbk =
+        "https://vbk.infra.aws.iohkdev.io/state/${config.cluster.name}/core";
+    in {
+      address = vbk;
+      lock_address = vbk;
+      unlock_address = vbk;
+    };
 
     terraform.required_providers = pkgs.terraform-provider-versions;
 
@@ -266,7 +267,8 @@ in {
     resource.acme_certificate.certificate = {
       account_key_pem = var "acme_registration.reg.account_key_pem";
       common_name = "${config.cluster.domain}";
-      subject_alternative_names = [ "*.${config.cluster.domain}" ] ++ config.cluster.extraAcmeSANs;
+      subject_alternative_names = [ "*.${config.cluster.domain}" ]
+        ++ config.cluster.extraAcmeSANs;
 
       dns_challenge.provider = "route53";
     };

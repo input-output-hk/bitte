@@ -325,7 +325,7 @@ in {
       verifyServerHostname = mkEnableOption "Verify server hostname";
 
       ports = mkOption {
-        default = {};
+        default = { };
         type = submodule {
           options = {
             grpc = mkOption {
@@ -397,7 +397,8 @@ in {
           clientAddr encrypt addresses retryJoin primaryDatacenter acl connect
           caFile certFile keyFile autoEncrypt verifyServerHostname
           verifyOutgoing verifyIncoming dataDir tlsMinVersion ports
-          enableLocalScriptChecks nodeMeta telemetry nodeId enableDebug enableScriptChecks;
+          enableLocalScriptChecks nodeMeta telemetry nodeId enableDebug
+          enableScriptChecks;
       });
 
     environment.etc."${cfg.configDir}/extra-config.json".source =

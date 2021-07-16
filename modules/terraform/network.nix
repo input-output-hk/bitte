@@ -13,7 +13,8 @@ let
   # https://docs.aws.amazon.com/vpc/latest/peering/peering-configurations-full-access.html#one-to-many-vpcs-full-access
 
   # Generate a region sorted list with the assumption of only 1 vpc per region
-  vpcRegions = lib.unique (lib.sort (a: b: a < b) (mapVpcsToList (vpc: vpc.region)));
+  vpcRegions =
+    lib.unique (lib.sort (a: b: a < b) (mapVpcsToList (vpc: vpc.region)));
 
   # The following definitions prepare a mesh of unique peeringPairs,
   # each with a connector and acceptor.  The following is an example of
@@ -40,7 +41,8 @@ let
 in {
   tf.network.configuration = {
     terraform.backend.http = let
-      vbk = "https://vbk.infra.aws.iohkdev.io/state/${config.cluster.name}/network";
+      vbk =
+        "https://vbk.infra.aws.iohkdev.io/state/${config.cluster.name}/network";
     in {
       address = vbk;
       lock_address = vbk;

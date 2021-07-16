@@ -33,7 +33,7 @@ in {
         '';
       };
 
-      enableZfsArcMaxControl= mkOption {
+      enableZfsArcMaxControl = mkOption {
         type = bool;
         default = true;
         description = ''
@@ -54,7 +54,7 @@ in {
         '';
       };
 
-      enableZfsScrub= mkOption {
+      enableZfsScrub = mkOption {
         type = bool;
         default = true;
         description = "Enable client ZFS scrubbing";
@@ -129,7 +129,9 @@ in {
             RAM_TOTAL_BYTES="$(($(grep -E '^MemTotal' /proc/meminfo | awk '{ print $2 }') * 1024))"
             echo "Total RAM bytes available: $RAM_TOTAL_BYTES"
 
-            USE_ARC_MAX_PERCENT="${if cfg.useArcMaxPercent then "true" else "false"}"
+            USE_ARC_MAX_PERCENT="${
+              if cfg.useArcMaxPercent then "true" else "false"
+            }"
 
             if [ "$USE_ARC_MAX_PERCENT" = "true" ]; then
               RAM_ZFS_ARC_MAX_PERCENT="${toString cfg.arcMaxPercent}"

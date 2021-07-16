@@ -2,8 +2,7 @@
 let
   inherit (config.cluster) domain region instances kms;
   acme-full = "/etc/ssl/certs/${config.cluster.domain}-full.pem";
-in
-{
+in {
   imports = [
     ./builder.nix
     ./common.nix

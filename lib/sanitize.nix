@@ -19,8 +19,7 @@ let
         pipe obj [
           (filterAttrs
             (name: value: name != "_module" && name != "_ref" && value != null))
-          (mapAttrs'
-            (name: value: nameValuePair name (sanitize value)))
+          (mapAttrs' (name: value: nameValuePair name (sanitize value)))
         ];
     };
 in sanitize

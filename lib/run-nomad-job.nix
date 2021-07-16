@@ -1,6 +1,5 @@
 { name, lib, json, dockerImages, writeShellScriptBin, vault-bin, awscli
-, coreutils, jq, nomad, consul, nixFlakes, curl, gnugrep, gitMinimal
-, skopeo }:
+, coreutils, jq, nomad, consul, nixFlakes, curl, gnugrep, gitMinimal, skopeo }:
 let
   pushImage = imageId: image:
     let

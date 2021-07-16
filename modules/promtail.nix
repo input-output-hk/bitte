@@ -101,7 +101,7 @@ in {
       enable = mkEnableOption "Enable Promtail";
 
       server = mkOption {
-        default = {};
+        default = { };
         type = submodule {
           options = {
             http_listen_port = mkOption {
