@@ -6,7 +6,7 @@ let
   inherit (lib)
     mkOption mkEnableOption mkIf mapAttrsToList filterAttrs hasPrefix
     makeBinPath pipe mapAttrs' nameValuePair flip concatMapStrings isList
-    toLower;
+    toLower optionalString;
   inherit (lib.types)
     attrs nullOr attrsOf path package str submodule bool listOf enum port ints;
   inherit (pkgs) snakeCase;
@@ -1136,11 +1136,13 @@ in {
           # TODO: caching this
           set -euo pipefail
 
-          VAULT_TOKEN="$(< vault-token)"
-          export VAULT_TOKEN
+          ${optionalString cfg.server.enabled ''
+            VAULT_TOKEN="$(< vault-token)"
+            export VAULT_TOKEN
 
-          token="$(vault token create -policy ${cfg.tokenPolicy} -period 72h -orphan -field token)"
-          export VAULT_TOKEN="$token"
+            token="$(vault token create -policy ${cfg.tokenPolicy} -period 72h -orphan -field token)"
+            export VAULT_TOKEN="$token"
+          ''}
 
           ${lib.optionalString config.services.vault-agent-core.enable ''
             CONSUL_HTTP_TOKEN_FILE="$PWD/nomad-consul-token"
