@@ -426,7 +426,7 @@ in {
         in "!${start-pre}/bin/consul-start-pre";
 
         postScript = let
-          start-pre = pkgs.writeShellScriptBin "consul-start-post" ''
+          start-post = pkgs.writeShellScriptBin "consul-start-post" ''
             set -exuo pipefail
             PATH="${makeBinPath [ pkgs.jq cfg.package pkgs.coreutils ]}"
             set +x
@@ -435,7 +435,7 @@ in {
             set -x
             while ! consul info &>/dev/null; do sleep 3; done
           '';
-        in "!${start-pre}/bin/consul-start-post";
+        in "!${start-post}/bin/consul-start-post";
 
         reloadScript = let
           reload = pkgs.writeShellScriptBin "consul-reload" ''
