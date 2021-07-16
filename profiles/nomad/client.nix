@@ -19,7 +19,7 @@
 
     plugin.raw_exec.enabled = false;
 
-    vault.address = "https://127.0.0.1:8200";
+    vault.address = "http://127.0.0.1:8200";
   };
 
   system.extraDependencies = [ pkgs.pkgsStatic.busybox ];

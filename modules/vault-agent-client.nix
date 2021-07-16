@@ -29,16 +29,15 @@ let
     pid_file = "./vault-agent.pid";
     vault.address = "https://vault.${domain}:8200";
 
-    listener.tcp = builtins.fromJSON ''
-        {
-          "address": "127.0.0.1:8200",
-          "cluster_address": "",
-          "tls_cert_file": "/etc/ssl/certs/cert.pem",
-          "tls_client_ca_file": "/etc/ssl/certs/full.pem",
-          "tls_key_file": "/etc/ssl/certs/cert-key.pem",
-          "tls_min_version": "tls12"
-        }
-    '';
+    # listener.unix = {
+    #   address = "/run/vault/socket";
+    #   tls_disable = true;
+    # };
+
+    listener.tcp = {
+      address = "127.0.0.1:8200";
+      tls_disable = true;
+    };
 
     auto_auth = {
       method = [{
