@@ -66,10 +66,10 @@ let
 
         sleep 10
 
-        ${pkgs.systemd}/bin/systemctl restart consul.service
-        ${pkgs.systemd}/bin/systemctl restart nomad.service
-        ${pkgs.systemd}/bin/systemctl restart vault.service
-        ${pkgs.systemd}/bin/systemctl restart ingress.service
+        ${pkgs.systemd}/bin/systemctl try-reload-or-restart consul.service
+        ${pkgs.systemd}/bin/systemctl try-reload-or-restart nomad.service
+        ${pkgs.systemd}/bin/systemctl try-reload-or-restart vault.service
+        ${pkgs.systemd}/bin/systemctl try-reload-or-restart ingress.service
 
         vault write nomad/config/access \
           ca_cert=@/etc/ssl/certs/full.pem \
@@ -83,7 +83,7 @@ let
       (runIf config.services.consul.enable {
         template = {
           destination = "/etc/consul.d/tokens.json";
-          command = "${pkgs.systemd}/bin/systemctl reload consul.service";
+          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart consul.service";
           contents = if nodeName == "monitoring" then ''
             {
               "acl": {
@@ -116,7 +116,7 @@ let
       (runIf (config.services.consul.enable) {
         template = {
           destination = "/run/keys/consul-default-token";
-          command = "${pkgs.systemd}/bin/systemctl reload consul.service";
+          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart consul.service";
           contents = ''
             {{ with secret "consul/creds/consul-server-default" }}{{ .Data.token }}{{ end }}
           '';
@@ -126,7 +126,7 @@ let
       # TODO: remove duplication
       (runIf config.services.nomad.enable {
         template = {
-          command = "${pkgs.systemd}/bin/systemctl restart nomad.service";
+          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart nomad.service";
           destination = "/etc/nomad.d/consul-token.json";
           contents = ''
             {
@@ -140,7 +140,7 @@ let
 
       (runIf config.services.nomad.enable {
         template = {
-          command = "${pkgs.systemd}/bin/systemctl restart nomad.service";
+          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart nomad.service";
           destination = "/run/keys/nomad-consul-token";
           contents = ''
             {{- with secret "consul/creds/nomad-server" }}{{ .Data.token }}{{ end -}}
@@ -151,7 +151,7 @@ let
       (runIf config.services.nomad-autoscaler.enable {
         template = {
           command =
-            "${pkgs.systemd}/bin/systemctl restart nomad-autoscaler.service";
+            "${pkgs.systemd}/bin/systemctl try-reload-or-restart nomad-autoscaler.service";
           destination = "/run/keys/nomad-autoscaler-token";
           contents = ''
             {{- with secret "nomad/creds/nomad-autoscaler" }}{{ .Data.secret_id }}{{ end -}}

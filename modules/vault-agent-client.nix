@@ -73,9 +73,7 @@ let
             {{ end }}{{ end }}
           '';
 
-          command = writeShellScript "update-cert" ''
-            ${pkgs.systemd}/bin/systemctl restart certs-updated.service || true
-          '';
+          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart certs-updated.service";
         };
       }
 
@@ -89,9 +87,7 @@ let
             {{ end }}{{ end }}
           '';
 
-          command = writeShellScript "update-cert" ''
-            ${pkgs.systemd}/bin/systemctl restart certs-updated.service || true
-          '';
+          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart certs-updated.service";
         };
       }
 
@@ -103,9 +99,7 @@ let
             {{ with secret ${pkiSecret} }}{{ .Data.private_key }}{{ end }}
           '';
 
-          command = writeShellScript "update-cert" ''
-            ${pkgs.systemd}/bin/systemctl restart certs-updated.service || true
-          '';
+          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart certs-updated.service";
         };
       }
 
@@ -129,7 +123,7 @@ let
             }
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl reload consul";
+          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart consul";
         };
       })
 
@@ -141,7 +135,7 @@ let
             {{ with secret "consul/creds/consul-default" }}{{ .Data.token }}{{ end }}
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl reload consul.service";
+          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart consul.service";
         };
       })
 
@@ -171,10 +165,7 @@ let
             {{ end }}
           '';
 
-          command = writeShellScript "restart-vault" ''
-            set -xu
-            ${pkgs.systemd}/bin/systemctl restart vault.service || true
-          '';
+          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart vault.service";
         };
       })
 
@@ -213,12 +204,10 @@ in {
         # minimum
         sleep 10
 
-        systemctl reload consul.service
-
-        # systemctl restart vault.service
+        systemctl try-reload-or-restart consul.service
 
         if curl -s -k https://127.0.0.1:4646/v1/status/leader &> /dev/null; then
-          systemctl restart nomad.service
+          systemctl try-reload-or-restart nomad.service
         else
           systemctl start nomad.service
         fi
