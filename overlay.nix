@@ -4,9 +4,9 @@ let
   inherit (builtins) attrValues fromJSON toJSON trace mapAttrs genList foldl';
   inherit (nixpkgs) lib;
 in final: prev: {
-  # Without this the `nixos-rebuild` included in `nixpkgs` would
-  # try to use Nix 2.3 with `--experimental-features` and thereby croak and die.
-  nix = final.nixUnstable;
+  nix = inputs.nix.packages.x86_64-linux.nix;
+  nixFlakes = final.nix;
+  nixUnstable = final.nix;
 
   hydra-unstable = prev.hydra-unstable.overrideAttrs (oldAttrs: {
     patches = (oldAttrs.patches or [ ]) ++ [

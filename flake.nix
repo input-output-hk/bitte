@@ -25,6 +25,8 @@
     ## workaround until https://github.com/NixOS/nix/pull/4641 is merged
     hydra.inputs.nixpkgs.follows = "nixpkgs";
     ## /workaround
+    
+    nix.url = "github:NixOS/nix";
   };
 
   outputs =
