@@ -462,7 +462,7 @@ let
       };
 
       modules = mkOption {
-        type = listOf path;
+        type = listOf (oneOf [ path attrs ]);
         default = [ ];
       };
 
@@ -649,7 +649,7 @@ let
       };
 
       modules = mkOption {
-        type = listOf path;
+        type = listOf (oneOf [ path attrs ]);
         default = [ ];
       };
 
