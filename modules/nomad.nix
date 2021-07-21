@@ -1096,7 +1096,7 @@ in {
         amazon-ecr-credential-helper
         vault-bin
         jq
-        nixFlakes
+        config.nix.package
         openssh
         git
       ];
