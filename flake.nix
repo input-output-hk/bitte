@@ -21,6 +21,7 @@
       url = "github:input-output-hk/nomad/release-1.1.1";
       flake = false;
     };
+    nix.url = "github:NixOS/nix";
   };
 
   outputs = { self, hydra, hydra-provisioner, nixpkgs, utils, bitte-cli, ... }@inputs:
