@@ -55,7 +55,6 @@
       };
 
       nixosModules = (lib.mkModules ./modules) // {
-        inherit (hydra.nixosModules) hydra;
         hydra-provisioner = hydra-provisioner.nixosModule;
       };
 
