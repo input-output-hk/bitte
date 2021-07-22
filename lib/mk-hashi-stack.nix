@@ -142,13 +142,16 @@ in lib.makeScope pkgs.newScope (self:
     nixosConfigurations = pkgs.mkNixosConfigurations self.clusters;
 
     hydraJobs.x86_64-linux = let
+      build-version = pkgs.writeText "version.json" (builtins.toJSON {
+        inherit (flake) lastModified lastModifiedDate narHash outPath shortRev rev;
+      });
       nixosConfigurations =
         lib.mapAttrs (_: { config, ... }: config.system.build.toplevel)
         self.nixosConfigurations;
     in nixosConfigurations // {
-      nixosConfigurations = pkgs.releaseTools.aggregate {
+      required = pkgs.releaseTools.aggregate {
         name = "nixosConfigurations";
-        constituents = builtins.attrValues nixosConfigurations;
+        constituents = (builtins.attrValues nixosConfigurations) ++ [ build-version ];
         meta.description = "All NixOS Configurations";
       };
     };
