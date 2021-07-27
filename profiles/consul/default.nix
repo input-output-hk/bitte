@@ -77,7 +77,10 @@ in {
   services.dnsmasq = {
     enable = true;
     extraConfig = ''
-      # Ensure docker0 is also bound on client machines when it may not exist during dnsmasq startup
+      # Ensure docker0 is also bound on client machines when it may not exist during dnsmasq startup:
+      # - This ensures nomad docker driver jobs have dnsmasq access
+      # - This enables nomad exec driver bridge mode jobs to use the docker bridge for dnsmasq access
+      #   when explicitly defined as a nomad network dns server ip
       bind-dynamic
 
       # Redirect consul and ec2 internal specific queries to their respective upstream DNS servers
