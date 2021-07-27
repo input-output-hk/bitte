@@ -6,7 +6,7 @@
 , terraform-with-plugins
 , scaler-guard
 , sops
-, vault
+, vault-bin
 , openssl
 , cfssl
 , nixfmt
@@ -58,7 +58,7 @@ mkShell ({
     terraform-with-plugins
     scaler-guard
     sops
-    vault
+    vault-bin
     openssl
     cfssl
     nixfmt

@@ -1,21 +1,21 @@
 { stdenv, lib, fetchurl, unzip, makeWrapper, gawk, glibc }:
 
 let
-  version = "1.7.2";
+  version = "1.7.3";
 
   sources = let base = "https://releases.hashicorp.com/vault/${version}";
   in {
     x86_64-linux = fetchurl {
       url = "${base}/vault_${version}_linux_amd64.zip";
-      sha256 = "sha256-Xua7gRm1XCfNOGTJghd3FKCko4E5J8yv2yYueOS7Z7w=";
+      sha256 = "sha256-hFMTKpO3VcCondSy8amb1K8G+BZ7gZF/EXCAg5Ax4D8=";
     };
     x86_64-darwin = fetchurl {
       url = "${base}/vault_${version}_darwin_amd64.zip";
-      sha256 = "sha256-fTfhLMuUl6nkA9Vi2Dey6nuZ2+kZ5pVq3h4uQQpU9XM=";
+      sha256 = "sha256-Ns8a48CwEfVNek37l+Dxr9jcPeQaGfM4tU2rJWEzhWs=";
     };
     aarch64-linux = fetchurl {
       url = "${base}/vault_${version}_linux_arm64.zip";
-      sha256 = "sha256-K7nUmyU4k/+iFJ7oXOLyvHI2CiwUrId1FV80xXI0RTM=";
+      sha256 = "sha256-IwkvYNi8lrXEDOxx/skz524Ur7lSxc0bjVg1RZABXDA=";
     };
   };
 
