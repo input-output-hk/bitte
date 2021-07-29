@@ -26,16 +26,15 @@
         "nixpkgs": "nixpkgs_4"
       },
       "locked": {
-        "lastModified": 1627319801,
-        "narHash": "sha256-LW8Gf7owDNF62jKKBANaontz00h001tdhyrdHqWshls=",
-        "owner": "kreisys",
+        "lastModified": 1627577092,
+        "narHash": "sha256-Uj0N7fbypQtn8m26cdR2UYK1xTB1QMXZ0lfzz1y+Bgw=",
+        "owner": "NixOS",
         "repo": "hydra",
-        "rev": "638f5a1ac99616447b0113cce0746a6852ab6778",
+        "rev": "4e9455160270b9b933582501a47430690d66e5b4",
         "type": "github"
       },
       "original": {
-        "owner": "kreisys",
-        "ref": "hydra-server-config-includes",
+        "owner": "NixOS",
         "repo": "hydra",
         "type": "github"
       }
@@ -157,11 +156,11 @@
     },
     "nixpkgs_4": {
       "locked": {
-        "lastModified": 1627293375,
-        "narHash": "sha256-qmOYhkx71FHtDO7m5yuTWFU6xLuklEZ5/mH8rQ/d0Pc=",
+        "lastModified": 1627552538,
+        "narHash": "sha256-FkIzCCSu9UuAhfdp6aSDPrZeaVQz1f5K51XRZLuvUp0=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "c8569c32bac4bfa8539ef4360bb3b0bd2216bc39",
+        "rev": "f90d817036015164f606b0dd9a9fbbcdd90c9b38",
         "type": "github"
       },
       "original": {
