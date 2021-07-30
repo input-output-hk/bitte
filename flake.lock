@@ -23,7 +23,11 @@
     "hydra": {
       "inputs": {
         "nix": "nix",
-        "nixpkgs": "nixpkgs_4"
+        "nixpkgs": [
+          "hydra",
+          "nix",
+          "nixpkgs"
+        ]
       },
       "locked": {
         "lastModified": 1627684953,
@@ -42,7 +46,7 @@
     },
     "hydra-provisioner": {
       "inputs": {
-        "nixpkgs": "nixpkgs_5",
+        "nixpkgs": "nixpkgs_4",
         "utils": "utils_2"
       },
       "locked": {
@@ -176,21 +180,6 @@
     },
     "nixpkgs_4": {
       "locked": {
-        "lastModified": 1627638002,
-        "narHash": "sha256-jLZTCxmpXFgF96x+rhOnQe4BG+3efqwbU41Bs+vFDqg=",
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "528a5c442093646e1b85178a182db9b8542760a6",
-        "type": "github"
-      },
-      "original": {
-        "id": "nixpkgs",
-        "ref": "nixos-21.05-small",
-        "type": "indirect"
-      }
-    },
-    "nixpkgs_5": {
-      "locked": {
         "lastModified": 1624535180,
         "narHash": "sha256-G4IU8YpAcfZ3ebqvuprcWrWBQFhRC2pMWOSSfrafUf0=",
         "owner": "NixOS",
@@ -205,7 +194,7 @@
         "type": "github"
       }
     },
-    "nixpkgs_6": {
+    "nixpkgs_5": {
       "locked": {
         "lastModified": 1624862269,
         "narHash": "sha256-JFcsh2+7QtfKdJFoPibLFPLgIW6Ycnv8Bts9a7RYme0=",
@@ -259,7 +248,7 @@
         "bitte-cli": "bitte-cli",
         "hydra": "hydra",
         "hydra-provisioner": "hydra-provisioner",
-        "nixpkgs": "nixpkgs_6",
+        "nixpkgs": "nixpkgs_5",
         "nixpkgs-terraform": "nixpkgs-terraform",
         "nomad-source": "nomad-source",
         "ops-lib": "ops-lib",
