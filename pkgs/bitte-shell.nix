@@ -1,12 +1,38 @@
-{ bitte, lib, writeText, mkShell, nixos-rebuild, terraform-with-plugins
-, scaler-guard, sops, vault, openssl, cfssl, nixfmt, awscli, nomad, consul
-, consul-template, python38Packages, direnv, jq }:
+{ bitte
+, lib
+, writeText
+, mkShell
+, nixos-rebuild
+, terraform-with-plugins
+, scaler-guard
+, sops
+, vault
+, openssl
+, cfssl
+, nixfmt
+, awscli
+, nomad
+, consul
+, consul-template
+, python38Packages
+, direnv
+, jq
+}:
 
-{ cluster, caCert ? null, domain, extraEnv ? { }, extraPackages ? [ ], region
-, profile, namespace ? cluster, nixConfig ? null }:
+{ cluster
+, caCert ? null
+, domain
+, extraEnv ? { }
+, extraPackages ? [ ]
+, region
+, profile
+, namespace ? cluster
+, nixConfig ? null
+}:
 let
 
-in mkShell ({
+in
+mkShell ({
   # for bitte-cli
   LOG_LEVEL = "debug";
 
@@ -18,6 +44,7 @@ in mkShell ({
   '' + (lib.optionalString (nixConfig != null) nixConfig);
 
   BITTE_CLUSTER = cluster;
+  BITTE_DOMAIN = domain;
   AWS_PROFILE = profile;
   AWS_DEFAULT_REGION = region;
   NOMAD_NAMESPACE = namespace;
