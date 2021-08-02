@@ -46,7 +46,15 @@
         , vault-bin, ci-env }@pkgs:
         pkgs;
 
-      hydraJobs = packages;
+      hydraJobs = { bitte, cfssl, consul, cue, glusterfs, grafana-loki, haproxy
+        , haproxy-auth-request, haproxy-cors, nixFlakes, nomad, nomad-autoscaler
+        , oauth2-proxy, sops, ssm-agent, terraform-with-plugins, vault-backend
+        , vault-bin, ci-env, mkRequired }@pkgs: let
+        constituents = builtins.removeAttrs pkgs [ "mkRequired" ];
+      in
+        constituents // {
+        	required = mkRequired constituents;
+        };
 
       apps = { bitte }: {
         bitte = utils.lib.mkApp { drv = bitte; };

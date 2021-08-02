@@ -1,7 +1,7 @@
 inputs:
 let
   inherit (inputs) nixpkgs ops-lib nixpkgs-terraform;
-  inherit (builtins) fromJSON toJSON trace mapAttrs genList foldl';
+  inherit (builtins) attrValues fromJSON toJSON trace mapAttrs genList foldl';
   inherit (nixpkgs) lib;
 in final: prev: {
   # Without this the `nixos-rebuild` included in `nixpkgs` would
@@ -106,6 +106,16 @@ in final: prev: {
 
   oauth2-proxy = final.callPackage ./pkgs/oauth2_proxy.nix { };
 
+  mkRequired = constituents:
+    let
+      build-version = final.writeText "version.json" (toJSON {
+        inherit (inputs.self) lastModified lastModifiedDate narHash outPath shortRev rev;
+      });
+    in final.releaseTools.aggregate {
+        name = "required";
+        constituents = (attrValues constituents) ++ [ build-version ];
+        meta.description = "All required derivations";
+      };
 
   filebeat = final.callPackage ./pkgs/filebeat.nix { };
 

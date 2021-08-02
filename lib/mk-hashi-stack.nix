@@ -149,11 +149,7 @@ in lib.makeScope pkgs.newScope (self:
         lib.mapAttrs (_: { config, ... }: config.system.build.toplevel)
         self.nixosConfigurations;
     in nixosConfigurations // {
-      required = pkgs.releaseTools.aggregate {
-        name = "nixosConfigurations";
-        constituents = (builtins.attrValues nixosConfigurations) ++ [ build-version ];
-        meta.description = "All NixOS Configurations";
-      };
+      required = mkRequired nixosConfigurations;
     };
   })
 
