@@ -1,38 +1,18 @@
-{ bitte
-, lib
-, writeText
-, mkShell
-, nixos-rebuild
-, terraform-with-plugins
-, scaler-guard
-, sops
-, vault-bin
-, openssl
-, cfssl
-, nixfmt
-, awscli
-, nomad
-, consul
-, consul-template
-, python38Packages
-, direnv
-, jq
-}:
+{ bitte, lib, writeText, mkShell, nixos-rebuild, terraform-with-plugins
+, scaler-guard, sops, vault-bin, openssl, cfssl, nixfmt, awscli, nomad, consul
+, consul-template, python38Packages, direnv, jq }:
 
-{ cluster
-, caCert ? null
-, domain
-, extraEnv ? { }
-, extraPackages ? [ ]
-, region
-, profile
-, namespace ? cluster
-, nixConfig ? null
-}:
+{ self, cluster ? builtins.head (builtins.attrNames self.clusters)
+, caCert ? null, domain ? self.clusters.${cluster}.proto.config.cluster.domain
+, extraEnv ? { }, extraPackages ? [ ]
+, region ? self.clusters.${cluster}.proto.config.cluster.region or ""
+, profile ? "", provider ? "AWS", namespace ? cluster, nixConfig ? null }:
 let
-
-in
-mkShell ({
+  asgRegions = lib.attrValues (lib.mapAttrs (_: v: v.region)
+    self.clusters.${cluster}.proto.config.cluster.autoscalingGroups);
+  asgRegionString =
+    lib.strings.replaceStrings [ " " ] [ ":" ] (toString asgRegions);
+in mkShell ({
   # for bitte-cli
   LOG_LEVEL = "debug";
 
@@ -45,8 +25,7 @@ mkShell ({
 
   BITTE_CLUSTER = cluster;
   BITTE_DOMAIN = domain;
-  AWS_PROFILE = profile;
-  AWS_DEFAULT_REGION = region;
+  BITTE_PROVIDER = provider;
   NOMAD_NAMESPACE = namespace;
   VAULT_ADDR = "https://vault.${domain}";
   NOMAD_ADDR = "https://nomad.${domain}";
@@ -73,4 +52,8 @@ mkShell ({
 } // (lib.optionalAttrs (caCert != null) {
   CONSUL_CACERT = caCert;
   VAULT_CACERT = caCert;
-}) // extraEnv)
+}) // lib.optionalAttrs (provider == "AWS") {
+  AWS_PROFILE = profile;
+  AWS_DEFAULT_REGION = region;
+  AWS_ASG_REGIONS = asgRegionString;
+} // extraEnv)
