@@ -77,14 +77,27 @@ in {
   services.dnsmasq = {
     enable = true;
     extraConfig = ''
+      # Ensure docker0 is also bound on client machines when it may not exist during dnsmasq startup:
+      # - This ensures nomad docker driver jobs have dnsmasq access
+      # - This enables nomad exec driver bridge mode jobs to use the docker bridge for dnsmasq access
+      #   when explicitly defined as a nomad network dns server ip
+      bind-dynamic
+
+      # Redirect consul and ec2 internal specific queries to their respective upstream DNS servers
       server=/consul/127.0.0.1#8600
       server=/internal/169.254.169.253#53
+
+      # Configure reverse in-addr.arpa DNS lookups to consul for ASGs and core datacenter default address ranges
       rev-server=10.0.0.0/8,127.0.0.1#8600
-      rev-server=127.0.0.1/8,127.0.0.1#8600
-      local-service
+      rev-server=172.16.0.0/16,127.0.0.1#8600
+
+      # Define upstream DNS servers
       server=169.254.169.253
       server=8.8.8.8
+
+      # Set cache and security
       cache-size=65536
+      local-service
     '';
   };
 

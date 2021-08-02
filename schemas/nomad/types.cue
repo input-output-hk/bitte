@@ -123,7 +123,7 @@ import (
 		Affinities: [...Affinity]
 		Constraints: [...Constraint]
 		Spreads: [...Spread]
-		Count: uint & >0
+		Count: int & >0 | *1
 		Meta: [string]: string
 		Name:          string
 		RestartPolicy: *null | #json.RestartPolicy
@@ -145,6 +145,10 @@ import (
 		Vault:                     *null | #json.Vault
 	}
 
+	Dns: {
+		servers: *null | [...string]
+	}
+
 	Port: {
 		Label:       string
 		Value:       uint | *null // used for static ports
@@ -157,7 +161,7 @@ import (
 		Device:        string | *""
 		CIDR:          string | *""
 		IP:            string | *""
-		DNS:           null
+		DNS:           *null | #json.Dns
 		ReservedPorts: *null | [...#json.Port]
 		DynamicPorts:  *null | [...#json.Port]
 		MBits:         null
@@ -285,9 +289,10 @@ import (
 	}
 }
 
-#duration:    =~"^[1-9]\\d*[hms]$"
-#gitRevision: =~"^[a-f0-9]{40}$"
-#flake:       =~"^(github|git\\+ssh|git):[0-9a-zA-Z_-]+/[0-9a-zA-Z_-]+"
+#dockerUrlPath: =~"^[0-9a-zA-Z-.]+/[0-9a-zA-Z-]+:[0-9a-zA-Z-]+$"
+#duration:      =~"^[1-9]\\d*[hms]$"
+#gitRevision:   =~"^[a-f0-9]{40}$"
+#flake:         =~"^(github|git\\+ssh|git):[0-9a-zA-Z_-]+/[0-9a-zA-Z_-]+"
 
 // The #toJson block is evaluated from deploy.cue during rendering of the namespace jobs.
 // #job and #jobName are passed to #toJson during this evaluation.
@@ -434,6 +439,7 @@ import (
 		if tg.network != null {
 			Networks: [{
 				Mode: tg.network.mode
+				DNS:  tg.network.dns
 				ReservedPorts: [
 					for nName, nValue in tg.network.port if nValue.static != null {
 						Label:       nName
@@ -780,9 +786,14 @@ import (
 		image:   string
 		command: *null | string
 		args: [...string]
-		ports: [...string]
+		cap_add:     *null | [...string]
+		entrypoint:  *null | [...string]
+		interactive: *null | bool
+		ipc_mode:    *null | string
 		labels: [...#label]
 		logging: dockerConfigLogging
+		ports: [...string]
+		sysctl: *null | [ {[string]: string}]
 	}
 
 	dockerConfigLogging: {
