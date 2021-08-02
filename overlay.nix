@@ -104,7 +104,8 @@ in final: prev: {
 
   vault-backend = final.callPackage ./pkgs/vault-backend.nix { };
 
-  oauth2_proxy = final.callPackage ./pkgs/oauth2_proxy.nix { };
+  oauth2-proxy = final.callPackage ./pkgs/oauth2_proxy.nix { };
+
 
   filebeat = final.callPackage ./pkgs/filebeat.nix { };
 
