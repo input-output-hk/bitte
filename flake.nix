@@ -21,6 +21,10 @@
       url = "github:input-output-hk/nomad/release-1.1.3";
       flake = false;
     };
+
+    ## workaround until https://github.com/NixOS/nix/pull/4641 is merged
+    hydra.inputs.nixpkgs.follows = "hydra/nix/nixpkgs";
+    ## /workaround
   };
 
   outputs =
