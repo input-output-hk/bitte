@@ -228,11 +228,11 @@
     "ops-lib": {
       "flake": false,
       "locked": {
-        "lastModified": 1622246496,
-        "narHash": "sha256-2E/+IFBDSyHhe7mJ8lXf/lPdL5iLYeDiQ/mT60ro5o4=",
+        "lastModified": 1628170841,
+        "narHash": "sha256-0B8O8l9EPAODNXxc/Ce//UHTgAKSutwpRD8r8IqD8BU=",
         "owner": "input-output-hk",
         "repo": "ops-lib",
-        "rev": "31d5bf9f5a21110fd4df2056177c3f52d8a62bb4",
+        "rev": "21f5a6e88f156370a85b5d0e6a2d24cc1083b421",
         "type": "github"
       },
       "original": {
