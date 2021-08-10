@@ -49,6 +49,10 @@ in mkShell ({
     direnv
     jq
   ] ++ extraPackages;
+
+  shellHook = ''
+    export FLAKE_ROOT=$(git rev-parse --show-toplevel)
+  '';
 } // (lib.optionalAttrs (caCert != null) {
   CONSUL_CACERT = caCert;
   VAULT_CACERT = caCert;

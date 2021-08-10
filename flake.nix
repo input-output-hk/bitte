@@ -9,6 +9,7 @@
     bitte-cli.url = "github:input-output-hk/bitte-cli";
     hydra.url = "github:kreisys/hydra/hydra-server-includes";
     hydra-provisioner.url = "github:input-output-hk/hydra-provisioner";
+    deploy.url = "github:serokell/deploy-rs";
     ops-lib = {
       url = "github:input-output-hk/ops-lib";
       flake = false;
@@ -25,14 +26,17 @@
     ## workaround until https://github.com/NixOS/nix/pull/4641 is merged
     hydra.inputs.nixpkgs.follows = "nixpkgs";
     ## /workaround
-    
+
     nix.url = "github:NixOS/nix";
   };
 
   outputs =
     { self, hydra, hydra-provisioner, nixpkgs, utils, bitte-cli, ... }@inputs:
     let
-      lib = import ./lib { inherit (nixpkgs) lib; } // {
+      lib = import ./lib {
+        inherit (nixpkgs) lib;
+        inherit inputs;
+      } // {
         inherit (utils.lib) simpleFlake;
       };
     in lib.simpleFlake rec {
