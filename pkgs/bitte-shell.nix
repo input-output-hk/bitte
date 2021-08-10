@@ -52,6 +52,15 @@ in mkShell ({
 
   shellHook = ''
     export FLAKE_ROOT=$(git rev-parse --show-toplevel)
+    if ! git show HEAD:${"\${cache:=$FLAKE_ROOT/.cache.json}"}; then
+      rm -f $cache
+      touch $cache
+      git reset
+      git add $cache
+      git commit --no-gpg-sign -m "add empty .cache.json"
+      git update-index --assume-unchanged $cache
+    fi
+
   '';
 } // (lib.optionalAttrs (caCert != null) {
   CONSUL_CACERT = caCert;
