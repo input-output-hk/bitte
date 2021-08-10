@@ -7,11 +7,11 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1625672380,
-        "narHash": "sha256-hZWKwaNG43ldhfhLt8UMULo5qi5xLn6nPv5411Owybg=",
+        "lastModified": 1628559921,
+        "narHash": "sha256-QFMayWAfmxA63F7LErCfvYSH+Q26Zg/EKMhKLZPUHp0=",
         "owner": "input-output-hk",
         "repo": "bitte-cli",
-        "rev": "66eeb1c5aff346bfe8bee38df7f5a0ee2244aacd",
+        "rev": "7f1e66a1fb905bed5311639e4c5ce1218edf16f3",
         "type": "github"
       },
       "original": {
@@ -100,15 +100,16 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1623927034,
-        "narHash": "sha256-sGxlmfp5eXL5sAMNqHSb04Zq6gPl+JeltIZ226OYN0w=",
-        "owner": "nmattia",
+        "lastModified": 1623558292,
+        "narHash": "sha256-YjyRflpvKzstN9Yy5pVOmreckcL1Fu6TGe8Tf8y9fm4=",
+        "owner": "nrdxp",
         "repo": "naersk",
-        "rev": "e09c320446c5c2516d430803f7b19f5833781337",
+        "rev": "f411315a2954bd60bdcba2bc0cff7f4b0012a12a",
         "type": "github"
       },
       "original": {
-        "owner": "nmattia",
+        "owner": "nrdxp",
+        "ref": "git-deps-fix",
         "repo": "naersk",
         "type": "github"
       }
