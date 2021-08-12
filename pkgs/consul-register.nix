@@ -54,7 +54,6 @@ in rec {
       RestartSec = "15s";
       ExecStart = "${register}/bin/${service.name}-register";
       ExecStopPost = "${deregister}/bin/${service.name}-deregister";
-      DynamicUser = true;
     } // extraServiceConfig;
   };
 }
