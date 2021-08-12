@@ -21,7 +21,13 @@ let
     PATH="${PATH}"
 
     export VAULT_TOKEN="$(< /run/keys/vault-token)"
-    CONSUL_HTTP_TOKEN="$(vault read -field token consul/creds/${creds})"
+    CONSUL_HTTP_TOKEN="$(
+      vault read \
+        -tls-skip-verify \
+        -address https://active.vault.service.consul:8200 \
+        -field token \
+        consul/creds/${creds}
+    )"
     export CONSUL_HTTP_TOKEN
 
     set -x
