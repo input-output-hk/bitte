@@ -8,6 +8,8 @@ in final: prev: {
   nixFlakes = final.nix;
   nixUnstable = final.nix;
 
+  test-on-premise = final.callPackage ./tests/on-premise { inherit inputs; };
+
   hydra-unstable = prev.hydra-unstable.overrideAttrs (oldAttrs: {
     patches = (oldAttrs.patches or [ ]) ++ [
       # allow evaluator_restrict_eval to be configured
@@ -25,7 +27,8 @@ in final: prev: {
     ];
   });
 
-  ssm-agent = prev.callPackage ./pkgs/ssm-agent { };
+  agenix = inputs.agenix.packages.${final.system}.agenix;
+  agenix-cli = inputs.agenix-cli.packages.${final.system}.agenix;
 
   consul = prev.callPackage ./pkgs/consul { };
 
@@ -79,11 +82,6 @@ in final: prev: {
   bitteShell = final.callPackage ./pkgs/bitte-shell.nix { };
   bitteSchoell = final.bitteShell;
 
-  ci-env = prev.symlinkJoin {
-    name = "ci-env";
-    paths = with prev; [ coreutils bashInteractive git cacert hello nixfmt ];
-  };
-
   consulRegister = prev.callPackage ./pkgs/consul-register.nix { };
 
   nomad = prev.callPackage ./pkgs/nomad.nix { inherit (inputs) nomad-source; };
@@ -109,13 +107,14 @@ in final: prev: {
   mkRequired = constituents:
     let
       build-version = final.writeText "version.json" (toJSON {
-        inherit (inputs.self) lastModified lastModifiedDate narHash outPath shortRev rev;
+        inherit (inputs.self)
+          lastModified lastModifiedDate narHash outPath shortRev rev;
       });
     in final.releaseTools.aggregate {
-        name = "required";
-        constituents = (attrValues constituents) ++ [ build-version ];
-        meta.description = "All required derivations";
-      };
+      name = "required";
+      constituents = (attrValues constituents) ++ [ build-version ];
+      meta.description = "All required derivations";
+    };
 
   filebeat = final.callPackage ./pkgs/filebeat.nix { };
 

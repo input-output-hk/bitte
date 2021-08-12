@@ -55,12 +55,31 @@ let
 
       secrets = mkOption { type = path; };
 
-      terraformOrganization = mkOption { type = str; };
+      aws = mkOption {
+        type = nullOr clusterAwsType;
+        default = null;
+      };
 
       instances = mkOption {
         type = attrsOf serverType;
         default = { };
       };
+
+      certificate = mkOption {
+        type = certificateType;
+        default = { };
+      };
+
+      flakePath = mkOption {
+        type = path;
+        default = self.outPath;
+      };
+    };
+  });
+
+  clusterAwsType = submodule {
+    options = {
+      terraformOrganization = mkOption { type = str; };
 
       autoscalingGroups = mkOption {
         type = attrsOf autoscalingGroupType;
@@ -157,18 +176,8 @@ let
           };
         };
       };
-
-      certificate = mkOption {
-        type = certificateType;
-        default = { };
-      };
-
-      flakePath = mkOption {
-        type = path;
-        default = self.outPath;
-      };
     };
-  });
+  };
 
   clusterIamType = submodule {
     options = {

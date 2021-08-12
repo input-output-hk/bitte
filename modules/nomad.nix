@@ -90,6 +90,8 @@ let
     };
   }));
 in {
+  disabledModules = [ "services/networking/nomad.nix" ];
+
   options.services.nomad = {
     enable = mkEnableOption "Enable the Nomad agent";
 

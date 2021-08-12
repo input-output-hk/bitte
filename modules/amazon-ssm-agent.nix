@@ -16,6 +16,8 @@ let
     esac
   '';
 in {
+  disabledModules = [ "services/misc/ssm-agent.nix" ];
+
   options.services.amazon-ssm-agent = {
     enable = mkEnableOption "AWS SSM agent";
 

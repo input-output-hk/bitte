@@ -28,6 +28,8 @@
     ## /workaround
 
     nix.url = "github:NixOS/nix";
+    agenix.url = "github:ryantm/agenix";
+    agenix-cli.url = "github:cole-h/agenix-cli";
   };
 
   outputs =
@@ -53,13 +55,13 @@
       packages = { bitte, cfssl, consul, cue, glusterfs, grafana-loki, haproxy
         , haproxy-auth-request, haproxy-cors, nixFlakes, nomad, nomad-autoscaler
         , oauth2-proxy, sops, ssm-agent, terraform-with-plugins, vault-backend
-        , vault-bin, ci-env }@pkgs:
+        , vault-bin }@pkgs:
         pkgs;
 
       hydraJobs = { bitte, cfssl, consul, cue, glusterfs, grafana-loki, haproxy
         , haproxy-auth-request, haproxy-cors, nixFlakes, nomad, nomad-autoscaler
         , oauth2-proxy, sops, ssm-agent, terraform-with-plugins, vault-backend
-        , vault-bin, ci-env, mkRequired }@pkgs:
+        , vault-bin, mkRequired, agenix, agenix-cli, test-on-premise }@pkgs:
         let constituents = builtins.removeAttrs pkgs [ "mkRequired" ];
         in constituents // { required = mkRequired constituents; };
 

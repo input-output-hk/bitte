@@ -1,11 +1,10 @@
 { self, pkgs, config, lib, nodeName, ... }: {
   imports = [
-    ./common.nix
-    ./consul/server.nix
-    ./nomad/server.nix
-    ./telegraf.nix
-    ./vault/server.nix
-    ./secrets.nix
+    ../profiles/prem/common.nix
+    ../profiles/prem/telegraf.nix
+    ../profiles/prem/vault/server.nix
+    ../profiles/prem/consul/server.nix
+    ../profiles/prem/nomad/server.nix
   ];
 
   services = {

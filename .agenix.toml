@@ -1,0 +1,12 @@
+[groups]
+bootstrap = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILHTOWjN6ww5xpHYKwRleCYSHBjhzj/neSNByKuoc4sc"]
+[identities]
+builder = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFy7zw9q4Cj6kZ8Xk6IfafhzhpjOH8DRwYQYfAesdd2F root@builder"
+core0 = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIG4RY3cJO2nUHqemQl/Z2lWe1UocXcPyii6Lyv+TYdkv root@core0"
+core1 = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAID9Vxe0STI0a9YQfpfI9zfSXT7M1ruqTQD7eJu/cu32j root@core1"
+core2 = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBlmZBe0d/jN7HULMhLIoPuAR6U1AoT+psipVvcy8Hny root@core2"
+work0 = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINVH/btTWyhJWQX4CbGHYQDJqnaF/LOtdcZtjQFeJMi4 root@work0"
+[[paths]]
+glob = "encrypted/*"
+groups = ["bootstrap"]
+identities = ["core0", "core1", "core2", "builder", "work0"]

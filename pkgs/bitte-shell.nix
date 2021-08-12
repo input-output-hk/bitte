@@ -32,22 +32,23 @@ in mkShell ({
   CONSUL_HTTP_ADDR = "https://consul.${domain}";
 
   buildInputs = [
-    bitte
-    nixos-rebuild
-    terraform-with-plugins
-    scaler-guard
-    sops
-    vault-bin
-    openssl
-    cfssl
-    nixfmt
+    age
+    agenix-cli
     awscli
-    nomad
+    bitte
+    cfssl
     consul
     consul-template
-    python38Packages.pyhcl
     direnv
     jq
+    nixfmt
+    nixos-rebuild
+    nomad
+    openssl
+    scaler-guard
+    sops
+    terraform-with-plugins
+    vault-bin
   ] ++ extraPackages;
 
   shellHook = ''

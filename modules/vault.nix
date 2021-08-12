@@ -141,6 +141,8 @@ let
 
   cfg = config.services.vault;
 in {
+  disabledModules = [ "services/security/vault.nix" ];
+
   options.services.vault = {
     enable = mkEnableOption "Vault daemon";
 

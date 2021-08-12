@@ -15,6 +15,8 @@ let
       > /etc/telegraf/config.toml
   '';
 in {
+  disabledModules = [ "services/monitoring/telegraf.nix" ];
+
   ###### interface
   options = {
     services.telegraf = {

@@ -1,10 +1,9 @@
-{ lib, pkgs, config, nodeName, ... }:
-let
-  inherit (lib) mapAttrsToList mkIf mkDefault;
-  inherit (config.cluster) instances region;
-in {
-  services.consul = mkIf config.services.consul.enable {
-    addresses = { http = mkDefault "127.0.0.1"; };
+{ lib, pkgs, config, nodeName, ... }: {
+  services.consul = {
+    # Should run on every machine in our cluster
+    enable = lib.mkDefault true;
+
+    addresses = { http = lib.mkDefault "127.0.0.1"; };
 
     clientAddr = "0.0.0.0";
     datacenter = region;
@@ -41,7 +40,7 @@ in {
 
     advertiseAddr = ''{{ GetInterfaceIP "ens5" }}'';
 
-    retryJoin = (mapAttrsToList (_: v: v.privateIP) instances)
+    retryJoin = (lib.mapAttrsToList (_: v: v.privateIP) instances)
       ++ [ "provider=aws region=${region} tag_key=Consul tag_value=server" ];
 
     acl = {
@@ -108,8 +107,8 @@ in {
 
   # Used for Consul Connect and requires reboot?
   boot.kernel.sysctl = {
-    "net.bridge.bridge-nf-call-arptables" = mkDefault 1;
-    "net.bridge.bridge-nf-call-ip6tables" = mkDefault 1;
-    "net.bridge.bridge-nf-call-iptables" = mkDefault 1;
+    "net.bridge.bridge-nf-call-arptables" = lib.mkDefault 1;
+    "net.bridge.bridge-nf-call-ip6tables" = lib.mkDefault 1;
+    "net.bridge.bridge-nf-call-iptables" = lib.mkDefault 1;
   };
 }

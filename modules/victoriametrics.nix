@@ -1,6 +1,8 @@
 { config, pkgs, lib, ... }:
 let cfg = config.services.victoriametrics;
 in {
+  disabledModules = [ "services/databases/victoriametrics.nix" ];
+
   options.services.victoriametrics = with lib; {
     enable = mkEnableOption "victoriametrics";
     package = mkOption {
