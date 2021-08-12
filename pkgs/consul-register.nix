@@ -20,8 +20,7 @@ let
 
     PATH="${PATH}"
 
-    VAULT_TOKEN="$(vault login -method aws -no-store -token-only)"
-    export VAULT_TOKEN
+    export VAULT_TOKEN="$(< /run/keys/vault-token)"
     CONSUL_HTTP_TOKEN="$(vault read -field token consul/creds/${creds})"
     export CONSUL_HTTP_TOKEN
 
