@@ -10,6 +10,7 @@ in {
     [ ../common.nix ../telegraf.nix ../secrets.nix ../vault/client.nix ];
 
   services.glusterfs.enable = true;
+  services.vault.enable = lib.mkForce false;
 
   services.vault-agent-core = {
     enable = true;
