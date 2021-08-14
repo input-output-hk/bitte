@@ -1,10 +1,10 @@
 { self, pkgs, config, lib, nodeName, ... }: {
   imports = [
-    ../../profiles/common.nix
-    ../../profiles/prem/telegraf.nix
-    ../../profiles/vault/server.nix
-    ../../profiles/consul/server.nix
-    ../../profiles/nomad/server.nix
+    ../../profiles/aws/common.nix
+    ../../profiles/aws/telegraf.nix
+    ../../profiles/aws/vault/server.nix
+    ../../profiles/aws/consul/server.nix
+    ../../profiles/aws/nomad/server.nix
   ];
 
   services = {
@@ -16,3 +16,4 @@
     vault-consul-token.enable = true;
   };
 }
+

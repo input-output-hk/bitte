@@ -11,7 +11,7 @@ let
 
   deage = path: "age -d -i ${./age-bootstrap} ${path}";
 
-  copyKeys = lib.forEach [ "core0" "core1" "core2" "work0" ] (machine: ''
+  copyKeys = lib.forEach [ "core0" "core1" "core2" "client0" ] (machine: ''
     key="$(${deage ../. + "/encrypted/ssh/${machine}.age"})"
 
     echo "$key" | ${ssh machine} tee /etc/ssh/ssh_host_ed25519_key
@@ -265,46 +265,11 @@ let
     sleep 60
   '';
 
-  allModules = [
-    ../../modules/age.nix
-    ../../modules/allowed-uris.nix
-    ../../modules/consul.nix
-    ../../modules/consul-policies.nix
-    ../../modules/consul-template.nix
-    ../../modules/envoy.nix
-    ../../modules/hydra-declarative.nix
-    ../../modules/hydra-evaluator.nix
-    ../../modules/hydra.nix
-    ../../modules/ingress-config.nix
-    ../../modules/ingress.nix
-    ../../modules/nomad-autoscaler.nix
-    ../../modules/nomad-namespaces.nix
-    ../../modules/nomad.nix
-    ../../modules/nomad-policies.nix
-    ../../modules/s3-download.nix
-    ../../modules/s3-upload.nix
-    ../../modules/secrets.nix
-    ../../modules/telegraf.nix
-    ../../modules/terraform.nix
-    ../../modules/vault-agent-client.nix
-    ../../modules/vault-agent-server.nix
-    ../../modules/vault-backend.nix
-    ../../modules/vault.nix
-    ../../modules/vault-policies.nix
-    ../../modules/victoriametrics.nix
-  ];
-
   cluster = (import ./cluster.nix { }).cluster;
 
   extra = name: ip: {
     users.users.root.openssh.authorizedKeys.keys =
       [ (builtins.readFile ./age-bootstrap.pub) ];
-
-    imports = allModules ++ [ ];
-
-    services.consul.bindAddr = ip;
-    services.consul.advertiseAddr = ip;
-    services.consul.addresses.http = "${ip} 127.0.0.1";
 
     networking.firewall.enable = false;
     networking.useDHCP = false;
@@ -313,7 +278,6 @@ let
       address = ip;
       prefixLength = 16;
     }];
-    services.ssm-agent.enable = false;
 
     _module.args.nodeName = name;
     _module.args.self = { inherit inputs; };
@@ -387,7 +351,7 @@ in pkgs.nixosTest {
     core1 = mkCore "core1";
     core2 = mkCore "core2";
 
-    work0 = mkWork "work0";
+    client0 = mkWork "client0";
   };
 
   testScript = ''
@@ -395,7 +359,7 @@ in pkgs.nixosTest {
     start_all()
 
     [core.wait_for_unit("sshd") for core in cores]
-    work0.wait_for_unit("sshd")
+    client0.wait_for_unit("sshd")
 
     admin.systemctl("is-system-running --wait")
     admin.log(admin.succeed("${adminScriptPreRestart}"))
@@ -422,13 +386,13 @@ in pkgs.nixosTest {
     core0.wait_for_unit("nomad-acl")
     core0.wait_for_unit("vault-acl")
 
-    work0.wait_for_unit("vault-agent")
-    work0.sleep(30)
-    work0.log(work0.succeed("journalctl -o cat -e -u vault-agent.service"))
-    work0.log(work0.succeed("bat /etc/consul.d/*"))
-    work0.log(work0.succeed("bat /etc/nomad.d/*"))
-    work0.wait_for_unit("consul")
-    work0.wait_for_unit("nomad")
+    client0.wait_for_unit("vault-agent")
+    client0.sleep(30)
+    client0.log(client0.succeed("journalctl -o cat -e -u vault-agent.service"))
+    client0.log(client0.succeed("bat /etc/consul.d/*"))
+    client0.log(client0.succeed("bat /etc/nomad.d/*"))
+    client0.wait_for_unit("consul")
+    client0.wait_for_unit("nomad")
 
     developer.log(developer.succeed("${developerScript}"))
   '';

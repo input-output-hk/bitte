@@ -40,9 +40,6 @@ in {
 
     vault = {
       enabled = true;
-      # ca_file = full;
-      # cert_file = cert;
-      # key_file = key;
       create_from_role = "nomad-cluster";
     };
 

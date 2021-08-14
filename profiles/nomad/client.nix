@@ -15,8 +15,6 @@
       };
     };
 
-    datacenter = config.asg.region;
-
     plugin.raw_exec.enabled = false;
 
     vault.address = "http://127.0.0.1:8200";
@@ -24,6 +22,7 @@
 
   system.extraDependencies = [ pkgs.pkgsStatic.busybox ];
 
+  # Nomad jobs run as nobody:nogroup
   users.extraUsers.nobody.isSystemUser = true;
   users.groups.nogroup = { };
 }

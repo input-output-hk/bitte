@@ -1,4 +1,6 @@
-{ lib, pkgs, config, nodeName, ... }: {
+{ lib, pkgs, config, nodeName, ... }:
+let inherit (config.cluster) instances region;
+in {
   services.consul = {
     # Should run on every machine in our cluster
     enable = lib.mkDefault true;
@@ -6,10 +8,8 @@
     addresses = { http = lib.mkDefault "127.0.0.1"; };
 
     clientAddr = "0.0.0.0";
-    datacenter = region;
     enableLocalScriptChecks = true;
     logLevel = "info";
-    primaryDatacenter = region;
     tlsMinVersion = "tls12";
     verifyIncoming = true;
     verifyOutgoing = true;
@@ -24,24 +24,10 @@
       disableHostname = true;
     };
 
-    nodeMeta = {
-      inherit region;
-      inherit nodeName;
-    } // (lib.optionalAttrs ((instances.${nodeName} or null) != null) {
-      inherit (instances.${nodeName}) instanceType domain;
-    });
-
     # generate deterministic UUIDs for each node so they can rejoin.
     nodeId = lib.mkIf (config.instance != null) (lib.fileContents
       (pkgs.runCommand "node-id" { buildInputs = [ pkgs.utillinux ]; }
         "uuidgen -s -n ab8c189c-e764-4103-a1a8-d355b7f2c814 -N ${nodeName} > $out"));
-
-    bindAddr = ''{{ GetInterfaceIP "ens5" }}'';
-
-    advertiseAddr = ''{{ GetInterfaceIP "ens5" }}'';
-
-    retryJoin = (lib.mapAttrsToList (_: v: v.privateIP) instances)
-      ++ [ "provider=aws region=${region} tag_key=Consul tag_value=server" ];
 
     acl = {
       enabled = true;

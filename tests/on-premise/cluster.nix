@@ -1,4 +1,6 @@
-{ ... }: {
+{ ... }:
+let hosts = (import ../../hosts { }).prem;
+in {
   age.encryptedRoot = ./encrypted;
 
   cluster = {
@@ -9,23 +11,22 @@
     instances = {
       core0 = {
         privateIP = "172.16.0.10";
-        modules = [ ../../hosts/prem/core.nix ];
+        modules = hosts.core;
       };
 
       core1 = {
         privateIP = "172.16.1.10";
-        modules = [ ../../hosts/prem/core.nix ];
+        modules = hosts.core;
       };
 
       core2 = {
         privateIP = "172.16.2.10";
-        modules = [ ../../hosts/prem/core.nix ];
+        modules = hosts.core;
       };
 
-      work0 = {
+      client0 = {
         privateIP = "172.16.3.1";
-        modules = [ ../../hosts/prem/work.nix ];
-        datacenter = "dc0";
+        modules = hosts.client;
       };
     };
   };
