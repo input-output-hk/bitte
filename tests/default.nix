@@ -85,8 +85,6 @@ let
     ### Nomad
     ###
 
-    vault secrets enable nomad
-
     for core in core{0,1,2}; do
       echo waiting for "$core" ...
       set +x
@@ -169,13 +167,17 @@ let
       vault operator raft list-peers -address "https://$core:8200"
     done
 
+    vault secrets enable -version=2 kv
+    vault secrets enable pki
+    vault secrets enable consul
+    vault secrets enable nomad
+    vault auth enable cert
     vault auth enable userpass
 
     vault write auth/userpass/users/manveru \
       password=letmein \
       policies=admin
 
-    vault auth enable cert
 
     # This policy only exists until the vault-acl service finishes running
     vault policy write bootstrap ${bootstrapVaultPolicy}
@@ -209,7 +211,6 @@ let
     CONSUL_HTTP_TOKEN="$(${deage ../encrypted/consul/token-master.age})"
     export CONSUL_HTTP_TOKEN
 
-    vault secrets enable consul
 
     vault_consul_token_response="$(
       consul acl token create \
@@ -226,12 +227,10 @@ let
       client_key="$(${deage ../encrypted/ssl/client-key.age})" \
       token="$vault_consul_token"
 
-    vault secrets enable pki
-
     vault write \
       pki/config/urls \
-      issuing_certificates="https://vault.${domain}:8200/v1/pki/ca" \
-      crl_distribution_points="https://vault.${domain}:8200/v1/pki/crl"
+      issuing_certificates="https://vault.service.consul:8200/v1/pki/ca" \
+      crl_distribution_points="https://vault.service.consul:8200/v1/pki/crl"
 
     vault write \
       pki/roles/server \
@@ -260,8 +259,36 @@ let
       generate_lease=true \
       max_ttl=12h
 
-    vault secrets enable -version=2 kv
+    export IN_NIX_SHELL=1
+    export BITTE_CLUSTER=test
+    export BITTE_DOMAIN=test.local
+    export BITTE_PROVIDER=PREM
+    export NOMAD_NAMESPACE=default
+    export VAULT_ADDR="https://core0:8200"
+    export NOMAD_ADDR="https://core0:4646"
+    export CONSUL_HTTP_ADDR="https://core0:8500"
+
+    # vault write pki/intermediate/generate/internal common_name=vault.test.local
+
+    mkdir -p secrets
+    cp ./tests/age-bootstrap secrets
+    rake secrets/ca.pem
+
+    export RUST_BACKTRACE=1
+
+    rake certs
+
+    vault write /auth/token/roles/nomad-cluster @${nomadClusterRole}
   '';
+
+  nomadClusterRole = pkgs.toPrettyJSON "nomad-cluster-role" {
+    disallowed_policies = "nomad-server,admin,core,client";
+    token_explicit_max_ttl = 0;
+    name = "nomad-cluster";
+    orphan = true;
+    token_period = 259200;
+    renewable = true;
+  };
 
   consulCheck = pkgs.writeBashChecked "consul.sh" ''
     set -exuo pipefail
@@ -276,13 +303,15 @@ let
 
   nomadJob = builtins.toFile "hello.hcl" ''
     job "test" {
+      type = "batch"
       datacenters = ["dc0"]
       group "test" {
         task "hello" {
           driver = "exec"
 
           config {
-            command = "hello"
+            flake = "git://admin:7070/#hello"
+            command = "/bin/hello"
             args = ["Hello World!"]
           }
         }
@@ -307,13 +336,22 @@ let
     consul members
     nomad agent-info
 
-    nomad job run ${nomadJob} || true
+    nomad job run ${nomadJob}
+  '';
 
-    sleep 30
+  fakeGithub = pkgs.writeText "github.rb" ''
+    require "webrick"
+    require "json"
 
-    nomad status test || true
-    id="$(nomad status test | awk '/^[a-f0-9]+/ { print $1; exit }')"
-    nomad job status "$id"
+    server = WEBrick::HTTPServer.new(Port: 9090)
+    trap('INT') { server.shutdown }
+
+    server.mount_proc "/registry.json" do |req, res|
+      res.body = {flakes: []}.to_json
+      res.status = 200
+    end
+
+    server.start
   '';
 
   clusterFile = import ../clusters/test { };
@@ -324,6 +362,24 @@ let
       common = {
         users.users.root.openssh.authorizedKeys.keys =
           [ (builtins.readFile ./age-bootstrap.pub) ];
+
+        system.extraDependencies = with pkgs; [ hello ];
+
+        nix.registry = let m = lib.mapAttrs (name: flake: { inherit flake; });
+        in m inputs // (m inputs.utils.inputs);
+
+        nix.extraOptions = ''
+          experimental-features = nix-command flakes ca-references
+          show-trace = true
+          log-lines = 100
+          flake-registry = http://admin:9090/registry.json
+        '';
+
+        # Nomad exec driver is incompatible with cgroups v2
+        systemd.enableUnifiedCgroupHierarchy = false;
+
+        virtualisation.pathsInNixDB = (builtins.attrValues inputs)
+          ++ (with pkgs; [ hello ]);
 
         services = {
           ssm-agent.enable = false;
@@ -392,8 +448,21 @@ in {
           nomad
           openssh
           vault-bin
+          git
         ];
         environment.sessionVariables = sessionVariables;
+
+        system.extraDependencies = with pkgs; [ hello ];
+
+        nix.registry = let m = lib.mapAttrs (name: flake: { inherit flake; });
+        in m inputs // (m inputs.utils.inputs);
+
+        nix.extraOptions = ''
+          experimental-features = nix-command flakes ca-references
+          show-trace = true
+          log-lines = 100
+          flake-registry = http://admin:9090/registry.json
+        '';
       };
 
       admin = { pkgs, ... }: {
@@ -410,8 +479,60 @@ in {
           vault-bin
           nixFlakes
           which
+          bitte
+          bitte-ruby
+          bitte-ruby.wrappedRuby
+          cfssl
         ];
+
+        systemd.services.fake-github = {
+          description = "Fake GitHub";
+          before = [ "bitte-ci-server.service" ];
+          wantedBy = [ "multi-user.target" ];
+          path = with pkgs; [ ruby ];
+          script = ''
+            exec ruby ${fakeGithub}
+          '';
+        };
+
         environment.sessionVariables = sessionVariables;
+
+        networking.firewall = {
+          enable = false;
+          logRefusedPackets = true;
+        };
+
+        systemd.services.git-daemon = {
+          wantedBy = [ "multi-user.target" ];
+          path = with pkgs; [ git ];
+          environment.HOME = "/root";
+          script = ''
+            set -exuo pipefail
+
+            mkdir -p repo
+            cd repo
+            cp ${./fake-flake.nix} flake.nix
+            cp ${../flake.lock} flake.lock
+
+            git config --global init.defaultBranch master
+            git config --global user.email "test@example.com"
+            git config --global user.name "Test"
+
+            git init
+            git add .
+            git commit -m 'fake'
+
+            exec git daemon \
+              --listen=0.0.0.0 \
+              --port=7070 \
+              --verbose \
+              --export-all \
+              --base-path=.git \
+              --reuseaddr \
+              --strict-paths .git/
+          '';
+        };
+
       };
 
       core0 = mkMachine "core0" { };
@@ -420,7 +541,7 @@ in {
       work0 = mkMachine "work0" { };
     };
 
-    testScript = ''
+    testScript = if true then ''
       cores = [core0, core1, core2]
       start_all()
 
@@ -428,6 +549,11 @@ in {
       work0.wait_for_unit("sshd")
 
       admin.systemctl("is-system-running --wait")
+
+      admin.wait_for_unit("git-daemon")
+
+      core0.log(core0.succeed("nix -L build --no-write-lock-file git://admin:7070/#hello"))
+
       admin.log(admin.succeed("${adminScriptPreRestart}"))
 
       [core.wait_for_unit("vault") for core in cores]
@@ -465,6 +591,14 @@ in {
       work0.wait_for_unit("nomad")
 
       developer.log(developer.succeed("${developerScript}"))
+    '' else ''
+      start_all()
+
+      admin.systemctl("is-system-running --wait")
+      admin.wait_for_unit("git-daemon")
+
+      developer.systemctl("is-system-running --wait")
+      developer.log(developer.succeed("nix -L build --no-write-lock-file git://admin:7070/#hello"))
     '';
   };
 }
