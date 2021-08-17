@@ -6,7 +6,140 @@ require 'fileutils'
 require 'toml-rb'
 require 'openssl'
 require 'json'
-require './cert'
+
+# Example usage:
+# ca_cert, ca_key = SelfSignedCertificate.ca_cert
+# server_cert, server_key = SelfSignedCertificate.server_cert(ca_cert, ca_key)
+# client_cert, client_key = SelfSignedCertificate.client_cert(ca_cert, ca_key)
+module SelfSignedCertificate
+  SERVER_EXTENSIONS = {
+    'keyUsage' => 'keyCertSign,digitalSignature,cRLSign,keyEncipherment',
+    'extendedKeyUsage' => 'serverAuth,clientAuth'
+  }.freeze
+
+  CLIENT_EXTENSIONS = {
+    'keyUsage' => 'digitalSignature',
+    'extendedKeyUsage' => 'clientAuth'
+  }.freeze
+
+  CA_EXTENSIONS = {
+    'basicConstraints' => 'CA:TRUE',
+    'keyUsage' => 'keyCertSign,cRLSign'
+  }.freeze
+
+  SUBJECT = {
+    O: 'IOHK',
+    C: 'JP',
+    ST: 'Kantō',
+    L: 'Tokyo',
+    CN: 'consul'
+  }.map { |k, v| "#{k}=#{v}" }.join ','
+
+  ALT_NAMES = %w[
+    DNS:consul.service.consul
+    DNS:vault.service.consul
+    DNS:nomad.service.consul
+    DNS:server.eu-central-1.consul
+    DNS:server.local.consul
+    DNS:vault.vit.iohk.io
+    DNS:consul.vit.iohk.io
+    DNS:nomad.vit.iohk.io
+    DNS:monitoring.vit.iohk.io
+    DNS:core0
+    DNS:core1
+    DNS:core2
+    IP:127.0.0.1
+    IP:172.16.0.10
+    IP:172.16.1.10
+    IP:172.16.2.10
+    IP:172.16.0.20
+    IP:18.192.98.58
+  ].join(',')
+
+  class << self
+    def ca_cert
+      key = OpenSSL::PKey::EC.generate 'prime256v1'
+
+      cert = OpenSSL::X509::Certificate.new
+      cert.subject = cert.issuer = subject
+      cert.public_key = key
+      cert_defaults cert, 0
+
+      ef = OpenSSL::X509::ExtensionFactory.new
+      ef.subject_certificate = ef.issuer_certificate = cert
+
+      cert.extensions = CA_EXTENSIONS.map { |k, v| ef.create_extension(k.to_s, v) }
+
+      cert.sign key, digest
+
+      [cert, key]
+    end
+
+    def client_cert(ca_cert, ca_key)
+      cert ca_cert, ca_key, CLIENT_EXTENSIONS
+    end
+
+    def server_cert(ca_cert, ca_key)
+      cert ca_cert, ca_key, SERVER_EXTENSIONS
+    end
+
+    def signing_request(key)
+      csr = OpenSSL::X509::Request.new
+      csr.version = 0
+      csr.subject = subject
+      csr.public_key = key
+      csr.sign key, digest
+
+      raise 'CSR can not be verified' unless csr.verify csr.public_key
+
+      csr
+    end
+
+    private
+
+    def digest
+      OpenSSL::Digest.new('SHA256')
+    end
+
+    def subject
+      OpenSSL::X509::Name.parse(SUBJECT)
+    end
+
+    def cert_defaults(cert, serial)
+      cert.not_after = Time.now + 5 * 3600 * 24 * 365
+      cert.not_before = Time.now
+      cert.serial = serial
+      cert.version = 2
+    end
+
+    def core_cert(serial)
+      key = OpenSSL::PKey::EC.generate 'prime256v1'
+
+      cert = OpenSSL::X509::Certificate.new
+      cert.subject = subject
+      cert.public_key = key
+      cert_defaults cert, serial
+
+      [cert, key]
+    end
+
+    def cert(ca_cert, ca_key, extensions)
+      cert, key = core_cert SecureRandom.rand(1_000_000)
+      cert.issuer = ca_cert.subject
+
+      ef = OpenSSL::X509::ExtensionFactory.new
+      ef.subject_certificate = cert
+      ef.issuer_certificate = ca_cert
+
+      cert.extensions = extensions.map { |k, v| ef.create_extension(k.to_s, v) }
+      cert.add_extension ef.create_extension('subjectAltName', ALT_NAMES)
+
+      cert.sign ca_key, digest
+
+      [cert, key]
+    end
+  end
+end
 
 # convenience methods
 module Convencience
@@ -223,6 +356,100 @@ file 'encrypted/ssl/server-full.age' => ['encrypted/ssl/server-key.age', 'encryp
         agenix_in.write [server_out, ca_out].map(&:read).join("\n")
       end
     end
+  end
+end
+
+file 'secrets/ca-key.pem' => ['encrypted/ssl/ca-key.age'] do
+  pipe 'age', '-d', '-i', skey, 'encrypted/ssl/ca-key.age' do |_, ca_out|
+    File.write('secrets/ca-key.pem', ca_out.read)
+  end
+end
+
+file 'secrets/ca.pem' => ['encrypted/ssl/ca.age'] do
+  pipe 'age', '-d', '-i', skey, 'encrypted/ssl/ca.age' do |_, ca_out|
+    File.write('secrets/ca.pem', ca_out.read)
+  end
+end
+
+file 'secrets/server.pem' => ['encrypted/ssl/server.age'] do
+  pipe 'age', '-d', '-i', skey, 'encrypted/ssl/server.age' do |_, ca_out|
+    File.write('secrets/server.pem', ca_out.read)
+  end
+end
+
+def ca_config_file
+  File.write('secrets/ca-config.json', {
+    signing: {
+      default: {
+        expiry: '87600h'
+      },
+      profiles: {
+        default: {
+          usages: ['signing', 'key encipherment', 'server auth', 'client auth'],
+          expiry: '8760h'
+        },
+
+        intermediate: {
+          usages: ['signing', 'key encipherment', 'cert sign', 'crl sign'],
+          expiry: '43800h',
+          ca_constraint: { is_ca: true }
+        }
+      }
+    }
+  }.to_json)
+
+  'secrets/ca-config.json'
+end
+
+task certs: ['secrets/ca.pem', 'secrets/ca-key.pem', 'secrets/server.pem'] do
+  ca_pem_orig = File.read('secrets/ca.pem')
+  ca_pem = ca_pem_orig.strip
+  server_pem_orig = File.read('secrets/server.pem')
+  server_pem = server_pem_orig.strip
+
+  pipe(
+    'vault',
+    'write',
+    'pki/intermediate/generate/internal',
+    "common_name=vault.#{ENV.fetch('BITTE_DOMAIN')}"
+  ) do |_, vault_out|
+    output = vault_out.read
+    csr = JSON.parse(output).fetch('data').fetch('csr')
+    File.write('secrets/issuing-ca.csr', csr)
+  end
+
+  pipe(
+    'cfssl',
+    'sign',
+    '-ca',
+    'secrets/ca.pem',
+    '-ca-key',
+    'secrets/ca-key.pem',
+    '-hostname',
+    'vault.service.consul',
+    '-config',
+    ca_config_file,
+    '-profile',
+    'intermediate',
+    'secrets/issuing-ca.csr'
+  ) do |_, cfssl_out|
+    output = cfssl_out.read
+    pp output
+    issuing_csr_container = JSON.parse(output)
+    issuing_pem = issuing_csr_container.fetch('cert').strip
+
+    File.write('secrets/issuing.pem', issuing_pem)
+    File.write('secrets/issuing_full.pem', [issuing_pem, ca_pem].join("\n"))
+
+    system(
+      'vault',
+      'write',
+      'pki/intermediate/set-signed',
+      'certificate=@secrets/issuing_full.pem'
+    )
+
+    full = [server_pem, issuing_pem, ca_pem].join("\n")
+    File.write('secrets/full.pem', full)
   end
 end
 

@@ -11,6 +11,7 @@
 
   services = {
     vault-agent-client.enable = true;
+    vault.enable = false;
     nomad.enable = true;
     telegraf.extraConfig.global_tags.role = "consul-client";
     zfs-client-options.enable = true;

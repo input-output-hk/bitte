@@ -1136,9 +1136,9 @@ in {
               "-plugin-dir"
               (toString cfg.pluginDir)
             ]);
-          script = pkgs.writeShellScript "nomad" ''
-              # TODO: caching this
-              set -euo pipefail
+          script = pkgs.writeBashChecked "nomad" ''
+            # TODO: caching this vault token
+            set -euo pipefail
 
             ${lib.optionalString cfg.server.enabled ''
               VAULT_TOKEN="$(< /run/keys/vault-token)"
@@ -1148,14 +1148,12 @@ in {
               export VAULT_TOKEN="$token"
             ''}
 
-              ${
-                lib.optionalString config.services.vault-agent-core.enable ''
-                  CONSUL_HTTP_TOKEN_FILE="$PWD/nomad-consul-token"
-                  export CONSUL_HTTP_TOKEN_FILE
-                ''
-              }
+            ${lib.optionalString config.services.vault-agent-core.enable ''
+              CONSUL_HTTP_TOKEN_FILE="$PWD/nomad-consul-token"
+              export CONSUL_HTTP_TOKEN_FILE
+            ''}
 
-              exec ${lib.concatStringsSep " " args}
+            exec ${lib.concatStringsSep " " args}
           '';
         in "@${script} nomad";
 

@@ -19,7 +19,7 @@
 
     plugin.raw_exec.enabled = false;
 
-    vault.address = "http://active.vault.service.consul:8200";
+    vault.address = "http://vault.service.consul:8200";
   };
 
   system.extraDependencies = [ pkgs.pkgsStatic.busybox ];
