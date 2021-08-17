@@ -56,14 +56,16 @@
       packages = { bitte, cfssl, consul, cue, glusterfs, grafana-loki, haproxy
         , haproxy-auth-request, haproxy-cors, nixFlakes, nomad, nomad-autoscaler
         , oauth2-proxy, sops, terraform-with-plugins, vault-backend, vault-bin
-        , ci-env }@pkgs:
+        , ci-env, bitte-tests }@pkgs:
         pkgs;
 
       hydraJobs = { bitte, cfssl, consul, cue, glusterfs, grafana-loki, haproxy
         , haproxy-auth-request, haproxy-cors, nixFlakes, nomad, nomad-autoscaler
         , oauth2-proxy, sops, terraform-with-plugins, vault-backend, vault-bin
-        , ci-env, mkRequired }@pkgs:
-        let constituents = builtins.removeAttrs pkgs [ "mkRequired" ];
+        , ci-env, mkRequired, bitte-tests }@pkgs:
+        let
+          constituents = (builtins.removeAttrs pkgs [ "mkRequired" ])
+            // pkgs.bitte-tests;
         in constituents // { required = mkRequired constituents; };
 
       apps = { bitte }: {

@@ -1120,8 +1120,6 @@ in {
         start-pre = pkgs.writeShellScript "nomad-start-pre" ''
           PATH="${lib.makeBinPath [ pkgs.coreutils pkgs.busybox ]}"
           set -exuo pipefail
-          cp /etc/ssl/certs/cert-key.pem .
-          cp /run/keys/vault-token .
           ${lib.optionalString config.services.vault-agent-core.enable ''
             cp /run/keys/nomad-consul-token .
           ''}
@@ -1143,7 +1141,7 @@ in {
               set -euo pipefail
 
             ${lib.optionalString cfg.server.enabled ''
-              VAULT_TOKEN="$(< vault-token)"
+              VAULT_TOKEN="$(< /run/keys/vault-token)"
               export VAULT_TOKEN
 
               token="$(vault token create -policy ${cfg.tokenPolicy} -period 72h -orphan -field token)"

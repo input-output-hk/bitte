@@ -125,8 +125,7 @@ let
       # TODO: remove duplication
       (runIf config.services.nomad.enable {
         template = {
-          command =
-            "${pkgs.systemd}/bin/systemctl try-reload-or-restart nomad.service";
+          command = "${pkgs.systemd}/bin/systemctl try-restart nomad.service";
           destination = "/etc/nomad.d/consul-token.json";
           contents = ''
             {
@@ -140,8 +139,7 @@ let
 
       (runIf config.services.nomad.enable {
         template = {
-          command =
-            "${pkgs.systemd}/bin/systemctl try-reload-or-restart nomad.service";
+          command = "${pkgs.systemd}/bin/systemctl try-restart nomad.service";
           destination = "/run/keys/nomad-consul-token";
           contents = ''
             {{- with secret "consul/creds/nomad-server" }}{{ .Data.token }}{{ end -}}
@@ -181,10 +179,8 @@ in {
 
       environment = {
         inherit (config.environment.variables) AWS_DEFAULT_REGION;
-        VAULT_FORMAT = "json";
-        VAULT_CACERT = "/etc/ssl/certs/full.pem";
-        CONSUL_HTTP_ADDR = "127.0.0.1:8500";
         CONSUL_CACERT = config.age.secrets.consul-ca.path;
+        CONSUL_HTTP_ADDR = "127.0.0.1:8500";
       };
 
       path = with pkgs; [ vault-bin ];
@@ -192,9 +188,19 @@ in {
       serviceConfig = {
         Restart = "always";
         RestartSec = "30s";
-        ExecStart =
-          "@${pkgs.vault-bin}/bin/vault vault-agent agent -config ${vaultAgentConfig}";
       };
+
+      script = ''
+        set -exuo pipefail
+        echo "======================"
+        ls -la /var/lib/vault/
+        echo address = ${config.services.vault-agent-core.vaultAddress}
+        echo ca_cert = ${config.age.secrets.vault-ca.path}
+        echo client_cert = ${config.age.secrets.vault-client.path}
+        echo client_key = ${config.age.secrets.vault-client-key.path}
+        echo "======================"
+        exec ${pkgs.vault-bin}/bin/vault agent -config ${vaultAgentConfig}
+      '';
     };
   };
 }

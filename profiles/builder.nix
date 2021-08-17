@@ -11,30 +11,31 @@ in {
     };
   };
 
-  systemd.services.ssh-post-start = {
-    after = [ "sshd.service" ];
-    wantedBy = lib.optional config.services.nomad.enable "nomad.service";
-    requiredBy = lib.optional config.services.nomad.enable "nomad.service";
+  systemd.services.ssh-post-start =
+    lib.mkIf ((config.cluster.instances.monitoring or null) != null) {
+      after = [ "sshd.service" ];
+      wantedBy = lib.optional config.services.nomad.enable "nomad.service";
+      requiredBy = lib.optional config.services.nomad.enable "nomad.service";
 
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      Restart = "on-failure";
-      RestartSec = "20s";
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        Restart = "on-failure";
+        RestartSec = "20s";
+      };
+
+      path = with pkgs; [ coreutils openssh ];
+
+      script = ''
+        set -exuo pipefail
+
+        ssh \
+          -o NumberOfPasswordPrompts=0 \
+          -o StrictHostKeyChecking=accept-new \
+          -i /etc/nix/builder-key \
+          builder@${config.cluster.instances.monitoring.privateIP} echo 'trust established'
+      '';
     };
-
-    path = with pkgs; [ coreutils openssh ];
-
-    script = ''
-      set -exuo pipefail
-
-      ssh \
-        -o NumberOfPasswordPrompts=0 \
-        -o StrictHostKeyChecking=accept-new \
-        -i /etc/nix/builder-key \
-        builder@${config.cluster.instances.monitoring.privateIP} echo 'trust established'
-    '';
-  };
 
   nix = {
     distributedBuilds = isAsg;

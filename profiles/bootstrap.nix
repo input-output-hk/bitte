@@ -136,7 +136,6 @@ in {
       };
 
     systemd.services.vault-setup = lib.mkIf config.services.vault.enable {
-      after = [ "consul-acl.service" "vault-consul-token.service" ];
       wantedBy = [ "multi-user.target" ];
 
       serviceConfig = {
@@ -144,8 +143,6 @@ in {
         RemainAfterExit = true;
         Restart = "on-failure";
         RestartSec = "20s";
-        ExecStartPre =
-          pkgs.ensureDependencies [ "consul-acl" "vault-consul-token" ];
       };
 
       environment = {
@@ -297,11 +294,7 @@ in {
     };
 
     systemd.services.vault-bootstrap = lib.mkIf config.services.vault.enable {
-      after = [
-        "consul-initial-tokens.service"
-        "vault.service"
-        "vault-consul-token.service"
-      ];
+      after = [ "vault.service" ];
       wantedBy = [ "multi-user.target" ];
 
       serviceConfig = {
@@ -309,11 +302,8 @@ in {
         RemainAfterExit = true;
         Restart = "on-failure";
         RestartSec = "20s";
-        ExecStartPre = pkgs.ensureDependencies [
-          "consul-initial-tokens"
-          "vault"
-          "vault-consul-token"
-        ];
+        ExecStartPre =
+          pkgs.ensureDependencies [ "consul-initial-tokens" "vault" ];
       };
 
       environment = {

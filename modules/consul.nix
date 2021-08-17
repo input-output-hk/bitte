@@ -432,11 +432,14 @@ in {
           start-post = pkgs.writeShellScriptBin "consul-start-post" ''
             set -exuo pipefail
             PATH="${lib.makeBinPath [ pkgs.jq cfg.package pkgs.coreutils ]}"
-            set +x
-            CONSUL_HTTP_TOKEN="$(< /run/keys/consul-default-token)"
-            export CONSUL_HTTP_TOKEN
-            set -x
-            while ! consul info &>/dev/null; do sleep 3; done
+
+            if [ -s /run/keys/consul-default-token ]; then
+              set +x
+              CONSUL_HTTP_TOKEN="$(< /run/keys/consul-default-token)"
+              export CONSUL_HTTP_TOKEN
+              set -x
+              while ! consul info &>/dev/null; do sleep 3; done
+            fi
           '';
         in "!${start-post}/bin/consul-start-post";
 

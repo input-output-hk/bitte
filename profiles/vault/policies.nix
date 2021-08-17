@@ -21,6 +21,7 @@ in {
       "sys/policies/acl/nomad-cluster".capabilities = [ u ];
       "sys/policies/acl/nomad-server".capabilities = [ u ];
       "sys/policies/acl/vault-agent-core".capabilities = [ u ];
+      "sys/policies/acl/vault-agent-client".capabilities = [ u ];
     };
 
     vault-agent-core.path = {
@@ -34,6 +35,25 @@ in {
 
     vault-agent-client.path = {
       "auth/token/create".capabilities = [ c r u d l s ];
+      "auth/token/create/nomad-cluster".capabilities = [ u ];
+      "auth/token/create/nomad-server".capabilities = [ u ];
+      "auth/token/lookup".capabilities = [ u ];
+      "auth/token/lookup-self".capabilities = [ r ];
+      "auth/token/renew-self".capabilities = [ u ];
+      "auth/token/revoke-accessor".capabilities = [ u ];
+      "auth/token/roles/nomad-cluster".capabilities = [ r ];
+      "auth/token/roles/nomad-server".capabilities = [ r ];
+      "consul/creds/consul-agent".capabilities = [ r ];
+      "consul/creds/consul-default".capabilities = [ r ];
+      "consul/creds/consul-register".capabilities = [ r ];
+      "consul/creds/nomad-client".capabilities = [ r ];
+      "consul/creds/vault-client".capabilities = [ r ];
+      "kv/data/bootstrap/clients/*".capabilities = [ r ];
+      "kv/data/nomad-cluster/*".capabilities = [ r l ];
+      "kv/metadata/nomad-cluster/*".capabilities = [ r l ];
+      "pki/issue/client".capabilities = [ c u ];
+      "pki/roles/client".capabilities = [ r ];
+      "sys/capabilities-self".capabilities = [ u ];
     };
 
     admin.path = {

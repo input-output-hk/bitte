@@ -2,6 +2,8 @@
 let
   configs = inputs.self.nixosConfigurations;
 
+  domain = "test.local";
+
   ssh = host: ''
     ssh ${host} \
       -i ./age-bootstrap \
@@ -69,6 +71,55 @@ let
     }
   '';
 
+  adminScriptNomad = pkgs.writeBashChecked "admin-nomad.sh" ''
+    set -euo pipefail
+
+    pushd bitte
+
+    VAULT_TOKEN="$(jq < /tmp/vault-bootstrap -e -r '.root_token')"
+    export VAULT_TOKEN
+
+    set -x
+
+    ###
+    ### Nomad
+    ###
+
+    vault secrets enable nomad
+
+    for core in core{0,1,2}; do
+      echo waiting for "$core" ...
+      set +x
+      until nc -z -v "$core" 4646; do sleep 1; done
+      set -x
+    done
+
+    curl https://core0:4646/v1/acl/bootstrap --cacert /tmp/full.pem -f -s -X POST > /tmp/nomad-bootstrap.json
+    NOMAD_TOKEN="$(jq < /tmp/nomad-bootstrap.json -r -e .SecretID)"
+    export NOMAD_TOKEN
+
+    # TODO: replace with renewable tokens in vault-agent
+    echo "$NOMAD_TOKEN" | ${ssh "core0"} tee /var/lib/nomad/bootstrap.token
+    echo "$NOMAD_TOKEN" | ${ssh "core0"} tee /var/lib/vault/nomad_token
+
+    export NOMAD_ADDR=https://core0:4646
+    export NOMAD_CAPATH=/tmp/ca.pem
+    export NOMAD_CLIENT_CERT=/tmp/client.pem
+    export NOMAD_CLIENT_KEY=/tmp/client-key.pem
+
+    nomad_vault_token="$(
+      nomad acl token create -type management \
+      | awk '/Secret ID/ { print $4 }'
+    )"
+
+    vault write nomad/config/access \
+      address="https://127.0.0.1:4646" \
+      token="$nomad_vault_token" \
+      ca_cert="$(< /tmp/ca.pem)" \
+      client_cert="$(< /tmp/client.pem)" \
+      client_key="$(< /tmp/client-key.pem)"
+  '';
+
   adminScriptPostRestart = pkgs.writeBashChecked "admin-post.sh" ''
     set -exuo pipefail
 
@@ -76,14 +127,15 @@ let
 
     ${ssh "core0"} vault operator init | tee /tmp/vault-bootstrap
 
-    readarray -t keys < <(jq < /tmp/vault-bootstrap -e -r '.unseal_keys_b64[0,1,2]')
+    readarray -t unseal_keys < <(jq < /tmp/vault-bootstrap -e -r '.unseal_keys_b64[0,1,2]')
+
     VAULT_TOKEN="$(jq < /tmp/vault-bootstrap -e -r '.root_token')"
     export VAULT_TOKEN
 
     set +xe
     for core in core0 core1 core2; do
       echo "Unsealing $core"
-      for key in "''${keys[@]}"; do
+      for key in "''${unseal_keys[@]}"; do
         result=9
         until [ "$result" -eq 0 ]; do
           echo "Unsealing $core with $key"
@@ -175,45 +227,40 @@ let
       token="$vault_consul_token"
 
     vault secrets enable pki
+
+    vault write \
+      pki/config/urls \
+      issuing_certificates="https://vault.${domain}:8200/v1/pki/ca" \
+      crl_distribution_points="https://vault.${domain}:8200/v1/pki/crl"
+
+    vault write \
+      pki/roles/server \
+      key_type=ec \
+      key_bits=256 \
+      allow_any_name=true \
+      enforce_hostnames=false \
+      generate_lease=true \
+      max_ttl=72h
+
+    vault write \
+      pki/roles/client \
+      key_type=ec \
+      key_bits=256 \
+      allow_any_name=true \
+      enforce_hostnames=false \
+      generate_lease=true \
+      max_ttl=223h
+
+    vault write \
+      pki/roles/admin \
+      key_type=ec \
+      key_bits=256 \
+      allow_any_name=true \
+      enforce_hostnames=false \
+      generate_lease=true \
+      max_ttl=12h
+
     vault secrets enable -version=2 kv
-
-    ###
-    ### Nomad
-    ###
-
-    vault secrets enable nomad
-
-    for core in core{0,1,2}; do
-      echo waiting for "$core" ...
-      set +x
-      until nc -z -v "$core" 4646; do sleep 1; done
-      set -x
-    done
-
-    curl https://core0:4646/v1/acl/bootstrap --cacert /tmp/full.pem -f -s -X POST > /tmp/nomad-bootstrap.json
-    NOMAD_TOKEN="$(jq < /tmp/nomad-bootstrap.json -r -e .SecretID)"
-    export NOMAD_TOKEN
-
-    # TODO: replace with renewable tokens in vault-agent
-    echo "$NOMAD_TOKEN" | ${ssh "core0"} tee /var/lib/nomad/bootstrap.token
-    echo "$NOMAD_TOKEN" | ${ssh "core0"} tee /var/lib/vault/nomad_token
-
-    export NOMAD_ADDR=https://core0:4646
-    export NOMAD_CAPATH=/tmp/ca.pem
-    export NOMAD_CLIENT_CERT=/tmp/client.pem
-    export NOMAD_CLIENT_KEY=/tmp/client-key.pem
-
-    nomad_vault_token="$(
-      nomad acl token create -type management \
-      | awk '/Secret ID/ { print $4 }'
-    )"
-
-    vault write nomad/config/access \
-      address="https://127.0.0.1:4646" \
-      token="$nomad_vault_token" \
-      ca_cert="$(< /tmp/ca.pem)" \
-      client_cert="$(< /tmp/client.pem)" \
-      client_key="$(< /tmp/client-key.pem)"
   '';
 
   consulCheck = pkgs.writeBashChecked "consul.sh" ''
@@ -260,53 +307,57 @@ let
     consul members
     nomad agent-info
 
-    nomad job run ${nomadJob}
+    nomad job run ${nomadJob} || true
 
-    sleep 60
+    sleep 30
+
+    nomad status test || true
+    id="$(nomad status test | awk '/^[a-f0-9]+/ { print $1; exit }')"
+    nomad job status "$id"
   '';
-
-  # cluster = import ../lib/clusters.nix {
-  #   inherit pkgs lib;
-  #   root = ../.;
-  #   self = inputs.self;
-  #   _module.args.nodeName = "core0";
-  #   _module.args.self = { inherit inputs; };
-  # };
 
   clusterFile = import ../clusters/test { };
   inherit (clusterFile) cluster;
-  extra = name: ip: {
-    users.users.root.openssh.authorizedKeys.keys =
-      [ (builtins.readFile ./age-bootstrap.pub) ];
+  mkMachine = name: extra:
+    let
+      ip = cluster.instances.${name}.privateIP;
+      common = {
+        users.users.root.openssh.authorizedKeys.keys =
+          [ (builtins.readFile ./age-bootstrap.pub) ];
 
-    services.consul.bindAddr = ip;
-    services.consul.advertiseAddr = ip;
-    services.consul.addresses.http = "${ip} 127.0.0.1";
+        services = {
+          ssm-agent.enable = false;
+          consul = {
+            bindAddr = ip;
+            advertiseAddr = ip;
+            addresses.http = "${ip} 127.0.0.1";
+          };
+          nomad.client.network_interface = "eth1";
+        };
 
-    networking.firewall.enable = false;
-    networking.useDHCP = false;
-    networking.firewall.logRefusedPackets = true;
-    networking.interfaces.eth1.ipv4.addresses = [{
-      address = ip;
-      prefixLength = 16;
-    }];
-    services.ssm-agent.enable = false;
+        networking = {
+          useDHCP = false;
+          defaultGateway = ip;
 
-    _module.args.nodeName = name;
-    _module.args.self = { inherit inputs; };
-  };
+          firewall = {
+            enable = false;
+            logRefusedPackets = true;
+          };
 
-  mkCore = name: {
-    imports =
-      [ ../clusters/test (extra name cluster.instances.${name}.privateIP) ]
-      ++ cluster.instances.${name}.modules;
-  };
+          interfaces.eth1.ipv4.addresses = [{
+            address = ip;
+            prefixLength = 16;
+          }];
 
-  mkWork = name: {
-    imports =
-      [ ../clusters/test (extra name cluster.instances.${name}.privateIP) ]
-      ++ cluster.instances.${name}.modules;
-  };
+        };
+
+        _module.args.nodeName = name;
+        _module.args.self = { inherit inputs; };
+      };
+    in {
+      imports = [ ../clusters/test common ]
+        ++ cluster.instances.${name}.modules;
+    };
 
   sessionVariables = {
     VAULT_ADDR = "https://core0:8200";
@@ -363,11 +414,10 @@ in {
         environment.sessionVariables = sessionVariables;
       };
 
-      core0 = mkCore "core0";
-      core1 = mkCore "core1";
-      core2 = mkCore "core2";
-
-      work0 = mkWork "work0";
+      core0 = mkMachine "core0" { };
+      core1 = mkMachine "core1" { };
+      core2 = mkMachine "core2" { };
+      work0 = mkMachine "work0" { };
     };
 
     testScript = ''
@@ -381,9 +431,13 @@ in {
       admin.log(admin.succeed("${adminScriptPreRestart}"))
 
       [core.wait_for_unit("vault") for core in cores]
+
       [core.wait_for_open_port("8200") for core in cores]
 
       admin.log(admin.succeed("${adminScriptPostRestart}"))
+      admin.log(admin.succeed("${adminScriptNomad}"))
+
+      [core.wait_for_unit("consul") for core in cores]
 
       [core.log(core.succeed("vault status")) for core in cores]
 
@@ -403,10 +457,10 @@ in {
       core0.wait_for_unit("vault-acl")
 
       work0.wait_for_unit("vault-agent")
-      work0.sleep(30)
-      work0.log(work0.succeed("journalctl -o cat -e -u vault-agent.service"))
+
       work0.log(work0.succeed("bat /etc/consul.d/*"))
       work0.log(work0.succeed("bat /etc/nomad.d/*"))
+
       work0.wait_for_unit("consul")
       work0.wait_for_unit("nomad")
 

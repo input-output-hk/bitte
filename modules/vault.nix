@@ -326,9 +326,6 @@ in {
     };
   };
 
-  options.services.vault-consul-token.enable =
-    lib.mkEnableOption "Enable Vault Consul Token";
-
   config = lib.mkIf cfg.enable {
     environment.systemPackages = [ pkgs.vault-bin ];
 
@@ -350,11 +347,7 @@ in {
         (lib.filterAttrs (n: _: lib.hasPrefix "${cfg.configDir}" n)
           config.environment.etc);
 
-      unitConfig = {
-        RequiresMountsFor = [ cfg.storagePath ];
-        StartLimitInterval = "60s";
-        StartLimitBurst = 3;
-      };
+      unitConfig = { RequiresMountsFor = [ cfg.storagePath ]; };
 
       startLimitBurst = 3;
       startLimitIntervalSec = 0;
@@ -375,7 +368,7 @@ in {
         ExecStart =
           "@${pkgs.vault-bin}/bin/vault vault server -config /etc/${cfg.configDir}";
 
-        ExecStartPost = "!${postScript}/bin/vault-start-post";
+        # ExecStartPost = "!${postScript}/bin/vault-start-post";
         KillSignal = "SIGINT";
 
         StateDirectory = baseNameOf cfg.storagePath;
