@@ -1,4 +1,4 @@
-{ lib, buildGoModule, fetchFromGitHub, fetchurl, nixosTests }:
+{ pkgs, lib, buildGoModule, fetchFromGitHub, fetchurl, nixosTests }:
 
 buildGoModule rec {
   pname = "consul";
@@ -20,7 +20,15 @@ buildGoModule rec {
     sha256 = "sha256-oap0pXqtIbT9wMfD/RuJ2tTRynSvfzsgL8TyY4nj3sM=";
   };
 
-  patches = [ ./script-check.patch ];
+  patches = [
+    ./script-check.patch
+    # Fix no envoy upstream listener issue specific to Consul v1.10.1
+    (if version == "1.10.1" then (pkgs.fetchpatch {
+      name = "consul-issue-10714-patch";
+      url = "https://github.com/hashicorp/consul/commit/3e2ec34409babda7f625889f3620c9d3810521fc.patch";
+      sha256 = "sha256-H+LhhISrM829yn93SfIsJzD0JgTPfPoBIzfZ30TLIek=";
+    }) else null)
+  ];
 
   passthru.tests.consul = nixosTests.consul;
 
