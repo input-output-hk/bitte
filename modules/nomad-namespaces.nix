@@ -46,8 +46,10 @@ in {
         };
 
         environment = {
-          inherit (config.environment.variables) NOMAD_ADDR;
-          CURL_CA_BUNDLE = "/etc/ssl/certs/full.pem";
+          NOMAD_ADDR = "https://127.0.0.1:4646";
+          NOMAD_CAPATH = config.age.secrets.nomad-ca.path;
+          NOMAD_CLIENT_CERT = config.age.secrets.nomad-client.path;
+          NOMAD_CLIENT_KEY = config.age.secrets.nomad-client-key.path;
         };
 
         path = with pkgs; [ nomad jq ];

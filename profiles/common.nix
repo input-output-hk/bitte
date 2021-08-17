@@ -21,21 +21,24 @@
 
   environment = {
     systemPackages = with pkgs; [
+      awscli
       bat
       bind
+      cfssl
       di
       fd
       file
       gitMinimal
       htop
-      inetutils
       iptables
       jq
+      (lib.lowPrio inetutils)
       lsof
       ncdu
       nettools
       openssl
       ripgrep
+      sops
       tcpdump
       tmux
       tree
@@ -73,6 +76,8 @@
       allowPing = lib.mkDefault true;
     };
 
+    # each host gets mapped in the /etc/hosts
+    # we also map vault.service.consul here for bootstrapping purposes
     extraHosts = let
       instances =
         (lib.mapAttrsToList (name: instance: "${instance.privateIP} ${name}")

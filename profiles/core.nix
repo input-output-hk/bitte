@@ -14,19 +14,19 @@
     promtail.enable = lib.mkForce false;
     telegraf.enable = lib.mkForce false;
 
+    consul.enable = lib.mkDefault true;
+    consul.enableDebug = lib.mkDefault true;
+
+    vault.enable = true;
     vault-agent-core.enable = true;
-    vault.enable = lib.mkDefault true;
-    # nomad.enable = true;
+
     # telegraf.extraConfig.global_tags.role = "consul-server";
-    # vault-consul-token.enable = true;
 
-    nomad.enable = lib.mkForce true;
-    consul.enableDebug = lib.mkDefault false;
-
-    nomad-acl.enable = nodeName == "core0";
-    consul-acl.enable = nodeName == "core0";
-    vault-acl.enable = nodeName == "core0";
-  };
-
-  environment.systemPackages = with pkgs; [ sops awscli cfssl tcpdump ];
+    nomad.enable = true;
+  } // (lib.optionalAttrs (nodeName == "core0") {
+    nomad-acl.enable = true;
+    consul-acl.enable = true;
+    vault-acl.enable = true;
+    nomad-namespaces.enable = true;
+  });
 }

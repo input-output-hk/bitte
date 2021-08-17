@@ -17,16 +17,15 @@ in {
       apiAddr = "https://${instance.privateIP}:8200";
 
       storage.raft = let
-        vcfg = config.services.vault.listener.tcp;
-        instances = lib.filterAttrs (k: v: lib.hasPrefix "core" k)
+        coreInstances = lib.filterAttrs (k: v: lib.hasPrefix "core" k)
           config.cluster.instances;
       in {
-        retryJoin = lib.mapAttrsToList (name: instance: {
-          leaderApiAddr = "https://${instance.privateIP}:8200";
+        retryJoin = lib.mapAttrsToList (name: core: {
+          leaderApiAddr = "https://${core.privateIP}:8200";
           leaderCaCertFile = config.age.secrets.vault-ca.path;
           leaderClientCertFile = config.age.secrets.vault-client.path;
           leaderClientKeyFile = config.age.secrets.vault-client-key.path;
-        }) instances;
+        }) coreInstances;
       };
 
       disableMlock = true;

@@ -216,7 +216,7 @@ in {
         systemctl try-reload-or-restart consul.service
 
         if curl -s -k https://127.0.0.1:4646/v1/status/leader &> /dev/null; then
-          systemctl try-reload-or-restart nomad.service
+          systemctl restart nomad.service
         else
           systemctl start nomad.service
         fi
@@ -231,9 +231,9 @@ in {
 
       environment = {
         inherit (config.environment.variables) AWS_DEFAULT_REGION;
-        VAULT_FORMAT = "json";
-        VAULT_ADDR = "https://vault.${domain}";
         CONSUL_HTTP_ADDR = "127.0.0.1:8500";
+        VAULT_ADDR = "https://vault.service.consul:8200";
+        VAULT_FORMAT = "json";
         VAULT_SKIP_VERIFY = "true";
       };
 
