@@ -123,7 +123,7 @@ let
             }
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart consul";
+          command = "${pkgs.systemd}/bin/systemctl try-restart consul";
         };
       })
 
@@ -135,7 +135,7 @@ let
             {{ with secret "consul/creds/consul-default" }}{{ .Data.token }}{{ end }}
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart consul.service";
+          command = "${pkgs.systemd}/bin/systemctl try-restart consul.service";
         };
       })
 
@@ -204,7 +204,7 @@ in {
         # minimum
         sleep 10
 
-        systemctl try-reload-or-restart consul.service
+        systemctl try-restart consul.service
 
         if curl -s -k https://127.0.0.1:4646/v1/status/leader &> /dev/null; then
           systemctl try-reload-or-restart nomad.service
