@@ -22,6 +22,8 @@ buildGoModule rec {
 
   patches = [
     ./script-check.patch
+    # Fix no http protocol upgrades through envoy
+    ./consul-issue-9639.patch
     # Fix no envoy upstream listener issue specific to Consul v1.10.1
     (if version == "1.10.1" then (pkgs.fetchpatch {
       name = "consul-issue-10714-patch";
