@@ -25,6 +25,10 @@
       url = "github:input-output-hk/nomad/release-1.1.3";
       flake = false;
     };
+    ipxe-source = {
+      url = "github:ipxe/ipxe";
+      flake = false;
+    };
 
     ## workaround until https://github.com/NixOS/nix/pull/4641 is merged
     hydra.inputs.nixpkgs.follows = "nixpkgs";
@@ -42,6 +46,22 @@
       } // {
         inherit (utils.lib) simpleFlake;
       };
+
+      ipxeSystem = let nodeName = "deployer";
+      in inputs.nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        modules = [
+          ({
+            nixpkgs.overlays =
+              [ bitte-cli.overlay (import ./overlay.nix inputs) ];
+            _module.args.self = self;
+          })
+          (inputs.nixpkgs
+            + /nixos/modules/installer/netboot/netboot-minimal.nix)
+          ./profiles/deployer.nix
+        ];
+      };
+
     in lib.simpleFlake rec {
       inherit lib nixpkgs;
 
@@ -56,8 +76,8 @@
       packages = { bitte, cfssl, consul, cue, glusterfs, grafana-loki, haproxy
         , haproxy-auth-request, haproxy-cors, nixFlakes, nomad, nomad-autoscaler
         , oauth2-proxy, sops, terraform-with-plugins, vault-backend, vault-bin
-        , ci-env, bitte-tests }@pkgs:
-        pkgs;
+        , ci-env, bitte-tests, ipxe }@pkgs:
+        (pkgs // { inherit ipxeSystem; });
 
       hydraJobs = { bitte, cfssl, consul, cue, glusterfs, grafana-loki, haproxy
         , haproxy-auth-request, haproxy-cors, nixFlakes, nomad, nomad-autoscaler

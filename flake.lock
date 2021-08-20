@@ -152,6 +152,22 @@
         "type": "github"
       }
     },
+    "ipxe-source": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1627390236,
+        "narHash": "sha256-Sv0oCYG8hboT1DLqBz0ZAv3VPE6Igp4DJH2Ql8z2m0U=",
+        "owner": "ipxe",
+        "repo": "ipxe",
+        "rev": "e09e1142a3bd8bdb702efc92994c419a53e9933b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ipxe",
+        "repo": "ipxe",
+        "type": "github"
+      }
+    },
     "lowdown-src": {
       "flake": false,
       "locked": {
@@ -490,6 +506,7 @@
         "deploy": "deploy",
         "hydra": "hydra",
         "hydra-provisioner": "hydra-provisioner",
+        "ipxe-source": "ipxe-source",
         "nix": "nix_2",
         "nixpkgs": "nixpkgs_9",
         "nixpkgs-terraform": "nixpkgs-terraform",
