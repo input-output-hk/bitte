@@ -61,17 +61,6 @@ in {
       https = 8501;
       http = 8500;
     };
-
-    extraConfig = {
-      configEntries = [{
-        bootstrap = [{
-          kind = "proxy-defaults";
-          name = "global";
-          config = [{ protocol = "http"; }];
-          meshGateway = [{ mode = "local"; }];
-        }];
-      }];
-    };
   };
 
   services.dnsmasq = {
