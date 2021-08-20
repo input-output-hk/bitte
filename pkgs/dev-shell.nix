@@ -26,5 +26,7 @@ mkShellNoCC {
     ssm-session-manager-plugin
     terraform-with-plugins
     vault-bin
+    crystal
+    pkg-config
   ];
 }

@@ -39,6 +39,20 @@ in final: prev: {
     gemdir = ./.;
   };
 
+  ipxe = prev.callPackage ./pkgs/ipxe.nix {
+    src = inputs.ipxe-source;
+    embedScript = prev.writeText "ipxe" ''
+      #!ipxe
+
+      echo iPXE boot
+      echo CPU: ''${cpuvendor} ''${cpumodel}
+      ifstat ||
+      dhcp ||
+      route ||
+      chain -ar http://192.168.178.30:8080/path:/home/manveru/github/input-output-hk/bitte/ipxeSystem/netboot.ipxe
+    '';
+  };
+
   consul = prev.callPackage ./pkgs/consul { };
 
   cue = prev.callPackage ./pkgs/cue.nix { };
