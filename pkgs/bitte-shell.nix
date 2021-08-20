@@ -60,7 +60,14 @@ in mkShell ({
       git commit --no-gpg-sign -m "add empty .cache.json"
       git update-index --assume-unchanged $cache
     fi
-
+    export ROLE=$(
+      [ "''${BITTE_SHELL_GET_ADMIN_TOKENS:-false}" = "true" ] \
+        && echo "admin" \
+        || echo "developer" \
+    )
+    echo "Obtaining and exporting Consul and Nomad $ROLE tokens"
+    export CONSUL_HTTP_TOKEN="$(vault read -field token consul/creds/$ROLE)"
+    export NOMAD_TOKEN="$(vault read -field secret_id nomad/creds/$ROLE)"
   '';
 } // (lib.optionalAttrs (caCert != null) {
   CONSUL_CACERT = caCert;
