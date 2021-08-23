@@ -401,10 +401,6 @@ in {
           enableScriptChecks;
       });
 
-    environment.etc."${cfg.configDir}/extra-config.json".source =
-      mkIf (cfg.extraConfig != null)
-      (pkgs.toPrettyJSON "config" (sanitize cfg.extraConfig));
-
     systemd.services.consul = {
       wantedBy = [ "multi-user.target" ];
       after = [ "network.target" ];

@@ -73,7 +73,7 @@ let
             {{ end }}{{ end }}
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart certs-updated.service";
+          command = "${pkgs.systemd}/bin/systemctl try-restart certs-updated.service";
         };
       }
 
@@ -86,8 +86,6 @@ let
             {{ range .Data.ca_chain }}{{ . }}
             {{ end }}{{ end }}
           '';
-
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart certs-updated.service";
         };
       }
 
@@ -98,8 +96,6 @@ let
           contents = ''
             {{ with secret ${pkiSecret} }}{{ .Data.private_key }}{{ end }}
           '';
-
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart certs-updated.service";
         };
       }
 
@@ -187,30 +183,25 @@ in {
         RemainAfterExit = true;
         Restart = "on-failure";
         RestartSec = "20s";
-        ExecStartPre = writeShellScript "wait-for-certs" ''
-          set -exuo pipefail
-
-             test -f /etc/ssl/certs/full.pem \
-          && test -f /etc/ssl/certs/cert.pem \
-          && test -f /etc/ssl/certs/cert-key.pem
-        '';
       };
 
       script = ''
-        set -xu
+        set -exuo pipefail
 
-        # this service will be invoked 3 times in short succession, so we try
-        # to run this only once per certificate change to keep restarts to a
-        # minimum
-        sleep 10
+        test -f /etc/ssl/certs/.last_restart || touch -d '2020-01-01' /etc/ssl/certs/.last_restart
+        [ /etc/ssl/certs/full.pem -nt /etc/ssl/certs/.last_restart ]
+        [ /etc/ssl/certs/cert.pem -nt /etc/ssl/certs/.last_restart ]
+        [ /etc/ssl/certs/cert-key.pem -nt /etc/ssl/certs/.last_restart ]
 
         systemctl try-restart consul.service
 
         if curl -s -k https://127.0.0.1:4646/v1/status/leader &> /dev/null; then
-          systemctl try-reload-or-restart nomad.service
+          systemctl try-restart nomad.service
         else
           systemctl start nomad.service
         fi
+
+        touch /etc/ssl/certs/.last_restart
       '';
     };
 

@@ -29,4 +29,8 @@ in {
       };
     };
   };
+
+  systemd.services.nomad.environment = {
+    CONSUL_HTTP_ADDR = "http://127.0.0.1:8500";
+  };
 }
