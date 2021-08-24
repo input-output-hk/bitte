@@ -273,7 +273,10 @@ in {
       dns_challenge.provider = "route53";
     };
 
-    resource.null_resource = lib.flip lib.mapAttrs' config.cluster.instances
+    # Provision the LE certificates
+    resource.null_resource = lib.flip lib.mapAttrs'
+      (lib.flip lib.filterAttrs config.cluster.instances (name: server:
+        (lib.hasPrefix "routing" name) || lib.hasPrefix "monitoring" name))
       (name: server:
         lib.nameValuePair "${name}-files" {
           triggers = {
