@@ -1057,7 +1057,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate({syslog_identifier=\"systemd-coredump\"}[1h])) by (host)",
+          "expr": "sum(rate({syslog_identifier=\"systemd-coredump\"}[1h] != \"sshd\" |= \"dumped core\")) by (host)",
           "legendFormat": "{{host}}",
           "refId": "A"
         }
