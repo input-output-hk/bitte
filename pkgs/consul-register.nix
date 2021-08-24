@@ -17,6 +17,7 @@ let
 
   common = ''
     set -euo pipefail
+    set +x
 
     PATH="${PATH}"
 
@@ -39,9 +40,15 @@ in rec {
   '';
 
   register = writeShellScriptBin "${service.name}-register" ''
-    ${common}
-    consul services register ${serviceJson}
-    while true; do sleep 1440; done
+    while true; do
+      if ! consul acl token read -self &> /dev/null; then
+        ${common}
+      fi
+
+      consul services register ${serviceJson}
+
+      sleep 60
+    done
   '';
 
   systemdService = {
