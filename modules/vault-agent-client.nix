@@ -73,7 +73,8 @@ let
             {{ end }}{{ end }}
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl try-restart certs-updated.service";
+          command =
+            "${pkgs.systemd}/bin/systemctl try-restart certs-updated.service";
         };
       }
 
@@ -161,7 +162,8 @@ let
             {{ end }}
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart vault.service";
+          command =
+            "${pkgs.systemd}/bin/systemctl try-reload-or-restart vault.service";
         };
       })
 
@@ -176,6 +178,8 @@ in {
 
   config = mkIf config.services.vault-agent-client.enable {
     systemd.services.certs-updated = {
+      wantedBy = [ "multi-user.target" ];
+      after = [ "vault-agent.service" ];
       path = with pkgs; [ coreutils curl systemd ];
 
       serviceConfig = {
