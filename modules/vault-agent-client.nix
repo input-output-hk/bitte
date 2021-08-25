@@ -135,38 +135,6 @@ let
           command = "${pkgs.systemd}/bin/systemctl try-restart consul.service";
         };
       })
-
-      (runIf config.services.vault.enable {
-        template = {
-          destination = "/etc/vault.d/consul-token.json";
-
-          contents = ''
-            {{ with secret "consul/creds/vault-client" }}
-            {
-              "storage": {
-                "consul": {
-                  "token": "{{ .Data.token }}",
-                  "address": "127.0.0.1:8500",
-                  "tlsCaFile": "/etc/ssl/certs/full.pem",
-                  "tlsCertFile": "/etc/ssl/certs/cert.pem",
-                  "tlsKeyFile": "/var/lib/vault/cert-key.pem"
-                }
-              },
-              "service_registration": {
-                "consul": {
-                  "token": "{{ .Data.token }}",
-                  "address": "127.0.0.1:8500",
-                }
-              }
-            }
-            {{ end }}
-          '';
-
-          command =
-            "${pkgs.systemd}/bin/systemctl try-reload-or-restart vault.service";
-        };
-      })
-
     ];
   };
 
