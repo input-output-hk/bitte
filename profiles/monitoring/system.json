@@ -1005,7 +1005,7 @@
         "handler": 1,
         "message": "Detected a coredump. This usually requires attention and most likely manual intervention.\nTo analyze a coredump, run `coredumpctl list` on the affected machine, and run `coredump debug $id` in a nix shell with gdb.",
         "name": "Coredumps alert",
-        "noDataState": "no_data",
+        "noDataState": "ok",
         "notifications": []
       },
       "aliasColors": {},
