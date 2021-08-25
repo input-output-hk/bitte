@@ -135,6 +135,16 @@ let
           command = "${pkgs.systemd}/bin/systemctl try-restart consul.service";
         };
       })
+
+      (runIf config.services.nomad.enable {
+        template = {
+          command = "${pkgs.systemd}/bin/systemctl restart nomad.service";
+          destination = "/run/keys/nomad-consul-token";
+          contents = ''
+            {{- with secret "consul/creds/consul-default" }}{{ .Data.token }}{{ end -}}
+          '';
+        };
+      })
     ];
   };
 
