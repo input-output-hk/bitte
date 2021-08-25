@@ -17,5 +17,12 @@ in {
     enable = true;
     server = true;
     ui = true;
+
+    acl = {
+      enabled = true;
+      defaultPolicy = "deny";
+      enableTokenPersistence = true;
+      downPolicy = "extend-cache";
+    };
   };
 }

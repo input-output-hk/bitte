@@ -44,13 +44,6 @@ in {
     retryJoin = (mapAttrsToList (_: v: v.privateIP) instances)
       ++ [ "provider=aws region=${region} tag_key=Consul tag_value=server" ];
 
-    acl = {
-      enabled = true;
-      defaultPolicy = "deny";
-      enableTokenPersistence = true;
-      downPolicy = "extend-cache";
-    };
-
     connect = {
       enabled = true;
       caProvider = "consul";
