@@ -3,7 +3,24 @@ let
   inherit (config.cluster) region instances;
   inherit (lib) optional optionalAttrs;
 in {
-  systemd.services.telegraf.path = with pkgs; [ procps ];
+  systemd.services = {
+    telegraf.path = with pkgs; [ procps ];
+  } // (lib.optionalAttrs config.services.vulnix.enable {
+    ${config.services.vulnix.systemdServiceName} = {
+      postStart = let
+        inherit (config.services.telegraf.extraConfig.inputs.http_listener_v2)
+          service_address path;
+        address =
+          (lib.optionalString (lib.hasPrefix ":" service_address) "127.0.0.1") +
+          service_address;
+      in ''
+        curl --no-progress-meter \
+          -XPOST http://${address}${path} \
+          --data-binary @$RUNTIME_DIRECTORY/report.json
+      '';
+      path = [ pkgs.curl ];
+    };
+  });
 
   services.telegraf = {
     enable = true;
@@ -93,7 +110,35 @@ in {
         };
       } // (optionalAttrs config.services.ingress.enable {
         haproxy = { servers = [ "http://127.0.0.1:1936/haproxy?stats" ]; };
+      }) // (optionalAttrs config.services.vulnix.enable {
+        http_listener_v2 = {
+          service_address = ":8008";
+          path = "/vulnix";
+          methods = [ "POST" ];
+          data_source = "body";
+
+          data_format = "json";
+          tag_keys = [ "pname" "version" ];
+
+          name_override = "vulnerability";
+        };
       });
+
+      processors.starlark = [ {
+        namepass = [ "vulnerability" ];
+
+        # XXX replace with regex processor
+        # once https://github.com/influxdata/telegraf/pull/9561 is merged
+        source = ''
+          def apply(metric):
+              for k, v in metric.fields.items():
+                  if k.startswith("cvssv3_basescore_"):
+                      metric.fields.pop(k)
+                      metric.fields["score"] = v
+                      metric.tags["cve"] = k[len("cvssv3_basescore_CVE-"):]
+              return metric
+        '';
+      } ];
 
       # Store data in VictoriaMetrics
       outputs = {
