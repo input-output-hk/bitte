@@ -142,7 +142,6 @@ let
 
       (runIf config.services.nomad.enable {
         template = {
-          command = "${pkgs.systemd}/bin/systemctl restart nomad.service";
           destination = "/run/keys/nomad-consul-token";
           contents = ''
             {{ with secret "consul/creds/vault-client" }}
