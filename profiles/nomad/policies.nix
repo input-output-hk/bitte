@@ -56,7 +56,7 @@
 
       namespace.default = {
         policy = "scale";
-        capabilities = ["read-job"];
+        capabilities = [ "read-job" ];
       };
 
       node.policy = "write";

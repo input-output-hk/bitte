@@ -1,0 +1,16 @@
+diff --git i/agent/xds/listeners.go w/agent/xds/listeners.go
+index 4e528cf73..9c33a2079 100644
+--- i/agent/xds/listeners.go
++++ w/agent/xds/listeners.go
+@@ -1598,6 +1598,11 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error)
+ 			// sampled.
+ 			RandomSampling: &envoy_type_v3.Percent{Value: 0.0},
+ 		},
++		UpgradeConfigs: []*envoy_http_v3.HttpConnectionManager_UpgradeConfig{
++			{
++				UpgradeType: "websocket",
++			},
++		},
+ 	}
+ 
+ 	if opts.useRDS {

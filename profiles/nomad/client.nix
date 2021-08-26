@@ -22,6 +22,10 @@
     vault.address = "http://127.0.0.1:8200";
   };
 
+  systemd.services.nomad.environment = {
+    CONSUL_HTTP_ADDR = "http://127.0.0.1:8500";
+  };
+
   system.extraDependencies = [ pkgs.pkgsStatic.busybox ];
 
   users.extraUsers.nobody.isSystemUser = true;

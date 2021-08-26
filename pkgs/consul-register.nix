@@ -17,12 +17,18 @@ let
 
   common = ''
     set -euo pipefail
+    set +x
 
     PATH="${PATH}"
 
-    VAULT_TOKEN="$(vault login -method aws -no-store -token-only)"
-    export VAULT_TOKEN
-    CONSUL_HTTP_TOKEN="$(vault read -field token consul/creds/${creds})"
+    export VAULT_TOKEN="$(< /run/keys/vault-token)"
+    CONSUL_HTTP_TOKEN="$(
+      vault read \
+        -tls-skip-verify \
+        -address https://active.vault.service.consul:8200 \
+        -field token \
+        consul/creds/${creds}
+    )"
     export CONSUL_HTTP_TOKEN
 
     set -x
@@ -34,9 +40,15 @@ in rec {
   '';
 
   register = writeShellScriptBin "${service.name}-register" ''
-    ${common}
-    consul services register ${serviceJson}
-    while true; do sleep 1440; done
+    while true; do
+      if ! consul acl token read -self &> /dev/null; then
+        ${common}
+      fi
+
+      consul services register ${serviceJson}
+
+      sleep 60
+    done
   '';
 
   systemdService = {
@@ -55,7 +67,6 @@ in rec {
       RestartSec = "15s";
       ExecStart = "${register}/bin/${service.name}-register";
       ExecStopPost = "${deregister}/bin/${service.name}-deregister";
-      DynamicUser = true;
     } // extraServiceConfig;
   };
 }

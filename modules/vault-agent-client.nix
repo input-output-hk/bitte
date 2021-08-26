@@ -73,7 +73,8 @@ let
             {{ end }}{{ end }}
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart certs-updated.service";
+          command =
+            "${pkgs.systemd}/bin/systemctl try-restart certs-updated.service";
         };
       }
 
@@ -111,8 +112,8 @@ let
             {
               "encrypt": "{{ with secret "kv/bootstrap/clients/consul" }}{{ .Data.data.encrypt }}{{ end }}",
               "acl": {
-                "default_policy": "${config.services.consul.acl.defaultPolicy}",
-                "down_policy": "${config.services.consul.acl.downPolicy}",
+                "default_policy": "deny",
+                "down_policy": "extend-cache",
                 "enable_token_persistence": true,
                 "enabled": true,
                 "tokens": {
@@ -139,10 +140,10 @@ let
         };
       })
 
-      (runIf config.services.vault.enable {
+      (runIf config.services.nomad.enable {
         template = {
-          destination = "/etc/vault.d/consul-token.json";
-
+          command = "${pkgs.systemd}/bin/systemctl restart nomad.service";
+          destination = "/run/keys/nomad-consul-token";
           contents = ''
             {{ with secret "consul/creds/vault-client" }}
             {
@@ -168,7 +169,6 @@ let
           command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart vault.service";
         };
       })
-
     ];
   };
 
@@ -180,6 +180,8 @@ in {
 
   config = mkIf config.services.vault-agent-client.enable {
     systemd.services.certs-updated = {
+      wantedBy = [ "multi-user.target" ];
+      after = [ "vault-agent.service" ];
       path = with pkgs; [ coreutils curl systemd ];
 
       serviceConfig = {
@@ -187,22 +189,15 @@ in {
         RemainAfterExit = true;
         Restart = "on-failure";
         RestartSec = "20s";
-        ExecStartPre = writeShellScript "wait-for-certs" ''
-          set -exuo pipefail
-
-             test -f /etc/ssl/certs/full.pem \
-          && test -f /etc/ssl/certs/cert.pem \
-          && test -f /etc/ssl/certs/cert-key.pem
-        '';
       };
 
       script = ''
-        set -xu
+        set -exuo pipefail
 
-        # this service will be invoked 3 times in short succession, so we try
-        # to run this only once per certificate change to keep restarts to a
-        # minimum
-        sleep 10
+        test -f /etc/ssl/certs/.last_restart || touch -d '2020-01-01' /etc/ssl/certs/.last_restart
+        [ /etc/ssl/certs/full.pem -nt /etc/ssl/certs/.last_restart ]
+        [ /etc/ssl/certs/cert.pem -nt /etc/ssl/certs/.last_restart ]
+        [ /etc/ssl/certs/cert-key.pem -nt /etc/ssl/certs/.last_restart ]
 
         systemctl try-reload-or-restart consul.service
 
@@ -211,6 +206,8 @@ in {
         else
           systemctl start nomad.service
         fi
+
+        touch /etc/ssl/certs/.last_restart
       '';
     };
 

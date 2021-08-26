@@ -76,7 +76,6 @@
       "datasource": "VictoriaMetrics",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "links": []
         },
         "overrides": []
@@ -107,7 +106,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.3.5",
+      "pluginVersion": "7.5.9",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -129,7 +128,8 @@
           "fill": true,
           "line": true,
           "op": "gt",
-          "value": 90
+          "value": 90,
+          "visible": true
         }
       ],
       "timeFrom": null,
@@ -218,7 +218,6 @@
       "datasource": "VictoriaMetrics",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "links": []
         },
         "overrides": []
@@ -249,7 +248,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.3.5",
+      "pluginVersion": "7.5.9",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -271,7 +270,8 @@
           "fill": true,
           "line": true,
           "op": "gt",
-          "value": 90
+          "value": 90,
+          "visible": true
         }
       ],
       "timeFrom": null,
@@ -360,7 +360,6 @@
       "datasource": "VictoriaMetrics",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "links": []
         },
         "overrides": []
@@ -391,7 +390,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.3.5",
+      "pluginVersion": "7.5.9",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -414,7 +413,8 @@
           "fill": true,
           "line": true,
           "op": "gt",
-          "value": 80
+          "value": 80,
+          "visible": true
         }
       ],
       "timeFrom": null,
@@ -503,7 +503,6 @@
       "datasource": "VictoriaMetrics",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "links": []
         },
         "overrides": []
@@ -534,7 +533,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.3.5",
+      "pluginVersion": "7.5.9",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -557,7 +556,8 @@
           "fill": true,
           "line": true,
           "op": "gt",
-          "value": 90
+          "value": 90,
+          "visible": true
         }
       ],
       "timeFrom": null,
@@ -611,7 +611,6 @@
       "description": "Bandwidth in SI units, bits per second (bps).\nPositive values are ingress, negative are egress.\nBandwidth is time averaged over a 1 minute window.",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "links": []
         },
         "overrides": []
@@ -642,7 +641,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.3.5",
+      "pluginVersion": "7.5.9",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -716,7 +715,6 @@
       "description": "Disk activity, time averaged over a 1 minute window.\nPositive values are disk reads, negative are disk writes.",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "links": []
         },
         "overrides": []
@@ -747,7 +745,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.3.5",
+      "pluginVersion": "7.5.9",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -877,7 +875,6 @@
       "description": "[https://deadmanssnitch.com](https://deadmanssnitch.com)\n* This panel should ALWAYS be in alerting state\n* This enables Deadman's Snitch to report when this monitoring server dies",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "links": []
         },
         "overrides": []
@@ -908,7 +905,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.3.5",
+      "pluginVersion": "7.5.9",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -930,7 +927,8 @@
           "fill": true,
           "line": true,
           "op": "gt",
-          "value": 0
+          "value": 0,
+          "visible": true
         }
       ],
       "timeFrom": null,
@@ -972,17 +970,158 @@
         "align": false,
         "alignLevel": null
       }
+    },
+    {
+      "alert": {
+        "alertRuleTags": {},
+        "conditions": [
+          {
+            "evaluator": {
+              "params": [
+                0
+              ],
+              "type": "gt"
+            },
+            "operator": {
+              "type": "and"
+            },
+            "query": {
+              "params": [
+                "A",
+                "5m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "params": [],
+              "type": "max"
+            },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "5m",
+        "frequency": "1m",
+        "handler": 1,
+        "message": "Detected a coredump. This usually requires attention and most likely manual intervention.\nTo analyze a coredump, run `coredumpctl list` on the affected machine, and run `coredump debug $id` in a nix shell with gdb.",
+        "name": "Coredumps alert",
+        "noDataState": "ok",
+        "notifications": []
+      },
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Loki",
+      "description": "Rate of coredumps per host",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 26
+      },
+      "hiddenSeries": false,
+      "id": 19,
+      "legend": {
+        "alignAsTable": false,
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "rightSide": false,
+        "show": true,
+        "sideWidth": null,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.5.9",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": true,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "sum(rate({syslog_identifier=\"systemd-coredump\"}[1h] != \"sshd\" |= \"dumped core\")) by (host)",
+          "legendFormat": "{{host}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [
+        {
+          "colorMode": "critical",
+          "fill": true,
+          "line": true,
+          "op": "gt",
+          "value": 0,
+          "visible": true
+        }
+      ],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Coredumps",
+      "tooltip": {
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
     }
   ],
   "refresh": "1m",
-  "schemaVersion": 26,
+  "schemaVersion": 27,
   "style": "dark",
   "tags": [],
   "templating": {
     "list": []
   },
   "time": {
-    "from": "now-24h",
+    "from": "now-12h",
     "to": "now"
   },
   "timepicker": {

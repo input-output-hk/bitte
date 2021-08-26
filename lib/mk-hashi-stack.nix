@@ -124,8 +124,7 @@ in lib.makeScope pkgs.newScope (self:
     nomadJobs = recursiveCallPackage (flake + "/jobs") prod-pkgs.callPackage;
 
     dockerImages = let
-      images =
-        recursiveCallPackage (flake + "/docker") prod-pkgs.callPackages;
+      images = recursiveCallPackage (flake + "/docker") prod-pkgs.callPackages;
     in lib.mapAttrs imageAttrToCommands images;
 
     push-docker-images = callPackage push-docker-images { };
@@ -143,14 +142,11 @@ in lib.makeScope pkgs.newScope (self:
     nixosConfigurations = pkgs.mkNixosConfigurations self.clusters;
 
     hydraJobs.x86_64-linux = let
-      nixosConfigurations = lib.mapAttrs (_: { config, ... }:
-        config.system.build.toplevel) self.nixosConfigurations;
+      nixosConfigurations =
+        lib.mapAttrs (_: { config, ... }: config.system.build.toplevel)
+        self.nixosConfigurations;
     in nixosConfigurations // {
-      nixosConfigurations = pkgs.releaseTools.aggregate {
-        name = "nixosConfigurations";
-        constituents = builtins.attrValues nixosConfigurations;
-        meta.description = "All NixOS Configurations";
-      };
+      required = pkgs.mkRequired nixosConfigurations;
     };
   })
 

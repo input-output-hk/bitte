@@ -522,6 +522,17 @@ in {
             depend on this value being set.
           '';
 
+          heartbeat_grace = mkOption {
+            type = str;
+            default = "30s";
+            description = ''
+              Specifies the additional time given as a grace period beyond the
+              heartbeat TTL of nodes to account for network and processing delays as
+              well as clock skew. This is specified using a label suffix like
+              "30s" or "1h".
+            '';
+          };
+
           server_join = mkOption {
             type = serverJoinType;
             default = { };
@@ -1101,10 +1112,7 @@ in {
         git
       ];
 
-      environment = mkIf config.services.consul.enable {
-        CONSUL_HTTP_ADDR = "http://127.0.0.1:8500";
-        # certificates get rotated often, we got no way to update them while
-        # the jobs are running...
+      environment = {
         VAULT_SKIP_VERIFY = "true";
         HOME = "/var/lib/nomad";
       };
@@ -1116,9 +1124,6 @@ in {
           # ${pkgs.ensureDependencies [ "consul" "vault" ]}
           cp /etc/ssl/certs/cert-key.pem .
           cp /run/keys/vault-token .
-          ${lib.optionalString config.services.vault-agent-core.enable ''
-            cp /run/keys/nomad-consul-token .
-          ''}
           chown --reference . *.pem
         '';
       in {
@@ -1144,12 +1149,9 @@ in {
             export VAULT_TOKEN="$token"
           ''}
 
-          ${lib.optionalString config.services.vault-agent-core.enable ''
-            CONSUL_HTTP_TOKEN_FILE="$PWD/nomad-consul-token"
-            export CONSUL_HTTP_TOKEN_FILE
-          ''}
-
-          exec ${lib.concatStringsSep " " args}
+          exec ${
+            lib.concatStringsSep " " args
+          } -consul-token "$(< /run/keys/nomad-consul-token)"
         '';
 
         KillMode = "process";

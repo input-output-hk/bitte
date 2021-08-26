@@ -24,7 +24,6 @@
   boot.cleanTmpDir = true;
 
   time.timeZone = "UTC";
-  networking.firewall.enable = false;
 
   disabledModules = [ "virtualisation/amazon-image.nix" ];
   networking = { hostId = "9474d585"; };

@@ -3,12 +3,13 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-21.05";
-    nixpkgs-terraform.url = "github:input-output-hk/nixpkgs/iohk-terraform-2021-06";
+    nixpkgs-terraform.url =
+      "github:input-output-hk/nixpkgs/iohk-terraform-2021-06";
     utils.url = "github:kreisys/flake-utils";
-    bitte-cli.url = "github:input-output-hk/bitte-cli";
-    hydra.url = "github:NixOS/hydra";
-    hydra.inputs.nixpkgs.url = "nixpkgs/nixos-21.05-small";
+    bitte-cli.url = "github:input-output-hk/bitte-cli/v0.2.2";
+    hydra.url = "github:kreisys/hydra/hydra-server-includes";
     hydra-provisioner.url = "github:input-output-hk/hydra-provisioner";
+    deploy.url = "github:serokell/deploy-rs";
     ops-lib = {
       url = "github:input-output-hk/ops-lib";
       flake = false;
@@ -18,69 +19,65 @@
       flake = false;
     };
     nomad-source = {
-      url = "github:input-output-hk/nomad/release-1.1.1";
+      url = "github:input-output-hk/nomad/release-1.1.3";
       flake = false;
     };
+
+    ## workaround until https://github.com/NixOS/nix/pull/4641 is merged
+    hydra.inputs.nixpkgs.follows = "nixpkgs";
+    ## /workaround
+
     nix.url = "github:NixOS/nix";
   };
 
-  outputs = { self, hydra, hydra-provisioner, nixpkgs, utils, bitte-cli, ... }@inputs:
-  let
-    lib = import ./lib { inherit (nixpkgs) lib; }
-      // { inherit (utils.lib) simpleFlake; };
-  in lib.simpleFlake rec {
-    inherit lib nixpkgs;
+  outputs =
+    { self, hydra, hydra-provisioner, nixpkgs, utils, bitte-cli, ... }@inputs:
+    let
+      lib = import ./lib {
+        inherit (nixpkgs) lib;
+        inherit inputs;
+      } // {
+        inherit (utils.lib) simpleFlake;
+      };
+    in lib.simpleFlake rec {
+      inherit lib nixpkgs;
 
-    systems = [ "x86_64-linux" ];
+      systems = [ "x86_64-linux" ];
 
-    preOverlays = [ bitte-cli hydra-provisioner hydra ];
-    overlay = import ./overlay.nix inputs;
-    config.allowUnfree = true; # for ssm-session-manager-plugin
+      preOverlays = [ bitte-cli hydra-provisioner hydra ];
+      overlay = import ./overlay.nix inputs;
+      config.allowUnfree = true; # for ssm-session-manager-plugin
 
-    shell = { devShell }: devShell;
+      shell = { devShell }: devShell;
 
-    packages = {
-      bitte
-    , cfssl
-    , consul
-    , cue
-    , glusterfs
-    , grafana-loki
-    , haproxy
-    , haproxy-auth-request
-    , haproxy-cors
-    , nixFlakes
-    , nomad
-    , nomad-autoscaler
-    , oauth2_proxy
-    , sops
-    , ssm-agent
-    , terraform-with-plugins
-    , vault-backend
-    , vault-bin
-    , ci-env
-    }@pkgs: pkgs;
+      packages = { bitte, cfssl, consul, cue, glusterfs, grafana-loki, haproxy
+        , haproxy-auth-request, haproxy-cors, nixFlakes, nomad, nomad-autoscaler
+        , oauth2-proxy, sops, ssm-agent, terraform-with-plugins, vault-backend
+        , vault-bin, ci-env }@pkgs:
+        pkgs;
 
-    hydraJobs = packages;
+      hydraJobs = { bitte, cfssl, consul, cue, glusterfs, grafana-loki, haproxy
+        , haproxy-auth-request, haproxy-cors, nixFlakes, nomad, nomad-autoscaler
+        , oauth2-proxy, sops, ssm-agent, terraform-with-plugins, vault-backend
+        , vault-bin, ci-env, mkRequired }@pkgs:
+        let constituents = builtins.removeAttrs pkgs [ "mkRequired" ];
+        in constituents // { required = mkRequired constituents; };
 
-    apps = { bitte }: {
-      bitte = utils.lib.mkApp { drv = bitte; };
-      defaultApp = utils.lib.mkApp { drv = bitte; };
+      apps = { bitte }: {
+        bitte = utils.lib.mkApp { drv = bitte; };
+        defaultApp = utils.lib.mkApp { drv = bitte; };
+      };
+
+      nixosModules = (lib.mkModules ./modules) // {
+        hydra-provisioner = hydra-provisioner.nixosModule;
+      };
+
+      # Nix supports both singular `nixosModule` and plural `nixosModules`
+      # so I use the singular as a `defaultNixosModule` that won't spew a warning.
+      nixosModule.imports = builtins.attrValues self.nixosModules;
+
+      # Outputs that aren't directly supported by simpleFlake can go here
+      # instead of having to doubleslash.
+      extraOutputs = { profiles = lib.mkModules ./profiles; };
     };
-
-    nixosModules = (lib.mkModules ./modules) // {
-      inherit (hydra.nixosModules) hydra;
-      hydra-provisioner = hydra-provisioner.nixosModule;
-    };
-
-    # Nix supports both singular `nixosModule` and plural `nixosModules`
-    # so I use the singular as a `defaultNixosModule` that won't spew a warning.
-    nixosModule.imports = builtins.attrValues self.nixosModules;
-
-    # Outputs that aren't directly supported by simpleFlake can go here
-    # instead of having to doubleslash.
-    extraOutputs = {
-      profiles = lib.mkModules ./profiles;
-    };
-  };
 }

@@ -47,9 +47,12 @@ in {
     };
 
     consul = {
-      address = "127.0.0.1:${toString config.services.consul.ports.http}";
-      ssl = false;
+      address = "127.0.0.1:${toString config.services.consul.ports.https}";
+      ssl = true;
       allow_unauthenticated = true;
+      ca_file = full;
+      cert_file = cert;
+      key_file = key;
     };
 
     telemetry = {

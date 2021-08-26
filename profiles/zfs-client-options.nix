@@ -33,7 +33,7 @@ in {
         '';
       };
 
-      enableZfsArcMaxControl= mkOption {
+      enableZfsArcMaxControl = mkOption {
         type = bool;
         default = true;
         description = ''
@@ -54,7 +54,7 @@ in {
         '';
       };
 
-      enableZfsScrub= mkOption {
+      enableZfsScrub = mkOption {
         type = bool;
         default = true;
         description = "Enable client ZFS scrubbing";
@@ -129,7 +129,9 @@ in {
             RAM_TOTAL_BYTES="$(($(grep -E '^MemTotal' /proc/meminfo | awk '{ print $2 }') * 1024))"
             echo "Total RAM bytes available: $RAM_TOTAL_BYTES"
 
-            USE_ARC_MAX_PERCENT="${if cfg.useArcMaxPercent then "true" else "false"}"
+            USE_ARC_MAX_PERCENT="${
+              if cfg.useArcMaxPercent then "true" else "false"
+            }"
 
             if [ "$USE_ARC_MAX_PERCENT" = "true" ]; then
               RAM_ZFS_ARC_MAX_PERCENT="${toString cfg.arcMaxPercent}"
@@ -176,6 +178,24 @@ in {
             echo "ZFS arcstat post adjustments:"
             grep -E '^c |^c_min|^c_max|^size' /proc/spl/kstat/zfs/arcstats
             arcstat
+            echo " "
+          '';
+        };
+
+        zfs-snapshot-enable = mkIf cfg.enableZfsSnapshots {
+          serviceConfig.Type = "oneshot";
+          path = [ pkgs.zfs ];
+          script = ''
+            set -euo pipefail
+            echo "The current state of zfs autosnapshots is:"
+            zfs get com.sun:auto-snapshot
+            echo " "
+            zfs set com.sun:auto-snapshot=true tank
+            echo "The new state of zfs autosnapshots is:"
+            zfs get com.sun:auto-snapshot
+            echo " "
+            echo "The current size of existing zfs snapshots is:"
+            zfs list -o space -t filesystem,snapshot
             echo " "
           '';
         };

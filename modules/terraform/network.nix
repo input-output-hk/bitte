@@ -13,23 +13,24 @@ let
   # https://docs.aws.amazon.com/vpc/latest/peering/peering-configurations-full-access.html#one-to-many-vpcs-full-access
 
   # Generate a region sorted list with the assumption of only 1 vpc per region
-  vpcRegions = lib.unique (lib.sort (a: b: a < b) (mapVpcsToList (vpc: vpc.region)));
+  vpcRegions =
+    lib.unique (lib.sort (a: b: a < b) (mapVpcsToList (vpc: vpc.region)));
 
   # The following definitions prepare a mesh of unique peeringPairs,
-  # each with a connector and acceptor.  The following is an example of
+  # each with a connector and accepter.  The following is an example of
   # a vpcRegions input list and a peeringPairs output list:
   #
   # vpcRegions = [ "us-east-2" "eu-central-1" "eu-west-1" ]
   # peeringPairs = [
-  #   { connector = "eu-central-1"; acceptor = "eu-west-1"; }
-  #   { connector = "eu-central-1"; acceptor = "us-east-2"; }
-  #   { connector = "eu-west-1";    acceptor = "us-east-2"; }
+  #   { connector = "eu-central-1"; accepter = "eu-west-1"; }
+  #   { connector = "eu-central-1"; accepter = "us-east-2"; }
+  #   { connector = "eu-west-1";    accepter = "us-east-2"; }
   # ]
 
   regionPeeringPairs = vpcs: connector: index:
-    map (acceptor: {
+    map (accepter: {
       connector = connector;
-      acceptor = acceptor;
+      accepter = accepter;
     }) (lib.drop (index + 1) vpcs);
   peeringPairs = lib.flatten
     (lib.imap0 (i: connector: regionPeeringPairs vpcRegions connector i)
@@ -40,7 +41,8 @@ let
 in {
   tf.network.configuration = {
     terraform.backend.http = let
-      vbk = "https://vbk.infra.aws.iohkdev.io/state/${config.cluster.name}/network";
+      vbk =
+        "https://vbk.infra.aws.iohkdev.io/state/${config.cluster.name}/network";
     in {
       address = vbk;
       lock_address = vbk;
@@ -117,14 +119,14 @@ in {
                   innerVpc.region
                 else
                   vpc.region;
-                acceptor = if innerVpc.region > vpc.region then
+                accepter = if innerVpc.region > vpc.region then
                   innerVpc.region
                 else
                   vpc.region;
               in nullRoute // {
                 cidr_block = innerVpc.cidr;
                 vpc_peering_connection_id = id
-                  "aws_vpc_peering_connection.${connector}-connect-${acceptor}";
+                  "aws_vpc_peering_connection.${connector}-connect-${accepter}";
               }));
 
         tags = tags // {
@@ -173,17 +175,17 @@ in {
           Region = vpc.region;
         };
       }) // (mapVpcPeers (link:
-        lib.nameValuePair "${link.connector}-connect-${link.acceptor}" {
+        lib.nameValuePair "${link.connector}-connect-${link.accepter}" {
           provider = awsProviderFor link.connector;
           vpc_id = id "aws_vpc.${link.connector}";
-          peer_vpc_id = id "aws_vpc.${link.acceptor}";
+          peer_vpc_id = id "aws_vpc.${link.accepter}";
           peer_owner_id = var "data.aws_caller_identity.core.account_id";
-          peer_region = link.acceptor;
+          peer_region = link.accepter;
           auto_accept = false;
           lifecycle = [{ create_before_destroy = true; }];
 
           tags = tags // {
-            Name = "${link.connector}-connect-${link.acceptor}";
+            Name = "${link.connector}-connect-${link.accepter}";
             Region = link.connector;
           };
         }));
@@ -202,16 +204,63 @@ in {
           Region = vpc.region;
         };
       }) // (mapVpcPeers (link:
-        lib.nameValuePair "${link.acceptor}-accept-${link.connector}" {
-          provider = awsProviderFor link.acceptor;
+        lib.nameValuePair "${link.accepter}-accept-${link.connector}" {
+          provider = awsProviderFor link.accepter;
           vpc_peering_connection_id = id
-            "aws_vpc_peering_connection.${link.connector}-connect-${link.acceptor}";
+            "aws_vpc_peering_connection.${link.connector}-connect-${link.accepter}";
           auto_accept = true;
           lifecycle = [{ create_before_destroy = true; }];
           tags = tags // {
-            Name = "${link.acceptor}-accept-${link.connector}";
-            Region = link.acceptor;
+            Name = "${link.accepter}-accept-${link.connector}";
+            Region = link.accepter;
           };
         }));
+
+    # Set up cross vpc DNS resolution from each autoscaling region to the core region (1st and 2nd let block defns)
+    # Then add on the mesh cross vpc DNS resolution (3rd and 4th let block defns)
+    resource.aws_vpc_peering_connection_options = let
+      accepterCorePeeringOptions = mapVpcs (vpc:
+        lib.nameValuePair "${vpc.region}-accepter" {
+          provider = awsProviderFor config.cluster.region;
+          vpc_peering_connection_id =
+            id "aws_vpc_peering_connection_accepter.${vpc.region}";
+
+          accepter = { allow_remote_vpc_dns_resolution = true; };
+        });
+
+      requesterCorePeeringOptions = mapVpcs (vpc:
+        lib.nameValuePair vpc.region {
+          provider = awsProviderFor vpc.region;
+          vpc_peering_connection_id =
+            id "aws_vpc_peering_connection.${vpc.region}";
+
+          requester = { allow_remote_vpc_dns_resolution = true; };
+        });
+
+      accepterMeshPeeringOptions = mapVpcPeers (link:
+        lib.nameValuePair "${link.accepter}-accept-${link.connector}" {
+          provider = awsProviderFor link.accepter;
+          vpc_peering_connection_id = id
+            "aws_vpc_peering_connection_accepter.${link.accepter}-accept-${link.connector}";
+
+          accepter = { allow_remote_vpc_dns_resolution = true; };
+        });
+
+      requesterMeshPeeringOptions = mapVpcPeers (link:
+        lib.nameValuePair "${link.connector}-connect-${link.accepter}" {
+          provider = awsProviderFor link.connector;
+          vpc_peering_connection_id = id
+            "aws_vpc_peering_connection.${link.connector}-connect-${link.accepter}";
+
+          requester = { allow_remote_vpc_dns_resolution = true; };
+        });
+
+      recursiveMerge = lib.foldr lib.recursiveUpdate { };
+    in recursiveMerge [
+      accepterCorePeeringOptions
+      accepterMeshPeeringOptions
+      requesterCorePeeringOptions
+      requesterMeshPeeringOptions
+    ];
   };
 }

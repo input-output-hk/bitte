@@ -2,7 +2,8 @@
 
 let
   inherit (pkgs) ensureDependencies;
-  inherit (lib) mkOption mkOverride mkIf attrNames concatStringsSep optional forEach types;
+  inherit (lib)
+    mkOption mkOverride mkIf attrNames concatStringsSep optional forEach types;
   inherit (types) lines;
   inherit (config.cluster) domain kms region adminNames;
   inherit (config.instance) privateIP;
