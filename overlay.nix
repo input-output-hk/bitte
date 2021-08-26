@@ -106,6 +106,11 @@ in final: prev: {
 
   oauth2-proxy = final.callPackage ./pkgs/oauth2_proxy.nix { };
 
+  vulnix = import (inputs.vulnix) {
+    inherit nixpkgs;
+    pkgs = import nixpkgs { inherit (final) system; };
+  };
+
   mkRequired = constituents:
     let
       build-version = final.writeText "version.json" (toJSON {
