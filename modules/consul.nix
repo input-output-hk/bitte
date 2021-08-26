@@ -57,8 +57,8 @@ in {
       };
 
       extraConfig = mkOption {
-        type = nullOr attrs;
-        default = null;
+        type = attrs;
+        default = {};
       };
 
       datacenter = mkOption {
@@ -402,8 +402,7 @@ in {
       });
 
     environment.etc."${cfg.configDir}/extra-config.json".source =
-      mkIf (cfg.extraConfig != null)
-      (pkgs.toPrettyJSON "config" (sanitize cfg.extraConfig));
+      pkgs.toPrettyJSON "config" (sanitize cfg.extraConfig);
 
     systemd.services.consul = {
       wantedBy = [ "multi-user.target" ];
