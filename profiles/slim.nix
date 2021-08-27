@@ -24,6 +24,9 @@
     tmux
     tree
     vim
+    vault-bin
+    consul
+    nomad
   ];
 
   networking.extraHosts = lib.concatStringsSep "\n"

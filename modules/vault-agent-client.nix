@@ -1,13 +1,8 @@
 { config, lib, pkgs, ... }:
 let
-  inherit (builtins) toJSON isList;
-  inherit (lib)
-    mkIf filter mkEnableOption optional flip mapAttrsToList concatStringsSep;
+  inherit (lib) mkIf mkEnableOption flip mapAttrsToList concatStringsSep;
   inherit (pkgs) writeShellScript;
   inherit (config.cluster) region domain;
-
-  runIf = cond: value: if cond then value else null;
-  compact = filter (value: value != null);
 
   pkiAttrs = {
     common_name = "server.${region}.consul";
@@ -18,55 +13,42 @@ let
   };
 
   pkiArgs = flip mapAttrsToList pkiAttrs (name: value:
-    if isList value then
+    if builtins.isList value then
       ''"${name}=${concatStringsSep "," value}"''
     else
       ''"${name}=${toString value}"'');
 
   pkiSecret = ''"pki/issue/client" ${toString pkiArgs}'';
+in {
+  options = {
+    services.vault-agent-client.enable =
+      mkEnableOption "Start vault-agent for clients";
+  };
 
-  vaultAgentConfig = pkgs.toPrettyJSON "vault-agent" {
-    pid_file = "./vault-agent.pid";
-    vault.address = "https://vault.${domain}:8200";
+  config = mkIf config.services.vault-agent-client.enable {
+    services.vault-agent = {
+      enable = true;
+      role = "client";
+      vaultAddress = "https://vault.${domain}:8200";
 
-    # listener.unix = {
-    #   address = "/run/vault/socket";
-    #   tls_disable = true;
-    # };
+      cache.use_auto_auth_token = true;
 
-    # This requires at least one listener
-    # but a listener defined without this would be silently ignored (https://github.com/hashicorp/vault/issues/8953)
-    cache.use_auto_auth_token = true;
-    listener = [{
-      type = "tcp";
-      address = "127.0.0.1:8200";
-      tls_disable = true;
-    }];
+      autoAuthMethod = "aws";
 
-    auto_auth = {
-      method = [{
-        type = "aws";
-        config = {
-          type = "iam";
-          role = "${config.cluster.name}-client";
-          header_value = domain;
-        };
+      autoAuthConfig = {
+        type = "iam";
+        role = "${config.cluster.name}-client";
+        header_value = domain;
+      };
+
+      listener = [{
+        type = "tcp";
+        address = "127.0.0.1:8200";
+        tlsDisable = true;
       }];
 
-      sinks = [{
-        sink = {
-          type = "file";
-          config = { path = "/run/keys/vault-token"; };
-          perms = "0644";
-        };
-      }];
-    };
-
-    templates = compact [
-      {
-        template = {
-          destination = "/etc/ssl/certs/full.pem";
-
+      templates = {
+        "/etc/ssl/certs/full.pem" = {
           contents = ''
             {{ with secret ${pkiSecret} }}{{ .Data.certificate }}
             {{ range .Data.ca_chain }}{{ . }}
@@ -76,34 +58,28 @@ let
           command =
             "${pkgs.systemd}/bin/systemctl try-restart certs-updated.service";
         };
-      }
 
-      {
-        template = {
-          destination = "/etc/ssl/certs/cert.pem";
-
+        "/etc/ssl/certs/cert.pem" = {
           contents = ''
             {{ with secret ${pkiSecret} }}{{ .Data.certificate }}
             {{ range .Data.ca_chain }}{{ . }}
             {{ end }}{{ end }}
           '';
+
+          command =
+            "${pkgs.systemd}/bin/systemctl try-restart certs-updated.service";
         };
-      }
 
-      {
-        template = {
-          destination = "/etc/ssl/certs/cert-key.pem";
-
+        "/etc/ssl/certs/cert-key.pem" = {
           contents = ''
             {{ with secret ${pkiSecret} }}{{ .Data.private_key }}{{ end }}
           '';
+
+          command =
+            "${pkgs.systemd}/bin/systemctl try-restart certs-updated.service";
         };
-      }
 
-      (runIf config.services.consul.enable {
-        template = {
-          destination = "/etc/consul.d/tokens.json";
-
+        "/etc/consul.d/tokens.json" = mkIf config.services.consul.enable {
           contents = ''
             {
               "encrypt": "{{ with secret "kv/bootstrap/clients/consul" }}{{ .Data.data.encrypt }}{{ end }}",
@@ -122,39 +98,44 @@ let
 
           command = "${pkgs.systemd}/bin/systemctl try-restart consul";
         };
-      })
 
-      (runIf config.services.consul.enable {
-        template = {
-          destination = "/run/keys/consul-default-token";
-
+        "/run/keys/consul-default-token" = mkIf config.services.consul.enable {
           contents = ''
             {{ with secret "consul/creds/consul-default" }}{{ .Data.token }}{{ end }}
           '';
 
           command = "${pkgs.systemd}/bin/systemctl try-restart consul.service";
         };
-      })
 
-      (runIf config.services.nomad.enable {
-        template = {
-          command = "${pkgs.systemd}/bin/systemctl restart nomad.service";
-          destination = "/run/keys/nomad-consul-token";
+        "/etc/vault.d/consul-token.json" = mkIf config.services.vault.enable {
           contents = ''
-            {{- with secret "consul/creds/consul-default" }}{{ .Data.token }}{{ end -}}
+            {{ with secret "consul/creds/vault-client" }}
+            {
+              "storage": {
+                "consul": {
+                  "token": "{{ .Data.token }}",
+                  "address": "127.0.0.1:8500",
+                  "tlsCaFile": "/etc/ssl/certs/full.pem",
+                  "tlsCertFile": "/etc/ssl/certs/cert.pem",
+                  "tlsKeyFile": "/var/lib/vault/cert-key.pem"
+                }
+              },
+              "service_registration": {
+                "consul": {
+                  "token": "{{ .Data.token }}",
+                  "address": "127.0.0.1:8500",
+                }
+              }
+            }
+            {{ end }}
           '';
+
+          command =
+            "${pkgs.systemd}/bin/systemctl try-reload-or-restart vault.service";
         };
-      })
-    ];
-  };
+      };
+    };
 
-in {
-  options = {
-    services.vault-agent-client.enable =
-      mkEnableOption "Start vault-agent for clients";
-  };
-
-  config = mkIf config.services.vault-agent-client.enable {
     systemd.services.certs-updated = {
       wantedBy = [ "multi-user.target" ];
       after = [ "vault-agent.service" ];
@@ -175,40 +156,16 @@ in {
         [ /etc/ssl/certs/cert.pem -nt /etc/ssl/certs/.last_restart ]
         [ /etc/ssl/certs/cert-key.pem -nt /etc/ssl/certs/.last_restart ]
 
-        systemctl try-restart consul.service
+        systemctl try-reload-or-restart consul.service
 
         if curl -s -k https://127.0.0.1:4646/v1/status/leader &> /dev/null; then
-          systemctl try-restart nomad.service
+          systemctl try-reload-or-restart nomad.service
         else
           systemctl start nomad.service
         fi
 
         touch /etc/ssl/certs/.last_restart
       '';
-    };
-
-    systemd.services.vault-agent = {
-      before = (optional config.services.vault.enable "vault.service")
-        ++ (optional config.services.consul.enable "consul.service")
-        ++ (optional config.services.nomad.enable "nomad.service");
-      wantedBy = [ "multi-user.target" ];
-
-      environment = {
-        inherit (config.environment.variables) AWS_DEFAULT_REGION;
-        VAULT_FORMAT = "json";
-        VAULT_ADDR = "https://vault.${domain}";
-        CONSUL_HTTP_ADDR = "127.0.0.1:8500";
-        VAULT_SKIP_VERIFY = "true";
-      };
-
-      path = with pkgs; [ vault-bin ];
-
-      serviceConfig = {
-        Restart = "always";
-        RestartSec = "30s";
-        ExecStart =
-          "${pkgs.vault-bin}/bin/vault agent -config ${vaultAgentConfig}";
-      };
     };
   };
 }
