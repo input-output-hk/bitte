@@ -75,9 +75,12 @@ in {
           > $RUNTIME_DIRECTORY/report.json ||
         {
           code=$?
-          if [[ $code != 2 ]]; then
-            exit $code
-          fi
+          case $code in
+            0 ) ;; # no vulnerabilities found
+            1 ) ;; # only whitelisted vulnerabilities found
+            2 ) ;; # vulnerabilities found
+            * ) exit $code ;; # unexpected
+          esac
         }
       '';
       path = [ cfg.package ];
