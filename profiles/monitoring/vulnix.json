@@ -12,22 +12,33 @@
       },
       {
         "datasource": "Loki",
-        "enable": false,
-        "expr": "{unit=\"vulnix.service\"}",
+        "enable": true,
+        "expr": "{syslog_identifier=\"nixos\"}",
         "hide": false,
-        "iconColor": "#B877D9",
-        "instant": false,
-        "name": "Vulnix Scans",
+        "iconColor": "#73BF69",
+        "name": "NixOS",
         "showIn": 0,
         "target": {}
       },
       {
         "datasource": "Loki",
         "enable": false,
-        "expr": "{syslog_identifier=\"nixos\"}",
+        "expr": "{unit=\"nomad.service\"} |~ `\\[(INFO|WARN|ERROR)\\]\\s+\\w*\\bclient\\b\\w*:`",
         "hide": false,
-        "iconColor": "#73BF69",
-        "name": "NixOS",
+        "iconColor": "#B877D9",
+        "instant": false,
+        "name": "Nomad Client",
+        "showIn": 0,
+        "target": {}
+      },
+      {
+        "datasource": "Loki",
+        "enable": true,
+        "expr": "{unit=\"vulnix.service\"}",
+        "hide": false,
+        "iconColor": "#F2495C",
+        "instant": false,
+        "name": "Vulnix",
         "showIn": 0,
         "target": {}
       }
@@ -37,10 +48,369 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 73,
-  "iteration": 1630352019004,
-  "links": [],
+  "iteration": 1630927935642,
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": false,
+      "tags": [],
+      "targetBlank": true,
+      "title": "CVSS Calculator",
+      "tooltip": "",
+      "type": "link",
+      "url": "https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator"
+    }
+  ],
   "panels": [
+    {
+      "collapsed": true,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 48,
+      "panels": [
+        {
+          "datasource": "VictoriaMetrics",
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "align": null,
+                "displayMode": "auto",
+                "filterable": true
+              },
+              "decimals": 1,
+              "mappings": [],
+              "max": 10,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "blue",
+                    "value": 4
+                  },
+                  {
+                    "color": "orange",
+                    "value": 7
+                  },
+                  {
+                    "color": "red",
+                    "value": 9
+                  }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "CVSS v3 Base Score"
+                },
+                "properties": [
+                  {
+                    "id": "custom.displayMode",
+                    "value": "lcd-gauge"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "CVE"
+                },
+                "properties": [
+                  {
+                    "id": "links",
+                    "value": [
+                      {
+                        "targetBlank": true,
+                        "title": "NVD",
+                        "url": "https://nvd.nist.gov/vuln/detail/CVE-${__value.text}"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Job"
+                },
+                "properties": [
+                  {
+                    "id": "links",
+                    "value": [
+                      {
+                        "targetBlank": true,
+                        "title": "Nomad Web UI",
+                        "url": "https://nomad.p42.at/ui/jobs/${__value.text}?namespace=${__data.fields.Namespace}"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Task Group"
+                },
+                "properties": [
+                  {
+                    "id": "links",
+                    "value": [
+                      {
+                        "targetBlank": true,
+                        "title": "Nomad Web UI",
+                        "url": "https://nomad.p42.at/ui/jobs/${__data.fields.Job}/${__value.text}?namespace=${__data.fields.Namespace}"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Namespace"
+                },
+                "properties": [
+                  {
+                    "id": "links",
+                    "value": [
+                      {
+                        "targetBlank": true,
+                        "title": "Nomad Web UI",
+                        "url": "https://nomad.p42.at/ui/jobs?namespace=${__value.text}"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 15,
+            "w": 24,
+            "x": 0,
+            "y": 1
+          },
+          "id": 46,
+          "options": {
+            "showHeader": true,
+            "sortBy": []
+          },
+          "pluginVersion": "7.5.9",
+          "targets": [
+            {
+              "exemplar": true,
+              "expr": "max by (nomad_namespace, nomad_job, nomad_taskgroup, nomad_task, hostname, pname, version, cve) (vulnerability_score[$__range])",
+              "instant": true,
+              "interval": "",
+              "legendFormat": "",
+              "queryType": "randomWalk",
+              "refId": "A"
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "All Entries",
+          "transformations": [
+            {
+              "id": "labelsToFields",
+              "options": {}
+            },
+            {
+              "id": "seriesToRows",
+              "options": {}
+            },
+            {
+              "id": "filterByValue",
+              "options": {
+                "filters": [
+                  {
+                    "config": {
+                      "id": "isNull",
+                      "options": {}
+                    },
+                    "fieldName": "Value"
+                  }
+                ],
+                "match": "any",
+                "type": "exclude"
+              }
+            },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
+                  {
+                    "field": "hostname"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
+                  {
+                    "field": "nomad_task"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
+                  {
+                    "field": "nomad_taskgroup"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
+                  {
+                    "field": "nomad_job"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
+                  {
+                    "desc": false,
+                    "field": "nomad_namespace"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
+                  {
+                    "desc": false,
+                    "field": "version"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
+                  {
+                    "desc": false,
+                    "field": "pname"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
+                  {
+                    "desc": true,
+                    "field": "cve"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
+                  {
+                    "desc": true,
+                    "field": "Value"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true
+                },
+                "indexByName": {
+                  "Time": 9,
+                  "Value": 0,
+                  "cve": 1,
+                  "hostname": 8,
+                  "nomad_job": 5,
+                  "nomad_namespace": 4,
+                  "nomad_task": 7,
+                  "nomad_taskgroup": 6,
+                  "pname": 2,
+                  "version": 3
+                },
+                "renameByName": {
+                  "Time": "",
+                  "Value": "CVSS v3 Base Score",
+                  "cve": "CVE",
+                  "hostname": "Hostname",
+                  "nomad_job": "Job",
+                  "nomad_namespace": "Namespace",
+                  "nomad_task": "Task",
+                  "nomad_taskgroup": "Task Group",
+                  "pname": "Package",
+                  "version": "Version"
+                }
+              }
+            }
+          ],
+          "transparent": true,
+          "type": "table"
+        }
+      ],
+      "title": "Everything",
+      "type": "row"
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 1
+      },
+      "id": 45,
+      "panels": [],
+      "title": "Nomad Namespaces",
+      "type": "row"
+    },
     {
       "datasource": "VictoriaMetrics",
       "description": "",
@@ -50,16 +420,7 @@
             "mode": "thresholds"
           },
           "decimals": 1,
-          "mappings": [
-            {
-              "from": "",
-              "id": 1,
-              "text": "",
-              "to": "",
-              "type": 1,
-              "value": ""
-            }
-          ],
+          "mappings": [],
           "max": 10,
           "min": 0,
           "thresholds": {
@@ -88,12 +449,12 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 18,
-        "w": 10,
+        "h": 10,
+        "w": 8,
         "x": 0,
-        "y": 0
+        "y": 2
       },
-      "id": 21,
+      "id": 43,
       "options": {
         "displayMode": "lcd",
         "orientation": "horizontal",
@@ -111,15 +472,17 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max by (hostname) (vulnerability_score[1y])",
+          "expr": "max by (nomad_namespace) (vulnerability_score{nomad_namespace!=\"\"}[$__range])",
+          "format": "time_series",
           "instant": true,
           "interval": "",
-          "legendFormat": "{{hostname}}",
+          "intervalFactor": 1,
+          "legendFormat": "{{nomad_namespace}}",
           "queryType": "randomWalk",
           "refId": "A"
         }
       ],
-      "title": "Highest Threat per Host",
+      "title": "Highest Threat per Namespace",
       "transparent": true,
       "type": "bargauge"
     },
@@ -166,29 +529,97 @@
         "overrides": [
           {
             "matcher": {
-              "id": "byRegexp",
-              "options": "/^Value$/"
+              "id": "byName",
+              "options": "CVSS v3 Base Score"
             },
             "properties": [
               {
                 "id": "custom.displayMode",
                 "value": "lcd-gauge"
-              },
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CVE"
+            },
+            "properties": [
               {
-                "id": "displayName",
-                "value": "CVSS v3 Base Score"
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": true,
+                    "title": "NVD",
+                    "url": "https://nvd.nist.gov/vuln/detail/CVE-${__value.text}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Job"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": true,
+                    "title": "Nomad Web UI",
+                    "url": "https://nomad.p42.at/ui/jobs/${__value.text}?namespace=${__data.fields.Namespace}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Task Group"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": true,
+                    "title": "Nomad Web UI",
+                    "url": "https://nomad.p42.at/ui/jobs/${__data.fields.Job}/${__value.text}?namespace=${__data.fields.Namespace}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Namespace"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": true,
+                    "title": "Nomad Web UI",
+                    "url": "https://nomad.p42.at/ui/jobs?namespace=${__value.text}"
+                  }
+                ]
               }
             ]
           }
         ]
       },
       "gridPos": {
-        "h": 18,
-        "w": 14,
-        "x": 10,
-        "y": 0
+        "h": 10,
+        "w": 16,
+        "x": 8,
+        "y": 2
       },
-      "id": 13,
+      "id": 39,
       "options": {
         "showHeader": true,
         "sortBy": []
@@ -197,10 +628,10 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max by (hostname, pname, version, cve) (vulnerability_score[1y])",
+          "expr": "max by (nomad_namespace, nomad_job, nomad_taskgroup, nomad_task, pname, version, cve) (vulnerability_score{nomad_namespace!=\"\"}[$__range])",
           "instant": true,
           "interval": "",
-          "legendFormat": "{{pname}} {{version}} on {{hostname}}",
+          "legendFormat": "",
           "queryType": "randomWalk",
           "refId": "A"
         }
@@ -239,8 +670,29 @@
             "fields": {},
             "sort": [
               {
-                "desc": false,
-                "field": "Time"
+                "field": "nomad_task"
+              }
+            ]
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "nomad_taskgroup"
+              }
+            ]
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "nomad_job"
               }
             ]
           }
@@ -252,19 +704,7 @@
             "sort": [
               {
                 "desc": false,
-                "field": "cve"
-              }
-            ]
-          }
-        },
-        {
-          "id": "sortBy",
-          "options": {
-            "fields": {},
-            "sort": [
-              {
-                "desc": false,
-                "field": "pname"
+                "field": "nomad_namespace"
               }
             ]
           }
@@ -288,7 +728,19 @@
             "sort": [
               {
                 "desc": false,
-                "field": "hostname"
+                "field": "pname"
+              }
+            ]
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": true,
+                "field": "cve"
               }
             ]
           }
@@ -309,36 +761,35 @@
           "id": "organize",
           "options": {
             "excludeByName": {
-              "Time": false
+              "Time": true
             },
             "indexByName": {
-              "Time": 5,
+              "Time": 8,
               "Value": 0,
-              "cve": 4,
-              "hostname": 3,
-              "pname": 1,
-              "version": 2
+              "cve": 1,
+              "nomad_job": 5,
+              "nomad_namespace": 4,
+              "nomad_task": 7,
+              "nomad_taskgroup": 6,
+              "pname": 2,
+              "version": 3
             },
-            "renameByName": {}
+            "renameByName": {
+              "Time": "",
+              "Value": "CVSS v3 Base Score",
+              "cve": "CVE",
+              "nomad_job": "Job",
+              "nomad_namespace": "Namespace",
+              "nomad_task": "Task",
+              "nomad_taskgroup": "Task Group",
+              "pname": "Package",
+              "version": "Version"
+            }
           }
         }
       ],
       "transparent": true,
       "type": "table"
-    },
-    {
-      "collapsed": false,
-      "datasource": null,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 18
-      },
-      "id": 23,
-      "panels": [],
-      "title": "History",
-      "type": "row"
     },
     {
       "aliasColors": {},
@@ -357,13 +808,13 @@
       "fill": 0,
       "fillGradient": 1,
       "gridPos": {
-        "h": 15,
+        "h": 10,
         "w": 24,
         "x": 0,
-        "y": 19
+        "y": 12
       },
       "hiddenSeries": false,
-      "id": 3,
+      "id": 42,
       "legend": {
         "alignAsTable": true,
         "avg": true,
@@ -402,36 +853,36 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max by (hostname) (vulnerability_score[1y])",
+          "expr": "max by (nomad_namespace) (vulnerability_score{nomad_namespace!=\"\"})",
           "format": "time_series",
           "instant": false,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "{{hostname}} (max)",
+          "legendFormat": "{{nomad_namespace}} (max)",
           "queryType": "randomWalk",
           "refId": "max"
         },
         {
           "exemplar": true,
-          "expr": "avg by (hostname) (vulnerability_score[1y])",
+          "expr": "avg by (nomad_namespace) (vulnerability_score{nomad_namespace!=\"\"})",
           "format": "time_series",
           "hide": false,
           "instant": false,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "{{hostname}} (avg)",
+          "legendFormat": "{{nomad_namespace}} (avg)",
           "queryType": "randomWalk",
           "refId": "avg"
         },
         {
           "exemplar": true,
-          "expr": "min by (hostname) (vulnerability_score[1y])",
+          "expr": "min by (nomad_namespace) (vulnerability_score{nomad_namespace!=\"\"})",
           "format": "time_series",
           "hide": false,
           "instant": false,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "{{hostname}} (min)",
+          "legendFormat": "{{nomad_namespace}} (min)",
           "queryType": "randomWalk",
           "refId": "min"
         }
@@ -481,7 +932,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Threat per Host",
+      "title": "Threat per Namespace",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -530,19 +981,22 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 34
+        "y": 22
       },
-      "id": 5,
+      "id": 23,
       "panels": [
         {
           "datasource": "VictoriaMetrics",
-          "description": "max CVSSv3 base score",
+          "description": "",
           "fieldConfig": {
             "defaults": {
               "color": {
                 "mode": "thresholds"
               },
+              "decimals": 1,
               "mappings": [],
+              "max": 10,
+              "min": 0,
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -563,68 +1017,73 @@
                     "value": 9
                   }
                 ]
-              }
+              },
+              "unit": "short"
             },
             "overrides": []
           },
           "gridPos": {
-            "h": 15,
-            "w": 12,
+            "h": 10,
+            "w": 10,
             "x": 0,
-            "y": 35
+            "y": 3
           },
-          "id": 2,
-          "maxPerRow": 2,
+          "id": 38,
           "options": {
+            "displayMode": "lcd",
+            "orientation": "horizontal",
             "reduceOptions": {
               "calcs": [
-                "lastNotNull"
+                "last"
               ],
               "fields": "",
               "values": false
             },
-            "showThresholdLabels": false,
-            "showThresholdMarkers": false,
+            "showUnfilled": true,
             "text": {}
           },
           "pluginVersion": "7.5.9",
-          "repeat": "hostname",
-          "repeatDirection": "h",
           "scopedVars": {
-            "hostname": {
-              "selected": true,
-              "text": "core-1",
-              "value": "core-1"
+            "namespace": {
+              "selected": false,
+              "text": "default",
+              "value": "default"
             }
           },
           "targets": [
             {
               "exemplar": true,
-              "expr": "max by (pname) (vulnerability_score{hostname=~\"$hostname\"})",
+              "expr": "max by (nomad_job) (vulnerability_score{nomad_namespace=\"$namespace\"}[$__range])",
               "format": "time_series",
-              "instant": false,
+              "instant": true,
               "interval": "",
               "intervalFactor": 1,
-              "legendFormat": "{{pname}}",
+              "legendFormat": "{{nomad_job}}",
               "queryType": "randomWalk",
-              "refId": "max"
+              "refId": "A"
             }
           ],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "$hostname: Highest Threat per Package",
+          "title": "Highest Threat per Job",
           "transparent": true,
-          "type": "gauge"
+          "type": "bargauge"
         },
         {
           "datasource": "VictoriaMetrics",
-          "description": "max CVSSv3 base score",
+          "description": "",
           "fieldConfig": {
             "defaults": {
               "color": {
                 "mode": "thresholds"
               },
+              "custom": {
+                "align": null,
+                "displayMode": "auto",
+                "filterable": true
+              },
+              "decimals": 1,
               "mappings": [],
+              "max": 10,
+              "min": 0,
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -645,477 +1104,945 @@
                     "value": 9
                   }
                 ]
-              }
+              },
+              "unit": "short"
             },
-            "overrides": []
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "CVSS v3 Base Score"
+                },
+                "properties": [
+                  {
+                    "id": "custom.displayMode",
+                    "value": "lcd-gauge"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "CVE"
+                },
+                "properties": [
+                  {
+                    "id": "links",
+                    "value": [
+                      {
+                        "targetBlank": true,
+                        "title": "NVD",
+                        "url": "https://nvd.nist.gov/vuln/detail/CVE-${__value.text}"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Job"
+                },
+                "properties": [
+                  {
+                    "id": "links",
+                    "value": [
+                      {
+                        "targetBlank": true,
+                        "title": "Nomad Web UI",
+                        "url": "https://nomad.p42.at/ui/jobs/${__value.text}?namespace=${__data.fields.Namespace}"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Task Group"
+                },
+                "properties": [
+                  {
+                    "id": "links",
+                    "value": [
+                      {
+                        "targetBlank": true,
+                        "title": "Nomad Web UI",
+                        "url": "https://nomad.p42.at/ui/jobs/${__data.fields.Job}/${__value.text}?namespace=${__data.fields.Namespace}"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
           },
           "gridPos": {
-            "h": 15,
-            "w": 12,
-            "x": 12,
-            "y": 35
+            "h": 10,
+            "w": 14,
+            "x": 10,
+            "y": 3
           },
-          "id": 24,
-          "maxPerRow": 2,
+          "id": 41,
           "options": {
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "showThresholdLabels": false,
-            "showThresholdMarkers": false,
-            "text": {}
+            "showHeader": true,
+            "sortBy": []
           },
           "pluginVersion": "7.5.9",
-          "repeatDirection": "h",
-          "repeatIteration": 1630349522906,
-          "repeatPanelId": 2,
           "scopedVars": {
-            "hostname": {
-              "selected": true,
-              "text": "core-2",
-              "value": "core-2"
+            "namespace": {
+              "selected": false,
+              "text": "default",
+              "value": "default"
             }
           },
           "targets": [
             {
               "exemplar": true,
-              "expr": "max by (pname) (vulnerability_score{hostname=~\"$hostname\"})",
-              "format": "time_series",
-              "instant": false,
+              "expr": "max by (nomad_job, nomad_taskgroup, nomad_task, pname, version, cve) (vulnerability_score{nomad_namespace=\"$namespace\"}[$__range])",
+              "instant": true,
               "interval": "",
-              "intervalFactor": 1,
-              "legendFormat": "{{pname}}",
+              "legendFormat": "",
               "queryType": "randomWalk",
-              "refId": "max"
+              "refId": "A"
             }
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "$hostname: Highest Threat per Package",
-          "transparent": true,
-          "type": "gauge"
-        },
-        {
-          "datasource": "VictoriaMetrics",
-          "description": "max CVSSv3 base score",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
+          "title": "All Entries",
+          "transformations": [
+            {
+              "id": "labelsToFields",
+              "options": {}
+            },
+            {
+              "id": "seriesToRows",
+              "options": {}
+            },
+            {
+              "id": "filterByValue",
+              "options": {
+                "filters": [
                   {
-                    "color": "green",
-                    "value": null
-                  },
+                    "config": {
+                      "id": "isNull",
+                      "options": {}
+                    },
+                    "fieldName": "Value"
+                  }
+                ],
+                "match": "any",
+                "type": "exclude"
+              }
+            },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
                   {
-                    "color": "blue",
-                    "value": 4
-                  },
-                  {
-                    "color": "orange",
-                    "value": 7
-                  },
-                  {
-                    "color": "red",
-                    "value": 9
+                    "field": "nomad_task"
                   }
                 ]
               }
             },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
+                  {
+                    "field": "nomad_taskgroup"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
+                  {
+                    "field": "nomad_job"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
+                  {
+                    "desc": false,
+                    "field": "nomad_namespace"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
+                  {
+                    "desc": false,
+                    "field": "version"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
+                  {
+                    "desc": false,
+                    "field": "pname"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
+                  {
+                    "desc": true,
+                    "field": "cve"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
+                  {
+                    "desc": true,
+                    "field": "Value"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true
+                },
+                "indexByName": {
+                  "Time": 7,
+                  "Value": 0,
+                  "cve": 1,
+                  "nomad_job": 4,
+                  "nomad_task": 6,
+                  "nomad_taskgroup": 5,
+                  "pname": 2,
+                  "version": 3
+                },
+                "renameByName": {
+                  "Time": "",
+                  "Value": "CVSS v3 Base Score",
+                  "cve": "CVE",
+                  "nomad_job": "Job",
+                  "nomad_namespace": "Namespace",
+                  "nomad_task": "Task",
+                  "nomad_taskgroup": "Task Group",
+                  "pname": "Package",
+                  "version": "Version"
+                }
+              }
+            }
+          ],
+          "transparent": true,
+          "type": "table"
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": "VictoriaMetrics",
+          "decimals": 1,
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            },
             "overrides": []
           },
+          "fill": 0,
+          "fillGradient": 1,
           "gridPos": {
-            "h": 15,
-            "w": 12,
+            "h": 10,
+            "w": 24,
             "x": 0,
-            "y": 50
+            "y": 13
           },
-          "id": 25,
-          "maxPerRow": 2,
+          "hiddenSeries": false,
+          "id": 40,
+          "legend": {
+            "alignAsTable": true,
+            "avg": true,
+            "current": true,
+            "hideEmpty": false,
+            "hideZero": false,
+            "max": true,
+            "min": true,
+            "rightSide": true,
+            "show": true,
+            "sideWidth": null,
+            "total": false,
+            "values": true
+          },
+          "lines": true,
+          "linewidth": 2,
+          "nullPointMode": "connected",
           "options": {
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "showThresholdLabels": false,
-            "showThresholdMarkers": false,
-            "text": {}
+            "alertThreshold": true
           },
+          "percentage": false,
           "pluginVersion": "7.5.9",
-          "repeatDirection": "h",
-          "repeatIteration": 1630349522906,
-          "repeatPanelId": 2,
+          "pointradius": 0.5,
+          "points": false,
+          "renderer": "flot",
           "scopedVars": {
-            "hostname": {
-              "selected": true,
-              "text": "core-3",
-              "value": "core-3"
+            "namespace": {
+              "selected": false,
+              "text": "default",
+              "value": "default"
             }
           },
+          "seriesOverrides": [
+            {
+              "$$hashKey": "object:751",
+              "alias": "/\\((min|avg)\\)$/",
+              "hiddenSeries": true
+            }
+          ],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": true,
           "targets": [
             {
               "exemplar": true,
-              "expr": "max by (pname) (vulnerability_score{hostname=~\"$hostname\"})",
+              "expr": "max by (nomad_job) (vulnerability_score{nomad_namespace=\"$namespace\"})",
               "format": "time_series",
               "instant": false,
               "interval": "",
               "intervalFactor": 1,
-              "legendFormat": "{{pname}}",
+              "legendFormat": "{{nomad_job}} (max)",
               "queryType": "randomWalk",
               "refId": "max"
-            }
-          ],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "$hostname: Highest Threat per Package",
-          "transparent": true,
-          "type": "gauge"
-        },
-        {
-          "datasource": "VictoriaMetrics",
-          "description": "max CVSSv3 base score",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "blue",
-                    "value": 4
-                  },
-                  {
-                    "color": "orange",
-                    "value": 7
-                  },
-                  {
-                    "color": "red",
-                    "value": 9
-                  }
-                ]
-              }
             },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 15,
-            "w": 12,
-            "x": 12,
-            "y": 50
-          },
-          "id": 26,
-          "maxPerRow": 2,
-          "options": {
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "showThresholdLabels": false,
-            "showThresholdMarkers": false,
-            "text": {}
-          },
-          "pluginVersion": "7.5.9",
-          "repeatDirection": "h",
-          "repeatIteration": 1630349522906,
-          "repeatPanelId": 2,
-          "scopedVars": {
-            "hostname": {
-              "selected": true,
-              "text": "hydra",
-              "value": "hydra"
-            }
-          },
-          "targets": [
             {
               "exemplar": true,
-              "expr": "max by (pname) (vulnerability_score{hostname=~\"$hostname\"})",
+              "expr": "avg by (nomad_job) (vulnerability_score{nomad_namespace=\"$namespace\"})",
               "format": "time_series",
+              "hide": false,
               "instant": false,
               "interval": "",
               "intervalFactor": 1,
-              "legendFormat": "{{pname}}",
+              "legendFormat": "{{nomad_job}} (avg)",
               "queryType": "randomWalk",
-              "refId": "max"
-            }
-          ],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "$hostname: Highest Threat per Package",
-          "transparent": true,
-          "type": "gauge"
-        },
-        {
-          "datasource": "VictoriaMetrics",
-          "description": "max CVSSv3 base score",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "blue",
-                    "value": 4
-                  },
-                  {
-                    "color": "orange",
-                    "value": 7
-                  },
-                  {
-                    "color": "red",
-                    "value": 9
-                  }
-                ]
-              }
+              "refId": "avg"
             },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 15,
-            "w": 12,
-            "x": 0,
-            "y": 65
-          },
-          "id": 27,
-          "maxPerRow": 2,
-          "options": {
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "showThresholdLabels": false,
-            "showThresholdMarkers": false,
-            "text": {}
-          },
-          "pluginVersion": "7.5.9",
-          "repeatDirection": "h",
-          "repeatIteration": 1630349522906,
-          "repeatPanelId": 2,
-          "scopedVars": {
-            "hostname": {
-              "selected": true,
-              "text": "monitoring",
-              "value": "monitoring"
-            }
-          },
-          "targets": [
             {
               "exemplar": true,
-              "expr": "max by (pname) (vulnerability_score{hostname=~\"$hostname\"})",
+              "expr": "min by (nomad_job) (vulnerability_score{nomad_namespace=\"$namespace\"})",
               "format": "time_series",
+              "hide": false,
               "instant": false,
               "interval": "",
               "intervalFactor": 1,
-              "legendFormat": "{{pname}}",
+              "legendFormat": "{{nomad_job}} (avg)",
               "queryType": "randomWalk",
-              "refId": "max"
+              "refId": "min"
             }
           ],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "$hostname: Highest Threat per Package",
-          "transparent": true,
-          "type": "gauge"
-        },
-        {
-          "datasource": "VictoriaMetrics",
-          "description": "max CVSSv3 base score",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "blue",
-                    "value": 4
-                  },
-                  {
-                    "color": "orange",
-                    "value": 7
-                  },
-                  {
-                    "color": "red",
-                    "value": 9
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 15,
-            "w": 12,
-            "x": 12,
-            "y": 65
-          },
-          "id": 28,
-          "maxPerRow": 2,
-          "options": {
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "showThresholdLabels": false,
-            "showThresholdMarkers": false,
-            "text": {}
-          },
-          "pluginVersion": "7.5.9",
-          "repeatDirection": "h",
-          "repeatIteration": 1630349522906,
-          "repeatPanelId": 2,
-          "scopedVars": {
-            "hostname": {
-              "selected": true,
-              "text": "nexus",
-              "value": "nexus"
-            }
-          },
-          "targets": [
+          "thresholds": [
             {
-              "exemplar": true,
-              "expr": "max by (pname) (vulnerability_score{hostname=~\"$hostname\"})",
-              "format": "time_series",
-              "instant": false,
-              "interval": "",
-              "intervalFactor": 1,
-              "legendFormat": "{{pname}}",
-              "queryType": "randomWalk",
-              "refId": "max"
-            }
-          ],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "$hostname: Highest Threat per Package",
-          "transparent": true,
-          "type": "gauge"
-        },
-        {
-          "datasource": "VictoriaMetrics",
-          "description": "max CVSSv3 base score",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "blue",
-                    "value": 4
-                  },
-                  {
-                    "color": "orange",
-                    "value": 7
-                  },
-                  {
-                    "color": "red",
-                    "value": 9
-                  }
-                ]
-              }
+              "$$hashKey": "object:248",
+              "colorMode": "critical",
+              "fill": true,
+              "line": false,
+              "op": "gt",
+              "value": 9,
+              "yaxis": "left"
             },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 15,
-            "w": 12,
-            "x": 0,
-            "y": 80
-          },
-          "id": 29,
-          "maxPerRow": 2,
-          "options": {
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "showThresholdLabels": false,
-            "showThresholdMarkers": false,
-            "text": {}
-          },
-          "pluginVersion": "7.5.9",
-          "repeatDirection": "h",
-          "repeatIteration": 1630349522906,
-          "repeatPanelId": 2,
-          "scopedVars": {
-            "hostname": {
-              "selected": true,
-              "text": "routing",
-              "value": "routing"
-            }
-          },
-          "targets": [
             {
-              "exemplar": true,
-              "expr": "max by (pname) (vulnerability_score{hostname=~\"$hostname\"})",
-              "format": "time_series",
-              "instant": false,
-              "interval": "",
-              "intervalFactor": 1,
-              "legendFormat": "{{pname}}",
-              "queryType": "randomWalk",
-              "refId": "max"
+              "$$hashKey": "object:254",
+              "colorMode": "warning",
+              "fill": true,
+              "fillColor": "rgba(51, 162, 229, 0.2)",
+              "line": false,
+              "lineColor": "rgba(31, 96, 196, 0.6)",
+              "op": "lt",
+              "value": 9,
+              "yaxis": "left"
+            },
+            {
+              "$$hashKey": "object:679",
+              "colorMode": "custom",
+              "fill": true,
+              "fillColor": "rgba(87, 148, 242, 0.15)",
+              "line": false,
+              "lineColor": "rgba(31, 96, 196, 0.6)",
+              "op": "lt",
+              "value": 7,
+              "yaxis": "left"
+            },
+            {
+              "$$hashKey": "object:689",
+              "colorMode": "ok",
+              "fill": true,
+              "line": false,
+              "op": "lt",
+              "value": 4,
+              "yaxis": "left"
             }
           ],
           "timeFrom": null,
+          "timeRegions": [],
           "timeShift": null,
-          "title": "$hostname: Highest Threat per Package",
+          "title": "Threat per Job",
+          "tooltip": {
+            "shared": true,
+            "sort": 0,
+            "value_type": "individual"
+          },
           "transparent": true,
-          "type": "gauge"
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "$$hashKey": "object:313",
+              "decimals": null,
+              "format": "short",
+              "label": "CVSS v3 Base Score",
+              "logBase": 1,
+              "max": "10",
+              "min": "0",
+              "show": true
+            },
+            {
+              "$$hashKey": "object:314",
+              "decimals": null,
+              "format": "short",
+              "label": "Average",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": false
+            }
+          ],
+          "yaxis": {
+            "align": false,
+            "alignLevel": null
+          }
         }
       ],
-      "title": "Per Package (Through All Versions)",
+      "repeat": "namespace",
+      "scopedVars": {
+        "namespace": {
+          "selected": false,
+          "text": "default",
+          "value": "default"
+        }
+      },
+      "title": "Nomad Jobs ($namespace)",
+      "type": "row"
+    },
+    {
+      "collapsed": true,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 23
+      },
+      "id": 31,
+      "panels": [
+        {
+          "datasource": "VictoriaMetrics",
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "decimals": 1,
+              "mappings": [],
+              "max": 10,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "blue",
+                    "value": 4
+                  },
+                  {
+                    "color": "orange",
+                    "value": 7
+                  },
+                  {
+                    "color": "red",
+                    "value": 9
+                  }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 11,
+            "w": 10,
+            "x": 0,
+            "y": 4
+          },
+          "id": 21,
+          "options": {
+            "displayMode": "lcd",
+            "orientation": "horizontal",
+            "reduceOptions": {
+              "calcs": [
+                "last"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showUnfilled": true,
+            "text": {}
+          },
+          "pluginVersion": "7.5.9",
+          "targets": [
+            {
+              "exemplar": true,
+              "expr": "max by (hostname) (vulnerability_score{nomad_job=\"\"}[$__range])",
+              "instant": true,
+              "interval": "",
+              "legendFormat": "{{hostname}}",
+              "queryType": "randomWalk",
+              "refId": "A"
+            }
+          ],
+          "title": "Highest Threat per Host",
+          "transparent": true,
+          "type": "bargauge"
+        },
+        {
+          "datasource": "VictoriaMetrics",
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "align": null,
+                "displayMode": "auto",
+                "filterable": true
+              },
+              "decimals": 1,
+              "mappings": [],
+              "max": 10,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "blue",
+                    "value": 4
+                  },
+                  {
+                    "color": "orange",
+                    "value": 7
+                  },
+                  {
+                    "color": "red",
+                    "value": 9
+                  }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "CVSS v3 Base Score"
+                },
+                "properties": [
+                  {
+                    "id": "custom.displayMode",
+                    "value": "lcd-gauge"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "CVE"
+                },
+                "properties": [
+                  {
+                    "id": "links",
+                    "value": [
+                      {
+                        "targetBlank": true,
+                        "title": "NVD",
+                        "url": "https://nvd.nist.gov/vuln/detail/CVE-${__value.text}"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 11,
+            "w": 14,
+            "x": 10,
+            "y": 4
+          },
+          "id": 13,
+          "options": {
+            "showHeader": true,
+            "sortBy": []
+          },
+          "pluginVersion": "7.5.9",
+          "targets": [
+            {
+              "exemplar": true,
+              "expr": "max by (hostname, pname, version, cve) (vulnerability_score{nomad_job=\"\"}[$__range])",
+              "instant": true,
+              "interval": "",
+              "legendFormat": "",
+              "queryType": "randomWalk",
+              "refId": "A"
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "All Entries",
+          "transformations": [
+            {
+              "id": "labelsToFields",
+              "options": {}
+            },
+            {
+              "id": "seriesToRows",
+              "options": {}
+            },
+            {
+              "id": "filterByValue",
+              "options": {
+                "filters": [
+                  {
+                    "config": {
+                      "id": "isNull",
+                      "options": {}
+                    },
+                    "fieldName": "Value"
+                  }
+                ],
+                "match": "any",
+                "type": "exclude"
+              }
+            },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
+                  {
+                    "desc": false,
+                    "field": "pname"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
+                  {
+                    "desc": false,
+                    "field": "version"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
+                  {
+                    "desc": false,
+                    "field": "hostname"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
+                  {
+                    "desc": true,
+                    "field": "cve"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
+                  {
+                    "desc": true,
+                    "field": "Value"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true
+                },
+                "indexByName": {
+                  "Time": 5,
+                  "Value": 0,
+                  "cve": 1,
+                  "hostname": 4,
+                  "pname": 2,
+                  "version": 3
+                },
+                "renameByName": {
+                  "Time": "",
+                  "Value": "CVSS v3 Base Score",
+                  "cve": "CVE",
+                  "hostname": "Hostname",
+                  "pname": "Package",
+                  "version": "Version"
+                }
+              }
+            }
+          ],
+          "transparent": true,
+          "type": "table"
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": "VictoriaMetrics",
+          "decimals": 1,
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "fill": 0,
+          "fillGradient": 1,
+          "gridPos": {
+            "h": 9,
+            "w": 24,
+            "x": 0,
+            "y": 15
+          },
+          "hiddenSeries": false,
+          "id": 3,
+          "legend": {
+            "alignAsTable": true,
+            "avg": true,
+            "current": true,
+            "hideEmpty": false,
+            "hideZero": false,
+            "max": true,
+            "min": true,
+            "rightSide": true,
+            "show": true,
+            "sideWidth": null,
+            "total": false,
+            "values": true
+          },
+          "lines": true,
+          "linewidth": 2,
+          "nullPointMode": "connected",
+          "options": {
+            "alertThreshold": true
+          },
+          "percentage": false,
+          "pluginVersion": "7.5.9",
+          "pointradius": 0.5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [
+            {
+              "$$hashKey": "object:751",
+              "alias": "/\\((min|avg)\\)$/",
+              "hiddenSeries": true
+            }
+          ],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": true,
+          "targets": [
+            {
+              "exemplar": true,
+              "expr": "max by (hostname) (vulnerability_score{nomad_job=\"\"})",
+              "format": "time_series",
+              "instant": false,
+              "interval": "",
+              "intervalFactor": 1,
+              "legendFormat": "{{hostname}} (max)",
+              "queryType": "randomWalk",
+              "refId": "max"
+            },
+            {
+              "exemplar": true,
+              "expr": "avg by (hostname) (vulnerability_score{nomad_job=\"\"})",
+              "format": "time_series",
+              "hide": false,
+              "instant": false,
+              "interval": "",
+              "intervalFactor": 1,
+              "legendFormat": "{{hostname}} (avg)",
+              "queryType": "randomWalk",
+              "refId": "avg"
+            },
+            {
+              "exemplar": true,
+              "expr": "min by (hostname) (vulnerability_score{nomad_job=\"\"})",
+              "format": "time_series",
+              "hide": false,
+              "instant": false,
+              "interval": "",
+              "intervalFactor": 1,
+              "legendFormat": "{{hostname}} (min)",
+              "queryType": "randomWalk",
+              "refId": "min"
+            }
+          ],
+          "thresholds": [
+            {
+              "$$hashKey": "object:248",
+              "colorMode": "critical",
+              "fill": true,
+              "line": false,
+              "op": "gt",
+              "value": 9,
+              "yaxis": "left"
+            },
+            {
+              "$$hashKey": "object:254",
+              "colorMode": "warning",
+              "fill": true,
+              "fillColor": "rgba(51, 162, 229, 0.2)",
+              "line": false,
+              "lineColor": "rgba(31, 96, 196, 0.6)",
+              "op": "lt",
+              "value": 9,
+              "yaxis": "left"
+            },
+            {
+              "$$hashKey": "object:679",
+              "colorMode": "custom",
+              "fill": true,
+              "fillColor": "rgba(87, 148, 242, 0.15)",
+              "line": false,
+              "lineColor": "rgba(31, 96, 196, 0.6)",
+              "op": "lt",
+              "value": 7,
+              "yaxis": "left"
+            },
+            {
+              "$$hashKey": "object:689",
+              "colorMode": "ok",
+              "fill": true,
+              "line": false,
+              "op": "lt",
+              "value": 4,
+              "yaxis": "left"
+            }
+          ],
+          "timeFrom": null,
+          "timeRegions": [],
+          "timeShift": null,
+          "title": "Threat per Host",
+          "tooltip": {
+            "shared": true,
+            "sort": 0,
+            "value_type": "individual"
+          },
+          "transparent": true,
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "$$hashKey": "object:313",
+              "decimals": null,
+              "format": "short",
+              "label": "CVSS v3 Base Score",
+              "logBase": 1,
+              "max": "10",
+              "min": "0",
+              "show": true
+            },
+            {
+              "$$hashKey": "object:314",
+              "decimals": null,
+              "format": "short",
+              "label": "Average",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": false
+            }
+          ],
+          "yaxis": {
+            "align": false,
+            "alignLevel": null
+          }
+        }
+      ],
+      "title": "Hosts",
       "type": "row"
     }
   ],
@@ -1126,40 +2053,29 @@
   "templating": {
     "list": [
       {
-        "allValue": "",
+        "allValue": null,
         "current": {
           "selected": true,
+          "tags": [],
           "text": [
-            "core-1",
-            "core-2",
-            "core-3",
-            "hydra",
-            "monitoring",
-            "nexus",
-            "routing"
+            "All"
           ],
           "value": [
-            "core-1",
-            "core-2",
-            "core-3",
-            "hydra",
-            "monitoring",
-            "nexus",
-            "routing"
+            "$__all"
           ]
         },
         "datasource": "VictoriaMetrics",
-        "definition": "label_values(hostname)",
+        "definition": "label_values(nomad_namespace)",
         "description": null,
         "error": null,
         "hide": 0,
         "includeAll": true,
-        "label": "Hostname",
+        "label": "Namespace",
         "multi": true,
-        "name": "hostname",
+        "name": "namespace",
         "options": [],
         "query": {
-          "query": "label_values(hostname)",
+          "query": "label_values(nomad_namespace)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,
@@ -1171,6 +2087,72 @@
         "tagsQuery": "",
         "type": "query",
         "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {
+          "selected": true,
+          "tags": [],
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "description": null,
+        "error": null,
+        "hide": 0,
+        "includeAll": true,
+        "label": "Hostname",
+        "multi": true,
+        "name": "hostname",
+        "options": [
+          {
+            "selected": true,
+            "text": "All",
+            "value": "$__all"
+          },
+          {
+            "selected": false,
+            "text": "core-1",
+            "value": "core-1"
+          },
+          {
+            "selected": false,
+            "text": "core-2",
+            "value": "core-2"
+          },
+          {
+            "selected": false,
+            "text": "core-3",
+            "value": "core-3"
+          },
+          {
+            "selected": false,
+            "text": "hydra",
+            "value": "hydra"
+          },
+          {
+            "selected": false,
+            "text": "nexus",
+            "value": "nexus"
+          },
+          {
+            "selected": false,
+            "text": "monitoring",
+            "value": "monitoring"
+          },
+          {
+            "selected": false,
+            "text": "routing",
+            "value": "routing"
+          }
+        ],
+        "query": "core-1,core-2,core-3,hydra,nexus,monitoring,routing",
+        "queryValue": "",
+        "skipUrlSync": false,
+        "type": "custom"
       }
     ]
   },
@@ -1182,7 +2164,7 @@
     "hidden": false
   },
   "timezone": "",
-  "title": "Vulnix",
+  "title": "Vulnix [bitte]",
   "uid": "4i7rTv4nk",
-  "version": 36
+  "version": 1
 }

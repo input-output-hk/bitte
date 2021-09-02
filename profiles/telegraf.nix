@@ -3,24 +3,30 @@ let
   inherit (config.cluster) region instances;
   inherit (lib) optional optionalAttrs;
 in {
-  systemd.services = {
-    telegraf.path = with pkgs; [ procps ];
-  } // (lib.optionalAttrs config.services.vulnix.enable {
-    ${config.services.vulnix.systemdServiceName} = {
-      postStart = let
-        inherit (config.services.telegraf.extraConfig.inputs.http_listener_v2)
-          service_address path;
-        address =
-          (lib.optionalString (lib.hasPrefix ":" service_address) "127.0.0.1") +
-          service_address;
-      in ''
-        curl --no-progress-meter \
-          -XPOST http://${address}${path} \
-          --data-binary @$RUNTIME_DIRECTORY/report.json
-      '';
-      path = [ pkgs.curl ];
-    };
-  });
+  systemd.services.telegraf.path = with pkgs; [ procps ];
+
+  services.vulnix.sink = let
+    inherit (config.services.telegraf.extraConfig.inputs.http_listener_v2)
+      service_address path;
+    address =
+      (lib.optionalString (lib.hasPrefix ":" service_address) "127.0.0.1") +
+      service_address;
+  in pkgs.writeBashChecked "vulnix-telegraf" ''
+    function send {
+      ${pkgs.curl}/bin/curl --no-progress-meter \
+        -XPOST http://${address}${path} --data-binary @- "$@"
+    }
+
+    if [[ -n "$NOMAD_JOB_NAMESPACE$NOMAD_JOB_ID$NOMAD_JOB_TASKGROUP_NAME$NOMAD_JOB_TASK_NAME" ]]; then
+      send \
+        -H "X-Telegraf-Tag-nomad_namespace: $NOMAD_JOB_NAMESPACE" \
+        -H "X-Telegraf-Tag-nomad_job: $NOMAD_JOB_ID" \
+        -H "X-Telegraf-Tag-nomad_taskgroup: $NOMAD_JOB_TASKGROUP_NAME" \
+        -H "X-Telegraf-Tag-nomad_task: $NOMAD_JOB_TASK_NAME"
+    else
+      send
+    fi
+  '';
 
   services.telegraf = {
     enable = true;
@@ -116,6 +122,12 @@ in {
           path = "/vulnix";
           methods = [ "POST" ];
           data_source = "body";
+          http_header_tags = {
+            X-Telegraf-Tag-nomad_namespace = "nomad_namespace";
+            X-Telegraf-Tag-nomad_job       = "nomad_job";
+            X-Telegraf-Tag-nomad_taskgroup = "nomad_taskgroup";
+            X-Telegraf-Tag-nomad_task      = "nomad_task";
+          };
 
           data_format = "json";
           tag_keys = [ "pname" "version" ];
