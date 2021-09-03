@@ -2,7 +2,7 @@
 
 buildGoModule rec {
   pname = "consul";
-  version = "1.10.1";
+  version = "1.10.2";
   rev = "v${version}";
 
   # Note: Currently only release tags are supported, because they have the Consul UI
@@ -17,19 +17,13 @@ buildGoModule rec {
     owner = "hashicorp";
     repo = pname;
     inherit rev;
-    sha256 = "sha256-oap0pXqtIbT9wMfD/RuJ2tTRynSvfzsgL8TyY4nj3sM=";
+    sha256 = "sha256-mA/s3J0ylE3C3IGaYfadeZV6PQ5Ooth6iQ4JEgPl44Q=";
   };
 
   patches = [
     ./script-check.patch
     # Fix no http protocol upgrades through envoy
     ./consul-issue-9639.patch
-    # Fix no envoy upstream listener issue specific to Consul v1.10.1
-    (if version == "1.10.1" then (pkgs.fetchpatch {
-      name = "consul-issue-10714-patch";
-      url = "https://github.com/hashicorp/consul/commit/3e2ec34409babda7f625889f3620c9d3810521fc.patch";
-      sha256 = "sha256-H+LhhISrM829yn93SfIsJzD0JgTPfPoBIzfZ30TLIek=";
-    }) else null)
   ];
 
   passthru.tests.consul = nixosTests.consul;
@@ -38,7 +32,7 @@ buildGoModule rec {
   # has a split module structure in one repo
   subPackages = [ "." "connect/certgen" ];
 
-  vendorSha256 = "sha256-ZhHjMLLTN4PP60n2ejU+C3xt3PGGURVC+aq3GgLl7A4=";
+  vendorSha256 = "sha256-Hub3mUowS81s7S6MtQ6LSr7wW+24vt9ZLI4F8RAJKz0=";
   deleteVendor = true;
 
   preBuild = ''
