@@ -25,9 +25,14 @@ let
           (filterAttrs
             (name: value: name != "_module" && name != "_ref" && value != null))
           (mapAttrs'
-            (name: value: nameValuePair (snakeCase name) (sanitize value)))
+            (name: value: nameValuePair (sanitizeName name) (sanitizeValue name value)))
         ];
     };
+
+  # Some config cannot be snakeCase sanitized without breaking the functionality.
+  # Example: consul service resolver subsets
+  sanitizeName = name: if name == "subsets" then name else snakeCase name;
+  sanitizeValue = name: value: if name == "subsets" then value else sanitize value;
 
 in {
   options = {
