@@ -4,7 +4,7 @@ let
   inherit (lib) mkOption reverseList;
   inherit (lib.types)
     attrs submodule str attrsOf bool ints path enum port listof nullOr listOf
-    oneOf list package unspecified;
+    oneOf list package unspecified anything;
   inherit (terralib) var id regions awsProviderFor;
 
   kms2region = kms: builtins.elemAt (lib.splitString ":" kms) 3;
@@ -462,7 +462,7 @@ let
       };
 
       modules = mkOption {
-        type = listOf (oneOf [ path attrs ]);
+        type = listOf anything;
         default = [ ];
       };
 
