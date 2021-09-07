@@ -48,7 +48,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "iteration": 1630927935642,
+  "iteration": 1630956395046,
   "links": [
     {
       "asDropdown": false,
@@ -125,6 +125,16 @@
                   {
                     "id": "custom.displayMode",
                     "value": "lcd-gauge"
+                  },
+                  {
+                    "id": "links",
+                    "value": [
+                      {
+                        "targetBlank": true,
+                        "title": "Nixpkgs Search",
+                        "url": "https://github.com/NixOS/nixpkgs/issues?q=CVE-${__data.fields.CVE}"
+                      }
+                    ]
                   }
                 ]
               },
@@ -536,6 +546,16 @@
               {
                 "id": "custom.displayMode",
                 "value": "lcd-gauge"
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": true,
+                    "title": "Nixpkgs Search",
+                    "url": "https://github.com/NixOS/nixpkgs/issues?q=CVE-${__data.fields.CVE}"
+                  }
+                ]
               }
             ]
           },
@@ -1117,6 +1137,16 @@
                   {
                     "id": "custom.displayMode",
                     "value": "lcd-gauge"
+                  },
+                  {
+                    "id": "links",
+                    "value": [
+                      {
+                        "targetBlank": true,
+                        "title": "Nixpkgs Search",
+                        "url": "https://github.com/NixOS/nixpkgs/issues?q=CVE-${__data.fields.CVE}"
+                      }
+                    ]
                   }
                 ]
               },
@@ -1696,6 +1726,16 @@
                   {
                     "id": "custom.displayMode",
                     "value": "lcd-gauge"
+                  },
+                  {
+                    "id": "links",
+                    "value": [
+                      {
+                        "targetBlank": true,
+                        "title": "Nixpkgs Search",
+                        "url": "https://github.com/NixOS/nixpkgs/issues?q=CVE-${__data.fields.CVE}"
+                      }
+                    ]
                   }
                 ]
               },
