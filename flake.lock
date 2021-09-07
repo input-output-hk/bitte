@@ -68,11 +68,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1630419601,
-        "narHash": "sha256-rPfvujJdP+uoRnYJ+Ezu04WRvxZArklhvIlAx+lGwp0=",
+        "lastModified": 1631040649,
+        "narHash": "sha256-iYU0cnS/Il97yumzERnP0EdjAHnI2tTlE92dqMbSQGE=",
         "owner": "kreisys",
         "repo": "hydra",
-        "rev": "a61bd966db6bf799eecf49ede0d2c304f6ea69a5",
+        "rev": "c7aca6e2ccd6a72f707f9de2b54cc258bd8a8ef1",
         "type": "github"
       },
       "original": {
