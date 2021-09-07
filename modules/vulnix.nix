@@ -1,6 +1,8 @@
 { config, pkgs, lib, ... }:
 
-let cfg = config.services.vulnix;
+let
+  cfg = config.services.vulnix;
+  whitelistFormat = pkgs.formats.toml {};
 in {
   options.services.vulnix = with lib; {
     enable = mkEnableOption "Vulnix scan";
@@ -31,6 +33,12 @@ in {
           nss ++ lib.optional (nss == []) "*";
         description = "Nomad namespaces to scan jobs in.";
       };
+    };
+
+    whitelists = mkOption {
+      type = types.listOf whitelistFormat.type;
+      default = [];
+      description = "Whitelists to respect.";
     };
 
     paths = mkOption {
@@ -108,6 +116,10 @@ in {
             json = true;
             requisites = scanRequisites;
             no-requisites = !scanRequisites;
+            whitelist = map (lib.flip lib.pipe [
+              (whitelistFormat.generate "vulnix-whitelist.toml")
+              (drv: "${drv}")
+            ]) whitelists;
           })} \
             --cache-dir $CACHE_DIRECTORY \
             ${lib.concatStringsSep " " cfg.extraOpts} "$@" \
