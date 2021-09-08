@@ -48,11 +48,11 @@ let
     ([ "echo '[agenix] decrypting non-root secrets...'" ]
       ++ (map installSecret nonRootSecrets));
 
-  secretType = types.submodule ({ config, ... }: {
+  secretType = types.submodule ({ config, name, ... }: {
     options = {
       name = mkOption {
         type = types.str;
-        default = config._module.args.name;
+        default = name;
         description = ''
           Name of the file used in /run/secrets
         '';
@@ -138,7 +138,8 @@ in {
 
     # Secrets with root owner and group can be installed before users
     # exist. This allows user password files to be encrypted.
-    system.activationScripts.agenixRoot = installRootOwnedSecrets;
+    system.activationScripts.agenixRoot =
+      stringAfter [ ] installRootOwnedSecrets;
     system.activationScripts.users.deps = [ "agenixRoot" ];
 
     # Other secrets need to wait for users and groups to exist.

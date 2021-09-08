@@ -1,8 +1,8 @@
-{ pkgs, config, self, ... }: {
+{ pkgs, config, self, lib, ... }: {
   nix = {
     package = pkgs.nixFlakes;
     gc.automatic = true;
-    gc.options = "--max-freed $((10 * 1024 * 1024))";
+    gc.options = lib.mkDefault "--max-freed $((10 * 1024 * 1024))";
     optimise.automatic = true;
     autoOptimiseStore = true;
     extraOptions = ''

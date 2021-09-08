@@ -1063,6 +1063,8 @@ in {
     };
   };
 
+  disabledModules = [ "services/networking/nomad.nix" ];
+
   config = mkIf cfg.enable {
     environment.etc."nomad.d/config.json".source = pkgs.toPrettyJSON "config"
       (sanitize {

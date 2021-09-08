@@ -1,6 +1,8 @@
 { lib, pkgs, ... }: {
   imports = [ ./nix.nix ./ssh.nix ];
 
+  disabledModules = [ "virtualisation/amazon-image.nix" ];
+
   environment = {
     systemPackages = with pkgs; [
       bat
@@ -48,4 +50,11 @@
       "3.nixos.pool.ntp.org"
     ];
   };
+
+  users.extraUsers = {
+    root.initialHashedPassword = lib.mkForce null;
+    nixos.initialHashedPassword = lib.mkForce null;
+  };
+
+  services.getty.helpLine = lib.mkForce "";
 }

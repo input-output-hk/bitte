@@ -10,32 +10,32 @@ in {
 
   age.secrets = {
     nomad-ca = {
-      file = ../../encrypted/ssl/ca.age;
+      file = config.age.encryptedRoot + /ssl/ca.age;
       path = "/var/lib/nomad/ca.pem";
     };
 
     nomad-client = {
-      file = ../../encrypted/ssl/client.age;
+      file = config.age.encryptedRoot + /ssl/client.age;
       path = "/var/lib/nomad/client.pem";
     };
 
     nomad-client-key = {
-      file = ../../encrypted/ssl/client-key.age;
+      file = config.age.encryptedRoot + /ssl/client-key.age;
       path = "/var/lib/nomad/client-key.pem";
     };
 
     nomad-full = {
-      file = ../../encrypted/ssl/server-full.age;
+      file = config.age.encryptedRoot + /ssl/server-full.age;
       path = "/var/lib/nomad/full.pem";
     };
 
     nomad-server = {
-      file = ../../encrypted/ssl/server.age;
+      file = config.age.encryptedRoot + /ssl/server.age;
       path = "/var/lib/nomad/server.pem";
     };
 
     nomad-server-key = {
-      file = ../../encrypted/ssl/server-key.age;
+      file = config.age.encryptedRoot + /ssl/server-key.age;
       path = "/var/lib/nomad/server-key.pem";
     };
   };

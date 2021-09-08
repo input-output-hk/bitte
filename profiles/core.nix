@@ -4,6 +4,7 @@
     ./consul/server.nix
     ./nomad/server.nix
     ./telegraf.nix
+    ./promtail.nix
     ./vault/server.nix
   ];
 

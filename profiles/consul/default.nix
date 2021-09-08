@@ -4,7 +4,7 @@ in {
   config = lib.mkIf config.services.consul.enable {
     age.secrets = {
       consul-encrypt = {
-        file = config.age.encryptedRoot + "/consul/encrypt.age";
+        file = config.age.encryptedRoot + /consul/encrypt.age;
         path = "/etc/consul.d/encrypt.json";
         mode = "0444";
         script = ''
@@ -37,17 +37,17 @@ in {
       };
 
       consul-ca = {
-        file = config.age.encryptedRoot + "/ssl/ca.age";
+        file = config.age.encryptedRoot + /ssl/ca.age;
         path = "/var/lib/private/consul/ca.pem";
       };
 
       consul-server = {
-        file = config.age.encryptedRoot + "/ssl/server.age";
+        file = config.age.encryptedRoot + /ssl/server.age;
         path = "/var/lib/private/consul/server.pem";
       };
 
       consul-server-key = {
-        file = config.age.encryptedRoot + "/ssl/server-key.age";
+        file = config.age.encryptedRoot + /ssl/server-key.age;
         path = "/var/lib/private/consul/server-key.pem";
       };
     };
@@ -66,7 +66,6 @@ in {
       caFile = config.age.secrets.consul-ca.path;
       certFile = config.age.secrets.consul-server.path;
       keyFile = config.age.secrets.consul-server-key.path;
-
 
       telemetry = {
         dogstatsdAddr = "localhost:8125";

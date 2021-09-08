@@ -49,6 +49,8 @@ in {
     };
   };
 
+  disabledModules = [ "services/monitoring/telegraf.nix" ];
+
   ###### implementation
   config = mkIf config.services.telegraf.enable {
     systemd.services.telegraf = {

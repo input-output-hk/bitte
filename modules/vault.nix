@@ -316,6 +316,8 @@ in {
     };
   };
 
+  disabledModules = [ "services/security/vault.nix" ];
+
   config = lib.mkIf cfg.enable {
     environment.systemPackages = [ pkgs.vault-bin ];
 

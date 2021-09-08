@@ -44,6 +44,9 @@ in {
       '';
     };
   };
+
+  disabledModules = [ "services/databases/victoriametrics.nix" ];
+
   config = lib.mkIf cfg.enable {
     systemd.services.victoriametrics = {
       description = "VictoriaMetrics time series database";

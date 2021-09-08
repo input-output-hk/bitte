@@ -10,9 +10,7 @@ in {
       default = "tank";
     };
   };
-  imports = [
-    #<nixpkgs/nixos/modules/virtualisation/amazon-init.nix>
-  ];
+
   config = {
     boot = {
       # growPartition does not support zfs directly, so the above postDeviceCommands use what this puts into PATH

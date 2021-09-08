@@ -26,12 +26,4 @@
     ./vault-policies.nix
     ./victoriametrics.nix
   ];
-
-  disabledModules = [
-    "services/databases/victoriametrics.nix"
-    "services/monitoring/telegraf.nix"
-    "services/networking/consul.nix"
-    "services/networking/nomad.nix"
-    "services/security/vault.nix"
-  ];
 }

@@ -385,6 +385,8 @@ in {
     };
   };
 
+  disabledModules = [ "services/networking/consul.nix" ];
+
   config = mkIf cfg.enable {
     environment.systemPackages = [ cfg.package ];
 
