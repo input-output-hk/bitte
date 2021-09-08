@@ -58,7 +58,7 @@ in {
 
       extraConfig = mkOption {
         type = attrs;
-        default = {};
+        default = { };
       };
 
       datacenter = mkOption {

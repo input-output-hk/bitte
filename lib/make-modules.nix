@@ -14,7 +14,7 @@ let
       expanded = mapAttrs (name: type:
         if (type == "regular") && (lib.strings.hasSuffix ".nix" name) then [
           (join prefix name)
-          (d + "/${name}")
+          (import (d + "/${name}"))
         ] else if type == "directory" then [
           (join prefix name)
           (convert (join prefix name) (d + "/${name}"))
