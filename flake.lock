@@ -380,7 +380,8 @@
         "nomad-source": "nomad-source",
         "ops-lib": "ops-lib",
         "terranix": "terranix",
-        "utils": "utils_4"
+        "utils": "utils_4",
+        "vulnix": "vulnix"
       }
     },
     "terranix": {
@@ -457,6 +458,22 @@
       "original": {
         "owner": "kreisys",
         "repo": "flake-utils",
+        "type": "github"
+      }
+    },
+    "vulnix": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1627294547,
+        "narHash": "sha256-C3PM19Y4YxLBJ3V6LBJzpwSJwDjJH7vkWOe4hBppQvQ=",
+        "owner": "flyingcircusio",
+        "repo": "vulnix",
+        "rev": "06daccda0e51098fbdbc65f61b6663c5c6df9358",
+        "type": "github"
+      },
+      "original": {
+        "owner": "flyingcircusio",
+        "repo": "vulnix",
         "type": "github"
       }
     }

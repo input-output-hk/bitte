@@ -23,6 +23,7 @@ in {
     ingress.enable = true;
     ingress-config.enable = true;
     minio.enable = true;
+    vulnix.enable = true;
 
     vault-agent-core = {
       enable = true;

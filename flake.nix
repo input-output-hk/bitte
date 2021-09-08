@@ -22,6 +22,10 @@
       url = "github:input-output-hk/nomad/release-1.1.3";
       flake = false;
     };
+    vulnix = {
+      url = "github:flyingcircusio/vulnix";
+      flake = false;
+    };
 
     nix.url = "github:NixOS/nix";
   };
