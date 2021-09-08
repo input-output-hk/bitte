@@ -19,16 +19,7 @@ in {
 
     output.cluster = {
       value = {
-        flake = toString config.cluster.flakePath;
-        kms = config.cluster.kms;
-        name = config.cluster.name;
-        nix = pkgs.nixFlakes;
-        region = config.cluster.region;
-        s3-bucket = config.cluster.s3Bucket;
         s3-cache = config.cluster.s3Cache;
-
-        roles = lib.flip lib.mapAttrs config.cluster.iam.roles
-          (name: role: { arn = var "data.aws_iam_role.${role.uid}.arn"; });
 
         instances = lib.flip lib.mapAttrs config.cluster.instances
           (name: server: {
