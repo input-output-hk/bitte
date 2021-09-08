@@ -140,7 +140,7 @@ in {
         | ${cfg.sink}
       '' + lib.optionalString cfg.scanNomadJobs.enable ''
         export VAULT_TOKEN=$(< $CREDENTIALS_DIRECTORY/vault-token)
-        NOMAD_TOKEN=$(vault read -format json -field secret_id nomad/creds/admin | jq -rj)
+        NOMAD_TOKEN=$(vault read -field secret_id nomad/creds/admin)
         sleep 5s # let nomad token be propagated to come into effect
 
         [[ -f $STATE_DIRECTORY/index ]] || {
