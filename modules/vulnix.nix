@@ -124,6 +124,7 @@ in {
             --cache-dir $CACHE_DIRECTORY \
             ${lib.concatStringsSep " " cfg.extraOpts} "$@" \
           || case $? in
+            # XXX adapt this after action on https://github.com/flyingcircusio/vulnix/issues/79
             0 ) ;; # no vulnerabilities found
             1 ) ;; # only whitelisted vulnerabilities found
             2 ) ;; # vulnerabilities found
