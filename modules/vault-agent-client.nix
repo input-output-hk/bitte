@@ -88,7 +88,7 @@ let
             {{ end }}{{ end }}
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart certs-updated.service";
+          command = "${pkgs.systemd}/bin/systemctl try-restart certs-updated.service";
         };
       }
 
@@ -100,7 +100,7 @@ let
             {{ with secret ${pkiSecret} }}{{ .Data.private_key }}{{ end }}
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart certs-updated.service";
+          command = "${pkgs.systemd}/bin/systemctl try-restart certs-updated.service";
         };
       }
 
@@ -124,7 +124,7 @@ let
             }
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart consul";
+          command = "${pkgs.systemd}/bin/systemctl try-restart consul";
         };
       })
 
@@ -136,7 +136,7 @@ let
             {{ with secret "consul/creds/consul-default" }}{{ .Data.token }}{{ end }}
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart consul.service";
+          command = "${pkgs.systemd}/bin/systemctl try-restart consul.service";
         };
       })
 
@@ -198,10 +198,10 @@ in {
         [ /etc/ssl/certs/cert.pem -nt /etc/ssl/certs/.last_restart ]
         [ /etc/ssl/certs/cert-key.pem -nt /etc/ssl/certs/.last_restart ]
 
-        systemctl try-reload-or-restart consul.service
+        systemctl try-restart consul.service
 
         if curl -s -k https://127.0.0.1:4646/v1/status/leader &> /dev/null; then
-          systemctl try-reload-or-restart nomad.service
+          systemctl try-restart nomad.service
         else
           systemctl start nomad.service
         fi
