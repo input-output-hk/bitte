@@ -26,12 +26,23 @@ in {
 
     scanNomadJobs = {
       enable = mkEnableOption "scan of all active Nomad jobs";
+
       namespaces = mkOption {
         type = with types; listOf str;
         default =
           let nss = builtins.attrNames config.services.nomad.namespaces; in
           nss ++ lib.optional (nss == []) "*";
         description = "Nomad namespaces to scan jobs in.";
+      };
+
+      sshKey = mkOption {
+        type = types.path;
+        description = "The SSH key to use for private Git repos.";
+      };
+
+      netrcFile = mkOption {
+        type = types.path;
+        description = "The netrc file to use for private Git repos.";
       };
     };
 
@@ -66,16 +77,6 @@ in {
         <envar>NOMAD_JOB_TASKGROUP_NAME</envar>, and <envar>NOMAD_JOB_TASK_NAME</envar> are set.
       '';
     };
-
-    sshKey = mkOption {
-      type = types.path;
-      description = "The SSH key to use for private Git repos.";
-    };
-
-    netrcFile = mkOption {
-      type = types.path;
-      description = "The netrc file to use for private Git repos.";
-    };
   };
 
   config.systemd = let
@@ -89,15 +90,15 @@ in {
         DynamicUser = true;
         CacheDirectory = "vulnix";
         StateDirectory = "vulnix";
-      } // lib.optionalAttrs cfg.scanNomadJobs.enable {
+      } // (with cfg.scanNomadJobs; lib.optionalAttrs enable {
         Type = "simple";
         Restart = "on-failure";
         LoadCredential = [
           (assert config.services.vault-agent-core.enable; "vault-token:/run/keys/vault-token")
-          "ssh:${cfg.sshKey}"
-          "netrc:${cfg.netrcFile}"
+          "ssh:${sshKey}"
+          "netrc:${netrcFile}"
         ];
-      };
+      });
 
       startLimitIntervalSec = 20;
       startLimitBurst = 10;
