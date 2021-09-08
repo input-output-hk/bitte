@@ -31,7 +31,7 @@ in {
       role = "client";
       vaultAddress = "https://vault.${domain}:8200";
 
-      cache.use_auto_auth_token = true;
+      cache.useAutoAuthToken = true;
 
       autoAuthMethod = "aws";
 
