@@ -78,7 +78,9 @@ in {
     };
   };
 
-  config.systemd = lib.mkIf cfg.enable {
+  config.systemd = let
+    inherit (config.cluster) domain;
+  in lib.mkIf cfg.enable {
     services.vulnix = {
       description = "Vulnix scan";
 
@@ -101,9 +103,9 @@ in {
       startLimitBurst = 10;
 
       environment = lib.mkIf cfg.scanNomadJobs.enable {
-        VAULT_ADDR = "https://${config.cluster.instances.core-1.privateIP}:8200";
-        NOMAD_ADDR = "https://${config.cluster.instances.core-1.privateIP}:4646";
-        VAULT_CACERT = "/etc/ssl/certs/full.pem";
+        VAULT_ADDR = "https://vault.${domain}";
+        NOMAD_ADDR = "https://nomad.${domain}";
+        VAULT_CACERT = "/etc/ssl/certs/${domain}-full.pem";
       };
 
       path = with pkgs; [ cfg.package vault-bin curl jq nixFlakes gitMinimal ];
@@ -153,7 +155,7 @@ in {
           <<< X-Nomad-Token:"$NOMAD_TOKEN" \
           curl -H @- \
             --no-progress-meter \
-            --cacert /etc/ssl/certs/ca.pem \
+            --cacert /etc/ssl/certs/${domain}-ca.pem \
             -NG "$NOMAD_ADDR"/v1/event/stream \
             --data-urlencode namespace="$1" \
             --data-urlencode topic=Job \
