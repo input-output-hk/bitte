@@ -315,8 +315,6 @@ in {
     mkEnableOption "Enable Vault Consul Token";
 
   config = mkIf cfg.enable {
-    environment.systemPackages = [ pkgs.vault-bin ];
-
     environment.etc."${cfg.configDir}/config.json".source =
       pkgs.toPrettyJSON "config" (sanitize {
         inherit (cfg)

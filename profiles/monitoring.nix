@@ -16,7 +16,6 @@ in {
   ];
 
   services = {
-    vault.enable = lib.mkForce false;
     consul.ui = true;
     nomad.enable = false;
     amazon-ssm-agent.enable = true;
@@ -25,11 +24,7 @@ in {
     minio.enable = true;
     vulnix.enable = true;
 
-    vault-agent-core = {
-      enable = true;
-      vaultAddress =
-        "https://${config.cluster.instances.core-1.privateIP}:8200";
-    };
+    vault-agent-monitoring.enable = true;
 
     victoriametrics = {
       enable = true;
