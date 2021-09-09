@@ -116,7 +116,8 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "100 - cpu_usage_idle{cpu=\"cpu-total\"}",
+          "exemplar": true,
+          "expr": "100 - cpu_usage_idle{cpu=\"cpu-total\",host!~\"ip-.*\"}",
           "interval": "",
           "legendFormat": "{{host}}",
           "refId": "A"
@@ -138,7 +139,7 @@
       "title": "CPU Used",
       "tooltip": {
         "shared": false,
-        "sort": 0,
+        "sort": 2,
         "value_type": "individual"
       },
       "type": "graph",
