@@ -12,7 +12,7 @@
       },
       {
         "datasource": "Loki",
-        "enable": true,
+        "enable": false,
         "expr": "{syslog_identifier=\"nixos\"}",
         "hide": false,
         "iconColor": "#73BF69",
@@ -33,7 +33,7 @@
       },
       {
         "datasource": "Loki",
-        "enable": true,
+        "enable": false,
         "expr": "{unit=\"vulnix.service\"}",
         "hide": false,
         "iconColor": "#F2495C",
@@ -48,7 +48,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "iteration": 1630956395046,
+  "iteration": 1631380150908,
   "links": [
     {
       "asDropdown": false,
@@ -2127,72 +2127,6 @@
         "tagsQuery": "",
         "type": "query",
         "useTags": false
-      },
-      {
-        "allValue": null,
-        "current": {
-          "selected": true,
-          "tags": [],
-          "text": [
-            "All"
-          ],
-          "value": [
-            "$__all"
-          ]
-        },
-        "description": null,
-        "error": null,
-        "hide": 0,
-        "includeAll": true,
-        "label": "Hostname",
-        "multi": true,
-        "name": "hostname",
-        "options": [
-          {
-            "selected": true,
-            "text": "All",
-            "value": "$__all"
-          },
-          {
-            "selected": false,
-            "text": "core-1",
-            "value": "core-1"
-          },
-          {
-            "selected": false,
-            "text": "core-2",
-            "value": "core-2"
-          },
-          {
-            "selected": false,
-            "text": "core-3",
-            "value": "core-3"
-          },
-          {
-            "selected": false,
-            "text": "hydra",
-            "value": "hydra"
-          },
-          {
-            "selected": false,
-            "text": "nexus",
-            "value": "nexus"
-          },
-          {
-            "selected": false,
-            "text": "monitoring",
-            "value": "monitoring"
-          },
-          {
-            "selected": false,
-            "text": "routing",
-            "value": "routing"
-          }
-        ],
-        "query": "core-1,core-2,core-3,hydra,nexus,monitoring,routing",
-        "queryValue": "",
-        "skipUrlSync": false,
-        "type": "custom"
       }
     ]
   },
