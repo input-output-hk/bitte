@@ -1,4 +1,4 @@
-{ pkgs, config, lib, ... }:
+{ self, pkgs, config, lib, ... }:
 
 with lib;
 
@@ -11,13 +11,16 @@ in {
     };
   };
   imports = [
-    #<nixpkgs/nixos/modules/virtualisation/amazon-init.nix>
+    (self.inputs.nixpkgs + "/nixos/maintainers/scripts/ec2/amazon-image-zfs.nix")
   ];
   config = {
+    # default is sometimes too small for client configs
+    amazonImage.sizeMB = 8192;
+
     boot = {
       # growPartition does not support zfs directly, so the above postDeviceCommands use what this puts into PATH
       growPartition = true;
-      loader.grub.device = "/dev/sda";
+      loader.grub.device = lib.mkForce "/dev/sda";
       zfs.devNodes = "/dev/";
       kernelParams = [ "console=ttyS0" ];
       initrd = {
@@ -81,19 +84,19 @@ in {
     fileSystems = {
       "/" = {
         fsType = "zfs";
-        device = "${poolName}/root";
+        device = "${poolName}/system/root";
       };
       "/home" = {
         fsType = "zfs";
-        device = "${poolName}/home";
+        device = "${poolName}/user/home";
       };
       "/nix" = {
         fsType = "zfs";
-        device = "${poolName}/nix";
+        device = "${poolName}/local/nix";
       };
       "/var" = {
         fsType = "zfs";
-        device = "${poolName}/var";
+        device = "${poolName}/system/var";
       };
     };
     networking = {
