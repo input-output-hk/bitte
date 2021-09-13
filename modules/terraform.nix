@@ -16,14 +16,14 @@ let
       (self.inputs.nixpkgs + "/nixos/modules/virtualisation/ec2-amis.nix");
   in {
     nixos = lib.mapAttrs' (name: value: lib.nameValuePair name value.hvm-ebs)
-      nixosAmis."20.03";
+      nixosAmis.latest;
   };
 
   autoscalingAMIs = {
-    us-east-2 = "ami-0492aa69cf46f79c3";
-    eu-central-1 = "ami-0839f2c610f876d2d";
-    eu-west-1 = "ami-0f765805e4520b54d";
-    us-east-1 = "ami-02700dd542e3304cd";
+    eu-central-1 = "ami-07cf06fc2cf0de485";
+    us-east-2 = "ami-08c2048194fde1422";
+    eu-west-1 = "ami-0ac83c4afcc9e6ecc";
+    us-east-1 = "ami-0baa6fb5107677998";
   };
 
   vpcMap = lib.pipe [
@@ -681,28 +681,30 @@ let
         };
       };
 
-      userData = mkOption {
+      userData = let
+        nixConf = ''
+          extra-substituters = ${cfg.s3Cache}
+          extra-trusted-public-keys = ${cfg.s3CachePubKey}
+        '';
+      in mkOption {
         type = nullOr str;
         default = ''
-          # amazon-shell-init
+          #!/usr/bin/env bash
+          export NIX_CONFIG="${nixConf}"
+
+          nix shell nixpkgs#zfs -c zfs set com.sun:auto-snapshot=true tank/system
+          nix shell nixpkgs#zfs -c zfs set atime=off tank/local/nix
+
           set -exuo pipefail
 
-          /run/current-system/sw/bin/zpool online -e tank nvme0n1p3
-
-          export CACHES="https://hydra.iohk.io https://cache.nixos.org ${cfg.s3Cache}"
-          export CACHE_KEYS="hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= ${cfg.s3CachePubKey}"
           pushd /run/keys
-          aws s3 cp "s3://${cfg.s3Bucket}/infra/secrets/${cfg.name}/${cfg.kms}/source/source.tar.xz" source.tar.xz
+          nix shell nixpkgs#awscli -c aws s3 cp "s3://${cfg.s3Bucket}/infra/secrets/${cfg.name}/${cfg.kms}/source/source.tar.xz" source.tar.xz
           mkdir -p source
           tar xvf source.tar.xz -C source
 
-          # TODO: add git to the AMI
-          nix build nixpkgs#git -o git
-          export PATH="$PATH:$PWD/git/bin"
-
-          nix build ./source#nixosConfigurations.${cfg.name}-${this.config.name}.config.system.build.toplevel --option substituters "$CACHES" --option trusted-public-keys "$CACHE_KEYS"
-          /run/current-system/sw/bin/nixos-rebuild --flake ./source#${cfg.name}-${this.config.name} boot --option substituters "$CACHES" --option trusted-public-keys "$CACHE_KEYS"
-          /run/current-system/sw/bin/shutdown -r now
+          nix build ./source#nixosConfigurations.${cfg.name}-${this.config.name}.config.system.build.toplevel
+          /run/current-system/sw/bin/nixos-rebuild --flake ./source#${cfg.name}-${this.config.name} switch &
+          disown -a
         '';
       };
 
