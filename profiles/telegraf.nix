@@ -9,8 +9,8 @@ in {
     inherit (config.services.telegraf.extraConfig.inputs.http_listener_v2)
       service_address path;
     address =
-      (lib.optionalString (lib.hasPrefix ":" service_address) "127.0.0.1") +
-      service_address;
+      (lib.optionalString (lib.hasPrefix ":" service_address) "127.0.0.1")
+      + service_address;
   in pkgs.writeBashChecked "vulnix-telegraf" ''
     function send {
       ${pkgs.curl}/bin/curl --no-progress-meter \
@@ -124,9 +124,9 @@ in {
           data_source = "body";
           http_header_tags = {
             X-Telegraf-Tag-nomad_namespace = "nomad_namespace";
-            X-Telegraf-Tag-nomad_job       = "nomad_job";
+            X-Telegraf-Tag-nomad_job = "nomad_job";
             X-Telegraf-Tag-nomad_taskgroup = "nomad_taskgroup";
-            X-Telegraf-Tag-nomad_task      = "nomad_task";
+            X-Telegraf-Tag-nomad_task = "nomad_task";
           };
 
           data_format = "json";
@@ -137,7 +137,7 @@ in {
         };
       });
 
-      processors.starlark = [ {
+      processors.starlark = [{
         namepass = [ "vulnerability" ];
         source = ''
           def apply(metric):
@@ -151,7 +151,7 @@ in {
                       metric.fields.pop(k)
               return metric
         '';
-      } ];
+      }];
 
       # Store data in VictoriaMetrics
       outputs = {

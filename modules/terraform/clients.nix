@@ -130,7 +130,8 @@ in {
 
             lifecycle = [{ create_before_destroy = true; }];
 
-            root_block_device = {
+            ebs_block_device = {
+              device_name = "/dev/xvdb";
               volume_type = group.volumeType;
               volume_size = group.volumeSize;
               delete_on_termination = true;

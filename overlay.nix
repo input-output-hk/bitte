@@ -27,8 +27,7 @@ in final: prev: {
 
   # Remove once nixpkgs is using openssh 8.7p1+ by default to avoid coredumps
   # Ref: https://bbs.archlinux.org/viewtopic.php?id=265221
-  opensshNoCoredump = let
-    version = "8.7p1";
+  opensshNoCoredump = let version = "8.7p1";
   in prev.opensshPackages.openssh.overrideAttrs (oldAttrs: {
     inherit version;
     src = prev.fetchurl {
@@ -127,13 +126,14 @@ in final: prev: {
   mkRequired = constituents:
     let
       build-version = final.writeText "version.json" (toJSON {
-        inherit (inputs.self) lastModified lastModifiedDate narHash outPath shortRev rev;
+        inherit (inputs.self)
+          lastModified lastModifiedDate narHash outPath shortRev rev;
       });
     in final.releaseTools.aggregate {
-        name = "required";
-        constituents = (attrValues constituents) ++ [ build-version ];
-        meta.description = "All required derivations";
-      };
+      name = "required";
+      constituents = (attrValues constituents) ++ [ build-version ];
+      meta.description = "All required derivations";
+    };
 
   filebeat = final.callPackage ./pkgs/filebeat.nix { };
 
@@ -308,4 +308,9 @@ in final: prev: {
     keys = import (ops-lib + "/overlays/ssh-keys.nix") lib;
     inherit (keys) allKeysFrom devOps;
   in { devOps = allKeysFrom devOps; };
+
+  asgAMI = (import ./pkgs/ami.nix {
+    inherit (prev) system;
+    inherit (inputs) nixpkgs;
+  }).config.system.build.amazonImage;
 }
