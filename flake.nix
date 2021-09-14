@@ -27,7 +27,7 @@
       flake = false;
     };
 
-    nix.url = "github:NixOS/nix";
+    nix.url = "github:NixOS/nix/c6fa7775de413a799b9a137dceced5dcf0f5e6ed";
   };
 
   outputs =
