@@ -25,6 +25,18 @@ in final: prev: {
     ];
   });
 
+  # Remove once nixpkgs is using openssh 8.7p1+ by default to avoid coredumps
+  # Ref: https://bbs.archlinux.org/viewtopic.php?id=265221
+  opensshNoCoredump = let
+    version = "8.7p1";
+  in prev.opensshPackages.openssh.overrideAttrs (oldAttrs: {
+    inherit version;
+    src = prev.fetchurl {
+      url = "mirror://openbsd/OpenSSH/portable/openssh-${version}.tar.gz";
+      sha256 = "sha256-fKNLi7JK6eUPM3krcJGzhB1+G0QP9XvJ+r3fAeLtHiQ=";
+    };
+  });
+
   ssm-agent = prev.callPackage ./pkgs/ssm-agent { };
 
   consul = prev.callPackage ./pkgs/consul { };

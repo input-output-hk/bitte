@@ -19,7 +19,7 @@
       flake = false;
     };
     nomad-source = {
-      url = "github:input-output-hk/nomad/release-1.1.3";
+      url = "github:input-output-hk/nomad/release-1.1.4";
       flake = false;
     };
     vulnix = {

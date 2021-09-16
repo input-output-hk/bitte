@@ -107,6 +107,14 @@ in {
           command = "${pkgs.systemd}/bin/systemctl try-restart consul.service";
         };
 
+        "/run/keys/nomad-consul-token" = mkIf config.services.nomad.enable {
+          contents = ''
+            {{- with secret "consul/creds/consul-default" }}{{ .Data.token }}{{ end -}}
+          '';
+
+          command = "${pkgs.systemd}/bin/systemctl restart nomad.service";
+        };
+
         "/etc/vault.d/consul-token.json" = mkIf config.services.vault.enable {
           contents = ''
             {{ with secret "consul/creds/vault-client" }}
