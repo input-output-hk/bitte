@@ -16,7 +16,7 @@ let
       (self.inputs.nixpkgs + "/nixos/modules/virtualisation/ec2-amis.nix");
   in {
     nixos = lib.mapAttrs' (name: value: lib.nameValuePair name value.hvm-ebs)
-      nixosAmis."20.03";
+      nixosAmis.latest;
   };
 
   autoscalingAMIs = {

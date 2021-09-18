@@ -10,9 +10,7 @@ in {
       default = "tank";
     };
   };
-  imports = [
-    (self.inputs.nixpkgs + "/nixos/maintainers/scripts/ec2/amazon-image-zfs.nix")
-  ];
+  imports = [ "${self.inputs.nixpkgs}/nixos/maintainers/scripts/ec2/amazon-image-zfs.nix" ];
   config = {
     # default is sometimes too small for client configs
     amazonImage.sizeMB = 8192;

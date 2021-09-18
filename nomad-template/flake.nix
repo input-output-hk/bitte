@@ -2,7 +2,7 @@
   description = "Bitte Nomad Example";
 
   inputs = {
-    bitte.url = "github:input-output-hk/bitte";
+    bitte.url = "github:input-output-hk/bitte/ami-wip";
     nixpkgs.follows = "bitte/nixpkgs";
   };
 
@@ -27,7 +27,10 @@
           domain = "changeme.example.com";
         };
 
-      extraOutputs = let hashiStack = bitte.lib.mkHashiStack { flake = self; };
+      extraOutputs = let hashiStack = bitte.lib.mkHashiStack {
+        flake = self;
+        domain = "changeme.example.com";
+      };
       in { inherit (hashiStack) clusters nixosConfigurations consulTemplates; };
 
       hydraJobs = { }@jobs:

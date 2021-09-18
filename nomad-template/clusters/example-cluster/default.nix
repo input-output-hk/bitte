@@ -10,7 +10,7 @@ let
   bitte = self.inputs.bitte;
 
 in {
-  imports = [ ./iam.nix ./nix.nix ./terraform-storage.nix ];
+  imports = [ ./iam.nix ./nix.nix ];
 
   services.nomad.namespaces = {
     example-cluster.description = "Example Cluster";
@@ -55,7 +55,7 @@ in {
         attrs = ({
           desiredCapacity = 1;
           maxSize = 40;
-          instanceType = "c5.medium";
+          instanceType = "c5.2xlarge";
           associatePublicIP = true;
           maxInstanceLifetime = 0;
           iam.role = cluster.iam.roles.client;
@@ -63,15 +63,12 @@ in {
 
           modules = [
             (bitte + /profiles/client.nix)
-            self.inputs.ops-lib.nixosModules.zfs-runtime
+            (bitte + /profiles/zfs-runtime.nix)
             "${self.inputs.nixpkgs}/nixos/modules/profiles/headless.nix"
             "${self.inputs.nixpkgs}/nixos/modules/virtualisation/ec2-data.nix"
             ./secrets.nix
-            ./docker-auth.nix
             ./nix.nix
             ./reserve.nix
-            ./host-volumes.nix
-            ./node-class.nix
           ];
 
           securityGroupRules = {
@@ -122,8 +119,7 @@ in {
         subnet = cluster.vpc.subnets.core-3;
         volumeSize = 100;
 
-        modules =
-          [ (bitte + /profiles/core.nix) ./secrets.nix ./nomad-autoscaler.nix ];
+        modules = [ (bitte + /profiles/core.nix) ./secrets.nix ];
 
         securityGroupRules = {
           inherit (securityGroupRules) internet internal ssh;
