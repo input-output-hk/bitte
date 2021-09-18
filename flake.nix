@@ -78,6 +78,11 @@
 
       # Outputs that aren't directly supported by simpleFlake can go here
       # instead of having to doubleslash.
-      extraOutputs = { profiles = lib.mkModules ./profiles; };
+      extraOutputs = {
+        profiles = lib.mkModules ./profiles;
+        templates.bitte-nomad.path = ./nomad-template;
+        templates.bitte-nomad.description = "Bare-bones Bitte Nomad Cluster.";
+        defaultTemplate = self.templates.bitte-nomad;
+      };
     };
 }
