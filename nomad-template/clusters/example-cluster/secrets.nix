@@ -9,6 +9,7 @@ let
       mkdir -p $out/encrypted
       echo {} > $out/encrypted/consul-clients.json
       echo {} > $out/encrypted/nix-builder-key
+      echo {} > $out/encrypted/nix-public-key-file
     '';
   };
 in { secrets.encryptedRoot = "${fakeEncrypted}/encrypted"; }

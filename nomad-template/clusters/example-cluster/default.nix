@@ -44,7 +44,7 @@ in {
     s3Bucket = "org-example-bitte";
     terraformOrganization = "changeme";
 
-    s3CachePubKey = lib.fileContents ../../../encrypted/nix-public-key-file;
+    s3CachePubKey = lib.fileContents "${config.secrets.encryptedRoot}/nix-public-key-file";
     flakePath = ../../..;
 
     autoscalingGroups = listToAttrs (forEach [{
