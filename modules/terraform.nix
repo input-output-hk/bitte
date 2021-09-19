@@ -20,10 +20,10 @@ let
   };
 
   autoscalingAMIs = {
-    us-east-2 = "ami-0492aa69cf46f79c3";
-    eu-central-1 = "ami-0839f2c610f876d2d";
-    eu-west-1 = "ami-0f765805e4520b54d";
-    us-east-1 = "ami-02700dd542e3304cd";
+    us-east-2 = "ami-061588cd1a43b1c3b";
+    eu-central-1 = "ami-05f4428c8b2138bbd";
+    eu-west-1 = "ami-004a4ecff9c89ba44";
+    us-east-1 = "ami-0f064698041e7caf2";
   };
 
   vpcMap = lib.pipe [
