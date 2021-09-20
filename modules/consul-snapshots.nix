@@ -29,17 +29,17 @@ let
         '';
       };
 
-      backupDir = mkOption {
+      backupDirPrefix = mkOption {
         type = str;
         default = "/var/lib/private/consul/snapshots";
         description = ''
-          The location to store the snapshots.
+          The top level location to store the snapshots.  The actual storage location
+          of the files will be this prefix path with the snapshot job name appended,
+          where the job is one of "hourly", "daily" or "custom".
 
-          Note that the actual storage location of the files will be this path
-          with the snapshot job name appended where the job is one of "hourly",
-          "daily" or "custom".  Therefore, saved snapshot files will be found at:
+          Therefore, saved snapshot files will be found at:
 
-            $backupDir/$job/*.snap
+            $backupDirPrefix/$job/*.snap
         '';
       };
 
@@ -134,7 +134,7 @@ let
       set -exuo pipefail
 
       OWNER="${cfg.${job}.owner}"
-      BACKUP_DIR="${cfg.${job}.backupDir}/${job}"
+      BACKUP_DIR="${cfg.${job}.backupDirPrefix}/${job}"
       BACKUP_SUFFIX="-${cfg.${job}.backupSuffix}";
       INCLUDE_LEADER="${if cfg.${job}.includeLeader then "true" else "false"}"
       SNAP_NAME="$BACKUP_DIR/consul-$(hostname)-$(date +"%Y-%m-%d_%H%M%SZ''${BACKUP_SUFFIX}").snap"
