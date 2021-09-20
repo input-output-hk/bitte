@@ -23,19 +23,39 @@ in {
 
       randomizedDelaySec = mkOption {
         type = addCheck int (x: x >= 0);
-        default = 3600;
+        default = if cfg.interval == "hourly" then
+          3600
+        else if cfg.interval == "daily" then
+          86400
+        else
+          0;
         description = ''
           A randomization period to be added to each systemd timer to avoid
-          leader overload.  By default fixedRandomDelay will be true to minimize
-          jitter, maintain fixed interval snapshots and avoid leader overload.
+          leader overload.  By default fixedRandomDelay will also be true to minimize
+          jitter and maintain fixed interval snapshots.  The defaults relate to
+          the onCalendar interval parameter in the following manner:
+
+            3600  randomizedDelaySec for "hourly" interval (1 hr randomization)
+            86400 randomizedDelaySec for "daily" interval (1 day randomization)
+            0     randomizedDelaySec for any other interval
         '';
       };
 
       backupCount = mkOption {
         type = addCheck int (x: x >= 0);
-        default = 30;
+        default = if cfg.interval == "hourly" then
+          168
+        else if cfg.interval == "daily" then
+          30
+        else
+          50;
         description = ''
-          The number of snapshots to keep.
+          The number of snapshots to keep.  The defaults relate to the onCalendar
+          interval parameter in the following manner:
+
+            168 backupCount for "hourly" interval (1 week of backups)
+            30  backupCount for "daily" interval (1 month of backups)
+            50  backupCount for any other interval
         '';
       };
 
@@ -48,10 +68,19 @@ in {
       };
 
       interval = mkOption {
-        type = str;
-        default = "daily";
+        default = "hourly";
         description = ''
           The default onCalendar systemd timer string to trigger snapshot backups.
+          Any valid systemd OnCalendar string may be used here.  However, sensible
+          defaults for backupCount and randomizedDelaySec will only be applied for
+          "hourly" and "daily" interval settings.  Other settings will default to
+          backupCount of 50 and randomizedDelaySec of 0.  In these cases, both
+          backupCount and randomizedDelaySec should be declared to something
+          sensible.  For hourly and daily interval settings, the following defaults
+          will be used:
+
+            hourly: 3600 randomizedDelaySec, 168 backupCount (1 week)
+            daily:  86400 randomizedDelaySec, 30 backupCount (1 month)
         '';
       };
 
