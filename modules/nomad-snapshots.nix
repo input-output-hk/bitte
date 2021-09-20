@@ -4,7 +4,7 @@ let
   inherit (lib) mkIf mkEnableOption mkOption types;
   inherit (types) addCheck bool int str submodule;
 
-  cfg = config.services.vault-snapshots;
+  cfg = config.services.nomad-snapshots;
 
   snapshotJobConfig = submodule {
     options = {
@@ -12,7 +12,7 @@ let
         type = bool;
         default = true;
         description = ''
-          Creates a systemd service and timer to automatically save Vault snapshots.
+          Creates a systemd service and timer to automatically save Nomad snapshots.
         '';
       };
 
@@ -30,7 +30,7 @@ let
 
       backupDirPrefix = mkOption {
         type = str;
-        default = "/var/lib/private/vault/snapshots";
+        default = "/var/lib/private/nomad/snapshots";
         description = ''
           The top level location to store the snapshots.  The actual storage location
           of the files will be this prefix path with the snapshot job name appended,
@@ -49,7 +49,7 @@ let
           Sets the saved snapshot filename with a descriptive suffix prior to the file
           extension.  This will enable selective snapshot job pruning.  The form is:
 
-            vault-$(hostname)-$(date +"%Y-%m-%d_%H%M%SZ")-$backupSuffix.snap
+            nomad-$(hostname)-$(date +"%Y-%m-%d_%H%M%SZ")-$backupSuffix.snap
         '';
       };
 
@@ -107,24 +107,24 @@ let
 
       owner = mkOption {
         type = str;
-        default = "vault:vault";
+        default = "nomad:nomad";
         description = ''
           The user and group to own the snapshot storage directory and snapshot files.
         '';
       };
 
-      vaultAddress = mkOption {
+      nomadAddress = mkOption {
         type = str;
-        default = "https://127.0.0.1:8200";
+        default = "https://127.0.0.1:4646";
         description = ''
-          The local vault server address, including protocol and port.
+          The local nomad server address, including protocol and port.
         '';
       };
     };
   };
 
   snapshotTimer = job: {
-    partOf = [ "vault-snapshots-${job}.service" ];
+    partOf = [ "nomad-snapshots-${job}.service" ];
     timerConfig = {
       OnCalendar = cfg.${job}.interval;
       RandomizedDelaySec = cfg.${job}.randomizedDelaySec;
@@ -136,16 +136,16 @@ let
 
   snapshotService = job: {
     serviceConfig.Type = "oneshot";
-    path = with pkgs; [ coreutils curl findutils gawk hostname vault ];
-    script = builtins.readFile "${(pkgs.writeBashChecked "vault-snapshot-${job}-script" ''
+    path = with pkgs; [ coreutils curl findutils gawk hostname nomad ];
+    script = builtins.readFile "${(pkgs.writeBashChecked "nomad-snapshot-${job}-script" ''
       set -exuo pipefail
 
       OWNER="${cfg.${job}.owner}"
       BACKUP_DIR="${cfg.${job}.backupDirPrefix}/${job}"
       BACKUP_SUFFIX="-${cfg.${job}.backupSuffix}";
       INCLUDE_LEADER="${if cfg.${job}.includeLeader then "true" else "false"}"
-      SNAP_NAME="$BACKUP_DIR/vault-$(hostname)-$(date +"%Y-%m-%d_%H%M%SZ''${BACKUP_SUFFIX}").snap"
-      VAULT_ADDR="${cfg.${job}.vaultAddress}"
+      SNAP_NAME="$BACKUP_DIR/nomad-$(hostname)-$(date +"%Y-%m-%d_%H%M%SZ''${BACKUP_SUFFIX}").snap"
+      NOMAD_ADDR="${cfg.${job}.nomadAddress}"
 
       applyPerms () {
         TARGET="$1"
@@ -163,49 +163,36 @@ let
       }
 
       exportToken () {
-        if [ ! -f /var/lib/vault/vault.enc.json ]; then
-          echo "Suitable vault token for snapshotting not found."
+        if [ ! -f /var/lib/nomad/bootstrap.token ]; then
+          echo "Suitable nomad token for snapshotting not found."
           echo "Ensure the appropriate token for snapshotting is available.";
           exit 0;
         else
           set +x
-          VAULT_TOKEN="$(sops -d --extract '["root_token"]' /var/lib/vault/vault.enc.json)"
-          export VAULT_TOKEN
+          NOMAD_TOKEN="$(< /var/lib/nomad/bootstrap.token)"
+          export NOMAD_TOKEN
           set -x
         fi
       }
 
       isNotLeader () {
-        if [ "$(curl -fsk "$VAULT_ADDR/v1/sys/leader" | jq -e -r '.is_self')" = "false" ]; then
+        if [ "$(nomad agent-info --json | jq -e -r '.stats.nomad.leader')" = "false" ]; then
           return
         fi
         false
       }
 
-      isNotRaftStorage () {
-        if [ "$(vault status | jq -e -r '.storage_type')" != "raft" ]; then
-          return
-        fi
-        false
-      }
-
-      takeVaultSnapshot () {
-        vault operator raft snapshot save "$SNAP_NAME"
+      takeNomadSnapshot () {
+        nomad operator snapshot save "$SNAP_NAME"
         applyPerms "$SNAP_NAME" "0400"
       }
 
-      isNotRaftStorage && {
-        echo "Vault storage backend is not raft."
-        echo "Ensure the appropriate storage backend is being snapshotted, ex: Consul.";
-        exit 0;
-      }
-
-      export VAULT_ADDR
+      export NOMAD_ADDR
       exportToken
 
       if [ "$INCLUDE_LEADER" = "true" ] || isNotLeader; then
         checkBackupDir
-        takeVaultSnapshot
+        takeNomadSnapshot
       fi
 
       find "$BACKUP_DIR" \
@@ -221,18 +208,18 @@ let
 
 in {
   options = {
-    services.vault-snapshots = {
+    services.nomad-snapshots = {
       enable = mkEnableOption ''
-        Enable Vault snapshots.
+        Enable Nomad snapshots.
 
-        By default hourly snapshots will be taken and stored for 1 week on each vault server.
-        Modify services.vault-snapshots.hourly options to customize or disable.
+        By default hourly snapshots will be taken and stored for 1 week on each nomad server.
+        Modify services.nomad-snapshots.hourly options to customize or disable.
 
-        By default daily snapshots will be taken and stored for 1 month on each vault server.
-        Modify services.vault-snapshots.daily options to customize or disable.
+        By default daily snapshots will be taken and stored for 1 month on each nomad server.
+        Modify services.nomad-snapshots.daily options to customize or disable.
 
         By default customized snapshots are disabled.
-        Modify services.vault-snapshots.custom options to enable and customize.
+        Modify services.nomad-snapshots.custom options to enable and customize.
       '';
 
       hourly = mkOption {
@@ -269,15 +256,15 @@ in {
 
   config = mkIf cfg.enable {
     # Hourly snapshot configuration
-    systemd.timers.vault-snapshots-hourly = mkIf cfg.hourly.enable (snapshotTimer "hourly");
-    systemd.services.vault-snapshots-hourly = mkIf cfg.hourly.enable (snapshotService "hourly");
+    systemd.timers.nomad-snapshots-hourly = mkIf cfg.hourly.enable (snapshotTimer "hourly");
+    systemd.services.nomad-snapshots-hourly = mkIf cfg.hourly.enable (snapshotService "hourly");
 
     # Daily snapshot configuration
-    systemd.timers.vault-snapshots-daily = mkIf cfg.daily.enable (snapshotTimer "daily");
-    systemd.services.vault-snapshots-daily = mkIf cfg.daily.enable (snapshotService "daily");
+    systemd.timers.nomad-snapshots-daily = mkIf cfg.daily.enable (snapshotTimer "daily");
+    systemd.services.nomad-snapshots-daily = mkIf cfg.daily.enable (snapshotService "daily");
 
     # Custom snapshot configuration
-    systemd.timers.vault-snapshots-custom = mkIf cfg.custom.enable (snapshotTimer "custom");
-    systemd.services.vault-snapshots-custom = mkIf cfg.custom.enable (snapshotService "custom");
+    systemd.timers.nomad-snapshots-custom = mkIf cfg.custom.enable (snapshotTimer "custom");
+    systemd.services.nomad-snapshots-custom = mkIf cfg.custom.enable (snapshotService "custom");
   };
 }

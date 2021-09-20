@@ -13,7 +13,6 @@ let
         default = true;
         description = ''
           Creates a systemd service and timer to automatically save Consul snapshots.
-          By default, hourly snapshots
         '';
       };
 
@@ -51,6 +50,14 @@ let
           extension.  This will enable selective snapshot job pruning.  The form is:
 
             consul-$(hostname)-$(date +"%Y-%m-%d_%H%M%SZ")-$backupSuffix.snap
+        '';
+      };
+
+      consulAddress = mkOption {
+        type = str;
+        default = "http://127.0.0.1:8500";
+        description = ''
+          The local consul server address, including protocol and port.
         '';
       };
 
@@ -138,6 +145,7 @@ let
       BACKUP_SUFFIX="-${cfg.${job}.backupSuffix}";
       INCLUDE_LEADER="${if cfg.${job}.includeLeader then "true" else "false"}"
       SNAP_NAME="$BACKUP_DIR/consul-$(hostname)-$(date +"%Y-%m-%d_%H%M%SZ''${BACKUP_SUFFIX}").snap"
+      CONSUL_HTTP_ADDR="${cfg.${job}.consulAddress}"
 
       applyPerms () {
         TARGET="$1"
@@ -165,6 +173,8 @@ let
         consul snapshot save "$SNAP_NAME"
         applyPerms "$SNAP_NAME" "0400"
       }
+
+      export CONSUL_HTTP_ADDR
 
       if [ "$INCLUDE_LEADER" = "true" ] || isNotLeader; then
         checkBackupDir
