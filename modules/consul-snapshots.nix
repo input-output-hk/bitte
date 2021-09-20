@@ -2,60 +2,30 @@
 
 let
   inherit (lib) mkIf mkEnableOption mkOption types;
-  inherit (types) addCheck bool int str;
+  inherit (types) addCheck bool int str submodule;
 
   cfg = config.services.consul-snapshots;
 
-in {
-  options = {
-    services.consul-snapshots = {
-      enable = mkEnableOption "Consul snapshots";
-
-      fixedRandomDelay = mkOption {
+  snapshotJobConfig = submodule {
+    options = {
+      enable = mkOption {
         type = bool;
         default = true;
         description = ''
-          Makes randomizedDelaySec fixed between service restarts if true.
-          This will reduce jitter and allow the interval to remain fixed,
-          while still allowing start time randomization to avoid leader overload.
-        '';
-      };
-
-      randomizedDelaySec = mkOption {
-        type = addCheck int (x: x >= 0);
-        default = if cfg.interval == "hourly" then
-          3600
-        else if cfg.interval == "daily" then
-          86400
-        else
-          0;
-        description = ''
-          A randomization period to be added to each systemd timer to avoid
-          leader overload.  By default fixedRandomDelay will also be true to minimize
-          jitter and maintain fixed interval snapshots.  The defaults relate to
-          the onCalendar interval parameter in the following manner:
-
-            3600  randomizedDelaySec for "hourly" interval (1 hr randomization)
-            86400 randomizedDelaySec for "daily" interval (1 day randomization)
-            0     randomizedDelaySec for any other interval
+          Creates a systemd service and timer to automatically save Consul snapshots.
+          By default, hourly snapshots
         '';
       };
 
       backupCount = mkOption {
         type = addCheck int (x: x >= 0);
-        default = if cfg.interval == "hourly" then
-          168
-        else if cfg.interval == "daily" then
-          30
-        else
-          50;
+        default = null;
         description = ''
-          The number of snapshots to keep.  The defaults relate to the onCalendar
-          interval parameter in the following manner:
+          The number of snapshots to keep.  A sensible value matched to the onCalendar
+          interval parameter should be used.  Examples of sensible suggestions may be:
 
             168 backupCount for "hourly" interval (1 week of backups)
             30  backupCount for "daily" interval (1 month of backups)
-            50  backupCount for any other interval
         '';
       };
 
@@ -64,31 +34,33 @@ in {
         default = "/var/lib/private/consul/snapshots";
         description = ''
           The location to store the snapshots.
+
+          Note that the actual storage location of the files will be this path
+          with the snapshot job name appended where the job is one of "hourly",
+          "daily" or "custom".  Therefore, saved snapshot files will be found at:
+
+            $backupDir/$job/*.snap
         '';
       };
 
-      interval = mkOption {
-        default = "hourly";
+      backupSuffix = mkOption {
+        type = addCheck str (x: x != "");
+        default = null;
         description = ''
-          The default onCalendar systemd timer string to trigger snapshot backups.
-          Any valid systemd OnCalendar string may be used here.  However, sensible
-          defaults for backupCount and randomizedDelaySec will only be applied for
-          "hourly" and "daily" interval settings.  Other settings will default to
-          backupCount of 50 and randomizedDelaySec of 0.  In these cases, both
-          backupCount and randomizedDelaySec should be declared to something
-          sensible.  For hourly and daily interval settings, the following defaults
-          will be used:
+          Sets the saved snapshot filename with a descriptive suffix prior to the file
+          extension.  This will enable selective snapshot job pruning.  The form is:
 
-            hourly: 3600 randomizedDelaySec, 168 backupCount (1 week)
-            daily:  86400 randomizedDelaySec, 30 backupCount (1 month)
+            consul-$(hostname)-$(date +"%Y-%m-%d_%H%M%SZ")-$backupSuffix.snap
         '';
       };
 
-      owner = mkOption {
-        type = str;
-        default = "consul:consul";
+      fixedRandomDelay = mkOption {
+        type = bool;
+        default = true;
         description = ''
-          The user and group to own the snapshot storage directory and snapshot files.
+          Makes randomizedDelaySec fixed between service restarts if true.
+          This will reduce jitter and allow the interval to remain fixed,
+          while still allowing start time randomization to avoid leader overload.
         '';
       };
 
@@ -104,73 +76,171 @@ in {
           snapshot randomization so snapshot concurrency remains 1.
         '';
       };
+
+      interval = mkOption {
+        type = addCheck str (x: x != "");
+        default = null;
+        description = ''
+          The default onCalendar systemd timer string to trigger snapshot backups.
+          Any valid systemd OnCalendar string may be used here.  Sensible
+          defaults for backupCount and randomizedDelaySec should match this parameter.
+          Examples of sensible suggestions may be:
+
+            hourly: 3600 randomizedDelaySec, 168 backupCount (1 week)
+            daily:  86400 randomizedDelaySec, 30 backupCount (1 month)
+        '';
+      };
+
+      randomizedDelaySec = mkOption {
+        type = addCheck int (x: x >= 0);
+        default = 0;
+        description = ''
+          A randomization period to be added to each systemd timer to avoid
+          leader overload.  By default fixedRandomDelay will also be true to minimize
+          jitter and maintain fixed interval snapshots.  Sensible defaults for
+          backupCount and randomizedDelaySec should match this parameter.
+          Examples of sensible suggestions may be:
+
+            3600  randomizedDelaySec for "hourly" interval (1 hr randomization)
+            86400 randomizedDelaySec for "daily" interval (1 day randomization)
+        '';
+      };
+
+      owner = mkOption {
+        type = str;
+        default = "consul:consul";
+        description = ''
+          The user and group to own the snapshot storage directory and snapshot files.
+        '';
+      };
+    };
+  };
+
+  snapshotTimer = job: {
+    partOf = [ "consul-snapshots-${job}.service" ];
+    timerConfig = {
+      OnCalendar = cfg.${job}.interval;
+      RandomizedDelaySec = cfg.${job}.randomizedDelaySec;
+      FixedRandomDelay = cfg.${job}.fixedRandomDelay;
+      AccuracySecs = "1us";
+    };
+    wantedBy = [ "timers.target" ];
+  };
+
+  snapshotService = job: {
+    serviceConfig.Type = "oneshot";
+    path = with pkgs; [ consul coreutils findutils gawk hostname ];
+    script = builtins.readFile "${(pkgs.writeBashChecked "consul-snapshot-${job}-script" ''
+      set -exuo pipefail
+
+      OWNER="${cfg.${job}.owner}"
+      BACKUP_DIR="${cfg.${job}.backupDir}/${job}"
+      BACKUP_SUFFIX="-${cfg.${job}.backupSuffix}";
+      INCLUDE_LEADER="${if cfg.${job}.includeLeader then "true" else "false"}"
+      SNAP_NAME="$BACKUP_DIR/consul-$(hostname)-$(date +"%Y-%m-%d_%H%M%SZ''${BACKUP_SUFFIX}").snap"
+
+      applyPerms () {
+        TARGET="$1"
+        PERMS="$2"
+
+        chown "$OWNER" "$TARGET"
+        chmod "$PERMS" "$TARGET"
+      }
+
+      checkBackupDir () {
+        if [ ! -d "$BACKUP_DIR" ]; then
+          mkdir -p "$BACKUP_DIR"
+          applyPerms "$BACKUP_DIR" "0700"
+        fi
+      }
+
+      isNotLeader () {
+        if [ "$(consul info | grep 'leader =' | awk '{print $3}')" = "false" ]; then
+          return
+        fi
+        false
+      }
+
+      takeConsulSnapshot () {
+        consul snapshot save "$SNAP_NAME"
+        applyPerms "$SNAP_NAME" "0400"
+      }
+
+      if [ "$INCLUDE_LEADER" = "true" ] || isNotLeader; then
+        checkBackupDir
+        takeConsulSnapshot
+      fi
+
+      find "$BACKUP_DIR" \
+        -type f \
+        -name "*''${BACKUP_SUFFIX}.snap" \
+        -printf "%T@ %p\n" \
+        | sort -r -n \
+        | tail -n +$((${toString cfg.${job}.backupCount} + 1)) \
+        | awk '{print $2}' \
+        | xargs -r rm
+    '')}";
+  };
+
+in {
+  options = {
+    services.consul-snapshots = {
+      enable = mkEnableOption ''
+        Enable Consul snapshots.
+
+        By default hourly snapshots will be taken and stored for 1 week on each consul server.
+        Modify services.consul-snapshots.hourly options to customize or disable.
+
+        By default daily snapshots will be taken and stored for 1 month on each consul server.
+        Modify services.consul-snapshots.daily options to customize or disable.
+
+        By default customized snapshots are disabled.
+        Modify services.consul-snapshots.custom options to enable and customize.
+      '';
+
+      hourly = mkOption {
+        type = snapshotJobConfig;
+        default = {
+          enable = true;
+          backupCount = 168;
+          backupSuffix = "hourly";
+          interval = "hourly";
+          randomizedDelaySec = 3600;
+        };
+      };
+
+      daily = mkOption {
+        type = snapshotJobConfig;
+        default = {
+          enable = true;
+          backupCount = 30;
+          backupSuffix = "daily";
+          interval = "daily";
+          randomizedDelaySec = 86400;
+        };
+      };
+
+      custom = mkOption {
+        type = snapshotJobConfig;
+        default = {
+          enable = false;
+          backupSuffix = "custom";
+        };
+      };
     };
   };
 
   config = mkIf cfg.enable {
-    systemd = {
-      timers.consul-snapshots = {
-        partOf = [ "consul-snapshots.service" ];
-        timerConfig = {
-          OnCalendar = cfg.interval;
-          RandomizedDelaySec = cfg.randomizedDelaySec;
-          FixedRandomDelay = cfg.fixedRandomDelay;
-        };
-        wantedBy = [ "timers.target" ];
-      };
-      services.consul-snapshots = {
-        serviceConfig.Type = "oneshot";
-        path = with pkgs; [ consul coreutils findutils gawk hostname ];
-        script = builtins.readFile "${(pkgs.writeBashChecked "consul-snapshot-script" ''
-          set -exuo pipefail
+    # Hourly snapshot configuration
+    systemd.timers.consul-snapshots-hourly = mkIf cfg.hourly.enable (snapshotTimer "hourly");
+    systemd.services.consul-snapshots-hourly = mkIf cfg.hourly.enable (snapshotService "hourly");
 
-          OWNER="${cfg.owner}"
-          BACKUP_DIR="${cfg.backupDir}"
-          INCLUDE_LEADER="${if cfg.includeLeader then "true" else "false"}"
-          SNAP_NAME="$BACKUP_DIR/consul-$(hostname)-$(date +"%Y-%m-%d_%H%M%SZ").snap"
+    # Daily snapshot configuration
+    systemd.timers.consul-snapshots-daily = mkIf cfg.daily.enable (snapshotTimer "daily");
+    systemd.services.consul-snapshots-daily = mkIf cfg.daily.enable (snapshotService "daily");
 
-          applyPerms () {
-            TARGET="$1"
-            PERMS="$2"
-
-            chown "$OWNER" "$TARGET"
-            chmod "$PERMS" "$TARGET"
-          }
-
-          checkBackupDir () {
-            if [ ! -d "$BACKUP_DIR" ]; then
-              mkdir -p "$BACKUP_DIR"
-              applyPerms "$BACKUP_DIR" "0700"
-            fi
-          }
-
-          isNotLeader () {
-            if [ "$(consul info | grep 'leader =' | awk '{print $3}')" = "false" ]; then
-              return
-            fi
-            false
-          }
-
-          takeConsulSnapshot () {
-            consul snapshot save "$SNAP_NAME"
-            applyPerms "$SNAP_NAME" "0400"
-          }
-
-          if [ "$INCLUDE_LEADER" = "true" ] || isNotLeader; then
-            checkBackupDir
-            takeConsulSnapshot
-          fi
-
-          find "$BACKUP_DIR" \
-            -type f \
-            -name "*.snap" \
-            -printf "%T@ %p\n" \
-            | sort -r -n \
-            | tail -n +$((${toString cfg.backupCount} + 1)) \
-            | awk '{print $2}' \
-            | xargs -r rm
-        '')}";
-      };
-    };
+    # Custom snapshot configuration
+    systemd.timers.consul-snapshots-custom = mkIf cfg.custom.enable (snapshotTimer "custom");
+    systemd.services.consul-snapshots-custom = mkIf cfg.custom.enable (snapshotService "custom");
   };
 }
