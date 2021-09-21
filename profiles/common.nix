@@ -14,6 +14,8 @@
     openntpd.enable = true;
     fail2ban.enable = true;
   };
+  
+  fileSystems."/".device  = lib.mkDefault "/dev/disk/by-label/nixos";
 
   environment.variables = { AWS_DEFAULT_REGION = config.cluster.region; };
 
