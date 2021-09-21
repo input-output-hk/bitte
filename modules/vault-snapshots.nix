@@ -135,88 +135,84 @@ let
   };
 
   snapshotService = job: {
-    serviceConfig.Type = "oneshot";
-    path = with pkgs; [ coreutils curl findutils gawk hostname jq vault ];
-    script = builtins.readFile "${(pkgs.writeBashChecked "vault-snapshot-${job}-script" ''
-      set -exuo pipefail
+    path = with pkgs; [ coreutils curl findutils gawk hostname jq vault-bin ];
 
-      OWNER="${cfg.${job}.owner}"
-      BACKUP_DIR="${cfg.${job}.backupDirPrefix}/${job}"
-      BACKUP_SUFFIX="-${cfg.${job}.backupSuffix}";
-      INCLUDE_LEADER="${if cfg.${job}.includeLeader then "true" else "false"}"
-      SNAP_NAME="$BACKUP_DIR/vault-$(hostname)-$(date +"%Y-%m-%d_%H%M%SZ''${BACKUP_SUFFIX}").snap"
-      VAULT_ADDR="${cfg.${job}.vaultAddress}"
+    environment = {
+      OWNER = cfg.${job}.owner;
+      BACKUP_DIR = "${cfg.${job}.backupDirPrefix}/${job}";
+      BACKUP_SUFFIX = "-${cfg.${job}.backupSuffix}";
+      INCLUDE_LEADER = lib.boolToString cfg.${job}.includeLeader;
+      VAULT_ADDR = cfg.${job}.vaultAddress;
+    };
 
-      applyPerms () {
-        TARGET="$1"
-        PERMS="$2"
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      Restart = "on-failure";
+      RestartSec = "30s";
+      ExecStart = pkgs.writeBashChecked "vault-snapshot-${job}-script" ''
+        set -exuo pipefail
 
-        chown "$OWNER" "$TARGET"
-        chmod "$PERMS" "$TARGET"
-      }
+        SNAP_NAME="$BACKUP_DIR/vault-$(hostname)-$(date +"%Y-%m-%d_%H%M%SZ''${BACKUP_SUFFIX}").snap"
 
-      checkBackupDir () {
-        if [ ! -d "$BACKUP_DIR" ]; then
-          mkdir -p "$BACKUP_DIR"
-          applyPerms "$BACKUP_DIR" "0700"
-        fi
-      }
+        applyPerms () {
+          TARGET="$1"
+          PERMS="$2"
 
-      exportToken () {
-        if [ ! -f /var/lib/vault/vault.enc.json ]; then
-          echo "Suitable vault token for snapshotting not found."
-          echo "Ensure the appropriate token for snapshotting is available.";
-          exit 0;
-        else
-          set +x
-          VAULT_TOKEN="$(sops -d --extract '["root_token"]' /var/lib/vault/vault.enc.json)"
+          chown "$OWNER" "$TARGET"
+          chmod "$PERMS" "$TARGET"
+        }
+
+        checkBackupDir () {
+          if [ ! -d "$BACKUP_DIR" ]; then
+            mkdir -p "$BACKUP_DIR"
+            applyPerms "$BACKUP_DIR" 0700
+          fi
+        }
+
+        exportToken () {
+          VAULT_TOKEN="$(< /run/keys/vault-token)"
           export VAULT_TOKEN
-          set -x
+        }
+
+        isNotLeader () {
+          [ "$INCLUDE_LEADER" = "true" ] || \
+            vault status | jq -e '(.is_self or false) == false'
+        }
+
+        isNotRaftStorage () {
+          vault status | jq -e '.storage_type != "raft"'
+        }
+
+        takeVaultSnapshot () {
+          vault operator raft snapshot save "$SNAP_NAME"
+          applyPerms "$SNAP_NAME" 0400
+        }
+
+        if isNotRaftStorage; then
+          echo "Vault storage backend is not raft."
+          echo "Ensure the appropriate storage backend is being snapshotted, ex: Consul."
+          exit 0
         fi
-      }
 
-      isNotLeader () {
-        if [ "$(curl -fsk "$VAULT_ADDR/v1/sys/leader" | jq -e -r '.is_self')" = "false" ]; then
-          return
+        export VAULT_ADDR
+        exportToken
+
+        if isNotLeader; then
+          checkBackupDir
+          takeVaultSnapshot
         fi
-        false
-      }
 
-      isNotRaftStorage () {
-        if [ "$(vault status | jq -e -r '.storage_type')" != "raft" ]; then
-          return
-        fi
-        false
-      }
-
-      takeVaultSnapshot () {
-        vault operator raft snapshot save "$SNAP_NAME"
-        applyPerms "$SNAP_NAME" "0400"
-      }
-
-      isNotRaftStorage && {
-        echo "Vault storage backend is not raft."
-        echo "Ensure the appropriate storage backend is being snapshotted, ex: Consul.";
-        exit 0;
-      }
-
-      export VAULT_ADDR
-      exportToken
-
-      if [ "$INCLUDE_LEADER" = "true" ] || isNotLeader; then
-        checkBackupDir
-        takeVaultSnapshot
-      fi
-
-      find "$BACKUP_DIR" \
-        -type f \
-        -name "*''${BACKUP_SUFFIX}.snap" \
-        -printf "%T@ %p\n" \
-        | sort -r -n \
-        | tail -n +$((${toString cfg.${job}.backupCount} + 1)) \
-        | awk '{print $2}' \
-        | xargs -r rm
-    '')}";
+        find "$BACKUP_DIR" \
+          -type f \
+          -name "*''${BACKUP_SUFFIX}.snap" \
+          -printf "%T@ %p\n" \
+          | sort -r -n \
+          | tail -n +${toString (cfg.${job}.backupCount + 1)} \
+          | awk '{print $2}' \
+          | xargs -r rm
+      '';
+    };
   };
 
 in {
@@ -269,15 +265,21 @@ in {
 
   config = mkIf cfg.enable {
     # Hourly snapshot configuration
-    systemd.timers.vault-snapshots-hourly = mkIf cfg.hourly.enable (snapshotTimer "hourly");
-    systemd.services.vault-snapshots-hourly = mkIf cfg.hourly.enable (snapshotService "hourly");
+    systemd.timers.vault-snapshots-hourly =
+      mkIf cfg.hourly.enable (snapshotTimer "hourly");
+    systemd.services.vault-snapshots-hourly =
+      mkIf cfg.hourly.enable (snapshotService "hourly");
 
     # Daily snapshot configuration
-    systemd.timers.vault-snapshots-daily = mkIf cfg.daily.enable (snapshotTimer "daily");
-    systemd.services.vault-snapshots-daily = mkIf cfg.daily.enable (snapshotService "daily");
+    systemd.timers.vault-snapshots-daily =
+      mkIf cfg.daily.enable (snapshotTimer "daily");
+    systemd.services.vault-snapshots-daily =
+      mkIf cfg.daily.enable (snapshotService "daily");
 
     # Custom snapshot configuration
-    systemd.timers.vault-snapshots-custom = mkIf cfg.custom.enable (snapshotTimer "custom");
-    systemd.services.vault-snapshots-custom = mkIf cfg.custom.enable (snapshotService "custom");
+    systemd.timers.vault-snapshots-custom =
+      mkIf cfg.custom.enable (snapshotTimer "custom");
+    systemd.services.vault-snapshots-custom =
+      mkIf cfg.custom.enable (snapshotService "custom");
   };
 }

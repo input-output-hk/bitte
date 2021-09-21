@@ -137,73 +137,81 @@ let
   snapshotService = job: {
     serviceConfig.Type = "oneshot";
     path = with pkgs; [ coreutils curl findutils gawk hostname jq nomad ];
-    script = builtins.readFile "${(pkgs.writeBashChecked "nomad-snapshot-${job}-script" ''
-      set -exuo pipefail
 
-      OWNER="${cfg.${job}.owner}"
-      BACKUP_DIR="${cfg.${job}.backupDirPrefix}/${job}"
-      BACKUP_SUFFIX="-${cfg.${job}.backupSuffix}";
-      INCLUDE_LEADER="${if cfg.${job}.includeLeader then "true" else "false"}"
-      SNAP_NAME="$BACKUP_DIR/nomad-$(hostname)-$(date +"%Y-%m-%d_%H%M%SZ''${BACKUP_SUFFIX}").snap"
-      NOMAD_ADDR="${cfg.${job}.nomadAddress}"
+    environment = {
+      OWNER = cfg.${job}.owner;
+      BACKUP_DIR = "${cfg.${job}.backupDirPrefix}/${job}";
+      BACKUP_SUFFIX = "-${cfg.${job}.backupSuffix}";
+      INCLUDE_LEADER = lib.boolToString cfg.${job}.includeLeader;
+      NOMAD_ADDR = cfg.${job}.nomadAddress;
+    };
 
-      applyPerms () {
-        TARGET="$1"
-        PERMS="$2"
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      Restart = "on-failure";
+      RestartSec = "30s";
+      ExecStart = pkgs.writeBashChecked "nomad-snapshot-${job}-script" ''
+        set -exuo pipefail
 
-        chown "$OWNER" "$TARGET"
-        chmod "$PERMS" "$TARGET"
-      }
+        SNAP_NAME="$BACKUP_DIR/nomad-$(hostname)-$(date +"%Y-%m-%d_%H%M%SZ''${BACKUP_SUFFIX}").snap"
 
-      checkBackupDir () {
-        if [ ! -d "$BACKUP_DIR" ]; then
-          mkdir -p "$BACKUP_DIR"
-          applyPerms "$BACKUP_DIR" "0700"
+        applyPerms () {
+          TARGET="$1"
+          PERMS="$2"
+
+          chown "$OWNER" "$TARGET"
+          chmod "$PERMS" "$TARGET"
+        }
+
+        checkBackupDir () {
+          if [ ! -d "$BACKUP_DIR" ]; then
+            mkdir -p "$BACKUP_DIR"
+            applyPerms "$BACKUP_DIR" "0700"
+          fi
+        }
+
+        exportToken () {
+          if [ ! -f /run/keys/nomad-snapshot-token ]; then
+            echo "Suitable nomad token for snapshotting not found."
+            echo "Ensure the appropriate token for snapshotting is available.";
+            exit 0;
+          else
+            set +x
+            NOMAD_TOKEN="$(< /run/keys/nomad-snapshot-token)"
+            export NOMAD_TOKEN
+            set -x
+          fi
+        }
+
+        isNotLeader () {
+          [ "$INCLUDE_LEADER" = "true" ] || \
+            nomad agent-info --json | jq -e '.stats.nomad.leader == "false"'
+        }
+
+        takeNomadSnapshot () {
+          nomad operator snapshot save "$SNAP_NAME"
+          applyPerms "$SNAP_NAME" "0400"
+        }
+
+        export NOMAD_ADDR
+        exportToken
+
+        if isNotLeader; then
+          checkBackupDir
+          takeNomadSnapshot
         fi
-      }
 
-      exportToken () {
-        if [ ! -f /var/lib/nomad/bootstrap.token ]; then
-          echo "Suitable nomad token for snapshotting not found."
-          echo "Ensure the appropriate token for snapshotting is available.";
-          exit 0;
-        else
-          set +x
-          NOMAD_TOKEN="$(< /var/lib/nomad/bootstrap.token)"
-          export NOMAD_TOKEN
-          set -x
-        fi
-      }
-
-      isNotLeader () {
-        if [ "$(nomad agent-info --json | jq -e -r '.stats.nomad.leader')" = "false" ]; then
-          return
-        fi
-        false
-      }
-
-      takeNomadSnapshot () {
-        nomad operator snapshot save "$SNAP_NAME"
-        applyPerms "$SNAP_NAME" "0400"
-      }
-
-      export NOMAD_ADDR
-      exportToken
-
-      if [ "$INCLUDE_LEADER" = "true" ] || isNotLeader; then
-        checkBackupDir
-        takeNomadSnapshot
-      fi
-
-      find "$BACKUP_DIR" \
-        -type f \
-        -name "*''${BACKUP_SUFFIX}.snap" \
-        -printf "%T@ %p\n" \
-        | sort -r -n \
-        | tail -n +$((${toString cfg.${job}.backupCount} + 1)) \
-        | awk '{print $2}' \
-        | xargs -r rm
-    '')}";
+        find "$BACKUP_DIR" \
+          -type f \
+          -name "*''${BACKUP_SUFFIX}.snap" \
+          -printf "%T@ %p\n" \
+          | sort -r -n \
+          | tail -n +${toString (cfg.${job}.backupCount + 1)} \
+          | awk '{print $2}' \
+          | xargs -r rm
+      '';
+    };
   };
 
 in {
@@ -256,15 +264,21 @@ in {
 
   config = mkIf cfg.enable {
     # Hourly snapshot configuration
-    systemd.timers.nomad-snapshots-hourly = mkIf cfg.hourly.enable (snapshotTimer "hourly");
-    systemd.services.nomad-snapshots-hourly = mkIf cfg.hourly.enable (snapshotService "hourly");
+    systemd.timers.nomad-snapshots-hourly =
+      mkIf cfg.hourly.enable (snapshotTimer "hourly");
+    systemd.services.nomad-snapshots-hourly =
+      mkIf cfg.hourly.enable (snapshotService "hourly");
 
     # Daily snapshot configuration
-    systemd.timers.nomad-snapshots-daily = mkIf cfg.daily.enable (snapshotTimer "daily");
-    systemd.services.nomad-snapshots-daily = mkIf cfg.daily.enable (snapshotService "daily");
+    systemd.timers.nomad-snapshots-daily =
+      mkIf cfg.daily.enable (snapshotTimer "daily");
+    systemd.services.nomad-snapshots-daily =
+      mkIf cfg.daily.enable (snapshotService "daily");
 
     # Custom snapshot configuration
-    systemd.timers.nomad-snapshots-custom = mkIf cfg.custom.enable (snapshotTimer "custom");
-    systemd.services.nomad-snapshots-custom = mkIf cfg.custom.enable (snapshotService "custom");
+    systemd.timers.nomad-snapshots-custom =
+      mkIf cfg.custom.enable (snapshotTimer "custom");
+    systemd.services.nomad-snapshots-custom =
+      mkIf cfg.custom.enable (snapshotService "custom");
   };
 }

@@ -98,6 +98,7 @@ in {
       "pki/roles/server".capabilities = [ r ];
       "pki/tidy".capabilities = [ c u ];
       "sys/capabilities-self".capabilities = [ u ];
+      "sys/storage/raft/snapshot".capabilities = [ r ];
     };
 
     # TODO: Pull list from config.cluster.iam
