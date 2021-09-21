@@ -465,15 +465,16 @@
     "vulnix": {
       "flake": false,
       "locked": {
-        "lastModified": 1627294547,
-        "narHash": "sha256-C3PM19Y4YxLBJ3V6LBJzpwSJwDjJH7vkWOe4hBppQvQ=",
-        "owner": "flyingcircusio",
+        "lastModified": 1632235864,
+        "narHash": "sha256-C9YGheEZydpqeTFCMmXZzUmyYAb8Z6eSx7h7xuev3m8=",
+        "owner": "dermetfan",
         "repo": "vulnix",
-        "rev": "06daccda0e51098fbdbc65f61b6663c5c6df9358",
+        "rev": "5228f2b8d89b816125d20907febc1d02393acc1b",
         "type": "github"
       },
       "original": {
-        "owner": "flyingcircusio",
+        "owner": "dermetfan",
+        "ref": "runtime-deps",
         "repo": "vulnix",
         "type": "github"
       }

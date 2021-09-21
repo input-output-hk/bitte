@@ -23,7 +23,7 @@
       flake = false;
     };
     vulnix = {
-      url = "github:flyingcircusio/vulnix";
+      url = "github:dermetfan/vulnix/runtime-deps";
       flake = false;
     };
 

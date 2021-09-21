@@ -15,8 +15,10 @@ in {
     };
 
     scanRequisites = mkEnableOption "scan of transitive closures" // {
-      default = true;
+      default = !cfg.scanClosure;
     };
+
+    scanClosure = mkEnableOption "scan of the store path closure";
 
     scanSystem = mkEnableOption "scan of the current system" // {
       default = true;
@@ -114,17 +116,50 @@ in {
       script = ''
         set -o pipefail
 
+        # make Nix commands work
+        export XDG_CACHE_HOME=$CACHE_DIRECTORY
+        export GIT_SSH_COMMAND="${pkgs.openssh}/bin/ssh -i $CREDENTIALS_DIRECTORY/ssh"
+        export NIX_CONFIG="netrc-file = $CREDENTIALS_DIRECTORY/netrc"
+
+        # simply echoes everything after `--`
+        function positionals {
+          local no_more_flags
+          for arg in "$@"; do
+            if [[ "$arg" = -- ]]; then
+              no_more_flags=1
+              continue
+            fi
+            if [[ -n "$no_more_flags" ]]; then
+              echo "$arg"
+            fi
+          done
+        }
+
         function scan {
-          vulnix ${lib.cli.toGNUCommandLineShell {} (with cfg; {
-            json = true;
-            requisites = scanRequisites;
-            no-requisites = !scanRequisites;
-            whitelist = map (lib.flip lib.pipe [
-              (whitelistFormat.generate "vulnix-whitelist.toml")
-              (drv: "${drv}")
-            ]) whitelists;
-          })} \
-            --cache-dir $CACHE_DIRECTORY \
+          posis=$(positionals "$@")
+          >&2 echo scanning $posis
+
+          ${lib.optionalString cfg.scanClosure ''
+            if [[ -n "$posis" ]]; then
+              >&2 nix build --no-link $posis
+            fi
+          ''}
+
+          vulnix ${lib.cli.toGNUCommandLineShell {} (
+            with cfg;
+            assert scanClosure -> !scanRequisites;
+            {
+              json = true;
+              requisites = scanRequisites;
+              no-requisites = !scanRequisites;
+              closure = scanClosure;
+              whitelist = map (lib.flip lib.pipe [
+                (whitelistFormat.generate "vulnix-whitelist.toml")
+                (drv: "${drv}")
+              ]) whitelists;
+            }
+          )} \
+            --cache-dir $CACHE_DIRECTORY/vulnix \
             ${lib.concatStringsSep " " cfg.extraOpts} "$@" \
           || case $? in
             # XXX adapt this after action on https://github.com/flyingcircusio/vulnix/issues/79
@@ -133,6 +168,8 @@ in {
             2 ) ;; # vulnerabilities found
             * ) exit $? ;; # unexpected
           esac
+
+          >&2 echo done scanning $posis
         }
 
         scan ${lib.cli.toGNUCommandLineShell {} (with cfg; {
@@ -164,10 +201,8 @@ in {
           | jq --unbuffered -rc 'select(length > 0) | {"index": .Index} as $out | .Events[] | select(.Type == "EvaluationUpdated").Payload.Job | $out * {"namespace": .Namespace, "job": .ID} as $out | .TaskGroups[] | $out * {"taskgroup": .Name} as $out | .Tasks[] | $out * {"task": .Name, "flake": .Config.flake}' \
           | while read -r job; do
             <<< "$job" jq -rc .flake \
-            | XDG_CACHE_HOME=$CACHE_DIRECTORY \
-              GIT_SSH_COMMAND="${pkgs.openssh}/bin/ssh -i $CREDENTIALS_DIRECTORY/ssh" \
-              xargs -L 1 \
-              nix --netrc-file $CREDENTIALS_DIRECTORY/netrc show-derivation \
+            | xargs -L 1 \
+              nix show-derivation \
             | jq --unbuffered -r keys[] \
             | while read -r drv; do
               scan -- "$drv" \
