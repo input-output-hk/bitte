@@ -135,7 +135,6 @@ let
   };
 
   snapshotService = job: {
-    serviceConfig.Type = "oneshot";
     path = with pkgs; [ coreutils curl findutils gawk hostname jq nomad ];
 
     environment = {

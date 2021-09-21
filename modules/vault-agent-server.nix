@@ -90,7 +90,7 @@ in {
           };
 
         "/run/keys/nomad-snapshot-token" =
-          mkIf config.services.nomad-snapshot.enable {
+          mkIf config.services.nomad-snapshots.enable {
             contents = ''
               {{- with secret "nomad/creds/management" }}{{ .Data.secret_id }}{{ end -}}
             '';
