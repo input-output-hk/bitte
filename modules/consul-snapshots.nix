@@ -136,7 +136,7 @@ let
 
   snapshotService = job: {
     serviceConfig.Type = "oneshot";
-    path = with pkgs; [ consul coreutils findutils gawk hostname ];
+    path = with pkgs; [ consul coreutils findutils gawk hostname jq ];
     script = builtins.readFile "${(pkgs.writeBashChecked "consul-snapshot-${job}-script" ''
       set -exuo pipefail
 

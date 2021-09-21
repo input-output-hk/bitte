@@ -107,7 +107,7 @@ let
 
       owner = mkOption {
         type = str;
-        default = "nomad:nomad";
+        default = "root:root";
         description = ''
           The user and group to own the snapshot storage directory and snapshot files.
         '';
@@ -136,7 +136,7 @@ let
 
   snapshotService = job: {
     serviceConfig.Type = "oneshot";
-    path = with pkgs; [ coreutils curl findutils gawk hostname nomad ];
+    path = with pkgs; [ coreutils curl findutils gawk hostname jq nomad ];
     script = builtins.readFile "${(pkgs.writeBashChecked "nomad-snapshot-${job}-script" ''
       set -exuo pipefail
 
