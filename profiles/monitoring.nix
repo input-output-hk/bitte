@@ -22,7 +22,10 @@ in {
     ingress.enable = true;
     ingress-config.enable = true;
     minio.enable = true;
-    vulnix.enable = true;
+    vulnix = {
+      enable = true;
+      scanClosure = true;
+    };
 
     vault-agent-monitoring.enable = true;
 
