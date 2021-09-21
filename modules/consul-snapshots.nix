@@ -172,7 +172,7 @@ let
 
         isNotLeader () {
           [ "$INCLUDE_LEADER" = "true" ] || \
-            consul info | egrep '^\s*leader\s+=\s+false$'
+            consul info | grep -E '^\s*leader\s+=\s+false$'
         }
 
         takeConsulSnapshot () {
