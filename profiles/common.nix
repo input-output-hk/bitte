@@ -16,7 +16,8 @@
   };
   
   fileSystems."/".device  = lib.mkDefault "/dev/disk/by-label/nixos";
-
+  boot.loader.grub.devices = [ "/dev/xvda" ];
+  
   environment.variables = { AWS_DEFAULT_REGION = config.cluster.region; };
 
   # Don't `nixos-rebuild switch` after the initial deploy.
