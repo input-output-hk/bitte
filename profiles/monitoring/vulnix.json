@@ -1488,7 +1488,7 @@
               "instant": false,
               "interval": "",
               "intervalFactor": 1,
-              "legendFormat": "{{nomad_job}} (avg)",
+              "legendFormat": "{{nomad_job}} (min)",
               "queryType": "randomWalk",
               "refId": "min"
             }
