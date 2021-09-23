@@ -115,11 +115,12 @@ in {
         fi
       done
 
-      # Nomad Policies
+      # Nomad Policies and Default Management Role
 
       ${concatStringsSep "\n" createNomadRoles}
+      vault write "nomad/role/management" "policies=" "type=management"
 
-      keepNames=(${toString (attrNames config.services.nomad.policies)})
+      keepNames=(${toString (attrNames config.services.nomad.policies ++ [ "management" ])})
       nomadRoles=($(nomad acl policy list -json | jq -r -e '.[].Name'))
 
       for role in "''${nomadRoles[@]}"; do

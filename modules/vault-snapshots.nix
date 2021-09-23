@@ -171,8 +171,10 @@ let
         }
 
         exportToken () {
+          set +x
           VAULT_TOKEN="$(< /run/keys/vault-token)"
           export VAULT_TOKEN
+          set -x
         }
 
         isNotLeader () {
