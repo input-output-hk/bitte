@@ -693,8 +693,8 @@ let
           #!/usr/bin/env bash
           export NIX_CONFIG="${nixConf}"
 
-          zfs set com.sun:auto-snapshot=true tank/system
-          zfs set atime=off tank/local/nix
+          nix shell nixpkgs#zfs -c zfs set com.sun:auto-snapshot=true tank/system
+          nix shell nixpkgs#zfs -c zfs set atime=off tank/local/nix
 
           set -exuo pipefail
 

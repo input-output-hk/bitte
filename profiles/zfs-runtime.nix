@@ -12,13 +12,9 @@ in {
   };
 
   imports = [
-    "${pkgs.path}/nixos/maintainers/scripts/ec2/amazon-image-zfs.nix"
     ./zfs-client-options.nix
   ];
   config = {
-    # default is sometimes too small for client configs
-    amazonImage.sizeMB = 8192;
-
     boot = {
       boot.supportedFilesystems = [ "zfs" ];
       zfs.devNodes = "/dev/";
