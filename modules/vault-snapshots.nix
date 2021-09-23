@@ -143,6 +143,7 @@ let
       BACKUP_SUFFIX = "-${cfg.${job}.backupSuffix}";
       INCLUDE_LEADER = lib.boolToString cfg.${job}.includeLeader;
       VAULT_ADDR = cfg.${job}.vaultAddress;
+      VAULT_FORMAT = "json";
     };
 
     serviceConfig = {
