@@ -11,11 +11,10 @@ in {
     };
   };
 
-  imports = [
-    ./zfs-client-options.nix
-  ];
+  imports = [ ./zfs-client-options.nix ];
   config = {
     boot = {
+      initrd.supportedFilesystems = [ "zfs" ];
       supportedFilesystems = [ "zfs" ];
       zfs.devNodes = "/dev/";
       kernelParams = [ "console=ttyS0" ];
