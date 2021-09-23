@@ -11,16 +11,10 @@ in {
     };
   };
 
-  services.zfs.autoSnapshot = {
-    enable = true;
-    frequent = 8;
-    hourly = 8;
-    weekly = 2;
-    monthly = 2;
-  };
-
-  imports =
-    [ "${pkgs.path}/nixos/maintainers/scripts/ec2/amazon-image-zfs.nix" ];
+  imports = [
+    "${pkgs.path}/nixos/maintainers/scripts/ec2/amazon-image-zfs.nix"
+    ./zfs-client-options.nix
+  ];
   config = {
     # default is sometimes too small for client configs
     amazonImage.sizeMB = 8192;
@@ -57,6 +51,9 @@ in {
       # xen host on aws
       timeServers = [ "169.254.169.123" ];
     };
+
+    services.zfs-client-options.enable = true;
+
     services.udev.packages = [ pkgs.ec2-utils ];
     services.openssh = {
       enable = true;
