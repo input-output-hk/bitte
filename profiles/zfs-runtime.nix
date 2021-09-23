@@ -10,25 +10,25 @@ in {
       default = "tank";
     };
   };
-  imports = [ "${self.inputs.nixpkgs}/nixos/maintainers/scripts/ec2/amazon-image-zfs.nix" ];
+
+  services.zfs.autoSnapshot = {
+    enable = true;
+    frequent = 8;
+    hourly = 8;
+    weekly = 2;
+    monthly = 2;
+  };
+
+  imports =
+    [ "${pkgs.path}/nixos/maintainers/scripts/ec2/amazon-image-zfs.nix" ];
   config = {
     # default is sometimes too small for client configs
     amazonImage.sizeMB = 8192;
 
     boot = {
-      # growPartition does not support zfs directly, so the above postDeviceCommands use what this puts into PATH
-      loader.grub.device = lib.mkForce "/dev/sda";
+      boot.supportedFilesystems = [ "zfs" ];
       zfs.devNodes = "/dev/";
       kernelParams = [ "console=ttyS0" ];
-      initrd = {
-        availableKernelModules = [
-          "virtio_pci"
-          "virtio_blk"
-          "xen-blkfront"
-          "xen-netfront"
-          "nvme"
-          "ena"
-        ];
     };
     fileSystems = {
       "/" = {
@@ -46,6 +46,10 @@ in {
       "/var" = {
         fsType = "zfs";
         device = "${poolName}/system/var";
+      };
+      "/boot" = {
+        fsType = "vfat";
+        device = "/dev/disk/by-label/ESP";
       };
     };
     networking = {
