@@ -308,16 +308,11 @@ in final: prev: {
     inherit (keys) allKeysFrom devOps;
   in { devOps = allKeysFrom devOps; };
 
-  asgAMI = let
-    compat = import (prev.fetchFromGitHub {
-      owner = "BBBSnowball";
-      repo = "flake-compat";
-      rev = "master";
-      hash = "sha256-kM5xZE67AkbXP0w9V/7tzhvxcC68mDybYFHkl3qpCxk=";
-    });
-    cluster = inputs.self.lib.mkHashiStack {
-      flake = (compat { src = "${inputs.self}/nomad-template"; system = "x86_64-linux"; }).defaultNix;
-      domain = "changme.example.com";
-    };
-  in cluster.nixosConfigurations.example-cluster-client-eu-central-1-c5-2xlarge.config.system.build.amazonImage;
+  asgAMI = (inputs.nixpkgs.lib.nixosSystem {
+    inherit (prev) system;
+    modules = [
+      "${inputs.nixpkgs}/nixos/maintainers/scripts/ec2/amazon-image-zfs.nix"
+      ./profiles/amazon-shell-init.nix
+    ];
+  }).config.system.build.amazonImage;
 }
