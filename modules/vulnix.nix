@@ -46,12 +46,22 @@ in {
         type = types.path;
         description = "The netrc file to use for private Git repos.";
       };
+
+      whitelists = mkOption {
+        type = types.listOf whitelistFormat.type;
+        default = [];
+        description = "Whitelists to respect.";
+      };
     };
 
     whitelists = mkOption {
       type = types.listOf whitelistFormat.type;
       default = [];
-      description = "Whitelists to respect.";
+      description = ''
+        Whitelists to respect.
+        These are not considered for scans of Nomad jobs, use the option
+        <option>services.vulnix.scanNomadJobs.whitelists</option> instead.
+      '';
     };
 
     paths = mkOption {
@@ -113,7 +123,12 @@ in {
 
       path = with pkgs; [ cfg.package vault-bin curl jq nixFlakes gitMinimal ];
 
-      script = ''
+      script = let
+        mkWhitelists = map (lib.flip lib.pipe [
+          (whitelistFormat.generate "vulnix-whitelist.toml")
+          (drv: "${drv}")
+        ]);
+      in ''
         set -o pipefail
 
         # make Nix commands work
@@ -153,10 +168,6 @@ in {
               requisites = scanRequisites;
               no-requisites = !scanRequisites;
               closure = scanClosure;
-              whitelist = map (lib.flip lib.pipe [
-                (whitelistFormat.generate "vulnix-whitelist.toml")
-                (drv: "${drv}")
-              ]) whitelists;
             }
           )} \
             --cache-dir $CACHE_DIRECTORY/vulnix \
@@ -175,6 +186,7 @@ in {
         scan ${lib.cli.toGNUCommandLineShell {} (with cfg; {
           system = scanSystem;
           gc-roots = scanGcRoots;
+          whitelist = mkWhitelists whitelists;
         })} \
           -- ${lib.escapeShellArgs cfg.paths} \
         | ${cfg.sink}
@@ -205,7 +217,10 @@ in {
               nix show-derivation \
             | jq --unbuffered -r keys[] \
             | while read -r drv; do
-              scan -- "$drv" \
+              scan ${lib.cli.toGNUCommandLineShell {} (with cfg.scanNomadJobs; {
+                whitelist = mkWhitelists whitelists;
+              })} \
+                -- "$drv" \
               | NOMAD_JOB_NAMESPACE=$(<<< "$job" jq -rj .namespace) \
                 NOMAD_JOB_ID=$(<<< "$job" jq -rj .job) \
                 NOMAD_JOB_TASKGROUP_NAME=$(<<< "$job" jq -rj .taskgroup) \
