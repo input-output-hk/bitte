@@ -10,25 +10,23 @@ let
   };
 in {
   options.services.vulnix.defaultWhitelists = {
-    # fix about to be deployed
     ephemeral.whitelist = resultOption // {
       default = {
-        "openssl-1.1.1k" = {
-          until = "2021-09-15";
+        "binutils-2.35.1" = {
+          until = "2021-10-10";
+          comment = "has active PR to upgrade binutils";
           cve = [
-            "CVE-2021-3711"
-            "CVE-2021-3712"
+            "CVE-2021-20294"
+            "CVE-2021-3487"
+            "CVE-2021-20284"
           ];
-          issue_url = "https://github.com/NixOS/nixpkgs/pull/135611";
+          issue_url = "https://github.com/NixOS/nixpkgs/pull/134917";
         };
-        "libsndfile-1.0.30" = {
-          until = "2021-09-15";
-          cve = [ "2021-3246" ];
-          issue_url = [
-            "https://github.com/NixOS/nixpkgs/issues/132138"
-            "https://github.com/NixOS/nixpkgs/pull/132689"
-            "https://github.com/NixOS/nixpkgs/pull/134004"
-          ];
+        "libgcrypt-1.9.3" = {
+          until = "2021-10-10";
+          comment = "in staging-21.05";
+          cve = [ "CVE-2021-40528" ];
+          issue_url = "https://github.com/NixOS/nixpkgs/pull/137025#issuecomment-914725087";
         };
       };
     };
@@ -49,7 +47,7 @@ in {
           ];
         };
         "zip-3.0" = { # comes up as version "3" in Grafana, not sure why
-          cve = [ "2018-13410" ];
+          cve = [ "CVE-2018-13410" ];
           comment = "disputed";
           issue_url = [
             "https://github.com/NixOS/nixpkgs/issues/88417"
@@ -58,15 +56,39 @@ in {
           ];
         };
         "gnulib" = {
-          cve = [ "2018-17942" ];
-          comment = "fixed long ago";
+          cve = [ "CVE-2018-17942" ];
+          comment = "fixed long ago"; # TODO really? check again
           issue_url = [
             "https://github.com/NixOS/nixpkgs/issues/34787"
             "https://github.com/NixOS/nixpkgs/issues/88310"
           ];
         };
-      } // lib.genAttrs [ "shellcheck" "ShellCheck" ] (pname: {
-        cve = [ "2021-28794" ];
+        "bash-4.4-p23" = {
+          cve = [ "CVE-2019-18276" ];
+          comment = "version not affected";
+          issue_url = "https://github.com/NixOS/nixpkgs/issues/88269#issuecomment-722169817";
+        };
+        "python" = {
+          cve = [ "CVE-2017-17522" ];
+          comment = [
+            "disputed"
+            "not considered a (security) bug by upstream and various downstreams"
+          ];
+          issue_url = [
+            "https://github.com/NixOS/nixpkgs/issues/88385"
+            "https://github.com/NixOS/nixpkgs/issues/88384"
+            "https://github.com/NixOS/nixpkgs/issues/73675#issuecomment-555525714"
+          ];
+        };
+      } // lib.genAttrs [ "glibc-2.33-49" "glibc-2.33-50" ] (name: {
+        cve = [ "CVE-2021-38604" ];
+        comment = "version not affected";
+        issue_url = [
+          "https://github.com/NixOS/nixpkgs/issues/138667#issuecomment-923991137"
+          "https://github.com/NixOS/nixpkgs/pull/134765"
+        ];
+      }) // lib.genAttrs [ "shellcheck" "ShellCheck" ] (pname: {
+        cve = [ "CVE-2021-28794" ];
         comment = "CVE is about a Visual Studio Code extension";
       });
     };
@@ -84,7 +106,7 @@ in {
         in (
           lib.optionalAttrs (!nixosConfig.services.xserver.enable) {
             "libX11-1.7.0" = {
-              cve = [ "2021-31535" ];
+              cve = [ "CVE-2021-31535" ];
               # XXX nomad jobs might, though very unlikely
               comment = "we don't run a graphical session";
             };
@@ -99,16 +121,28 @@ in {
             )
           ) {
             "ripgrep" = {
-              cve = [ "2021-3013" ];
+              cve = [ "CVE-2021-3013" ];
               comment = "we're not on windows";
             };
-          } // lib.optionalAttrs (!nixosConfig.services.httpd.enable) {
+            "bat" = {
+              cve = [ "CVE-2021-36753" ];
+              comment = "we're not on windows";
+            };
+          } // (let
+            disabled = !nixosConfig.services.httpd.enable;
+            fixed = lib.versionAtLeast nixosConfig.services.httpd.package.version "2.4.49";
+          in lib.optionalAttrs (disabled || fixed) {
             "openssl-1.1.1k" = {
               cve = [ "CVE-2019-0190" ];
-              comment = "we don't use Apache";
-              issue_url = "https://github.com/NixOS/nixpkgs/issues/88371";
+              comment =
+                lib.optional disabled "we don't use Apache" ++
+                lib.optional fixed "version not affected";
+              issue_url = [
+                "https://github.com/NixOS/nixpkgs/issues/88371"
+                "https://httpd.apache.org/security/vulnerabilities_24.html"
+              ];
             };
-          }
+          })
         );
       };
     };
