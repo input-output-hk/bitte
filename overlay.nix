@@ -312,6 +312,20 @@ in final: prev: {
     inherit (prev) system;
     modules = [
       "${inputs.nixpkgs}/nixos/maintainers/scripts/ec2/amazon-image-zfs.nix"
+      ({ pkgs, ... }: {
+        nix.package = pkgs.nixUnstable;
+        nix.binaryCaches = [ "https://hydra.iohk.io" ];
+        nix.binaryCachePublicKeys =
+          [ "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=" ];
+
+        nix.registry.nixpkgs.flake = inputs.nixpkgs;
+
+        nix.extraOptions = ''
+          experimental-featues = nix-command flakes ca-references
+        '';
+
+        environment.systemPackages = [ pkgs.git ];
+      })
     ];
   }).config.system.build.amazonImage;
 }
