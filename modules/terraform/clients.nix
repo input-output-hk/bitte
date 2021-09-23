@@ -130,7 +130,9 @@ in {
 
             lifecycle = [{ create_before_destroy = true; }];
 
-            root_block_device = {
+            ebs_block_device = {
+              device_name = "/dev/xvdb";
+              snapshot_id = "snap-0887e30f76f7e081b";
               volume_type = group.volumeType;
               volume_size = group.volumeSize;
               delete_on_termination = true;
