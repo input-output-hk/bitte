@@ -23,8 +23,5 @@
 
   time.timeZone = "UTC";
 
-  disabledModules = [ "virtualisation/amazon-image.nix" ];
   networking = { hostId = "9474d585"; };
-  boot.initrd.postDeviceCommands = "echo FINDME; lsblk";
-  boot.loader.grub.device = "/dev/nvme0n1";
 }
