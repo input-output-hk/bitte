@@ -704,8 +704,8 @@ let
           tar xvf source.tar.xz -C source
 
           nix build ./source#nixosConfigurations.${cfg.name}-${this.config.name}.config.system.build.toplevel
-          /run/current-system/sw/bin/nixos-rebuild --flake ./source#${cfg.name}-${this.config.name} boot
-          /run/current-system/sw/bin/shutdown -r now
+          /run/current-system/sw/bin/nixos-rebuild --flake ./source#${cfg.name}-${this.config.name} switch &
+          disown -a
         '';
       };
 
