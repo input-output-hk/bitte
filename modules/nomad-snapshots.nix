@@ -129,7 +129,7 @@ let
       OnCalendar = cfg.${job}.interval;
       RandomizedDelaySec = cfg.${job}.randomizedDelaySec;
       FixedRandomDelay = cfg.${job}.fixedRandomDelay;
-      AccuracySecs = "1us";
+      AccuracySec = "1us";
     };
     wantedBy = [ "timers.target" ];
   };
