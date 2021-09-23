@@ -312,7 +312,6 @@ in final: prev: {
     inherit (prev) system;
     modules = [
       "${inputs.nixpkgs}/nixos/maintainers/scripts/ec2/amazon-image-zfs.nix"
-      ./profiles/amazon-shell-init.nix
     ];
   }).config.system.build.amazonImage;
 }
