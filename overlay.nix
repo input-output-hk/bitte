@@ -319,9 +319,13 @@ in final: prev: {
           [ "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=" ];
 
         nix.registry.nixpkgs.flake = inputs.nixpkgs;
+        nix.nixPath = [
+          "nixpkgs=${pkgs.path}"
+          "nixos-config=/etc/nixos/configuration.nix"
+        ];
 
         nix.extraOptions = ''
-          experimental-featues = nix-command flakes ca-references
+          experimental-features = nix-command flakes ca-references
         '';
 
         environment.systemPackages = [ pkgs.git ];

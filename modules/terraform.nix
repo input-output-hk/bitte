@@ -20,10 +20,10 @@ let
   };
 
   autoscalingAMIs = {
-    eu-central-1 = "ami-0fabf3952d9e6f06c";
-    us-east-2 = "ami-034cdbc727e2331ae";
-    eu-west-1 = "ami-0abb7e3c8769929d1";
-    us-east-1 = "ami-0ee3081b995c60375";
+    eu-central-1 = "ami-07cf06fc2cf0de485";
+    us-east-2 = "ami-08c2048194fde1422";
+    eu-west-1 = "ami-0ac83c4afcc9e6ecc";
+    us-east-1 = "ami-0baa6fb5107677998";
   };
 
   vpcMap = lib.pipe [
@@ -681,26 +681,27 @@ let
         };
       };
 
-      userData = mkOption {
+      userData = let
+        nixConf = ''
+          extra-substituters = ${cfg.s3Cache}
+          extra-trusted-public-keys = ${cfg.s3CachePubKey}
+        '';
+      in
+      mkOption {
         type = nullOr str;
         default = ''
-          #!${pkgs.bash}/bin/bash
+          #!/usr/bin/env bash
+          export NIX_CONFIG="${nixConf}"
+
           set -exuo pipefail
 
-          export CACHES="https://hydra.iohk.io https://cache.nixos.org ${cfg.s3Cache}"
-          export CACHE_KEYS="hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= ${cfg.s3CachePubKey}"
           pushd /run/keys
-          aws s3 cp "s3://${cfg.s3Bucket}/infra/secrets/${cfg.name}/${cfg.kms}/source/source.tar.xz" source.tar.xz
+          nix shell nixpkgs#awscli -c aws s3 cp "s3://${cfg.s3Bucket}/infra/secrets/${cfg.name}/${cfg.kms}/source/source.tar.xz" source.tar.xz
           mkdir -p source
           tar xvf source.tar.xz -C source
 
-          # TODO: add git to the AMI
-          nix build nixpkgs#git -o git
-          export PATH="$PATH:$PWD/git/bin"
-
-          nix build ./source#nixosConfigurations.${cfg.name}-${this.config.name}.config.system.build.toplevel --option substituters "$CACHES" --option trusted-public-keys "$CACHE_KEYS"
-          /run/current-system/sw/bin/nixos-rebuild --flake ./source#${cfg.name}-${this.config.name} boot --option substituters "$CACHES" --option trusted-public-keys "$CACHE_KEYS"
-          /run/current-system/sw/bin/shutdown -r now
+          nix build ./source#nixosConfigurations.${cfg.name}-${this.config.name}.config.system.build.toplevel
+          /run/current-system/sw/bin/nixos-rebuild --flake ./source#${cfg.name}-${this.config.name} switch
         '';
       };
 
