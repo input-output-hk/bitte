@@ -16,7 +16,7 @@ in {
   ];
   config = {
     boot = {
-      boot.supportedFilesystems = [ "zfs" ];
+      supportedFilesystems = [ "zfs" ];
       zfs.devNodes = "/dev/";
       kernelParams = [ "console=ttyS0" ];
     };
