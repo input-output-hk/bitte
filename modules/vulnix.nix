@@ -146,9 +146,9 @@ in {
         NOMAD_TOKEN=$(vault read -field secret_id nomad/creds/admin)
         sleep 5s # let nomad token be propagated to come into effect
 
-        [[ -f $STATE_DIRECTORY/index ]] || {
+        if [[ ! -f $STATE_DIRECTORY/index ]]; then
           printf '%d' 0 > $STATE_DIRECTORY/index
-        }
+        fi
 
         # TODO If the NOMAD_TOKEN expires the service would probably exit uncleanly and restart. Make it a clean restart.
 
