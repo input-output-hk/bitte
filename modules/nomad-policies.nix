@@ -42,7 +42,11 @@ let
       name = mkOption {
         # Disallow "management" to avoid collision with a
         # default Vault nomad/creds/management role
-        type = addCheck str (x: x != "management");
+        type = addCheck str (x: assert lib.assertMsg (x != "management") ''
+            The "management" Nomad policy name is reserved, please change it.
+          '';
+          x != "management"
+        );
         default = name;
       };
 
@@ -130,8 +134,8 @@ let
 
   createPolicies = flip mapAttrsToList config.services.nomad.policies
     (name: policy: ''
-      nomad acl policy apply -description="${policy.description}" "${name}" ${
-        toPrettyJSON "nomad-policy-${name}" (policyJson policy)
+      nomad acl policy apply -description="${policy.description}" "${policy.name}" ${
+        toPrettyJSON "nomad-policy-${policy.name}" (policyJson policy)
       }
     '');
 in {
