@@ -131,6 +131,7 @@ in {
 
           data_format = "json";
           tag_keys = [ "pname" "version" ];
+          json_string_fields = [ "affected_by_*" ];
 
           name_override = "vulnerability";
         };
@@ -138,16 +139,16 @@ in {
 
       processors.starlark = [ {
         namepass = [ "vulnerability" ];
-
-        # XXX replace with regex processor
-        # once https://github.com/influxdata/telegraf/pull/9561 is merged
         source = ''
           def apply(metric):
               for k, v in metric.fields.items():
+                  if k.startswith("affected_by_"):
+                      metric.fields.pop(k)
+                      metric.tags["cve"] = v[len("CVE-"):]
+                      metric.fields["score"] = metric.fields["cvssv3_basescore_" + v]
+              for k in metric.fields.keys():
                   if k.startswith("cvssv3_basescore_"):
                       metric.fields.pop(k)
-                      metric.fields["score"] = v
-                      metric.tags["cve"] = k[len("cvssv3_basescore_CVE-"):]
               return metric
         '';
       } ];
