@@ -9,7 +9,10 @@ let
         default = name;
       };
       contents = lib.mkOption { type = lib.types.str; };
-      command = lib.mkOption { type = lib.types.str; };
+      command = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+      };
     };
   });
 
@@ -83,7 +86,12 @@ in {
           }];
         };
 
-        templates = cfg.templates;
+        templates = lib.mapAttrs (name: value:
+          {
+            inherit (value) destination contents;
+          } // (lib.optionalAttrs (value.command != null) {
+            command = value.command;
+          })) cfg.templates;
       } // (lib.optionalAttrs (builtins.length cfg.listener > 0) {
         cache.use_auto_auth_token = cfg.cache.useAutoAuthToken;
 

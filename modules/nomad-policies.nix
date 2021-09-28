@@ -3,7 +3,7 @@ let
   inherit (builtins) mapAttrs typeOf listToAttrs length attrNames;
   inherit (lib)
     flip mkOption mkIf mkEnableOption mapAttrsToList remove concatStringsSep;
-  inherit (lib.types) str enum submodule nullOr attrsOf listOf;
+  inherit (lib.types) addCheck str enum submodule nullOr attrsOf listOf;
   inherit (pkgs) toPrettyJSON ensureDependencies;
 
   sanitize = set:
@@ -40,7 +40,13 @@ let
   nomadPoliciesType = submodule ({ name, ... }: {
     options = {
       name = mkOption {
-        type = str;
+        # Disallow "management" to avoid collision with a
+        # default Vault nomad/creds/management role
+        type = addCheck str (x: assert lib.assertMsg (x != "management") ''
+            The "management" Nomad policy name is reserved, please change it.
+          '';
+          x != "management"
+        );
         default = name;
       };
 
@@ -128,8 +134,8 @@ let
 
   createPolicies = flip mapAttrsToList config.services.nomad.policies
     (name: policy: ''
-      nomad acl policy apply -description="${policy.description}" "${name}" ${
-        toPrettyJSON "nomad-policy-${name}" (policyJson policy)
+      nomad acl policy apply -description="${policy.description}" "${policy.name}" ${
+        toPrettyJSON "nomad-policy-${policy.name}" (policyJson policy)
       }
     '');
 in {

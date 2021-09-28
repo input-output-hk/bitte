@@ -18,4 +18,6 @@ in {
     server = true;
     ui = true;
   };
+
+  services.consul-snapshots.enable = true;
 }

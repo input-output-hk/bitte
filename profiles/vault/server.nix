@@ -25,5 +25,7 @@ in {
         tlsKeyFile = key;
       };
     };
+
+    services.vault-snapshots.enable = true;
   };
 }

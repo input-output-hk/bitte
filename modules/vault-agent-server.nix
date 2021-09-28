@@ -88,6 +88,13 @@ in {
               {{- with secret "nomad/creds/nomad-autoscaler" }}{{ .Data.secret_id }}{{ end -}}
             '';
           };
+
+        "/run/keys/nomad-snapshot-token" =
+          mkIf config.services.nomad-snapshots.enable {
+            contents = ''
+              {{- with secret "nomad/creds/management" }}{{ .Data.secret_id }}{{ end -}}
+            '';
+          };
       };
     };
   };
