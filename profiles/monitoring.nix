@@ -11,6 +11,9 @@ in {
     ./telegraf.nix
   ];
 
+  age.secrets.grafana-password.file = config.age.encryptedRoot
+    + "/grafana/password.age";
+
   services = {
     vault.enable = lib.mkForce false;
     consul.ui = true;
@@ -68,7 +71,7 @@ in {
         }];
       };
 
-      security = { adminPasswordFile = /var/lib/grafana/password; };
+      security.adminPasswordFile = config.age.secrets.grafana-password.path;
     };
 
     prometheus = {
@@ -88,24 +91,4 @@ in {
       };
     };
   };
-
-  secrets.generate.grafana-password = ''
-    export PATH="${lib.makeBinPath (with pkgs; [ coreutils sops xkcdpass ])}"
-
-    if [ ! -s encrypted/grafana-password.json ]; then
-      xkcdpass \
-      | sops --encrypt --kms '${kms}' /dev/stdin \
-      > encrypted/grafana-password.json
-    fi
-  '';
-
-  secrets.install.grafana-password.script = ''
-    export PATH="${lib.makeBinPath (with pkgs; [ sops coreutils ])}"
-
-    mkdir -p /var/lib/grafana
-
-    cat ${config.secrets.encryptedRoot + "/grafana-password.json"} \
-      | sops -d /dev/stdin \
-      > /var/lib/grafana/password
-  '';
 }
