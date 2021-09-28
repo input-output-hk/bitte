@@ -4,7 +4,7 @@ in {
   systemd.services.docker-registry.serviceConfig.Environment = [
     "REGISTRY_AUTH=htpasswd"
     "REGISTRY_AUTH_HTPASSWD_REALM=docker-registry"
-    "REGISTRY_AUTH_HTPASSWD_PATH=/var/lib/docker-registry/docker-passwords"
+    "REGISTRY_AUTH_HTPASSWD_PATH=${config.age.secrets.docker-password.path}"
   ];
 
   services = {
@@ -33,50 +33,10 @@ in {
     redis.enable = true;
   };
 
-  secrets.generate.redis-password = ''
-    export PATH="${lib.makeBinPath (with pkgs; [ coreutils sops xkcdpass ])}"
-
-    if [ ! -s encrypted/redis-password.json ]; then
-      xkcdpass \
-      | sops --encrypt --kms '${kms}' /dev/stdin \
-      > encrypted/redis-password.json
-    fi
-  '';
-
-  secrets.install.redis-password = {
-    source = config.secrets.encryptedRoot + "/redis-password.json";
-    target = /run/keys/redis-password;
-    inputType = "binary";
-    outputType = "binary";
-  };
-
-  secrets.generate.docker-passwords = ''
-    export PATH="${
-      lib.makeBinPath (with pkgs; [ coreutils sops jq pwgen apacheHttpd ])
-    }"
-
-    if [ ! -s encrypted/docker-passwords.json ]; then
-      password="$(pwgen -cB 32)"
-      hashed="$(echo "$password" | htpasswd -i -B -n developer)"
-
-      echo '{}' \
-        | jq --arg password "$password" '.password = $password' \
-        | jq --arg hashed "$hashed" '.hashed = $hashed' \
-        | sops --encrypt --input-type json --output-type json --kms '${kms}' /dev/stdin \
-        > encrypted/docker-passwords.new.json
-      mv encrypted/docker-passwords.new.json encrypted/docker-passwords.json
-    fi
-  '';
-
-  secrets.install.docker-passwords = {
-    source = config.secrets.encryptedRoot + "/docker-passwords.json";
-    target = /run/keys/docker-passwords-decrypted;
+  age.secrets.docker-password = {
+    file = config.secrets.encryptedRoot + "/docker/password.age";
     script = ''
-      export PATH="${lib.makeBinPath (with pkgs; [ coreutils jq ])}"
-
-      jq -r -e < /run/keys/docker-passwords-decrypted .hashed \
-        > /var/lib/docker-registry/docker-passwords
-      chown docker-registry /var/lib/docker-registry/docker-passwords
+      ${pkgs.apacheHttpd}/bin/htpasswd -i -B -n developer < $src > $out
     '';
   };
 }
