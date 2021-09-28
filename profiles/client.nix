@@ -5,7 +5,6 @@
     ./docker.nix
     ./nomad/client.nix
     ./telegraf.nix
-    ./vault/client.nix
     ./reaper.nix
     ./builder.nix
     ./zfs-client-options.nix

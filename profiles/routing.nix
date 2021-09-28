@@ -1,11 +1,5 @@
 { self, lib, pkgs, config, ... }: {
-  imports = [
-    ./common.nix
-    ./consul/client.nix
-    ./oauth.nix
-    ./telegraf.nix
-    ./vault/client.nix
-  ];
+  imports = [ ./common.nix ./consul/client.nix ./oauth.nix ./telegraf.nix ];
 
   services.vault-agent-core = {
     enable = true;
