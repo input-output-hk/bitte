@@ -9,7 +9,6 @@ in {
     ./loki.nix
     ./oauth.nix
     ./telegraf.nix
-    ./vault/client.nix
   ];
 
   services = {

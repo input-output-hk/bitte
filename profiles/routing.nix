@@ -4,7 +4,6 @@
     ./consul/client.nix
     ./oauth.nix
     ./telegraf.nix
-    ./vault/client.nix
   ];
 
   services.vault-agent-core = {

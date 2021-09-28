@@ -6,8 +6,7 @@ let
   quotaSize =
     config.tf.core.configuration.resource.aws_ebs_volume.${nodeName}.size * 1.8;
 in {
-  imports =
-    [ ../common.nix ../telegraf.nix ../secrets.nix ../vault/client.nix ];
+  imports = [ ../common.nix ../telegraf.nix ../secrets.nix ];
 
   services.glusterfs.enable = true;
   services.vault.enable = lib.mkForce false;
