@@ -112,7 +112,7 @@ in {
             {{- with secret "consul/creds/consul-default" }}{{ .Data.token }}{{ end -}}
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl restart nomad.service";
+          command = "${pkgs.systemd}/bin/systemctl try-restart nomad.service";
         };
 
         "/etc/vault.d/consul-token.json" = mkIf config.services.vault.enable {
