@@ -8,15 +8,16 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1631219950,
-        "narHash": "sha256-cgUwik+AeQPKBgxVy9Z6kXTFbprjGP7lkb4yIgMlglg=",
+        "lastModified": 1632947673,
+        "narHash": "sha256-B3lqJTDQ/aU66i8yjQjqo+GXq2o/A6CS4sMdGd8A6j8=",
         "owner": "input-output-hk",
         "repo": "bitte-cli",
-        "rev": "acde002d124f424d464d7d0b4099e2da52f35937",
+        "rev": "bfac91c41afc55381c15908def96c53aa1eba3c4",
         "type": "github"
       },
       "original": {
         "owner": "input-output-hk",
+        "ref": "no-build-closure",
         "repo": "bitte-cli",
         "type": "github"
       }
@@ -277,11 +278,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1624492865,
-        "narHash": "sha256-y0sgj+z1qdfdtd5gmYbdSK3zx1SsJnyM8gZqZVH2g5c=",
+        "lastModified": 1629827819,
+        "narHash": "sha256-cysfDbdjTluO+UtuT6iRrf/2Lt7Qo/qRlpz9F5rz3Sc=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "65db0350fe3962c41b8604046ec9166976f80793",
+        "rev": "503209808cd613daed238e21e7a18ffcbeacebe3",
         "type": "github"
       },
       "original": {
