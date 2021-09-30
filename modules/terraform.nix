@@ -120,16 +120,6 @@ let
         default = [ ];
         description = ''
           Extra subject alternative names to add to the default certs for the cluster.
-
-          NOTE: Use of this option requires a recent version of an ACME terraform
-          provider, such as one of:
-
-          https://github.com/getstackhead/terraform-provider-acme/releases/tag/v1.5.0-patched2
-          https://github.com/vancluever/terraform-provider-acme/releases/tag/v2.4.0
-
-          Specifically, the ACME provider version must be patched for this issue:
-
-          https://github.com/vancluever/terraform-provider-acme/issues/154
         '';
       };
 
