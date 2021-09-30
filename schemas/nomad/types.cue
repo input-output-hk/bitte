@@ -172,7 +172,7 @@ import (
 		Args:                   [...string] | *null
 		CheckRestart:           #json.CheckRestart
 		Command:                string | *""
-		Expose:                 false
+		Expose:                 bool | *false
 		FailuresBeforeCritical: uint | *0
 		Id:                     string | *""
 		InitialStatus:          string | *""
@@ -186,6 +186,7 @@ import (
 		TaskName:               string | *""
 		Timeout:                uint
 		TLSSkipVerify:          bool | *false
+		OnUpdate:               *"" | "require_healthy" | "ignore_warnings" | "ignore"
 		Type:                   "http" | "tcp" | "script" | "grpc"
 		Body:                   string | *null
 		Header: [string]: [...string]
@@ -207,6 +208,51 @@ import (
 		MaxFileSizeMB: uint & >0
 	}
 
+	Expose: {
+		Path:          string
+		Protocol:      *"http" | "http2"
+		ListenerPort:  string
+		LocalPathPort: uint
+	}
+
+	Upstreams: {
+		Datacenter:       string
+		DestinationName:  string
+		LocalBindAddress: string
+		LocalBindPort:    uint
+		MeshGateway:      null
+	}
+
+	Proxy: *null | {
+		Config:              *null | {[string]: string}
+		ExposeConfig:        *null | {Path: [...#json.Expose]}
+		LocalServiceAddress: string
+		LocalServicePort:    uint
+		Upstreams:           *null | [...#json.Upstreams]
+	}
+
+	SidecarService: *null | {
+		DisableDefaultTCPCheck: bool | *false
+		Port:                   string
+		Proxy:                  #json.Proxy
+		Tags:                   null
+	}
+
+	SidecarTask: *null | {
+		Config: #stanza.taskConfig & {#driver: Driver}
+		Driver: "docker"
+		Env: [string]: string
+		Name: string
+		User: string
+	}
+
+	Connect: *null | {
+		Gateway:        null
+		Native:         bool | *false
+		SidecarService: #json.SidecarService
+		SidecarTask:    #json.SidecarTask
+	}
+
 	Service: {
 		Id:   string | *""
 		Name: string
@@ -217,7 +263,7 @@ import (
 		AddressMode:       "alloc" | "auto" | "driver" | "host"
 		Checks: [...ServiceCheck]
 		CheckRestart: #json.CheckRestart
-		Connect:      null
+		Connect:      #json.Connect
 		Meta: [string]: string
 		TaskName: string | *""
 	}
@@ -289,10 +335,10 @@ import (
 	}
 }
 
-#dockerUrlPath: =~"^[0-9a-zA-Z-.]+/[0-9a-zA-Z-]+:[0-9a-zA-Z-]+$"
+#dockerUrlPath: =~"^([0-9a-zA-Z-.]+/)+[0-9a-zA-Z-@]+:[0-9a-zA-Z-.]+$"
 #duration:      =~"^[1-9]\\d*[hms]$"
 #gitRevision:   =~"^[a-f0-9]{40}$"
-#flake:         =~"^(github|git\\+ssh|git):[0-9a-zA-Z_-]+/[0-9a-zA-Z_-]+"
+#flake:         =~"^(?:github|git\\+ssh|git):(?:[0-9a-zA-Z_-]+/)+[0-9a-zA-Z_-]+(?:\\?rev=[0-9a-fA-F]{40})?#[0-9a-zA-Z_-]+"
 
 // The #toJson block is evaluated from deploy.cue during rendering of the namespace jobs.
 // #job and #jobName are passed to #toJson during this evaluation.
@@ -474,6 +520,10 @@ import (
 					AddressMode: c.address_mode
 					Type:        c.type
 					PortLabel:   c.port
+					Command:     c.command
+					Args:        c.args
+					TaskName:    c.task
+					Expose:      c.expose
 					Interval:    time.ParseDuration(c.interval)
 					if c.type == "http" {
 						Path:     c.path
@@ -484,6 +534,7 @@ import (
 					SuccessBeforePassing:   c.success_before_passing
 					FailuresBeforeCritical: c.failures_before_critical
 					TLSSkipVerify:          c.tls_skip_verify
+					OnUpdate:               c.on_update
 					InitialStatus:          c.initial_status
 					Header:                 c.header
 					Body:                   c.body
@@ -496,6 +547,57 @@ import (
 					}
 				}
 			}]
+			if s.connect != null {
+				Connect: {
+					Gateway: s.connect.gateway
+					Native:  s.connect.native
+					if s.connect.sidecar_service != null {
+						SidecarService: {
+							DisableDefaultTCPCheck: s.connect.sidecar_service.disable_default_tcp_check
+							Port:                   s.connect.sidecar_service.port
+							if s.connect.sidecar_service.proxy != null {
+								let proxy = s.connect.sidecar_service.proxy
+								Proxy: {
+									Config: proxy.config
+									if proxy.expose != null {
+										ExposeConfig: Path: [ for e in proxy.expose.path {
+											{
+												Path:          e.path
+												Protocol:      e.protocol
+												ListenerPort:  e.listener_port
+												LocalPathPort: e.local_path_port
+											}
+										}]
+									}
+									LocalServiceAddress: proxy.local_service_address
+									LocalServicePort:    proxy.local_service_port
+									if proxy.upstreams != null {
+										Upstreams: [ for u in proxy.upstreams {
+											{
+												Datacenter:       u.datacenter
+												DestinationName:  u.destination_name
+												LocalBindAddress: u.local_bind_address
+												LocalBindPort:    u.local_bind_port
+												MeshGateway:      u.mesh_gateway
+											}
+										}]
+									}
+								}
+							}
+							Tags: s.connect.sidecar_service.tags
+						}
+					}
+					if s.connect.sidecar_task != null {
+						SidecarTask: {
+							Name:   s.connect.sidecar_task.name
+							Driver: s.connect.sidecar_task.driver
+							User:   s.connect.sidecar_task.user
+							Config: s.connect.sidecar_task.config
+							Env:    s.connect.sidecar_task.env
+						}
+					}
+				}
+			}
 			PortLabel: s.port
 			Meta:      s.meta
 		}]
@@ -743,11 +845,61 @@ import (
 		task: string | *""
 		check: [string]: #stanza.check
 		meta: [string]:  string
+		connect: #stanza.connect
+	}
+
+	expose: {
+		path:            string
+		protocol:        *"http" | "http2"
+		listener_port:   string
+		local_path_port: uint
+	}
+
+	upstreams: {
+		datacenter:         *"" | string
+		destination_name:   *"" | string
+		local_bind_address: *"" | string
+		local_bind_port:    uint
+		mesh_gateway:       null
+	}
+
+	proxy: *null | {
+		config:                *null | {[string]: string}
+		expose:                *null | {path: [...#stanza.expose]}
+		local_service_address: string | *"127.0.0.1"
+		local_service_port:    uint | *0
+		upstreams:             *null | [...#stanza.upstreams]
+	}
+
+	sidecar_service: *null | {
+		disable_default_tcp_check: bool | *false
+		port:                      *"" | string
+		proxy:                     #stanza.proxy
+		tags:                      null
+	}
+
+	sidecar_task: *null | {
+		name:   *"" | string
+		driver: *"" | "docker"
+		user:   *"" | string
+		config: *null | dockerConfig
+		env: [string]: string
+	}
+
+	connect: *null | {
+		gateway:         null
+		native:          bool | *false
+		sidecar_service: #stanza.sidecar_service
+		sidecar_task:    #stanza.sidecar_task
 	}
 
 	check: {
 		address_mode:  "alloc" | "driver" | *"host"
 		type:          "http" | "tcp" | "script" | "grpc"
+		command:       string | *""
+		args:          [...string] | *null
+		task:          string | *""
+		expose:        bool | *false
 		port:          string
 		interval:      #duration
 		timeout:       #duration
@@ -758,6 +910,7 @@ import (
 		success_before_passing:   uint | *0
 		failures_before_critical: uint | *0
 		tls_skip_verify:          bool | *false
+		on_update:                *"" | "require_healthy" | "ignore_warnings" | "ignore"
 
 		if type == "http" {
 			method:   *"GET" | "POST"
@@ -782,16 +935,28 @@ import (
 
 	#label: [string]: string
 
+	dockerMount: {
+		type:     *"bind" | "volume" | "tmpfs"
+		target:   string
+		source:   string
+		readonly: *true | bool
+		bind_options: {
+			propagation: "rshared"
+		}
+	}
+
 	dockerConfig: {
-		image:   string
+		image:   *null | string
 		command: *null | string
 		args: [...string]
 		cap_add:     *null | [...string]
 		entrypoint:  *null | [...string]
+		force_pull:  *null | bool
 		interactive: *null | bool
 		ipc_mode:    *null | string
 		labels: [...#label]
 		logging: dockerConfigLogging
+		mount:   *null | [...#stanza.dockerMount]
 		ports: [...string]
 		sysctl: *null | [ {[string]: string}]
 	}
