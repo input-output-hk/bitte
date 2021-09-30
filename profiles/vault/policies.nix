@@ -89,6 +89,9 @@ in {
       "kv/data/bootstrap/ca".capabilities = [ c r u d l ];
       "kv/data/bootstrap/static-tokens/*".capabilities = [ c r u d l ];
       "kv/data/bootstrap/*".capabilities = [ r ];
+      "kv/data/bootstrap/letsencrypt/cert".capabilities = [ c r u d l ];
+      "kv/data/bootstrap/letsencrypt/fullchain".capabilities = [ c r u d l ];
+      "kv/data/bootstrap/letsencrypt/key".capabilities = [ c r u d l ];
       "nomad/config/access".capabilities = [ c u ];
       "nomad/creds/*".capabilities = [ r ];
       "pki/cert/ca".capabilities = [ r ];
