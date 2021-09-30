@@ -37,6 +37,29 @@
     '';
   };
 
+  security.acme = {
+    acceptTerms = true;
+    certs.routing = lib.mkIf (nodeName == "routing") {
+      dnsProvider = "route53";
+      dnsResolver = "1.1.1.1:53";
+      email = "devops@iohk.io";
+      domain = config.cluster.domain;
+      credentialsFile = builtins.toFile "nothing" "";
+      extraDomainNames = [ "*.${config.cluster.domain}" ]
+        ++ config.cluster.extraAcmeSANs;
+      postRun = ''
+        cp fullchain.pem /etc/ssl/certs/${config.cluster.domain}-full.pem
+        cp key.pem /etc/ssl/certs/${config.cluster.domain}-key.pem
+        systemctl try-restart --no-block copy-acme-certs.service
+
+        export VAULT_TOKEN="$(< /run/keys/vault-token)"
+        vault kv put kv/bootstrap/letsencrypt/key value=@key.pem
+        vault kv put kv/bootstrap/letsencrypt/fullchain value=@fullchain.pem
+        vault kv put kv/bootstrap/letsencrypt/cert value=@cert.pem
+      '';
+    };
+  };
+
   services.traefik = {
     enable = true;
 
