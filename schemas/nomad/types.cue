@@ -277,9 +277,11 @@ import (
 		Env: [string]: string
 		Services: [...Service]
 		Resources: {
-			CPU:      uint & >=100 | *100
-			MemoryMB: uint & >=32 | *300
-			DiskMB:   *null | uint
+			CPU:         *null | uint & >=100
+			Cores:       *null | uint
+			MemoryMB:    uint & >=32 | *300
+			MemoryMaxMB: *null | uint & >=MemoryMB
+			DiskMB:      *null | uint
 		}
 		Meta: {}
 		RestartPolicy: *null | #json.RestartPolicy
@@ -649,8 +651,10 @@ import (
 			}
 
 			Resources: {
-				CPU:      t.resources.cpu
-				MemoryMB: t.resources.memory
+				CPU:         t.resources.cpu
+				Cores:       t.resources.cores
+				MemoryMB:    t.resources.memory
+				MemoryMaxMB: t.resources.memory
 			}
 
 			Leader: t.leader
@@ -1017,8 +1021,10 @@ import (
 		logs: *null | #stanza.logs
 
 		resources: {
-			cpu:    uint & >=100
-			memory: uint & >=32
+			cpu:        *null | uint & >=100
+			cores:      *null | uint
+			memory:     uint & >=32
+			memory_max: *null | uint & >=memory
 		}
 
 		template: [Destination=_]: {

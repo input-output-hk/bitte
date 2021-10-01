@@ -21,6 +21,8 @@ in {
       };
 
       default_scheduler_config = {
+        memory_oversubscription_enabled = true;
+
         preemption_config = {
           batch_scheduler_enabled = true;
           system_scheduler_enabled = true;
