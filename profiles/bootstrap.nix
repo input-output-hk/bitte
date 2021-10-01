@@ -32,6 +32,34 @@ let
       config.secrets.encryptedRoot + "/nix-cache.json"
     } | vault kv put kv/bootstrap/cache/nix-key -
   '';
+
+  initialVaultStaticSecrets = let
+    mkStaticTokenCheck = policy: ''
+      echo "Checking for ${policy} static token..."
+      if ! vault kv get -field token "kv/bootstrap/static-tokens/clients/${policy}" &> /dev/null; then
+        echo "Creating ${policy} static token..."
+        token="$(${mkStaticToken "${policy}"})"
+        echo "Storing ${policy} static token in Vault secrets."
+        vault kv put "kv/bootstrap/static-tokens/clients/${policy}" token="$token"
+      else
+        echo "Found ${policy} static token."
+      fi
+    '';
+    mkStaticToken = policy: ''
+      consul acl token create \
+        -policy-name="${policy}" \
+        -description "${policy} static $(date '+%Y-%m-%d %H:%M:%S')" \
+        -format json | \
+        jq -e -r .SecretID
+    '';
+  in ''
+    set +x
+    ${mkStaticTokenCheck "consul-agent"}
+    ${mkStaticTokenCheck "consul-default"}
+    ${mkStaticTokenCheck "consul-server-agent"}
+    ${mkStaticTokenCheck "consul-server-default"}
+    set -x
+  '';
 in {
   options = {
     services.bootstrap = {
@@ -221,6 +249,8 @@ in {
         ''))}
 
         ${initialVaultSecrets}
+
+        ${initialVaultStaticSecrets}
 
         ################
         # Extra Config #

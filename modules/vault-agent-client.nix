@@ -4,6 +4,21 @@ let
   inherit (pkgs) writeShellScript;
   inherit (config.cluster) region domain;
 
+  cfg = config.services.vault-agent-client;
+
+  consulAgentToken = if cfg.disableTokenRotation.consulAgent then
+    ''
+      {{ with secret "kv/bootstrap/static-tokens/clients/consul-agent" }}{{ .Data.data.token }}{{ end }}''
+  else
+    ''{{ with secret "consul/creds/consul-agent" }}{{ .Data.token }}{{ end }}'';
+
+  consulDefaultToken = if cfg.disableTokenRotation.consulDefault then
+    ''
+      {{ with secret "kv/bootstrap/static-tokens/clients/consul-default" }}{{ .Data.data.token }}{{ end }}''
+  else
+    ''
+      {{ with secret "consul/creds/consul-default" }}{{ .Data.token }}{{ end }}'';
+
   pkiAttrs = {
     common_name = "server.${region}.consul";
     ip_sans = [ "127.0.0.1" ];
@@ -21,8 +36,20 @@ let
   pkiSecret = ''"pki/issue/client" ${toString pkiArgs}'';
 in {
   options = {
-    services.vault-agent-client.enable =
-      mkEnableOption "Start vault-agent for clients";
+    services.vault-agent-client = {
+      enable = mkEnableOption "Start vault-agent for clients";
+      disableTokenRotation = lib.mkOption {
+        default = { };
+        type = lib.types.submodule {
+          options = {
+            consulAgent = lib.mkEnableOption
+              "Disable consul agent token rotation on vault-agent-client nodes";
+            consulDefault = lib.mkEnableOption
+              "Disable consul default token rotation on vault-agent-client nodes";
+          };
+        };
+      };
+    };
   };
 
   config = mkIf config.services.vault-agent-client.enable {
@@ -89,8 +116,8 @@ in {
                 "enable_token_persistence": true,
                 "enabled": true,
                 "tokens": {
-                  "default": "{{ with secret "consul/creds/consul-default" }}{{ .Data.token }}{{ end }}",
-                  "agent": "{{ with secret "consul/creds/consul-agent" }}{{ .Data.token }}{{ end }}"
+                  "agent": "${consulAgentToken}",
+                  "default": "${consulDefaultToken}"
                 }
               }
             }
@@ -101,7 +128,7 @@ in {
 
         "/run/keys/consul-default-token" = mkIf config.services.consul.enable {
           contents = ''
-            {{ with secret "consul/creds/consul-default" }}{{ .Data.token }}{{ end }}
+            ${consulDefaultToken}
           '';
 
           command = "${pkgs.systemd}/bin/systemctl try-restart consul.service";
@@ -109,7 +136,7 @@ in {
 
         "/run/keys/nomad-consul-token" = mkIf config.services.nomad.enable {
           contents = ''
-            {{- with secret "consul/creds/consul-default" }}{{ .Data.token }}{{ end -}}
+            ${consulDefaultToken}
           '';
 
           command = "${pkgs.systemd}/bin/systemctl try-restart nomad.service";
