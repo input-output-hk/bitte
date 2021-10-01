@@ -22,8 +22,8 @@ let
     max = lib.mkDefault 5;
 
     policy = {
-      cooldown = "2m";
-      evaluation_interval = "1m";
+      cooldown = lib.mkDefault "2m";
+      evaluation_interval = lib.mkDefault "1m";
 
       check.cpu_allocated_percentage = {
         source = "victoriametrics";
