@@ -28,7 +28,9 @@ in {
   };
 
   config = mkIf cfg.enable {
-    users.extraUsers.ssm-user.isSystemUser = true;
+    users.users.ssm-user.isSystemUser = true;
+    users.users.ssm-user.group = "ssm-user";
+    users.groups.ssm-user = { };
     users.extraGroups.wheel.members = [ "ssm-user" ];
 
     systemd.services.amazon-ssm-agent = {

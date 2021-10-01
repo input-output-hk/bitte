@@ -66,8 +66,11 @@ in {
     };
 
     users.users.telegraf = {
+      group = "telegraf";
       uid = config.ids.uids.telegraf;
       description = "telegraf daemon user";
     };
+
+    users.groups.telegraf = { };
   };
 }

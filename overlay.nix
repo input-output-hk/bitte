@@ -309,8 +309,12 @@ in final: prev: {
     inherit (keys) allKeysFrom devOps;
   in { devOps = allKeysFrom devOps; };
 
-  asgAMI = (import ./pkgs/ami.nix {
+  mkAsgAMI = import ./pkgs/ami.nix;
+
+  asgAMI = (final.mkAsgAMI {
+    inherit nixpkgs;
     inherit (prev) system;
-    inherit (inputs) nixpkgs;
+    extraModules = [ ];
   }).config.system.build.amazonImage;
+
 }
