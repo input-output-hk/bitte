@@ -586,6 +586,11 @@ in {
                   default = "binpack";
                 };
 
+                memory_oversubscription_enabled = mkOption {
+                  type = bool;
+                  default = false; # Upstream still has this as opt-in
+                };
+
                 preemption_config = mkOption {
                   default = { };
                   type = submodule {
