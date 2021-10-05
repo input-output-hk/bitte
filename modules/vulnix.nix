@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, nodeName, ... }:
 
 let
   cfg = config.services.vulnix;
@@ -20,11 +20,13 @@ in {
 
     scanClosure = mkEnableOption "scan of the store path closure";
 
-    scanSystem = mkEnableOption "scan of the current system" // {
-      default = true;
-    };
+    scanSystem = mkEnableOption "scan of the current system";
 
     scanGcRoots = mkEnableOption "scan of all active GC roots";
+
+    scanFlake = mkEnableOption "scan of this node's system flake" // {
+      default = true;
+    };
 
     scanNomadJobs = {
       enable = mkEnableOption "scan of all active Nomad jobs";
@@ -68,6 +70,16 @@ in {
       type = with types; listOf str;
       default = [];
       description = "Paths to scan.";
+    };
+
+    flakes = mkOption {
+      type = with types; listOf str;
+      default = lib.optional cfg.scanFlake
+        "${config.cluster.flakePath}#nixosConfigurations.${config.cluster.name}-${nodeName}.config.system.build.toplevel";
+      description = ''
+        Flakes to scan.
+        This refers to a flake output attribute that is a derivation, not just the flake itself.
+      '';
     };
 
     extraOpts = mkOption {
@@ -188,7 +200,11 @@ in {
           gc-roots = scanGcRoots;
           whitelist = mkWhitelists whitelists;
         })} \
-          -- ${lib.escapeShellArgs cfg.paths} \
+          -- \
+          ${lib.escapeShellArgs cfg.paths} \
+          ${lib.concatMapStringsSep " " (flake:
+            "$(nix eval --raw ${lib.escapeShellArg "${flake}.drvPath"})"
+          ) cfg.flakes} \
         | ${cfg.sink}
       '' + lib.optionalString cfg.scanNomadJobs.enable ''
         export VAULT_TOKEN=$(< $CREDENTIALS_DIRECTORY/vault-token)
