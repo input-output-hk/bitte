@@ -39,16 +39,6 @@ in {
         description = "Nomad namespaces to scan jobs in.";
       };
 
-      sshKey = mkOption {
-        type = types.path;
-        description = "The SSH key to use for private Git repos.";
-      };
-
-      netrcFile = mkOption {
-        type = types.path;
-        description = "The netrc file to use for private Git repos.";
-      };
-
       whitelists = mkOption {
         type = types.listOf whitelistFormat.type;
         default = [];
@@ -101,6 +91,16 @@ in {
         <envar>NOMAD_JOB_TASKGROUP_NAME</envar>, and <envar>NOMAD_JOB_TASK_NAME</envar> are set.
       '';
     };
+
+    sshKey = mkOption {
+      type = with types; nullOr path;
+      description = "The SSH key to use for private Git repos.";
+    };
+
+    netrcFile = mkOption {
+      type = with types; nullOr path;
+      description = "The netrc file to use for private Git repos.";
+    };
   };
 
   config.systemd = let
@@ -114,15 +114,15 @@ in {
         DynamicUser = true;
         CacheDirectory = "vulnix";
         StateDirectory = "vulnix";
-      } // (with cfg.scanNomadJobs; lib.optionalAttrs enable {
+        LoadCredential = with cfg;
+          lib.optional scanNomadJobs.enable
+            (assert config.services.vault-agent-core.enable; "vault-token:/run/keys/vault-token") ++
+          lib.optional (sshKey != null) "ssh:${sshKey}" ++
+          lib.optional (netrcFile != null) "netrc:${netrcFile}";
+      } // lib.optionalAttrs cfg.scanNomadJobs.enable {
         Type = "simple";
         Restart = "on-failure";
-        LoadCredential = [
-          (assert config.services.vault-agent-core.enable; "vault-token:/run/keys/vault-token")
-          "ssh:${sshKey}"
-          "netrc:${netrcFile}"
-        ];
-      });
+      };
 
       startLimitIntervalSec = 20;
       startLimitBurst = 10;
@@ -145,8 +145,12 @@ in {
 
         # make Nix commands work
         export XDG_CACHE_HOME=$CACHE_DIRECTORY
-        export GIT_SSH_COMMAND="${pkgs.openssh}/bin/ssh -i $CREDENTIALS_DIRECTORY/ssh"
-        export NIX_CONFIG="netrc-file = $CREDENTIALS_DIRECTORY/netrc"
+        ${lib.optionalString (cfg.sshKey != null) ''
+          export GIT_SSH_COMMAND="${pkgs.openssh}/bin/ssh -i $CREDENTIALS_DIRECTORY/ssh"
+        ''}
+        ${lib.optionalString (cfg.netrcFile != null) ''
+          export NIX_CONFIG="netrc-file = $CREDENTIALS_DIRECTORY/netrc"
+        ''}
 
         # simply echoes everything after `--`
         function positionals {
