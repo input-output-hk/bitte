@@ -250,9 +250,9 @@ in {
             <<< "$job" jq -r .index > $STATE_DIRECTORY/index
           done
         }
-        ${lib.concatMapStringsSep "\n" (ns:
-          "stream ${lib.escapeShellArg ns} &"
-        ) cfg.scanNomadJobs.namespaces}
+        ${lib.concatMapStrings (ns: ''
+          stream ${lib.escapeShellArg ns} &
+        '') cfg.scanNomadJobs.namespaces}
         wait
 
         exit 1
