@@ -9,7 +9,7 @@ let
     ip_sans = [ "127.0.0.1" ];
     alt_names =
       [ "vault.service.consul" "consul.service.consul" "nomad.service.consul" ];
-    ttl = "322h";
+    ttl = "700h";
   };
 
   pkiArgs = flip mapAttrsToList pkiAttrs (name: value:
