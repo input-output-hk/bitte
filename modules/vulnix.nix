@@ -95,11 +95,13 @@ in {
     sshKey = mkOption {
       type = with types; nullOr path;
       description = "The SSH key to use for private Git repos.";
+      default = null;
     };
 
     netrcFile = mkOption {
       type = with types; nullOr path;
       description = "The netrc file to use for private Git repos.";
+      default = null;
     };
   };
 
