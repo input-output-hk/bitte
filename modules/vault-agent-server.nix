@@ -4,6 +4,22 @@ let
   inherit (lib) mkIf filter mkEnableOption concatStringsSep flip mapAttrsToList;
   inherit (config.cluster) domain region;
   inherit (config.cluster.instances.${nodeName}) privateIP;
+
+  cfg = config.services.vault-agent-core;
+
+  consulAgentToken = if cfg.disableTokenRotation.consulAgent then
+    ''
+      {{ with secret "kv/bootstrap/static-tokens/cores/consul-server-agent" }}{{ .Data.data.token }}{{ end }}''
+  else
+    ''
+      {{ with secret "consul/creds/consul-server-agent" }}{{ .Data.token }}{{ end }}'';
+
+  consulDefaultToken = if cfg.disableTokenRotation.consulDefault then
+    ''
+      {{ with secret "kv/bootstrap/static-tokens/cores/consul-server-default" }}{{ .Data.data.token }}{{ end }}''
+  else
+    ''
+      {{ with secret "consul/creds/consul-server-default" }}{{ .Data.token }}{{ end }}'';
 in {
   options = {
     services.vault-agent-core = {
@@ -11,6 +27,17 @@ in {
       vaultAddress = lib.mkOption {
         type = lib.types.str;
         default = "https://127.0.0.1:8200";
+      };
+      disableTokenRotation = lib.mkOption {
+        default = { };
+        type = lib.types.submodule {
+          options = {
+            consulAgent = lib.mkEnableOption
+              "Disable consul agent token rotation on vault-agent-core nodes";
+            consulDefault = lib.mkEnableOption
+              "Disable consul default token rotation on vault-agent-core nodes";
+          };
+        };
       };
     };
   };
@@ -47,8 +74,8 @@ in {
                 "enable_token_persistence": true,
                 "enabled": true,
                 "tokens": {
-                  "agent": "{{ with secret "consul/creds/consul-server-agent" }}{{ .Data.token }}{{ end }}",
-                  "default": "{{ with secret "consul/creds/consul-server-default" }}{{ .Data.token }}{{ end }}"
+                  "agent": "${consulAgentToken}",
+                  "default": "${consulDefaultToken}"
                 }
               }
             }
@@ -58,7 +85,7 @@ in {
         "/run/keys/consul-default-token" = mkIf config.services.consul.enable {
           command = "${reload} consul.service";
           contents = ''
-            {{ with secret "consul/creds/consul-server-default" }}{{ .Data.token }}{{ end }}
+            ${consulDefaultToken}
           '';
         };
 

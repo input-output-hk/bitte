@@ -87,6 +87,7 @@ in {
       "consul/creds/vault-server".capabilities = [ r ];
       "consul/creds/ingress".capabilities = [ r ];
       "kv/data/bootstrap/ca".capabilities = [ c r u d l ];
+      "kv/data/bootstrap/static-tokens/*".capabilities = [ c r u d l ];
       "kv/data/bootstrap/*".capabilities = [ r ];
       "nomad/config/access".capabilities = [ c u ];
       "nomad/creds/*".capabilities = [ r ];
@@ -119,6 +120,7 @@ in {
       "consul/creds/nomad-client".capabilities = [ r ];
       "consul/creds/vault-client".capabilities = [ r ];
       "kv/data/bootstrap/clients/*".capabilities = [ r ];
+      "kv/data/bootstrap/static-tokens/clients/*".capabilities = [ r ];
       "kv/data/nomad-cluster/*".capabilities = [ r l ];
       "kv/metadata/nomad-cluster/*".capabilities = [ r l ];
       "pki/issue/client".capabilities = [ c u ];
