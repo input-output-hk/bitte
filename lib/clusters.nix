@@ -23,9 +23,21 @@ let
   mkSystem = nodeName: modules:
     self.inputs.nixpkgs.lib.nixosSystem {
       inherit pkgs system;
+      modules = [ self.inputs.bitte.nixosModule ] ++ modules;
+      specialArgs = { inherit nodeName self; };
+    };
+
+  mkAMI = nodeName: modules:
+    self.inputs.nixpkgs.lib.nixosSystem {
+      inherit pkgs system;
       modules = [
         self.inputs.bitte.nixosModule
-        (self.inputs.nixpkgs + "/nixos/modules/virtualisation/amazon-image.nix")
+        ({ modulesPath, ... }: {
+          imports = [
+            "${modulesPath}/../maintainers/scripts/ec2/amazon-image-zfs.nix"
+          ];
+          services.openssh.enable = true;
+        })
       ] ++ modules;
       specialArgs = { inherit nodeName self; };
     };
@@ -52,6 +64,9 @@ in listToAttrs (forEach clusterFiles (file:
       ([ { networking.hostName = mkForce name; } file ] ++ instance.modules))
       proto.config.cluster.instances;
 
+    ami = mapAttrs (name: instance: mkAMI name ([ file ] ++ instance.modules))
+      proto.config.cluster.autoscalingGroups;
+
     groups =
       mapAttrs (name: instance: mkSystem name ([ file ] ++ instance.modules))
       proto.config.cluster.autoscalingGroups;
@@ -72,5 +87,5 @@ in listToAttrs (forEach clusterFiles (file:
     mkJob = import ./mk-job.nix proto;
 
   in nameValuePair proto.config.cluster.name {
-    inherit proto tf nodes groups topology secrets mkJob;
+    inherit proto tf nodes groups topology secrets mkJob ami;
   }))

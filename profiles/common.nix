@@ -15,6 +15,9 @@
     fail2ban.enable = true;
   };
 
+  fileSystems."/".device = lib.mkDefault "/dev/disk/by-label/nixos";
+  boot.loader.grub.devices = lib.mkForce [ "/dev/xvda" ];
+
   environment.variables = { AWS_DEFAULT_REGION = config.cluster.region; };
 
   # Don't `nixos-rebuild switch` after the initial deploy.
@@ -26,6 +29,11 @@
     "3.nixos.pool.ntp.org"
   ];
   boot.cleanTmpDir = true;
+
+  # remove after upgrading past 21.05
+  users.users.ntp.group = "ntp";
+  users.groups.ntp = {};
+  users.groups.systemd-coredump = {};
 
   networking.firewall = let
     all = {
