@@ -53,9 +53,9 @@
         systemctl try-restart --no-block copy-acme-certs.service
 
         export VAULT_TOKEN="$(< /run/keys/vault-token)"
-        vault kv put kv/bootstrap/letsencrypt/key value=@key.pem
-        vault kv put kv/bootstrap/letsencrypt/fullchain value=@fullchain.pem
-        vault kv put kv/bootstrap/letsencrypt/cert value=@cert.pem
+        ${pkgs.vault}/bin/vault kv put kv/bootstrap/letsencrypt/key value=@key.pem
+        ${pkgs.vault}/bin/vault kv put kv/bootstrap/letsencrypt/fullchain value=@fullchain.pem
+        ${pkgs.vault}/bin/vault kv put kv/bootstrap/letsencrypt/cert value=@cert.pem
       '';
     };
   };
