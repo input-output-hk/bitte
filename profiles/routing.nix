@@ -1,4 +1,4 @@
-{ self, lib, pkgs, config, ... }: {
+{ self, lib, pkgs, config, nodeName, ... }: {
   imports = [
     ./common.nix
     ./consul/client.nix
