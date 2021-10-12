@@ -8,10 +8,7 @@
     utils.url = "github:kreisys/flake-utils";
     naersk.url = "github:nrdxp/naersk/git-deps-fix";
     naersk.inputs.nixpkgs.follows = "nixpkgs";
-    bitte-cli.url = "github:input-output-hk/bitte-cli/v0.3.5";
-    bitte-cli.inputs.nixpkgs.follows = "nixpkgs";
-    bitte-cli.inputs.utils.follows = "utils";
-    bitte-cli.inputs.naersk.follows = "naersk";
+    bitte-cli.url = "github:input-output-hk/bitte-cli";
     hydra.url = "github:kreisys/hydra/hydra-server-includes";
     hydra-provisioner.url = "github:input-output-hk/hydra-provisioner";
     hydra-provisioner.inputs.nixpkgs.follows = "nixpkgs";
