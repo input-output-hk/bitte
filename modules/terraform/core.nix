@@ -299,6 +299,9 @@ in {
 
           user_data = server.userData;
 
+          ebs_optimized =
+            lib.mkIf (server.ebsOptimized != null) server.ebsOptimized;
+
           provisioner = [
             {
               local-exec = {

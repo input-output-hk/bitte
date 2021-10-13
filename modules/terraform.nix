@@ -602,6 +602,11 @@ let
         type = initialVaultSecretsType;
         default = { };
       };
+
+      ebsOptimized = mkOption {
+        type = nullOr bool;
+        default = null;
+      };
     };
   });
 
