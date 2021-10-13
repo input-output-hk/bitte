@@ -51,6 +51,10 @@ in {
     };
 
     provider = {
+      acme = {
+        server_url = "https://acme-v02.api.letsencrypt.org/directory";
+      };
+
       aws = [{ region = config.cluster.region; }] ++ (lib.forEach regions
         (region: {
           inherit region;

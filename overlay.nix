@@ -45,7 +45,7 @@ in final: prev: {
   vault-bin = prev.callPackage ./pkgs/vault-bin.nix { };
 
   terraform-provider-names =
-    [ "aws" "consul" "local" "nomad" "null" "sops" "tls" "vault" ];
+    [ "acme" "aws" "consul" "local" "nomad" "null" "sops" "tls" "vault" ];
 
   terraform-provider-versions = lib.listToAttrs (map (name:
     let
