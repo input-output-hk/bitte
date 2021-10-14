@@ -4,6 +4,7 @@
     ./consul/client.nix
     ./docker.nix
     ./nomad/client.nix
+    ./nomad/bridge-lo-fixup.nix
     ./telegraf.nix
     ./vault/client.nix
     ./secrets.nix
