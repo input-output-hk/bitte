@@ -19,28 +19,26 @@ in {
       zfs.devNodes = "/dev/";
       kernelParams = [ "console=ttyS0" ];
     };
+
     fileSystems = {
       "/" = {
         fsType = "zfs";
-        device = "${poolName}/system/root";
+        device = "${poolName}/root";
       };
       "/home" = {
         fsType = "zfs";
-        device = "${poolName}/user/home";
+        device = "${poolName}/home";
       };
       "/nix" = {
         fsType = "zfs";
-        device = "${poolName}/local/nix";
+        device = "${poolName}/nix";
       };
       "/var" = {
         fsType = "zfs";
-        device = "${poolName}/system/var";
-      };
-      "/boot" = {
-        fsType = "vfat";
-        device = "/dev/disk/by-label/ESP";
+        device = "${poolName}/var";
       };
     };
+
     networking = {
       hostName = lib.mkDefault "";
       # xen host on aws
