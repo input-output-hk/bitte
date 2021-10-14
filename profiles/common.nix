@@ -16,7 +16,7 @@
   };
 
   fileSystems."/".device = lib.mkDefault "/dev/disk/by-label/nixos";
-  boot.loader.grub.devices = lib.mkForce [ "/dev/xvda" ];
+  boot.loader.grub.devices = [ "/dev/nvme0n1" ];
 
   environment.variables = { AWS_DEFAULT_REGION = config.cluster.region; };
 
