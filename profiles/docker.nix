@@ -23,6 +23,16 @@
     prefixLength = 30;
   }];
 
+  # Workaround dhcpcd breaking AWS meta-data, resulting in vault-agent failure.
+  # Ref: https://github.com/NixOS/nixpkgs/issues/109389
+  # Rather than explicitly deny all veth* interfaces access to dhcpcd,
+  # ensure the meta-data route is added upon service restart.
+  networking.dhcpcd.runHook = ''
+    if [ "$reason" = BOUND -o "$reason" = REBOOT ]; then
+      /run/current-system/systemd/bin/systemctl try-reload-or-restart network-addresses-ens5.service || true
+    fi
+  '';
+
   # Allow docker containers to issue DNS queries to the local host, which runs dnsmasq,
   # which allows them to resolve consul service domains as described in https://www.consul.io/docs/discovery/dns
   networking.firewall.extraCommands = ''
