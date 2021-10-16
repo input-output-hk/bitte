@@ -68,11 +68,18 @@ in {
         header_value = domain;
       };
 
-      listener = [{
-        type = "tcp";
-        address = "127.0.0.1:8200";
-        tlsDisable = true;
-      }];
+      listener = [
+        {
+          type = "tcp";
+          address = "127.0.0.1:8200";
+          tlsDisable = true;
+        }
+        {
+          type = "tcp";
+          address = "172.17.0.1:8200";
+          tlsDisable = true;
+        }
+      ];
 
       templates = {
         "/etc/ssl/certs/full.pem" = {
