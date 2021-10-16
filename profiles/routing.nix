@@ -10,6 +10,13 @@
 
   services.amazon-ssm-agent.enable = true;
 
+  services.vault.storage.consul = lib.mkDefault {
+    address = "127.0.0.1:8500";
+    tlsCaFile = "/etc/ssl/certs/full.pem";
+    tlsCertFile = "/etc/ssl/certs/cert.pem";
+    tlsKeyFile = "/var/lib/vault/cert-key.pem";
+  };
+
   services.vault-agent-core = {
     enable = true;
     vaultAddress = "https://${config.cluster.instances.core-1.privateIP}:8200";
