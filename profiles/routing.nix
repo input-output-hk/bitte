@@ -9,11 +9,7 @@
   ];
 
   services.amazon-ssm-agent.enable = true;
-
-  services.vault-agent-core = {
-    enable = true;
-    vaultAddress = "https://${config.cluster.instances.core-1.privateIP}:8200";
-  };
+  services.vault-agent-monitoring.enable = true;
 
   systemd.services.copy-acme-certs = {
     before = [ "traefik.service" ];
