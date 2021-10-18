@@ -15,7 +15,6 @@
     fail2ban.enable = true;
   };
 
-  fileSystems."/".device = lib.mkDefault "/dev/disk/by-label/nixos";
   boot.loader.grub.devices = lib.mkForce [ "/dev/nvme0n1" ];
 
   environment.variables = { AWS_DEFAULT_REGION = config.cluster.region; };
