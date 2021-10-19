@@ -19,12 +19,14 @@ let
       nixosAmis.latest;
   };
 
-  autoscalingAMIs = {
+  autoscalingAMIs = if bitteVersion == 1 then {
     eu-central-1 = "ami-07cf06fc2cf0de485";
     us-east-2 = "ami-08c2048194fde1422";
     eu-west-1 = "ami-0ac83c4afcc9e6ecc";
     us-east-1 = "ami-0baa6fb5107677998";
-  };
+  } else
+  # TODO: 21.11 nixos amis should be compatible
+  lib.throw "Autoscaling ami's must be generated and upload per cluster";
 
   vpcMap = lib.pipe [
     "ap-northeast-1"
