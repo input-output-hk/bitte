@@ -1,7 +1,7 @@
 { config, lib, ... }: {
   options = {
     services.vault-agent-monitoring = {
-      enable = lib.mkEnableOption "Start vault-agent for cores";
+      enable = lib.mkEnableOption "Start vault-agent for monitoring";
     };
   };
 
