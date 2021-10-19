@@ -14,7 +14,7 @@ in {
     # nixos-21.11pre and after behavior
     boot.loader.grub.devices = lib.mkOverride 10 [ "/dev/xvda" ];
 
-    fileSystems = lib.mkForce {
+    fileSystems = lib.mkOverride 10 {
       "/" = {
         fsType = "zfs";
         device = "${poolName}/system/root";
