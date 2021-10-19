@@ -41,6 +41,8 @@
 
     nix.url = "github:NixOS/nix/c6fa7775de413a799b9a137dceced5dcf0f5e6ed";
     nix.inputs.nixpkgs.follows = "nixpkgs";
+
+    nixpkgs-ext4-ami.url = "github:NixOS/nixpkgs/585bc245438331f19d8621646fb8d69a95b42815";
   };
 
   outputs =

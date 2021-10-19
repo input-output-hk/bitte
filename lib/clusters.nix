@@ -1,10 +1,21 @@
-{ self, pkgs, system, lib, root, ... }:
+{ self, pkgs, system, lib, root
+, bitteVersion ? 1
+, ...
+}:
 
 let
   inherit (builtins) attrNames readDir mapAttrs;
   inherit (lib)
     flip pipe mkForce filterAttrs flatten listToAttrs forEach nameValuePair
     mapAttrs';
+
+  amazonImageModule = if bitteVersion == 1
+    then
+      (self.inputs.nixpkgs + "/../maintainers/scripts/ec2/amazon-image-zfs.nix")
+    else
+      (self.inputs.nixpkgs-ext4 + "/nixos/modules/virtualisation/amazon-image.nix");
+
+
 
   readDirRec = path:
     pipe path [
@@ -25,24 +36,9 @@ let
       inherit pkgs system;
       modules = [
         self.inputs.bitte.nixosModule
-        (self.inputs.nixpkgs + "/nixos/modules/virtualisation/amazon-image.nix")
+        amazonImageModule
       ] ++ modules;
-      specialArgs = { inherit nodeName self; };
-    };
-
-  mkAMI = nodeName: modules:
-    self.inputs.nixpkgs.lib.nixosSystem {
-      inherit pkgs system;
-      modules = [
-        self.inputs.bitte.nixosModule
-        ({ modulesPath, ... }: {
-          imports = [
-            "${modulesPath}/../maintainers/scripts/ec2/amazon-image-zfs.nix"
-          ];
-          services.openssh.enable = true;
-        })
-      ] ++ modules;
-      specialArgs = { inherit nodeName self; };
+      specialArgs = { inherit nodeName self bitteVersion; };
     };
 
   clusterFiles = readDirRec root;
@@ -66,9 +62,6 @@ in listToAttrs (forEach clusterFiles (file:
       mkSystem name
       ([ { networking.hostName = mkForce name; } file ] ++ instance.modules))
       proto.config.cluster.instances;
-
-    ami = mapAttrs (name: instance: mkAMI name ([ file ] ++ instance.modules))
-      proto.config.cluster.autoscalingGroups;
 
     groups =
       mapAttrs (name: instance: mkSystem name ([ file ] ++ instance.modules))
