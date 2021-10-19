@@ -20,7 +20,7 @@ in {
       kernelParams = [ "console=ttyS0" ];
     };
 
-    fileSystems = {
+    fileSystems = mkForce {
       "/" = {
         fsType = "zfs";
         device = "${poolName}/root";
