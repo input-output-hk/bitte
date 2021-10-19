@@ -36,6 +36,27 @@ in {
         device = "/dev/disk/by-label/ESP";
       };
     };
+
+    cluster.autoscalingGroups = lib.mapAttrs (region: value:
+      config.cluster.autoscalingGroups."${region}" // {
+        userData = ''
+          #!/usr/bin/env bash
+          export NIX_CONFIG="${nixConf}"
+
+          nix shell nixpkgs#zfs -c zfs set com.sun:auto-snapshot=true tank/system
+          nix shell nixpkgs#zfs -c zfs set atime=off tank/local/nix
+
+          set -exuo pipefail
+          pushd /run/keys
+          nix shell nixpkgs#awscli -c aws s3 cp "s3://${cfg.s3Bucket}/infra/secrets/${cfg.name}/${cfg.kms}/source/source.tar.xz" source.tar.xz
+          mkdir -p source
+          tar xvf source.tar.xz -C source
+
+          nix build ./source#nixosConfigurations.${cfg.name}-${this.config.name}.config.system.build.toplevel
+          /run/current-system/sw/bin/nixos-rebuild --flake ./source#${cfg.name}-${this.config.name} switch &
+          disown -a
+        '';
+      }) config.cluster.autoscalingGroups;
   };
 
 }

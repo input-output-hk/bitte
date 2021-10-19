@@ -684,22 +684,25 @@ let
       in mkOption {
         type = nullOr str;
         default = ''
-          #!/usr/bin/env bash
-          export NIX_CONFIG="${nixConf}"
-
-          nix shell nixpkgs#zfs -c zfs set com.sun:auto-snapshot=true tank/system
-          nix shell nixpkgs#zfs -c zfs set atime=off tank/local/nix
-
+          # amazon-shell-init
           set -exuo pipefail
 
+          /run/current-system/sw/bin/zpool online -e tank nvme0n1p3
+
+          export CACHES="https://hydra.iohk.io https://cache.nixos.org ${cfg.s3Cache}"
+          export CACHE_KEYS="hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= ${cfg.s3CachePubKey}"
           pushd /run/keys
-          nix shell nixpkgs#awscli -c aws s3 cp "s3://${cfg.s3Bucket}/infra/secrets/${cfg.name}/${cfg.kms}/source/source.tar.xz" source.tar.xz
+          aws s3 cp "s3://${cfg.s3Bucket}/infra/secrets/${cfg.name}/${cfg.kms}/source/source.tar.xz" source.tar.xz
           mkdir -p source
           tar xvf source.tar.xz -C source
 
-          nix build ./source#nixosConfigurations.${cfg.name}-${this.config.name}.config.system.build.toplevel
-          /run/current-system/sw/bin/nixos-rebuild --flake ./source#${cfg.name}-${this.config.name} switch &
-          disown -a
+          # TODO: add git to the AMI
+          nix build nixpkgs#git -o git
+          export PATH="$PATH:$PWD/git/bin"
+
+          nix build ./source#nixosConfigurations.${cfg.name}-${this.config.name}.config.system.build.toplevel --option substituters "$CACHES" --option trusted-public-keys "$CACHE_KEYS"
+          /run/current-system/sw/bin/nixos-rebuild --flake ./source#${cfg.name}-${this.config.name} boot --option substituters "$CACHES" --option trusted-public-keys "$CACHE_KEYS"
+          /run/current-system/sw/bin/shutdown -r now
         '';
       };
 
