@@ -16,7 +16,10 @@
     amazon-ssm-agent.enable = true;
     vault-agent-client = {
       enable = true;
-      disableTokenRotation = { consulAgent = true; };
+      disableTokenRotation = {
+        consulAgent = true;
+        consulDefault = true;
+      };
     };
     vault.enable = lib.mkForce false;
     nomad.enable = true;
