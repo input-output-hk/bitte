@@ -53,6 +53,7 @@ in {
   };
 
   config = mkIf config.services.vault-agent-client.enable {
+    environment.variables.VAULT_ADDR = "http://127.0.0.1:8200";
     services.vault-agent = {
       enable = true;
       role = "client";
