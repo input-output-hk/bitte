@@ -273,6 +273,22 @@
         "type": "github"
       }
     },
+    "nixpkgs-ext4-ami": {
+      "locked": {
+        "lastModified": 1629341670,
+        "narHash": "sha256-9TiRGtNfnHIFSvlD2kLvo6D6iY2JF33bbTTEjoq2jBE=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "585bc245438331f19d8621646fb8d69a95b42815",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "585bc245438331f19d8621646fb8d69a95b42815",
+        "type": "github"
+      }
+    },
     "nixpkgs-terraform": {
       "locked": {
         "lastModified": 1623440955,
@@ -331,6 +347,7 @@
         "naersk": "naersk",
         "nix": "nix",
         "nixpkgs": "nixpkgs",
+        "nixpkgs-ext4-ami": "nixpkgs-ext4-ami",
         "nixpkgs-terraform": "nixpkgs-terraform",
         "nomad-source": "nomad-source",
         "ops-lib": "ops-lib",

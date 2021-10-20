@@ -2,8 +2,6 @@
 let
   modules = [
     ({ pkgs, modulesPath, ... }: {
-      imports =
-        [ "${modulesPath}/../maintainers/scripts/ec2/amazon-image-zfs.nix" ];
       nix.package = pkgs.nixUnstable;
       nix.binaryCaches = [ "https://hydra.iohk.io" ];
       nix.binaryCachePublicKeys =

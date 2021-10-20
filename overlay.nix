@@ -309,7 +309,17 @@ in final: prev: {
     inherit (keys) allKeysFrom devOps;
   in { devOps = allKeysFrom devOps; };
 
-  mkAsgAMI = import ./pkgs/ami.nix;
+  mkAsgAMI = { nixpkgs, system, extraModules ? [ ] }@args:
+  (import ./pkgs/ami.nix) (args // {
+    extraModules = [ (inputs.nixpkgs-ext4-ami + "/nixos/maintainers/scripts/ec2/amazon-image.nix") ]
+      ++ args.extraModules;
+  });
+
+  mkZfsAsgAMI = { nixpkgs, system, extraModules ? [ ] }@args:
+  (import ./pkgs/ami.nix) (args // {
+    extraModules = [ (inputs.nixpkgs + "/nixos/maintainers/scripts/ec2/amazon-image-zfs.nix") ]
+      ++ args.extraModules;
+  });
 
   asgAMI = (final.mkAsgAMI {
     inherit nixpkgs;
@@ -317,4 +327,9 @@ in final: prev: {
     extraModules = [ ];
   }).config.system.build.amazonImage;
 
+  zfsAsgAMI = (final.mkZfsAsgAMI {
+    inherit nixpkgs;
+    inherit (prev) system;
+    extraModules = [ ];
+  }).config.system.build.amazonImage;
 }

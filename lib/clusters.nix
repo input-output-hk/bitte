@@ -11,9 +11,9 @@ let
 
   amazonImageModule = if bitteVersion == 1
     then
-      (self.inputs.nixpkgs + "/../maintainers/scripts/ec2/amazon-image-zfs.nix")
+      (self.inputs.nixpkgs-ext4 + "/nixos/maintainers/scripts/ec2/amazon-image.nix");
     else
-      (self.inputs.nixpkgs-ext4 + "/nixos/modules/virtualisation/amazon-image.nix");
+      (self.inputs.nixpkgs + "/nixos/maintainers/scripts/ec2/amazon-image-zfs.nix")
 
 
 

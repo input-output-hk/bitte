@@ -112,6 +112,7 @@
         , ci-env
         , mkRequired
         , asgAMI
+        , zfsAsgAMI
         }@pkgs:
         let constituents = builtins.removeAttrs pkgs [ "mkRequired" ];
         in constituents // { required = mkRequired constituents; };
