@@ -46,7 +46,7 @@
       postRun = ''
         cp fullchain.pem /etc/ssl/certs/${config.cluster.domain}-full.pem
         cp key.pem /etc/ssl/certs/${config.cluster.domain}-key.pem
-        systemctl try-restart --no-block copy-acme-certs.service
+        systemctl try-restart --no-block traefik.service
 
         export VAULT_TOKEN="$(< /run/keys/vault-token)"
         export VAULT_ADDR="http://127.0.0.1:8200"
