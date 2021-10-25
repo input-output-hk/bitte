@@ -23,8 +23,8 @@ let
           The number of snapshots to keep.  A sensible value matched to the onCalendar
           interval parameter should be used.  Examples of sensible suggestions may be:
 
-            168 backupCount for "hourly" interval (1 week of backups)
-            30  backupCount for "daily" interval (1 month of backups)
+            48 backupCount for "hourly" interval (2 days of backups)
+            30 backupCount for "daily" interval (1 month of backups)
         '';
       };
 
@@ -93,7 +93,7 @@ let
           defaults for backupCount and randomizedDelaySec should match this parameter.
           Examples of sensible suggestions may be:
 
-            hourly: 3600 randomizedDelaySec, 168 backupCount (1 week)
+            hourly: 3600 randomizedDelaySec, 48 backupCount (2 days)
             daily:  86400 randomizedDelaySec, 30 backupCount (1 month)
         '';
       };
@@ -204,7 +204,7 @@ in {
       enable = mkEnableOption ''
         Enable Consul snapshots.
 
-        By default hourly snapshots will be taken and stored for 1 week on each consul server.
+        By default hourly snapshots will be taken and stored for 2 days on each consul server.
         Modify services.consul-snapshots.hourly options to customize or disable.
 
         By default daily snapshots will be taken and stored for 1 month on each consul server.
@@ -218,7 +218,7 @@ in {
         type = snapshotJobConfig;
         default = {
           enable = true;
-          backupCount = 168;
+          backupCount = 48;
           backupSuffix = "hourly";
           interval = "hourly";
           randomizedDelaySec = 3600;
