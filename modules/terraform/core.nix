@@ -45,8 +45,6 @@ in {
             tags = server.tags;
             uid = server.uid;
           });
-
-        asgs = { };
       };
     };
 
