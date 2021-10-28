@@ -6,7 +6,6 @@ let
     listToAttrs flip forEach;
   inherit (lib.types) listOf enum attrsOf str submodule nullOr;
   inherit (pkgs) ensureDependencies;
-  inherit (config.cluster) adminNames;
 
   rmModules = arg:
     let
