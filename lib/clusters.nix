@@ -74,15 +74,6 @@ in listToAttrs (forEach clusterFiles (file:
       mapAttrs (name: instance: mkSystem name ([ file ] ++ instance.modules))
       proto.config.cluster.autoscalingGroups;
 
-    # All data used by the CLI should be exported here.
-    topology = {
-      nodes = flip mapAttrs proto.config.cluster.instances (name: node: {
-        inherit (proto.config.cluster) kms region;
-        inherit (node) name privateIP instanceType;
-      });
-      groups = attrNames groups;
-    };
-
     secrets = pkgs.callPackages ../pkgs/bitte-secrets.nix {
       inherit (proto.config) cluster;
     };
