@@ -11,7 +11,7 @@
 
   options.services.traefik.prometheusPort = lib.mkOption {
     type = lib.types.int;
-    default = 8082;
+    default = 9090;
     description =
       "The default port for traefik prometheus to publish metrics on.";
   };
