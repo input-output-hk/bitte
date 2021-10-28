@@ -76,10 +76,14 @@ in {
               toString
               config.services.loki.configuration.server.http_listen_port
             }/metrics";
+          traefik = "http://127.0.0.1:${
+              toString config.services.traefik.prometheusPort
+            }/metrics";
         in {
           urls = optional config.services.promtail.enable promtail
             ++ optional config.services.loki.enable loki
-            ++ optional config.services.nomad-autoscaler.enable autoscaling;
+            ++ optional config.services.nomad-autoscaler.enable autoscaling
+            ++ optional config.services.traefik.enable traefik;
           metric_version = 2;
         };
 
