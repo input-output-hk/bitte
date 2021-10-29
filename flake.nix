@@ -31,7 +31,7 @@
       flake = false;
     };
     nomad-source = {
-      url = "github:input-output-hk/nomad/release-1.1.4";
+      url = "github:input-output-hk/nomad/release-1.1.6";
       flake = false;
     };
     vulnix = {
@@ -46,15 +46,13 @@
   outputs =
     { self, hydra, hydra-provisioner, nixpkgs, utils, bitte-cli, ... }@inputs:
     let
-      lib = import ./lib
-        {
-          inherit (nixpkgs) lib;
-          inherit inputs;
-        } // {
+      lib = import ./lib {
+        inherit (nixpkgs) lib;
+        inherit inputs;
+      } // {
         inherit (utils.lib) simpleFlake;
       };
-    in
-    lib.simpleFlake rec {
+    in lib.simpleFlake rec {
       inherit lib nixpkgs;
 
       systems = [ "x86_64-linux" ];
@@ -65,52 +63,16 @@
 
       shell = { devShell }: devShell;
 
-      packages =
-        { bitte
-        , cfssl
-        , consul
-        , cue
-        , glusterfs
-        , grafana-loki
-        , haproxy
-        , haproxy-auth-request
-        , haproxy-cors
-        , nixFlakes
-        , nomad
-        , nomad-autoscaler
-        , oauth2-proxy
-        , sops
-        , ssm-agent
-        , terraform-with-plugins
-        , vault-backend
-        , vault-bin
-        , ci-env
-        }@pkgs:
+      packages = { bitte, cfssl, consul, cue, glusterfs, grafana-loki, haproxy
+        , haproxy-auth-request, haproxy-cors, nixFlakes, nomad, nomad-autoscaler
+        , oauth2-proxy, sops, ssm-agent, terraform-with-plugins, vault-backend
+        , vault-bin, ci-env }@pkgs:
         pkgs;
 
-      hydraJobs =
-        { bitte
-        , cfssl
-        , consul
-        , cue
-        , glusterfs
-        , grafana-loki
-        , haproxy
-        , haproxy-auth-request
-        , haproxy-cors
-        , nixFlakes
-        , nomad
-        , nomad-autoscaler
-        , oauth2-proxy
-        , sops
-        , ssm-agent
-        , terraform-with-plugins
-        , vault-backend
-        , vault-bin
-        , ci-env
-        , mkRequired
-        , asgAMI
-        }@pkgs:
+      hydraJobs = { bitte, cfssl, consul, cue, glusterfs, grafana-loki, haproxy
+        , haproxy-auth-request, haproxy-cors, nixFlakes, nomad, nomad-autoscaler
+        , oauth2-proxy, sops, ssm-agent, terraform-with-plugins, vault-backend
+        , vault-bin, ci-env, mkRequired, asgAMI }@pkgs:
         let constituents = builtins.removeAttrs pkgs [ "mkRequired" ];
         in constituents // { required = mkRequired constituents; };
 

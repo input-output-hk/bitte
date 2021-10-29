@@ -2,13 +2,13 @@
 
 buildGoModule rec {
   pname = "nomad";
-  version = "1.1.4";
+  version = "1.1.6";
 
   subPackages = [ "." ];
 
   src = nomad-source;
 
-  vendorSha256 = "sha256-OH7Hx+CfLtypqgg5RF7bK1YnNhOFBbmu0gWsra2drdk=";
+  vendorSha256 = "sha256-IKOWvvJ2tVRfN2PUrZr5ELbxCFRcw58Qkbya47IQzWU=";
 
   # ui:
   #  Nomad release commits include the compiled version of the UI, but the file
