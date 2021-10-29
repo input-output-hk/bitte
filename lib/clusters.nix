@@ -81,5 +81,5 @@ in listToAttrs (forEach clusterFiles (file:
     mkJob = import ./mk-job.nix proto;
 
   in nameValuePair proto.config.cluster.name {
-    inherit proto tf nodes groups topology secrets mkJob ami;
+    inherit proto tf nodes groups secrets mkJob ami;
   }))
