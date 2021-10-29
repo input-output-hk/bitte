@@ -37,7 +37,13 @@ let
         type = listOf str;
         default = [ ];
         description = ''
-          Specifies a list of server addresses to join. This is similar to start_join, but will continue to be attempted even if the initial join attempt fails, up to retry_max. Further, retry_join is available to both Nomad servers and clients, while start_join is only defined for Nomad servers. This is useful for cases where we know the address will become available eventually. Use retry_join with an array as a replacement for start_join, do not use both options.
+          Specifies a list of server addresses to join. This is similar to
+          start_join, but will continue to be attempted even if the initial
+          join attempt fails, up to retry_max. Further, retry_join is available
+          to both Nomad servers and clients, while start_join is only defined
+          for Nomad servers. This is useful for cases where we know the address
+          will become available eventually. Use retry_join with an array as a
+          replacement for start_join, do not use both options.
         '';
       };
 
@@ -53,7 +59,9 @@ let
         type = ints.unsigned;
         default = 0;
         description = ''
-          Specifies the maximum number of join attempts to be made before exiting with a return code of 1. By default, this is set to 0 which is interpreted as infinite retries.
+          Specifies the maximum number of join attempts to be made before
+          exiting with a return code of 1. By default, this is set to 0 which
+          is interpreted as infinite retries.
         '';
       };
 
@@ -61,7 +69,12 @@ let
         type = listOf str;
         default = [ ];
         description = ''
-          Specifies a list of server addresses to join on startup. If Nomad is unable to join with any of the specified addresses, agent startup will fail. See the server address format section for more information on the format of the string. This field is defined only for Nomad servers and will result in a configuration parse error if included in a client configuration.
+          Specifies a list of server addresses to join on startup. If Nomad is
+          unable to join with any of the specified addresses, agent startup
+          will fail. See the server address format section for more information
+          on the format of the string. This field is defined only for Nomad
+          servers and will result in a configuration parse error if included in
+          a client configuration.
         '';
       };
     };
@@ -191,7 +204,9 @@ in {
             type = path;
             default = cfg.data_dir + "/alloc";
             description = ''
-              The directory to use for allocation data. By default, this is the top-level data_dir suffixed with "alloc", like "/var/lib/nomad/alloc". This must be an absolute path.
+              The directory to use for allocation data. By default, this is the
+              top-level data_dir suffixed with "alloc", like
+              "/var/lib/nomad/alloc". This must be an absolute path.
             '';
           };
 
@@ -200,7 +215,8 @@ in {
             default = null;
             example = { "/usr/bin/env" = "/usr/bin/env"; };
             description = ''
-              Specifies a key-value mapping that defines the chroot environment for jobs using the Exec and Java drivers.
+              Specifies a key-value mapping that defines the chroot environment
+              for jobs using the Exec and Java drivers.
             '';
           };
 
@@ -208,7 +224,8 @@ in {
             type = bool;
             default = false;
             description = ''
-              Specifies if client mode is enabled. All other client configuration options depend on this value.
+              Specifies if client mode is enabled. All other client
+              configuration options depend on this value.
             '';
           };
 
@@ -216,7 +233,9 @@ in {
             type = str;
             default = "30s";
             description = ''
-              Specifies the maximum amount of time a job is allowed to wait to exit. Individual jobs may customize their own kill timeout, but it may not exceed this value.
+              Specifies the maximum amount of time a job is allowed to wait to
+              exit. Individual jobs may customize their own kill timeout, but
+              it may not exceed this value.
             '';
           };
 
@@ -224,7 +243,8 @@ in {
             type = bool;
             default = false;
             description = ''
-              Specifies if the client should disable remote task execution to tasks running on this client.
+              Specifies if the client should disable remote task execution to
+              tasks running on this client.
             '';
           };
 
@@ -923,7 +943,10 @@ in {
             type = bool;
             default = true;
             description = ''
-              Specifies if the Nomad servers should automatically discover and join other Nomad servers by searching for the Consul service name defined in the server_service_name option. This search only happens if the server does not have a leader.
+              Specifies if the Nomad servers should automatically discover and
+              join other Nomad servers by searching for the Consul service name
+              defined in the server_service_name option. This search only
+              happens if the server does not have a leader.
             '';
           };
 
@@ -939,7 +962,9 @@ in {
             type = bool;
             default = false;
             description = ''
-              Specifies if the transport scheme should use HTTPS to communicate with the Consul agent. Will default to the CONSUL_HTTP_SSL environment variable if set.
+              Specifies if the transport scheme should use HTTPS to communicate
+              with the Consul agent. Will default to the CONSUL_HTTP_SSL
+              environment variable if set.
             '';
           };
 
@@ -947,7 +972,8 @@ in {
             type = listOf str;
             default = [ ];
             description = ''
-              Specifies optional Consul tags to be registered with the Nomad server and agent services.
+              Specifies optional Consul tags to be registered with the Nomad
+              server and agent services.
             '';
           };
 
