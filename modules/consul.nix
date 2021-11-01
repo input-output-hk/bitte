@@ -1,6 +1,7 @@
 { config, lib, pkgs, ... }:
 let
   cfg = config.services.consul;
+  inherit (builtins) elem;
   inherit (lib)
     mkIf pipe filterAttrs mapAttrs' nameValuePair flip concatMapStrings isList
     toLower mapAttrsToList hasPrefix mkEnableOption mkOption makeBinPath;
@@ -30,10 +31,11 @@ let
     };
 
   # Some config cannot be snakeCase sanitized without breaking the functionality.
-  # Example: consul service resolver subsets
-  sanitizeName = name: if name == "subsets" then name else snakeCase name;
+  # Example: consul service router, resolver and splitter configuration.
+  excluded = [ "failover" "splits" "subsets" ];
+  sanitizeName = name: if elem name excluded then name else snakeCase name;
   sanitizeValue = name: value:
-    if name == "subsets" then value else sanitize value;
+    if elem name excluded then value else sanitize value;
 
 in {
   options = {
