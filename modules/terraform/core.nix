@@ -21,33 +21,6 @@ in {
 
     terraform.required_providers = pkgs.terraform-provider-versions;
 
-    output.cluster = {
-      value = {
-        flake = toString config.cluster.flakePath;
-        kms = config.cluster.kms;
-        name = config.cluster.name;
-        nix = pkgs.nixFlakes;
-        region = config.cluster.region;
-        s3-bucket = config.cluster.s3Bucket;
-        s3-cache = config.cluster.s3Cache;
-
-        roles = lib.flip lib.mapAttrs config.cluster.iam.roles
-          (name: role: { arn = var "aws_iam_role.${role.uid}.arn"; });
-
-        instances = lib.flip lib.mapAttrs config.cluster.instances
-          (name: server: {
-            flake-attr =
-              "nixosConfigurations.${server.uid}.config.system.build.toplevel";
-            instance-type = var "aws_instance.${server.name}.instance_type";
-            name = server.name;
-            private-ip = var "aws_instance.${server.name}.private_ip";
-            public-ip = var "aws_instance.${server.name}.public_ip";
-            tags = server.tags;
-            uid = server.uid;
-          });
-      };
-    };
-
     provider = {
       acme = {
         server_url = "https://acme-v02.api.letsencrypt.org/directory";
