@@ -191,16 +191,5 @@ in {
 
       asgs = lib.mapAttrsToList mapASG config.cluster.autoscalingGroups;
     in merge asgs;
-
-    data.aws_availability_zones = lib.listToAttrs (lib.flatten
-      (lib.flip lib.mapAttrsToList config.cluster.autoscalingGroups (_: group:
-        lib.nameValuePair "available_in_${group.region}" {
-          provider = awsProviderFor group.region;
-          state = "available";
-        })));
-
-    data.aws_caller_identity.core = {
-      provider = awsProviderFor config.cluster.region;
-    };
   };
 }
