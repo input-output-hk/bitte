@@ -6,6 +6,7 @@
     utils.url = "github:numtide/flake-utils";
     cli.url = "github:input-output-hk/bitte-cli";
     cli.inputs.utils.follows = "utils";
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
     hydra.url = "github:kreisys/hydra/hydra-server-includes";
     hydra.inputs.nix.follows = "nix";
     hydra.inputs.nixpkgs.follows = "nixpkgs";
@@ -34,81 +35,57 @@
   };
 
   outputs =
-    { self
-    , hydra
-    , nixpkgs
-    , utils
-    , cli
-    , deploy
-    , ...
-    }@inputs:
+    { self, hydra, nixpkgs, nixpkgs-unstable, utils, cli, deploy, ... }@inputs:
     let
 
       overlays = [
         cli.overlay
         # `bitte` build depend on nixpkgs-unstable rust version
         # TODO: remove when bitte itself is bumped
-        (final: prev: { inherit (cli.legacyPackages.${final.system}) bitte; })
+        (final: prev: { inherit (cli.legacyPackages."${final.system}") bitte; })
         hydra.overlay
         deploy.overlay
         localPkgsOverlay
         terraformProvidersOverlay
       ];
-      terraformProvidersOverlay = import ./terraform-providers-overlay.nix inputs;
+      terraformProvidersOverlay =
+        import ./terraform-providers-overlay.nix inputs;
       localPkgsOverlay = import ./overlay.nix inputs;
 
-      pkgsForSystem = system: import nixpkgs {
-        inherit overlays system;
-        config.allowUnfree = true; # for ssm-session-manager-plugin
+      pkgsForSystem = system:
+        import nixpkgs {
+          inherit overlays system;
+          config.allowUnfree = true; # for ssm-session-manager-plugin
+        };
+
+      lib = import ./lib {
+        inherit (nixpkgs) lib;
+        inherit inputs;
       };
 
-      lib = import ./lib { inherit (nixpkgs) lib; inherit inputs; };
+    in utils.lib.eachSystem [ "x86_64-linux" ] (system: rec {
 
-    in
-    utils.lib.eachSystem [ "x86_64-linux" ]
-      (system: rec {
+      legacyPackages = pkgsForSystem system;
 
-        legacyPackages = pkgsForSystem system;
+      inherit (legacyPackages) devShell;
 
-        devShell = legacyPackages.devShell;
+      hydraJobs = let
+        constituents = {
+          inherit (legacyPackages)
+            asgAMIClients asgAMICores bitte cfssl ci-env consul cue glusterfs
+            grafana-loki haproxy haproxy-auth-request haproxy-cors nixFlakes
+            nomad nomad-autoscaler oauth2-proxy sops ssm-agent
+            terraform-with-plugins vault-backend vault-bin;
+        };
+      in {
+        inherit constituents;
+        required = legacyPackages.mkRequired constituents;
+      };
 
-        hydraJobs =
-          let
-            constituents = {
-              inherit (legacyPackages)
-                asgAMIClients
-                asgAMICores
-                bitte
-                cfssl
-                ci-env
-                consul
-                cue
-                glusterfs
-                grafana-loki
-                haproxy
-                haproxy-auth-request
-                haproxy-cors
-                nixFlakes
-                nomad
-                nomad-autoscaler
-                oauth2-proxy
-                sops
-                ssm-agent
-                terraform-with-plugins
-                vault-backend
-                vault-bin
-                ;
-            };
-          in
-          {
-            inherit constituents;
-            required = legacyPackages.mkRequired constituents;
-          };
-
-      }) // {
+    }) // {
       inherit lib;
       # eta reduce not possibe since flake check validates for "final" / "prev"
-      overlay = final: prev: nixpkgs.lib.composeManyExtensions overlays final prev;
+      overlay = nixpkgs.lib.composeManyExtensions overlays;
       profiles = lib.mkModules ./profiles;
       nixosModules = lib.mkModules ./modules;
       nixosModule.imports = builtins.attrValues self.nixosModules;

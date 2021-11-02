@@ -1,6 +1,6 @@
 inputs:
 let
-  inherit (inputs) nixpkgs ops-lib self;
+  inherit (inputs) nixpkgs nixpkgs-unstable ops-lib self;
   inherit (nixpkgs) lib;
   deprecated = k: v:
     lib.warn ''${k} is deprecated from the bitte overlay.
@@ -35,6 +35,15 @@ final: prev:
   boundary = prev.callPackage ./pkgs/boundary.nix { };
   grpcdump = prev.callPackage ./pkgs/grpcdump.nix { };
   glusterfs = final.callPackage ./pkgs/glusterfs.nix { };
+
+  # Go build binaries don't include versioning with 21.05 nixpkgs input.
+  # Lack of versioning causes grafana UI to incorrectly report versioning.
+  # Likely related to:
+  #   https://github.com/NixOS/nixpkgs/pull/125520
+  #   https://github.com/NixOS/nixpkgs/issues/112054
+  grafana = nixpkgs-unstable.legacyPackages.${final.system}.callPackage ./pkgs/grafana.nix { };
+  grafana-loki = nixpkgs-unstable.legacyPackages.${final.system}.callPackage ./pkgs/grafana-loki.nix { };
+
   victoriametrics = prev.callPackage ./pkgs/victoriametrics.nix { };
   nomad-autoscaler = prev.callPackage ./pkgs/nomad-autoscaler.nix { };
   vault-backend = final.callPackage ./pkgs/vault-backend.nix { };
