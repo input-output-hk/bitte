@@ -69,6 +69,7 @@
 
       inherit (legacyPackages) devShell;
 
+<<<<<<< HEAD
       hydraJobs = let
         constituents = {
           inherit (legacyPackages)
@@ -80,6 +81,25 @@
       in {
         inherit constituents;
         required = legacyPackages.mkRequired constituents;
+=======
+      packages = { bitte, cfssl, consul, cue, glusterfs, grafana, grafana-loki
+        , haproxy, haproxy-auth-request, haproxy-cors, nixFlakes, nomad
+        , nomad-autoscaler, oauth2-proxy, sops, ssm-agent
+        , terraform-with-plugins, vault-backend, vault-bin, ci-env }@pkgs:
+        pkgs;
+
+      hydraJobs = { bitte, cfssl, consul, cue, glusterfs, grafana, grafana-loki
+        , haproxy, haproxy-auth-request, haproxy-cors, nixFlakes, nomad
+        , nomad-autoscaler, oauth2-proxy, sops, ssm-agent
+        , terraform-with-plugins, vault-backend, vault-bin, ci-env, mkRequired
+        , asgAMI }@pkgs:
+        let constituents = builtins.removeAttrs pkgs [ "mkRequired" ];
+        in constituents // { required = mkRequired constituents; };
+
+      apps = { bitte }: {
+        bitte = utils.lib.mkApp { drv = bitte; };
+        defaultApp = utils.lib.mkApp { drv = bitte; };
+>>>>>>> 687d81a (Adds unified alerting; grafana to hydra)
       };
 
     }) // {

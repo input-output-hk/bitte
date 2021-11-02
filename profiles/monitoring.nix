@@ -48,6 +48,11 @@ in
         AUTH_PROXY_HEADER_NAME = "X-Authenticated-User";
         AUTH_SIGNOUT_REDIRECT_URL = "/oauth2/sign_out";
         USERS_AUTO_ASSIGN_ORG_ROLE = "Editor";
+
+        # Enable next generation alerting for >= 8.2.x
+        UNIFIED_ALERTING_ENABLED = "true";
+        # Enable next generation alerting for >= 8.0.x && < 8.2.x
+        FEATURE_TOGGLES_ENABLE = "ngalert";
       };
       rootUrl = "https://monitoring.${domain}/";
       provision = {
