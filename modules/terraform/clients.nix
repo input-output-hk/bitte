@@ -19,17 +19,11 @@ in {
 
     output.cluster = {
       value = {
-        flake = toString config.cluster.flakePath;
-        kms = config.cluster.kms;
-        name = config.cluster.name;
-        nix = pkgs.nixFlakes;
-        region = config.cluster.region;
-        s3-bucket = config.cluster.s3Bucket;
+        # Consumed by bitte cli
+        # TODO: this is declarative & static and could be consumed directly
+        # from the nix evaluation. For historic reasons & practicality, this
+        # was consumed out of the tf state.
         s3-cache = config.cluster.s3Cache;
-
-        roles = lib.flip lib.mapAttrs config.cluster.iam.roles
-          (name: role: { arn = var "data.aws_iam_role.${role.uid}.arn"; });
-
         asgs = lib.flip lib.mapAttrs config.cluster.autoscalingGroups
           (name: group: {
             flake-attr =
