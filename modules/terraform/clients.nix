@@ -17,27 +17,6 @@ in {
 
     terraform.required_providers = pkgs.terraform-provider-versions;
 
-    output.cluster = {
-      value = {
-        # Consumed by bitte cli
-        # TODO: this is declarative & static and could be consumed directly
-        # from the nix evaluation. For historic reasons & practicality, this
-        # was consumed out of the tf state.
-        s3-cache = config.cluster.s3Cache;
-        asgs = lib.flip lib.mapAttrs config.cluster.autoscalingGroups
-          (name: group: {
-            flake-attr =
-              "nixosConfigurations.${group.uid}.config.system.build.toplevel";
-            instance-type =
-              var "aws_launch_configuration.${group.uid}.instance_type";
-            uid = group.uid;
-            arn = var "aws_autoscaling_group.${group.uid}.arn";
-            region = group.region;
-            count = group.desiredCapacity;
-          });
-      };
-    };
-
     provider.aws = [{ region = config.cluster.region; }] ++ (lib.forEach regions
       (region: {
         inherit region;
