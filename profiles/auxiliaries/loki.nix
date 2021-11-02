@@ -1,7 +1,11 @@
-_: {
+{ pkgs, ... }: {
   networking.firewall.allowedTCPPorts = [
     3100  # loki
   ];
+
+  # Required for Loki >= 2.3.0 ruler
+  systemd.services.loki.serviceConfig.ExecStartPre =
+    "+${pkgs.coreutils}/bin/mkdir -p /etc/loki/rules/fake";
 
   services.loki = {
     configuration = {
@@ -46,6 +50,17 @@ _: {
       storage_config = {
         boltdb = { directory = "/var/lib/loki/index"; };
         filesystem = { directory = "/var/lib/loki/chunks"; };
+      };
+
+      ruler = {
+        enable_api = true;
+        enable_alertmanager_v2 = true;
+        ring.kvstore.store = "inmemory";
+        rule_path = "/tmp/loki/rules-temp";
+        storage = {
+          type = "local";
+          local.directory = "/etc/loki/rules";
+        };
       };
     };
   };
