@@ -1,8 +1,9 @@
 { config, pkgs, lib, ... }:
-let cfg = config.services.victoriametrics;
-in
-{
-  options.services.victoriametrics = with lib; {
+let
+  cfg = config.services.victoriametrics;
+  cfgVmalert = config.services.vmalert;
+in with lib; {
+  options.services.victoriametrics = {
     enable = mkEnableOption "victoriametrics";
     package = mkOption {
       type = types.package;
@@ -45,8 +46,56 @@ in
       '';
     };
   };
-  config = lib.mkIf cfg.enable {
-    systemd.services.victoriametrics = {
+
+  options.services.vmalert = {
+    enable = mkEnableOption "vmalert";
+    package = mkOption {
+      type = types.package;
+      default = pkgs.victoriametrics;
+      defaultText = "pkgs.victoriametrics";
+      description = ''
+        The VictoriaMetrics distribution to use for vmalert.
+      '';
+    };
+    datasourceUrl = mkOption {
+      default = "http://localhost:8428";
+      type = types.str;
+      description = ''
+        The URL for the metrics datasource utilized by vmalert.
+      '';
+    };
+    notifierUrl = mkOption {
+      default = "http://localhost:9093/alertmanager";
+      type = types.str;
+      description = ''
+        The URL for notifying prometheus alertmanager.
+        Note that if the prometheus.alertmanager.webExternalUrl
+        parameter contains a path, it will need to also be
+        included here.
+      '';
+    };
+    rules = mkOption {
+      default = "[]";
+      type = types.listOf types.attrs;
+      description = ''
+        A list of attrs comprising vmalert rules.
+        Each attr comprises a <rule_group>.
+        Vmalert supports Prometheus alerting rules definition format.
+
+        Detailed syntax for rule groups can be found at:
+          https://docs.victoriametrics.com/vmalert.html#groups
+          https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/#defining-alerting-rules
+
+        While the document references above provide rule group examples in yaml,
+        this nix option expects a list of rule group attrs to be convertable to JSON by:
+
+          builtins.toJSON { groups = config.services.vmalert.rules; }
+      '';
+    };
+  };
+
+  config = {
+    systemd.services.victoriametrics = mkIf cfg.enable {
       description = "VictoriaMetrics time series database";
       after = [ "network.target" ];
       serviceConfig = {
@@ -61,46 +110,25 @@ in
             -httpListenAddr ${cfg.listenAddress} \
             -retentionPeriod ${toString cfg.retentionPeriod} \
             -selfScrapeInterval=${cfg.selfScrapeInterval} \
-            ${lib.escapeShellArgs cfg.extraOptions}
+            ${escapeShellArgs cfg.extraOptions}
         '';
       };
       wantedBy = [ "multi-user.target" ];
 
-      postStart =
-        let
-          bindAddr =
-            (lib.optionalString (lib.hasPrefix ":" cfg.listenAddress) "127.0.0.1")
-            + cfg.listenAddress;
-        in
-        lib.mkBefore ''
-          until ${
-            lib.getBin pkgs.curl
-          }/bin/curl -s -o /dev/null http://${bindAddr}/ping; do
-            sleep 1;
-          done
-        '';
+      postStart = let
+        bindAddr =
+          (lib.optionalString (lib.hasPrefix ":" cfg.listenAddress) "127.0.0.1")
+          + cfg.listenAddress;
+      in lib.mkBefore ''
+        until ${
+          lib.getBin pkgs.curl
+        }/bin/curl -s -o /dev/null http://${bindAddr}/ping; do
+          sleep 1;
+        done
+      '';
     };
 
-    systemd.services.vmalert = let
-    rules = pkgs.writeText "vmalert-rules.json" ([
-    (builtins.toJSON {
-      groups = [
-        {
-          name = "alerting-pipeline";
-          rules = [{
-            alert = "DeadMansSnitch";
-            expr = "vector(1)";
-            labels = { severity = "critical"; };
-            annotations = {
-              summary = "Alerting DeadMansSnitch.";
-              description =
-                "This is a DeadMansSnitch meant to ensure that the entire Alerting pipeline is functional.";
-            };
-          }];
-        }
-      ];
-    })]);
-    in {
+    systemd.services.vmalert = mkIf cfgVmalert.enable {
       description = "VictoriaMetrics vmalert";
       after = [ "network.target" ];
       serviceConfig = {
@@ -110,10 +138,13 @@ in
         StateDirectory = "vmalert";
         DynamicUser = true;
         ExecStart = ''
-          ${cfg.package}/bin/vmalert \
-            -rule=${rules} \
-            -datasource.url=http://localhost:8428 \
-            -notifier.url=http://localhost:9093/alertmanager
+          ${cfgVmalert.package}/bin/vmalert \
+            -rule=${
+              pkgs.writeText "vmalert-rules.json"
+              (builtins.toJSON { groups = cfgVmalert.rules; })
+            } \
+            -datasource.url=${cfgVmalert.datasourceUrl} \
+            -notifier.url=${cfgVmalert.notifierUrl}
         '';
       };
       wantedBy = [ "multi-user.target" ];
