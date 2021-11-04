@@ -2,8 +2,10 @@
 let
   inherit (config.cluster) domain region instances kms;
   acme-full = "/etc/ssl/certs/${config.cluster.domain}-full.pem";
-in
-{
+  alertmanagerYml = if config.services.prometheus.alertmanager.configText != null then
+    pkgs.writeText "alertmanager.yml" config.services.prometheus.alertmanager.configText
+    else pkgs.writeText "alertmanager.yml" (builtins.toJSON config.services.prometheus.alertmanager.configuration);
+in {
   imports = [
     ./builder.nix
     ./common.nix
@@ -15,6 +17,12 @@ in
     ./telegraf.nix
     ./vault/client.nix
   ];
+
+  systemd.services.alertmanager.preStart = lib.mkForce ''
+    ${pkgs.gnused}/bin/sed 's|https://deadmanssnitch.com|$DEADMANSSNITCH|g' "${alertmanagerYml}" > "/tmp/alert-manager-sed.yaml"
+    ${lib.getBin pkgs.envsubst}/bin/envsubst -o "/tmp/alert-manager-substituted.yaml" \
+                                             -i "/tmp/alert-manager-sed.yaml"
+  '';
 
   services = {
     consul.ui = true;
@@ -82,6 +90,57 @@ in
     };
 
     prometheus = {
+      alertmanagers = [{
+        scheme = "http";
+        path_prefix = "/";
+        static_configs = [{ targets = [ "localhost:9093" ]; }];
+      }];
+
+      alertmanager = {
+        enable = true;
+        environmentFile = "/run/keys/alertmanager";
+        listenAddress = "localhost";
+        webExternalUrl = "https://monitoring.${domain}/alertmanager";
+        configuration = {
+          route = {
+            group_by = [ "alertname" "alias" ];
+            group_wait = "30s";
+            group_interval = "2m";
+            receiver = "team-pager";
+            routes = [
+              {
+                match = { severity = "page"; };
+                receiver = "team-pager";
+              }
+              {
+                match = { alertname = "DeadMansSnitch"; };
+                repeat_interval = "5m";
+                receiver = "deadmanssnitch";
+              }
+            ];
+          };
+          receivers = [
+            {
+              name = "team-pager";
+              pagerduty_configs = [
+                {
+                  service_key = "$PAGERDUTY";
+                }
+              ];
+            }
+            {
+              name = "deadmanssnitch";
+              webhook_configs = [
+                {
+                  send_resolved = false;
+                  url = "https://deadmanssnitch.com";
+                }
+              ];
+            }
+          ];
+        };
+      };
+
       exporters = {
         blackbox = {
           enable = true;

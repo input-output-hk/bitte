@@ -57,11 +57,11 @@ in
         DynamicUser = true;
         ExecStart = ''
           ${cfg.package}/bin/victoria-metrics \
-              -storageDataPath=/var/lib/victoriametrics \
-              -httpListenAddr ${cfg.listenAddress} \
-              -retentionPeriod ${toString cfg.retentionPeriod} \
-              -selfScrapeInterval=${cfg.selfScrapeInterval} \
-              ${lib.escapeShellArgs cfg.extraOptions}
+            -storageDataPath=/var/lib/victoriametrics \
+            -httpListenAddr ${cfg.listenAddress} \
+            -retentionPeriod ${toString cfg.retentionPeriod} \
+            -selfScrapeInterval=${cfg.selfScrapeInterval} \
+            ${lib.escapeShellArgs cfg.extraOptions}
         '';
       };
       wantedBy = [ "multi-user.target" ];
@@ -79,6 +79,44 @@ in
             sleep 1;
           done
         '';
+    };
+
+    systemd.services.vmalert = let
+    rules = pkgs.writeText "vmalert-rules.json" ([
+    (builtins.toJSON {
+      groups = [
+        {
+          name = "alerting-pipeline";
+          rules = [{
+            alert = "DeadMansSnitch";
+            expr = "vector(1)";
+            labels = { severity = "critical"; };
+            annotations = {
+              summary = "Alerting DeadMansSnitch.";
+              description =
+                "This is a DeadMansSnitch meant to ensure that the entire Alerting pipeline is functional.";
+            };
+          }];
+        }
+      ];
+    })]);
+    in {
+      description = "VictoriaMetrics vmalert";
+      after = [ "network.target" ];
+      serviceConfig = {
+        Restart = "on-failure";
+        RestartSec = 1;
+        StartLimitBurst = 5;
+        StateDirectory = "vmalert";
+        DynamicUser = true;
+        ExecStart = ''
+          ${cfg.package}/bin/vmalert \
+            -rule=${rules} \
+            -datasource.url=http://localhost:8428 \
+            -notifier.url=http://localhost:9093/alertmanager
+        '';
+      };
+      wantedBy = [ "multi-user.target" ];
     };
   };
 }

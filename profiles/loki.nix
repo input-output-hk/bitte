@@ -1,4 +1,4 @@
-{ pkgs, lib, ... }: {
+{ pkgs, lib, config, ... }: {
 
   # Required for Loki >= 2.3.0 ruler
   systemd.services.loki.serviceConfig.ExecStartPre =
