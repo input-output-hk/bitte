@@ -49,6 +49,31 @@ in {
       retentionPeriod = 12; # months
     };
 
+    vmagent = {
+      enable = true;
+      httpPathPrefix = "/vmagent";
+      promscrapeConfig = [
+        (lib.mkIf config.services.vmagent.enable {
+          job_name = "vmagent";
+          scrape_interval = "60s";
+          metrics_path = "${config.services.vmagent.httpPathPrefix}/metrics";
+          static_configs = [{
+            targets = [ "${config.services.vmagent.httpListenAddr}" ];
+            labels = { alias = "vmagent"; };
+          }];
+        })
+        (lib.mkIf config.services.vmalert.enable {
+          job_name = "vmalert";
+          scrape_interval = "60s";
+          metrics_path = "${config.services.vmalert.httpPathPrefix}/metrics";
+          static_configs = [{
+            targets = [ "${config.services.vmalert.httpListenAddr}" ];
+            labels = { alias = "vmalert"; };
+          }];
+        })
+      ];
+    };
+
     vmalert = {
       enable = true;
       externalUrl = "https://monitoring.${domain}/vmalert";
