@@ -2,9 +2,6 @@
 let
   inherit (config.cluster) domain region instances kms;
   acme-full = "/etc/ssl/certs/${config.cluster.domain}-full.pem";
-  alertmanagerYml = if config.services.prometheus.alertmanager.configText != null then
-    pkgs.writeText "alertmanager.yml" config.services.prometheus.alertmanager.configText
-    else pkgs.writeText "alertmanager.yml" (builtins.toJSON config.services.prometheus.alertmanager.configuration);
 in {
   imports = [
     ./builder.nix
@@ -18,7 +15,16 @@ in {
     ./vault/client.nix
   ];
 
-  systemd.services.alertmanager.preStart = lib.mkForce ''
+  # Nix alertmanager module requires group rule syntax checking,
+  # but env substitution through services.prometheus.alertmanager.environmentFile
+  # requires bash variables in the group rules which will not pass syntax validation
+  # in some fields, such as a url field.  This works around the problem.
+  systemd.services.alertmanager.preStart = let
+    cfg = config.services.prometheus.alertmanager;
+    alertmanagerYml = if cfg.configText != null then
+    pkgs.writeText "alertmanager.yml" cfg.configText
+    else pkgs.writeText "alertmanager.yml" (builtins.toJSON cfg.configuration);
+  in lib.mkForce ''
     ${pkgs.gnused}/bin/sed 's|https://deadmanssnitch.com|$DEADMANSSNITCH|g' "${alertmanagerYml}" > "/tmp/alert-manager-sed.yaml"
     ${lib.getBin pkgs.envsubst}/bin/envsubst -o "/tmp/alert-manager-substituted.yaml" \
                                              -i "/tmp/alert-manager-sed.yaml"
@@ -45,6 +51,8 @@ in {
 
     vmalert = {
       enable = true;
+      externalUrl = "https://monitoring.${domain}/vmalert";
+      httpPathPrefix = "/vmalert";
       rules = [
         {
           name = "alerting-pipeline";

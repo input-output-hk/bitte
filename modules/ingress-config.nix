@@ -103,6 +103,9 @@ in {
       backend alertmanager
         server alertmanager 127.0.0.1:9093 check
 
+      backend vmalert
+        server vmalert 127.0.0.1:8880 check
+
       backend oauth_proxy
         server auth_request 127.0.0.1:4180 check
 
@@ -146,6 +149,7 @@ in {
         acl oauth_proxy     path_beg /oauth2/
         acl authenticated   var(txn.auth_response_successful) -m bool
         acl is_alertmanager path_beg /alertmanager
+        acl is_vmalert      path_beg /vmalert
         acl is_monitoring   hdr(host) -i monitoring.${domain}
         acl is_vault        hdr(host) -i vault.${domain}
         acl is_nomad        hdr(host) -i nomad.${domain}
@@ -168,6 +172,7 @@ in {
 
         use_backend oauth_proxy  if is_ui ! authenticated OR is_monitoring ! authenticated
         use_backend alertmanager if is_monitoring is_alertmanager
+        use_backend vmalert      if is_monitoring is_vmalert
         use_backend grafana      if is_monitoring
 
       ${config.services.ingress-config.extraConfig}

@@ -61,7 +61,48 @@ in with lib; {
       default = "http://localhost:8428";
       type = types.str;
       description = ''
-        The URL for the metrics datasource utilized by vmalert.
+        VictoriaMetrics or vmselect url.
+        Required parameter.
+      '';
+    };
+    externalAlertSource = mkOption {
+      default = "";
+      type = types.str;
+      description = ''
+        External Alert Source allows to override the Source link for alerts sent
+        to AlertManager for cases where you want to build a custom link to Grafana,
+        Prometheus or any other service.
+        eg. 'explore?orgId=1&left=[\"now-1h\",\"now\",\"VictoriaMetrics\",{\"expr\": \"\"},{\"mode\":\"Metrics\"},{\"ui\":[true,true,true,\"none\"]}]'.
+        If empty string, '/api/v1/:groupID/alertID/status' is used
+      '';
+    };
+    externalUrl = mkOption {
+      default = "http://localhost:8428";
+      type = types.str;
+      description = ''
+        External URL is used as alert's source for sent alerts to the notifier.
+      '';
+    };
+    httpPathPrefix = mkOption {
+      default = "";
+      type = types.str;
+      description = ''
+        An optional prefix to add to all the paths handled by http server.
+        For example, if '-http.pathPrefix=/foo/bar' is set,
+        then all the http requests will be handled on '/foo/bar/*' paths.
+        This may be useful for proxied requests.
+
+        The httpPathPrefix should match the externalUrl path, if any.
+
+        See:
+          https://www.robustperception.io/using-external-urls-and-proxies-with-prometheus
+      '';
+    };
+    listenAddress = mkOption {
+      default = "127.0.0.1:8880";
+      type = types.str;
+      description = ''
+        Address to listen for http connections.
       '';
     };
     notifierUrl = mkOption {
@@ -139,12 +180,16 @@ in with lib; {
         DynamicUser = true;
         ExecStart = ''
           ${cfgVmalert.package}/bin/vmalert \
+            -datasource.url=${cfgVmalert.datasourceUrl} \
+            -httpListenAddr=${cfgVmalert.listenAddress} \
+            -notifier.url=${cfgVmalert.notifierUrl} \
+            -external.alert.source=${cfgVmalert.externalAlertSource} \
+            -external.url=${cfgVmalert.externalUrl} \
+            -http.pathPrefix=${cfgVmalert.httpPathPrefix} \
             -rule=${
               pkgs.writeText "vmalert-rules.json"
               (builtins.toJSON { groups = cfgVmalert.rules; })
-            } \
-            -datasource.url=${cfgVmalert.datasourceUrl} \
-            -notifier.url=${cfgVmalert.notifierUrl}
+            }
         '';
       };
       wantedBy = [ "multi-user.target" ];
