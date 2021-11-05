@@ -55,8 +55,6 @@ let
 
       secrets = mkOption { type = path; };
 
-      terraformOrganization = mkOption { type = str; };
-
       instances = mkOption {
         type = attrsOf serverType;
         default = { };
@@ -146,11 +144,6 @@ let
             core-3.cidr = "172.16.2.0/24";
           };
         };
-      };
-
-      certificate = mkOption {
-        type = certificateType;
-        default = { };
       };
 
       flakePath = mkOption {
@@ -266,38 +259,6 @@ let
 
   iamRolePrincipalsType =
     submodule { options = { service = mkOption { type = str; }; }; };
-
-  initialVaultSecretsType = submodule ({ ... }@this: {
-    options = {
-      consul = mkOption {
-        type = str;
-        default = builtins.trace "initialVaultSecrets is not used anymore!" "";
-      };
-      nomad = mkOption {
-        type = str;
-        default = builtins.trace "initialVaultSecrets is not used anymore!" "";
-      };
-    };
-  });
-
-  certificateType = submodule ({ ... }@this: {
-    options = {
-      organization = mkOption {
-        type = str;
-        default = "IOHK";
-      };
-
-      commonName = mkOption {
-        type = str;
-        default = this.config.organization;
-      };
-
-      validityPeriodHours = mkOption {
-        type = ints.positive;
-        default = 8760;
-      };
-    };
-  });
 
   securityGroupRuleType = { defaultSecurityGroupId }:
     submodule ({ name, ... }@this: {
@@ -530,29 +491,6 @@ let
         in { inherit command interpreter; };
       };
 
-      postDeploy = mkOption {
-        type = localExecType;
-        default = {
-          # command = name;
-          # interpreter = let
-          #   ip = var "aws_eip.${this.config.uid}.public_ip";
-          # in [
-          #   "${pkgs.bitte}/bin/bitte"
-          #   "deploy"
-          #   "--cluster"
-          #   "${cfg.name}"
-          #   "--ip"
-          #   "${ip}"
-          #   "--flake"
-          #   "${this.config.flake}"
-          #   "--flake-host"
-          #   "${name}"
-          #   "--name"
-          #   "${this.config.uid}"
-          # ];
-        };
-      };
-
       instanceType = mkOption { type = str; };
 
       tags = mkOption {
@@ -595,11 +533,6 @@ let
         type = attrsOf (securityGroupRuleType {
           defaultSecurityGroupId = this.config.securityGroupId;
         });
-        default = { };
-      };
-
-      initialVaultSecrets = mkOption {
-        type = initialVaultSecretsType;
         default = { };
       };
 
