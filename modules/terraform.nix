@@ -801,7 +801,6 @@ in {
           prepare = ''
             ${copy}
 
-            terraform workspace select "${name}" 1>&2
             terraform init 1>&2
           '';
         in {
