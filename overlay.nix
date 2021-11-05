@@ -8,6 +8,9 @@ in final: prev: {
   nixFlakes = final.nix;
   nixUnstable = final.nix;
 
+  inherit (inputs.bitte-cli.legacyPackages.${final.system})
+    damon bitte;
+
   hydra-unstable = prev.hydra-unstable.overrideAttrs (oldAttrs: {
     patches = (oldAttrs.patches or [ ]) ++ [
       # allow evaluator_restrict_eval to be configured
@@ -87,8 +90,11 @@ in final: prev: {
   haproxy-cors = prev.callPackage ./pkgs/haproxy-cors.nix { };
 
   devShell = final.callPackage ./pkgs/dev-shell.nix { };
-  bitteShell = final.callPackage ./pkgs/bitte-shell.nix { };
-  bitteSchoell = final.bitteShell;
+
+  bitteShellCompat = lib.warn ''
+    'bitteShellCompat' is deprecated.
+    Use the unified 'bitteShell' instead.
+  '' final.bitteShell;
 
   ci-env = prev.symlinkJoin {
     name = "ci-env";
