@@ -13,10 +13,10 @@
     hydra-provisioner.url = "github:input-output-hk/hydra-provisioner";
     hydra-provisioner.inputs.nixpkgs.follows = "nixpkgs";
     hydra-provisioner.inputs.utils.follows = "utils";
-    deploy.url = "github:serokell/deploy-rs";
-    deploy.inputs.nixpkgs.follows = "nixpkgs";
-    deploy.inputs.naersk.follows = "naersk";
-    deploy.inputs.utils.follows = "utils";
+    deploy.url = "github:input-output-hk/deploy-rs";
+    deploy.inputs.nixpkgs.follows = "bitte-cli/nixpkgs";
+    deploy.inputs.naersk.follows = "bitte-cli/naersk";
+    deploy.inputs.utils.follows = "bitte-cli/utils";
     ops-lib = {
       url = "github:input-output-hk/ops-lib";
       flake = false;
