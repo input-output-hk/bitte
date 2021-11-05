@@ -14,8 +14,10 @@ let
     sshOpts = [ "-i" "\${FLAKE_ROOT}/${ssh-key}" ];
     nodes = builtins.mapAttrs (k: _: {
       profiles.system.user = "root";
-      profiles.system.path =
-        deploy.lib.activate.nixos
+      profiles.system.path = let
+        system = self.nixosConfigurations.${k}.pkgs.system;
+      in
+        deploy.lib.${system}.activate.nixos
         self.nixosConfigurations.${k};
     }) self.nixosConfigurations;
   };
