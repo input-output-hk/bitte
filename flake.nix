@@ -14,9 +14,6 @@
     hydra-provisioner.inputs.nixpkgs.follows = "nixpkgs";
     hydra-provisioner.inputs.utils.follows = "utils";
     deploy.url = "github:input-output-hk/deploy-rs";
-    deploy.inputs.nixpkgs.follows = "bitte-cli/nixpkgs";
-    deploy.inputs.naersk.follows = "bitte-cli/naersk";
-    deploy.inputs.utils.follows = "bitte-cli/utils";
     ops-lib = {
       url = "github:input-output-hk/ops-lib";
       flake = false;
@@ -39,7 +36,7 @@
   };
 
   outputs =
-    { self, hydra, hydra-provisioner, nixpkgs, utils, bitte-cli, ... }@inputs:
+    { self, hydra, hydra-provisioner, nixpkgs, utils, bitte-cli, deploy, ... }@inputs:
     let
       lib = import ./lib {
         inherit (nixpkgs) lib;
@@ -52,7 +49,7 @@
 
       systems = [ "x86_64-linux" ];
 
-      preOverlays = [ bitte-cli hydra-provisioner hydra ];
+      preOverlays = [ bitte-cli hydra-provisioner hydra deploy ];
       overlay = import ./overlay.nix inputs;
       config.allowUnfree = true; # for ssm-session-manager-plugin
 
