@@ -78,21 +78,7 @@ in {
       enable = true;
       externalUrl = "https://monitoring.${domain}/vmalert";
       httpPathPrefix = "/vmalert";
-      rules = [
-        {
-          name = "alerting-pipeline";
-          rules = [{
-            alert = "DeadMansSnitch";
-            expr = "vector(1)";
-            labels = { severity = "critical"; };
-            annotations = {
-              summary = "Alerting DeadMansSnitch.";
-              description =
-                "This is a DeadMansSnitch meant to ensure that the entire Alerting pipeline is functional.";
-            };
-          }];
-        }
-      ];
+      rules = (import ./monitoring/alerts/alerts.nix "https://monitoring.${domain}").groups;
     };
 
     loki = { enable = true; };
@@ -134,7 +120,7 @@ in {
 
         dashboards = [{
           name = "provisioned";
-          options.path = ./monitoring;
+          options.path = ./monitoring/dashboards;
         }];
       };
 
