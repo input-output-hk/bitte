@@ -11,9 +11,8 @@ let
 
   deploy' = {
     sshUser = "root";
-    sshOpts = [ "-i" "${ssh-key}" ];
+    sshOpts = [ "-C" "-i" "${ssh-key}" ];
     nodes = builtins.mapAttrs (k: _: {
-      hostname = "spass";
       profiles.system.user = "root";
       profiles.system.path = let
         system = self.nixosConfigurations.${k}.pkgs.system;
