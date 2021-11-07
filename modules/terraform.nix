@@ -512,44 +512,66 @@ let
       # Gotta do it this way since TF outputs aren't generated at this point and we need the IP.
       localProvisioner = mkOption {
         type = localExecType;
-        default = let
-          ip = var "aws_eip.${this.config.uid}.public_ip";
-          args = [
-            "${pkgs.bitte}/bin/bitte"
-            "provision"
-            ip
-            this.config.name # name
-            cfg.name # cluster name
-            "." # flake path
-            "${cfg.name}-${this.config.name}" # flake attr
-            cfg.s3Cache
-          ];
-          rev = reverseList args;
-          command = builtins.head rev;
-          interpreter = reverseList (builtins.tail rev);
-        in { inherit command interpreter; };
-      };
-
-      postDeploy = mkOption {
-        type = localExecType;
         default = {
-          # command = name;
-          # interpreter = let
-          #   ip = var "aws_eip.${this.config.uid}.public_ip";
-          # in [
-          #   "${pkgs.bitte}/bin/bitte"
-          #   "deploy"
-          #   "--cluster"
-          #   "${cfg.name}"
-          #   "--ip"
-          #   "${ip}"
-          #   "--flake"
-          #   "${this.config.flake}"
-          #   "--flake-host"
-          #   "${name}"
-          #   "--name"
-          #   "${this.config.uid}"
-          # ];
+          command = let
+            ip = var "aws_eip.${this.config.uid}.public_ip";
+            nixConf = ''
+              experimental-features = nix-command flakes ca-references
+            '';
+          in ''
+            echo
+            echo Waiting for ssh to come up on port 22 ...
+            while [ -z "$(
+              ${pkgs.socat}/bin/socat \
+                -T2 stdout \
+                tcp:${ip}:22,connect-timeout=2,readbytes=1 \
+                2>/dev/null
+            )" ]
+            do
+                printf " ."
+                sleep 5
+            done
+
+            sleep 1
+
+            echo
+            echo Waiting for host to become ready ...
+            ${pkgs.openssh}/bin/ssh -C \
+              -oUserKnownHostsFile=/dev/null \
+              -oNumberOfPasswordPrompts=0 \
+              -oServerAliveInterval=60 \
+              -oControlPersist=600 \
+              -oStrictHostKeyChecking=accept-new \
+              -i ./secrets/ssh-${cfg.name} \
+              root@${ip} \
+              "until grep true /etc/ready &>/dev/null; do sleep 1; done 2>/dev/null"
+
+            sleep 1
+
+            export NIX_CONFIG="${nixConf}"
+            export PATH="${
+              lib.makeBinPath [
+                pkgs.openssh
+                pkgs.nixUnstable
+                pkgs.git
+                pkgs.mercurial
+                pkgs.lsof
+              ]
+            }:$PATH"
+
+            echo
+            echo Invoking deploy-rs on that host ...
+            ${pkgs.bitte}/bin/bitte deploy \
+              --ssh-opts="-oUserKnownHostsFile=/dev/null" \
+              --ssh-opts="-oNumberOfPasswordPrompts=0" \
+              --ssh-opts="-oServerAliveInterval=60" \
+              --ssh-opts="-oControlPersist=600" \
+              --ssh-opts="-oStrictHostKeyChecking=no" \
+              --skip-checks \
+              --no-magic-rollback \
+              --no-auto-rollback \
+              ${this.config.name}
+          '';
         };
       };
 
