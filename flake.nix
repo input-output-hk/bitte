@@ -6,7 +6,8 @@
     nixpkgs-terraform.url =
       "github:input-output-hk/nixpkgs/iohk-terraform-2021-06";
     utils.url = "github:kreisys/flake-utils";
-    bitte-cli.url = "github:input-output-hk/bitte-cli";
+    bitte-cli.url = "github:input-output-hk/bitte-cli/v0.4.0";
+    bitte-cli.inputs.utils.follows = "utils";
     hydra.url = "github:kreisys/hydra/hydra-server-includes";
     hydra.inputs.nix.follows = "nix";
     hydra.inputs.nixpkgs.follows = "nixpkgs";
@@ -14,6 +15,9 @@
     hydra-provisioner.inputs.nixpkgs.follows = "nixpkgs";
     hydra-provisioner.inputs.utils.follows = "utils";
     deploy.url = "github:input-output-hk/deploy-rs";
+    deploy.inputs.fenix.follows = "bitte-cli/fenix";
+    deploy.inputs.nixpkgs.follows = "bitte-cli/nixpkgs";
+    deploy.inputs.utils.follows = "utils";
     ops-lib = {
       url = "github:input-output-hk/ops-lib";
       flake = false;
@@ -35,8 +39,8 @@
     nix.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs =
-    { self, hydra, hydra-provisioner, nixpkgs, utils, bitte-cli, deploy, ... }@inputs:
+  outputs = { self, hydra, hydra-provisioner, nixpkgs, utils, bitte-cli, deploy
+    , ... }@inputs:
     let
       lib = import ./lib {
         inherit (nixpkgs) lib;
