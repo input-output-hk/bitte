@@ -4,20 +4,20 @@
       "inputs": {
         "fenix": "fenix",
         "iogo": "iogo",
+        "naersk": "naersk",
         "nixpkgs": "nixpkgs",
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1636255393,
-        "narHash": "sha256-WEHifVi+2EuuyCe/UMyRikYHu/dtNI9KfsOyP9xWsPM=",
+        "lastModified": 1634066990,
+        "narHash": "sha256-MLi3tTbuI9fAL8mP8pAb2+B1/C3F4uQ/qkRWlb8Lnrs=",
         "owner": "input-output-hk",
         "repo": "bitte-cli",
-        "rev": "87c267cde7ae22e724f6ec8e36a59b558b41ab94",
+        "rev": "824c4d37d7dafce01b68183c6deecb2d638ecf24",
         "type": "github"
       },
       "original": {
         "owner": "input-output-hk",
-        "ref": "code-reduction",
         "repo": "bitte-cli",
         "type": "github"
       }
@@ -224,6 +224,28 @@
         "owner": "kristapsdz",
         "ref": "VERSION_0_8_4",
         "repo": "lowdown",
+        "type": "github"
+      }
+    },
+    "naersk": {
+      "inputs": {
+        "nixpkgs": [
+          "bitte-cli",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1632182181,
+        "narHash": "sha256-aAdV+B6iNVlMAJ7tdSOIGOD3cHIiJJxRSApKoJ2J0VQ=",
+        "owner": "nrdxp",
+        "repo": "naersk",
+        "rev": "785ecd4231936535bfcbde2fbba2e7dbbeec0564",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nrdxp",
+        "ref": "git-deps-fix",
+        "repo": "naersk",
         "type": "github"
       }
     },

@@ -327,7 +327,7 @@ in {
 
     systemd.services.vault = {
       wantedBy = [ "multi-user.target" ];
-      after = [ "network.target" "consul.service" ];
+      after = [ "network.target" ];
 
       restartTriggers = mapAttrsToList (_: d: d.source)
         (filterAttrs (n: _: hasPrefix "${cfg.configDir}" n)
@@ -440,7 +440,6 @@ in {
         RemainAfterExit = true;
         Restart = "on-failure";
         RestartSec = "20s";
-        ExecStartPre = ensureDependencies [ "consul" ];
       };
 
       path = with pkgs; [ curl jq ];
