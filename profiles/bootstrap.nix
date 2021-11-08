@@ -344,11 +344,8 @@ in {
         RemainAfterExit = true;
         Restart = "on-failure";
         RestartSec = "20s";
-        ExecStartPre = ensureDependencies [
-          "consul-initial-tokens"
-          "vault"
-          "vault-consul-token"
-        ];
+        ExecStartPre =
+          ensureDependencies [ "consul-initial-tokens" "vault-consul-token" ];
       };
 
       environment = {
@@ -357,7 +354,16 @@ in {
         VAULT_ADDR = "https://127.0.0.1:8200/";
       };
 
-      path = with pkgs; [ consul vault-bin sops coreutils jq gnused curl ];
+      path = with pkgs; [
+        consul
+        vault-bin
+        sops
+        coreutils
+        jq
+        gnused
+        curl
+        netcat
+      ];
 
       script = ''
         set -exuo pipefail
