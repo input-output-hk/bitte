@@ -6,7 +6,7 @@
     nixpkgs-terraform.url =
       "github:input-output-hk/nixpkgs/iohk-terraform-2021-06";
     utils.url = "github:kreisys/flake-utils";
-    bitte-cli.url = "github:input-output-hk/bitte-cli/v0.4.0";
+    bitte-cli.url = "github:input-output-hk/bitte-cli/v21.11.08";
     bitte-cli.inputs.utils.follows = "utils";
     hydra.url = "github:kreisys/hydra/hydra-server-includes";
     hydra.inputs.nix.follows = "nix";
