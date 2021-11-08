@@ -809,6 +809,7 @@ in {
       default = { };
       type = attrsOf (submodule ({ name, ... }@this: {
         options = let
+          backend = "https://vault.infra.aws.iohkdev.io/v1";
           copy = ''
             export PATH="${
               lib.makeBinPath [ pkgs.coreutils pkgs.terraform-with-plugins ]
@@ -822,6 +823,39 @@ in {
 
           prepare = ''
             ${copy}
+            if [ -z "''${GITHUB_TOKEN:-}" ]; then
+              echo
+              echo -----------------------------------------------------
+              echo ERROR: env variable GITHUB_TOKEN is not set or empty.
+              echo Yet, it is required to authenticate before the
+              echo infra cluster vault terraform backend.
+              echo -----------------------------------------------------
+              echo "Please 'export GITHUB_TOKEN=ghp_hhhhhhhh...' using"
+              echo your appropriate personal github access token.
+              echo -----------------------------------------------------
+              exit 1
+            fi
+
+            user="''${TF_HTTP_USERNAME:-TOKEN}"
+            pass="''${TF_HTTP_PASSWORD:-$( \
+              ${pkgs.curl}/bin/curl -s -d "{\"token\": \"$GITHUB_TOKEN\"}" \
+              ${backend}/auth/github-terraform/login \
+              | ${pkgs.jq}/bin/jq -r '.auth.client_token' \
+            )}"
+
+            if [ -z "''${TF_HTTP_PASSWORD:-}" ]; then
+              echo
+              echo -----------------------------------------------------
+              echo TIP: you can avoid repetitive calls to the infra auth
+              echo api by exporting the following env variables as is:
+              echo -----------------------------------------------------
+              echo "export TF_HTTP_USERNAME=\"$user\""
+              echo "export TF_HTTP_PASSWORD=\"$pass\""
+              echo -----------------------------------------------------
+            fi
+
+            export TF_HTTP_USERNAME="$user"
+            export TF_HTTP_PASSWORD="$pass"
 
             terraform init 1>&2
           '';
