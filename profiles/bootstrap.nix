@@ -418,7 +418,6 @@ in {
         echo "$secrets" | jq -e '."aws/"'         || vault secrets enable aws
         echo "$secrets" | jq -e '."consul/"'      || vault secrets enable consul
         echo "$secrets" | jq -e '."kv/"'          || vault secrets enable -version=2 kv
-        echo "$secrets" | jq -e '."kv/"'          || vault secrets enable -version=2 kv
         echo "$secrets" | jq -e '."nomad/"'       || vault secrets enable nomad
         echo "$secrets" | jq -e '."pki/"'         || vault secrets enable pki
         echo "$secrets" | jq -e '."pki-consul/"'  || vault secrets enable -path pki-consul pki
