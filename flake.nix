@@ -48,13 +48,16 @@
       } // {
         inherit (utils.lib) simpleFlake;
       };
+      localOverlay = import ./overlay.nix inputs;
+      overlays = [ bitte-cli.overlay localOverlay ];
     in lib.simpleFlake rec {
       inherit lib nixpkgs;
 
       systems = [ "x86_64-linux" ];
 
-      preOverlays = [ bitte-cli hydra-provisioner hydra deploy ];
-      overlay = import ./overlay.nix inputs;
+      preOverlays = [ hydra-provisioner hydra deploy ];
+      overlay = nixpkgs.lib.composeManyExtensions overlays;
+
       config.allowUnfree = true; # for ssm-session-manager-plugin
 
       shell = { devShell }: devShell;
