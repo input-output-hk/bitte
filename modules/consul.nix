@@ -437,8 +437,15 @@ in {
             set -exuo pipefail
             PATH="${makeBinPath [ pkgs.jq cfg.package pkgs.coreutils ]}"
             set +x
-            CONSUL_HTTP_TOKEN="$(< /run/keys/consul-default-token)"
-            export CONSUL_HTTP_TOKEN
+            # During bootstrap, consul is not yet in ACL mode,
+            # hence a token is neither available, nor necessary
+            # vault-agent.service procures this token and also
+            # enables consul ACL mode. Hence after vault-agent
+            # has run, this token is mandatory.
+            if [ -s /run/keys/consul-default-token ]; then
+              CONSUL_HTTP_TOKEN="$(< /run/keys/consul-default-token)"
+              export CONSUL_HTTP_TOKEN
+            fi
             set -x
             while ! consul info &>/dev/null; do sleep 3; done
           '';
@@ -449,8 +456,15 @@ in {
             set -exuo pipefail
             PATH="${makeBinPath [ pkgs.jq cfg.package pkgs.coreutils ]}"
             set +x
-            CONSUL_HTTP_TOKEN="$(< /run/keys/consul-default-token)"
-            export CONSUL_HTTP_TOKEN
+            # During bootstrap, consul is not yet in ACL mode,
+            # hence a token is neither available, nor necessary
+            # vault-agent.service procures this token and also
+            # enables consul ACL mode. Hence after vault-agent
+            # has run, this token is mandatory.
+            if [ -s /run/keys/consul-default-token ]; then
+              CONSUL_HTTP_TOKEN="$(< /run/keys/consul-default-token)"
+              export CONSUL_HTTP_TOKEN
+            fi
             set -x
             cd /var/lib/consul/
             cp /etc/ssl/certs/cert-key.pem .
