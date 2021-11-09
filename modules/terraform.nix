@@ -11,19 +11,20 @@ let
 
   merge = lib.foldl' lib.recursiveUpdate { };
 
-  amis = let
-    nixosAmis = import
-      (self.inputs.nixpkgs + "/nixos/modules/virtualisation/ec2-amis.nix");
-  in {
-    nixos = lib.mapAttrs' (name: value: lib.nameValuePair name value.hvm-ebs)
-      nixosAmis.latest;
+  # with zfs
+  clientAMIs = {
+    eu-central-1 = "ami-03c1851df1f601be0";
+    eu-west-1 = "ami-0a858d71b366d7512";
+    us-east-1 = "ami-0516decf87cb6a5ba";
+    us-east-2 = "ami-0a6bb3086c085e3b5";
   };
 
-  autoscalingAMIs = {
-    eu-central-1 = "ami-07cf06fc2cf0de485";
-    us-east-2 = "ami-08c2048194fde1422";
-    eu-west-1 = "ami-0ac83c4afcc9e6ecc";
+  # without zfs
+  coreAMIs = {
+    eu-central-1 = "ami-01a6e1e2761762fe1";
+    eu-west-1 = "ami-0101e046ec1d828b4";
     us-east-1 = "ami-0baa6fb5107677998";
+    us-east-2 = "ami-0f82f2419cc0f5964";
   };
 
   vpcMap = lib.pipe [
@@ -75,7 +76,8 @@ let
 
       ami = mkOption {
         type = str;
-        default = amis.nixos.${cfg.region};
+        default = coreAMIs.${cfg.region} or (throw
+          "Please make sure the NixOS core AMI is copied to ${cfg.region}");
       };
 
       iam = mkOption {
@@ -687,8 +689,8 @@ let
 
       ami = mkOption {
         type = str;
-        default = autoscalingAMIs.${this.config.region} or (throw
-          "Please make sure the NixOS ZFS AMI is copied to ${this.config.region}");
+        default = clientAMIs.${this.config.region} or (throw
+          "Please make sure the NixOS ZFS Client AMI is copied to ${this.config.region}");
       };
 
       region = mkOption { type = str; };

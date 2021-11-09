@@ -17,6 +17,7 @@ nixpkgs:
 
       # systemctl kexec can only be used on efi images
       ec2.efi = true;
+      amazonImage.sizeMB = 8192;
 
       environment.systemPackages = [ pkgs.git ];
 }

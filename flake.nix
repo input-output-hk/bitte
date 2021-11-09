@@ -2,7 +2,7 @@
   description = "Flake containing Bitte clusters";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-21.05";
+    nixpkgs.url = "github:nixos/nixpkgs/release-21.05";
     nixpkgs-terraform.url =
       "github:input-output-hk/nixpkgs/iohk-terraform-2021-06";
     utils.url = "github:kreisys/flake-utils";
@@ -65,7 +65,7 @@
       packages = { bitte, cfssl, consul, cue, glusterfs, grafana-loki, haproxy
         , haproxy-auth-request, haproxy-cors, nixFlakes, nomad, nomad-autoscaler
         , oauth2-proxy, sops, ssm-agent, terraform-with-plugins, vault-backend
-        , vault-bin, ci-env }@pkgs:
+        , vault-bin, ci-env, uploadAMIs }@pkgs:
         pkgs;
 
       hydraJobs = { bitte, cfssl, consul, cue, glusterfs, grafana-loki, haproxy

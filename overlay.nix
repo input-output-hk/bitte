@@ -299,4 +299,20 @@ in final: prev: {
     extraModules = [ ];
   }).config.system.build.amazonImage;
 
+  uploadAMIs = final.writeBashBinChecked "upload-amis-to-development-profile-iohk-amis-bucket" ''
+
+    export AWS_PROFILE="development"
+
+    export home_region=eu-central-1
+    export bucket=bitte-amis
+    export regions="eu-west-1 eu-central-1 us-east-1 us-east-2"
+
+    echo Clients ...
+    ${nixpkgs + /nixos/maintainers/scripts/ec2/create-amis.sh} ${final.asgAMIClients}
+
+    echo Cores ...
+    ${nixpkgs + /nixos/maintainers/scripts/ec2/create-amis.sh} ${final.asgAMICores}
+
+  '';
+
 }
