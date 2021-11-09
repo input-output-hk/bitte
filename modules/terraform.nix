@@ -518,6 +518,7 @@ let
             nixConf = ''
               experimental-features = nix-command flakes ca-references
             '';
+            newKernelVersion = config.boot.kernelPackages.kernel.version;
           in ''
             echo
             echo Waiting for ssh to come up on port 22 ...
@@ -571,6 +572,20 @@ let
               --no-magic-rollback \
               --no-auto-rollback \
               ${this.config.name}
+
+            sleep 1
+
+            echo
+            echo Rebooting the host to load eventually newer kernels ...
+            timeout 5 ${pkgs.openssh}/bin/ssh -C \
+              -oUserKnownHostsFile=/dev/null \
+              -oNumberOfPasswordPrompts=0 \
+              -oServerAliveInterval=60 \
+              -oControlPersist=600 \
+              -oStrictHostKeyChecking=accept-new \
+              -i ./secrets/ssh-${cfg.name} \
+              root@${ip} \
+              "if [ \"$(cat /proc/sys/kernel/osrelease)\" != \"${newKernelVersion}\" ]; then systemd kexec; fi"
           '';
         };
       };
