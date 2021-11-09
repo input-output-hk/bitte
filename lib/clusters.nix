@@ -74,12 +74,8 @@ in listToAttrs (forEach clusterFiles (file:
       mapAttrs (name: instance: mkSystem name ([ file ] ++ instance.modules))
       proto.config.cluster.autoscalingGroups;
 
-    secrets = pkgs.callPackages ../pkgs/bitte-secrets.nix {
-      inherit (proto.config) cluster;
-    };
-
     mkJob = import ./mk-job.nix proto;
 
   in nameValuePair proto.config.cluster.name {
-    inherit proto tf nodes groups secrets mkJob ami;
+    inherit proto tf nodes groups mkJob ami;
   }))
