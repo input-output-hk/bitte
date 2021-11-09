@@ -1,9 +1,6 @@
-{ nixpkgs, system, extraModules ? [ ] }:
-let
-  modules = [
-    ({ pkgs, modulesPath, ... }: {
-      imports =
-        [ "${modulesPath}/../maintainers/scripts/ec2/amazon-image-zfs.nix" ];
+nixpkgs:
+{ config, pkgs, ...}:
+{
       nix.package = pkgs.nixUnstable;
       nix.binaryCaches = [ "https://hydra.iohk.io" ];
       nix.binaryCachePublicKeys =
@@ -18,7 +15,8 @@ let
         experimental-features = nix-command flakes ca-references
       '';
 
+      # systemctl kexec can only be used on efi images
+      ec2.efi = true;
+
       environment.systemPackages = [ pkgs.git ];
-    })
-  ] ++ extraModules;
-in nixpkgs.lib.nixosSystem { inherit system modules; }
+}
