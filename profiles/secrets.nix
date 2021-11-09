@@ -164,10 +164,6 @@ in {
       echo "$ca" | ${sopsEncrypt} > encrypted/ca.json
     fi
 
-    certConfigJson="${certConfig}"
-    jq --arg ip "$IP" '.hosts += [$ip]' < "$certConfigJson" \
-    > cert.config
-
     if [ ! -s encrypted/cert.json ]; then
       cert="$(
         cfssl gencert \
