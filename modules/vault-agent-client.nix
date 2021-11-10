@@ -119,10 +119,6 @@ in {
             {
               "encrypt": "{{ with secret "kv/bootstrap/clients/consul" }}{{ .Data.data.encrypt }}{{ end }}",
               "acl": {
-                "default_policy": "deny",
-                "down_policy": "extend-cache",
-                "enable_token_persistence": true,
-                "enabled": true,
                 "tokens": {
                   "agent": "${consulAgentToken}",
                   "default": "${consulDefaultToken}"
