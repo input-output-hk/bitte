@@ -842,6 +842,37 @@ in {
           '';
 
           prepare = ''
+            for arg in "$@"
+            do
+              case "$arg" in
+                *routing*|routing*|*routing)
+                  echo
+                  echo -----------------------------------------------------
+                  echo CAUTION: It appears that you are indulging on a
+                  echo terraform operation specifically involving routing.
+                  echo Are you redeploying routing?
+                  echo -----------------------------------------------------
+                  echo You MUST know that a redeploy of routing will
+                  echo necesarily re-trigger the bootstrapping of the ACME
+                  echo service.
+                  echo -----------------------------------------------------
+                  echo You MUST also know that LetsEncrypt enforces a non-
+                  echo recoverable rate limit of 5 generations per week.
+                  echo That means: only ever redeploy routing max 5 times
+                  echo per week on a rolling basis. Switch to the LetsEncrypt
+                  echo staging envirenment if you plan on deploying routing
+                  echo more often!
+                  echo -----------------------------------------------------
+                  echo
+                  read -p "Do you want to continue this operation? [y/n] " -n 1 -r
+                  if [[ ! "$REPLY" =~ ^[Yy]$ ]]
+                  then
+                    exit
+                  fi
+                  ;;
+              esac
+            done
+
             ${copy}
             if [ -z "''${GITHUB_TOKEN:-}" ]; then
               echo
