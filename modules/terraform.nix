@@ -587,7 +587,10 @@ let
               -oStrictHostKeyChecking=accept-new \
               -i ./secrets/ssh-${cfg.name} \
               root@${ip} \
-              "if [ \"$(cat /proc/sys/kernel/osrelease)\" != \"${newKernelVersion}\" ]; then systemd kexec; fi"
+              "if [ \"$(cat /proc/sys/kernel/osrelease)\" != \"${newKernelVersion}\" ]; then \
+               ${pkgs.systemd}/bin/systemctl kexec \
+               || (echo Rebooting instead ... && ${pkgs.systemd}/bin/systemctl reboot) ; fi" \
+            || true
           '';
         };
       };
