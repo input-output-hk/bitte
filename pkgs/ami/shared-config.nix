@@ -15,9 +15,9 @@ nixpkgs:
         experimental-features = nix-command flakes ca-references
       '';
 
-      # systemctl kexec can only be used on efi images
-      ec2.efi = true;
-      amazonImage.sizeMB = 8192;
+      # # systemctl kexec can only be used on efi images
+      # ec2.efi = true;
+      amazonImage.sizeMB = 4096;
 
       environment.systemPackages = [ pkgs.git ];
 }

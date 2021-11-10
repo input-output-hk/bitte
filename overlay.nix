@@ -287,13 +287,13 @@ in final: prev: {
   mkAsgAMIClients = import ./pkgs/ami/ami-clients.nix;
   mkAsgAMICores = import ./pkgs/ami/ami-cores.nix;
 
-  asgAMIClients = (final.mkAsgAMIClients {
+  AMIClients = (final.mkAsgAMIClients {
     inherit nixpkgs;
     inherit (prev) system;
     extraModules = [ ];
   }).config.system.build.amazonImage;
 
-  asgAMICores = (final.mkAsgAMICores {
+  AMICores = (final.mkAsgAMICores {
     inherit nixpkgs;
     inherit (prev) system;
     extraModules = [ ];
@@ -307,11 +307,13 @@ in final: prev: {
     export bucket=bitte-amis
     export regions="eu-west-1 eu-central-1 us-east-1 us-east-2"
 
-    echo Clients ...
-    ${nixpkgs + /nixos/maintainers/scripts/ec2/create-amis.sh} ${final.asgAMIClients}
-
     echo Cores ...
-    ${nixpkgs + /nixos/maintainers/scripts/ec2/create-amis.sh} ${final.asgAMICores}
+    ${nixpkgs + /nixos/maintainers/scripts/ec2/create-amis.sh} ${final.AMICores}
+    echo Cores done.
+
+    echo Clients ...
+    ${nixpkgs + /nixos/maintainers/scripts/ec2/create-amis.sh} ${final.AMIClients}
+    echo Clients done.
 
   '';
 

@@ -11,20 +11,20 @@ let
 
   merge = lib.foldl' lib.recursiveUpdate { };
 
-  # with zfs
-  clientAMIs = {
-    eu-central-1 = "ami-03c1851df1f601be0";
-    eu-west-1 = "ami-0a858d71b366d7512";
-    us-east-1 = "ami-0516decf87cb6a5ba";
-    us-east-2 = "ami-0a6bb3086c085e3b5";
-  };
-
   # without zfs
   coreAMIs = {
-    eu-central-1 = "ami-01a6e1e2761762fe1";
-    eu-west-1 = "ami-0101e046ec1d828b4";
-    us-east-1 = "ami-0baa6fb5107677998";
-    us-east-2 = "ami-0f82f2419cc0f5964";
+    eu-central-1 = "ami-0973e80ce0aefa8cb";
+    eu-west-1 = "ami-0831b0dff40de0293";
+    us-east-1 = "ami-02df71c70d50f3178";
+    us-east-2 = "ami-0e2beff1f3e3e7719";
+  };
+
+  # with zfs
+  clientAMIs = {
+    eu-central-1 = "ami-03f7384efec74b275";
+    eu-west-1 = "ami-079aecdc21e0ca57a";
+    us-east-1 = "ami-04c6d7344f6bc000f";
+    us-east-2 = "ami-0c92e3df7d4095e60";
   };
 
   vpcMap = lib.pipe [
