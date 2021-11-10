@@ -62,22 +62,13 @@ let
                   '';
                 in "${script}/bin/${name}") config.secrets.generate);
           in pkgs.writeShellScriptBin "generate-secrets" ''
-            set -euo pipefail
-
             export PATH="$PATH:${
               lib.makeBinPath (with pkgs; [ utillinux git ])
             }"
+            [ "$FLOCKER" != "$0" ] && exec env FLOCKER="$0" flock -en "$0" "$0" $@ ||
+            set -euo pipefail
 
             mkdir -p secrets encrypted
-
-            echo "aquiring secrets/generate.lock ..."
-
-            exec 100>secrets/generate.lock || exit 1
-            flock -n 100 || (
-              echo "secrets/generate.lock exists, not generating secrets!"
-              exit
-            )
-            trap 'rm -f secrets/generate.lock' EXIT
 
             ${scripts}
             git add encrypted/
