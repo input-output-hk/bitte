@@ -13,18 +13,18 @@ let
 
   # without zfs
   coreAMIs = {
-    eu-central-1 = "ami-059375e09146beb9e";
-    eu-west-1 = "ami-095df370795f8de5d";
-    us-east-1 = "ami-0e9e6c0332587ac86";
-    us-east-2 = "ami-0b805eb0db2313044";
+    eu-central-1 = "ami-0973e80ce0aefa8cb";
+    eu-west-1 = "ami-0831b0dff40de0293";
+    us-east-1 = "ami-02df71c70d50f3178";
+    us-east-2 = "ami-0e2beff1f3e3e7719";
   };
 
   # with zfs
   clientAMIs = {
-    eu-central-1 = "ami-04c3ad47acf37d5a1";
-    eu-west-1 = "ami-0ce27adf0a6bfacfc";
-    us-east-1 = "ami-0fe523590a7da3e6d";
-    us-east-2 = "ami-0edea27be06639afa";
+    eu-central-1 = "ami-03f7384efec74b275";
+    eu-west-1 = "ami-079aecdc21e0ca57a";
+    us-east-1 = "ami-04c6d7344f6bc000f";
+    us-east-2 = "ami-0c92e3df7d4095e60";
   };
 
   vpcMap = lib.pipe [
