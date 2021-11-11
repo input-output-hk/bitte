@@ -939,7 +939,7 @@ in {
               pkgs.writeShellScriptBin "${name}-plan" ''
                 ${prepare}
 
-                terraform plan -out ${name}.plan
+                terraform plan -out ${name}.plan "$@"
               '';
           };
 
@@ -949,7 +949,7 @@ in {
               pkgs.writeShellScriptBin "${name}-apply" ''
                 ${prepare}
 
-                terraform apply ${name}.plan
+                terraform apply ${name}.plan "$@"
               '';
           };
 
