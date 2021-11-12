@@ -15,6 +15,14 @@ nixpkgs:
         experimental-features = nix-command flakes ca-references
       '';
 
+      systemd.services.console-getty.enable = false;
+
+      # Log everything to the serial console.
+      services.journald.extraConfig = ''
+        ForwardToConsole=yes
+        MaxLevelConsole=debug
+      '';
+
       # # systemctl kexec can only be used on efi images
       # ec2.efi = true;
       amazonImage.sizeMB = 4096;
