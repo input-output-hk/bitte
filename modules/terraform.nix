@@ -13,18 +13,18 @@ let
 
   # without zfs
   coreAMIs = {
-    eu-central-1 = "ami-0973e80ce0aefa8cb";
-    eu-west-1 = "ami-0831b0dff40de0293";
-    us-east-1 = "ami-02df71c70d50f3178";
-    us-east-2 = "ami-0e2beff1f3e3e7719";
+    eu-central-1.x86_64-linux = "ami-047e751e259941f2f";
+    eu-west-1.x86_64-linux = "ami-044a76cb8331c48a3";
+    us-east-1.x86_64-linux = "ami-050070221cf65ceeb";
+    us-east-2.x86_64-linux = "ami-0ceaa7e9906493388";
   };
 
   # with zfs
   clientAMIs = {
-    eu-central-1 = "ami-03f7384efec74b275";
-    eu-west-1 = "ami-079aecdc21e0ca57a";
-    us-east-1 = "ami-04c6d7344f6bc000f";
-    us-east-2 = "ami-0c92e3df7d4095e60";
+    eu-central-1.x86_64-linux = "ami-05a056d7d6246ea93";
+    eu-west-1.x86_64-linux = "ami-00c9d0c31d5026e79";
+    us-east-1.x86_64-linux = "ami-04ef2f0257befa9e9";
+    us-east-2.x86_64-linux = "ami-0d900463abfb006dc";
   };
 
   vpcMap = lib.pipe [
@@ -211,7 +211,7 @@ let
 
       ami = mkOption {
         type = str;
-        default = coreAMIs.${cfg.region} or (throw
+        default = coreAMIs.${cfg.region}.${pkgs.system} or (throw
           "Please make sure the NixOS core AMI is copied to ${cfg.region}");
       };
 
@@ -727,7 +727,7 @@ let
 
       ami = mkOption {
         type = str;
-        default = clientAMIs.${this.config.region} or (throw
+        default = clientAMIs.${this.config.region}.${pkgs.system} or (throw
           "Please make sure the NixOS ZFS Client AMI is copied to ${this.config.region}");
       };
 
