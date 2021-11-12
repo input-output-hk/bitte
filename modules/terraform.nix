@@ -3,7 +3,7 @@ let
   inherit (pkgs) lib terralib;
   inherit (lib) mkOption reverseList;
   inherit (lib.types)
-    attrs submodule str attrsOf bool ints path enum port listof nullOr listOf
+    attrs submodule str functionTo attrsOf bool ints path enum port listof nullOr listOf
     oneOf list package unspecified anything;
   inherit (terralib) var id regions awsProviderFor;
 
@@ -45,6 +45,141 @@ let
     "us-west-1"
     "us-west-2"
   ] [ (lib.imap0 (i: v: lib.nameValuePair v i)) builtins.listToAttrs ];
+
+  # This user data only injects the cache and nix3 config so that
+  # deploy-rs can take it from there (efficiently)
+  userDataDefaultNixosConfigCore = ''
+    ### https://nixos.org/channels/nixpkgs-unstable nixos
+    { pkgs, config, ... }: {
+      imports = [ "<nixpkgs/nixos/modules/virtualisation/amazon-image.nix>" ];
+
+      nix = {
+        package = pkgs.nixFlakes;
+        extraOptions = '''
+          show-trace = true
+          experimental-features = nix-command flakes ca-references
+        ''';
+        binaryCaches = [
+          "https://hydra.iohk.io"
+          "${cfg.s3Cache}"
+        ];
+        binaryCachePublicKeys = [
+          "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
+          "${cfg.s3CachePubKey}"
+        ];
+      };
+
+      environment.etc.ready.text = "true";
+    }
+  '';
+
+  # ${asg}-source.tar.xz is produced by s3-upload-flake.service
+  # of one of the latest successfully provisioned member of this
+  # auto scaling group
+  userDataDefaultNixosConfigAsg = asg: let
+    nixConf = ''
+      extra-substituters = ${cfg.s3Cache}
+      extra-trusted-public-keys = ${cfg.s3CachePubKey}
+    '';
+  # amazon-init detects the shebang as a signal
+  # but does not actually execve the script:
+  # interpreter fixed to pkgs.runtimeShell.
+  # For available packages, see or modify /profiles/slim.nix
+  in ''
+    #!
+    export NIX_CONFIG="${nixConf}"
+    export PATH="/run/current-system/sw/bin:$PATH"
+    set -exuo pipefail
+    pushd /run/keys
+    err_code=0
+    aws s3 cp \
+      "s3://${cfg.s3Bucket}/infra/secrets/${cfg.name}/${cfg.kms}/source/${asg}-source.tar.xz" \
+      source.tar.xz || err_code=$?
+    if test $err_code -eq 0
+    then # automated provisioning
+      mkdir -p source
+      tar xvf source.tar.xz -C source
+      nix build ./source#nixosConfigurations.${cfg.name}-${asg}.config.system.build.toplevel
+      nixos-rebuild --flake ./source#${cfg.name}-${asg} switch
+    fi # manual provisioning
+  '';
+
+  localProvisionerDefaultCommand = ip: let
+      nixConf = ''
+        experimental-features = nix-command flakes ca-references
+      '';
+      newKernelVersion = config.boot.kernelPackages.kernel.version;
+    in ''
+      echo
+      echo Waiting for ssh to come up on port 22 ...
+      while [ -z "$(
+        ${pkgs.socat}/bin/socat \
+          -T2 stdout \
+          tcp:${ip}:22,connect-timeout=2,readbytes=1 \
+          2>/dev/null
+      )" ]
+      do
+          printf " ."
+          sleep 5
+      done
+
+      sleep 1
+
+      echo
+      echo Waiting for host to become ready ...
+      ${pkgs.openssh}/bin/ssh -C \
+        -oUserKnownHostsFile=/dev/null \
+        -oNumberOfPasswordPrompts=0 \
+        -oServerAliveInterval=60 \
+        -oControlPersist=600 \
+        -oStrictHostKeyChecking=accept-new \
+        -i ./secrets/ssh-${cfg.name} \
+        root@${ip} \
+        "until grep true /etc/ready &>/dev/null; do sleep 1; done 2>/dev/null"
+
+      sleep 1
+
+      export NIX_CONFIG="${nixConf}"
+      export PATH="${
+        lib.makeBinPath [
+          pkgs.openssh
+          pkgs.nixUnstable
+          pkgs.git
+          pkgs.mercurial
+          pkgs.lsof
+        ]
+      }:$PATH"
+
+      echo
+      echo Invoking deploy-rs on that host ...
+      ${pkgs.bitte}/bin/bitte deploy \
+        --ssh-opts="-oUserKnownHostsFile=/dev/null" \
+        --ssh-opts="-oNumberOfPasswordPrompts=0" \
+        --ssh-opts="-oServerAliveInterval=60" \
+        --ssh-opts="-oControlPersist=600" \
+        --ssh-opts="-oStrictHostKeyChecking=no" \
+        --skip-checks \
+        --no-magic-rollback \
+        --no-auto-rollback \
+        ${ip}
+
+      sleep 1
+
+      echo
+      echo Rebooting the host to load eventually newer kernels ...
+      timeout 5 ${pkgs.openssh}/bin/ssh -C \
+        -oUserKnownHostsFile=/dev/null \
+        -oNumberOfPasswordPrompts=0 \
+        -oServerAliveInterval=60 \
+        -oControlPersist=600 \
+        -oStrictHostKeyChecking=accept-new \
+        -i ./secrets/ssh-${cfg.name} \
+        root@${ip} \
+        "if [ \"$(cat /proc/sys/kernel/osrelease)\" != \"${newKernelVersion}\" ]; then \
+         ${pkgs.systemd}/bin/systemctl kexec \
+         || (echo Rebooting instead ... && ${pkgs.systemd}/bin/systemctl reboot) ; fi" \
+      || true
+    '';
 
   cfg = config.cluster;
 
@@ -485,113 +620,13 @@ let
 
       userData = mkOption {
         type = nullOr str;
-        default = ''
-          ### https://nixos.org/channels/nixpkgs-unstable nixos
-          { pkgs, config, ... }: {
-            imports = [ <nixpkgs/nixos/modules/virtualisation/amazon-image.nix> ];
-
-            nix = {
-              package = pkgs.nixFlakes;
-              extraOptions = '''
-                show-trace = true
-                experimental-features = nix-command flakes ca-references
-              ''';
-              binaryCaches = [
-                "https://hydra.iohk.io"
-                "${cfg.s3Cache}"
-              ];
-              binaryCachePublicKeys = [
-                "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
-                "${cfg.s3CachePubKey}"
-              ];
-            };
-
-            environment.etc.ready.text = "true";
-          }
-        '';
+        default = userDataDefaultNixosConfigCore;
       };
 
-      # Gotta do it this way since TF outputs aren't generated at this point and we need the IP.
       localProvisioner = mkOption {
         type = localExecType;
         default = {
-          command = let
-            ip = var "aws_eip.${this.config.uid}.public_ip";
-            nixConf = ''
-              experimental-features = nix-command flakes ca-references
-            '';
-            newKernelVersion = config.boot.kernelPackages.kernel.version;
-          in ''
-            echo
-            echo Waiting for ssh to come up on port 22 ...
-            while [ -z "$(
-              ${pkgs.socat}/bin/socat \
-                -T2 stdout \
-                tcp:${ip}:22,connect-timeout=2,readbytes=1 \
-                2>/dev/null
-            )" ]
-            do
-                printf " ."
-                sleep 5
-            done
-
-            sleep 1
-
-            echo
-            echo Waiting for host to become ready ...
-            ${pkgs.openssh}/bin/ssh -C \
-              -oUserKnownHostsFile=/dev/null \
-              -oNumberOfPasswordPrompts=0 \
-              -oServerAliveInterval=60 \
-              -oControlPersist=600 \
-              -oStrictHostKeyChecking=accept-new \
-              -i ./secrets/ssh-${cfg.name} \
-              root@${ip} \
-              "until grep true /etc/ready &>/dev/null; do sleep 1; done 2>/dev/null"
-
-            sleep 1
-
-            export NIX_CONFIG="${nixConf}"
-            export PATH="${
-              lib.makeBinPath [
-                pkgs.openssh
-                pkgs.nixUnstable
-                pkgs.git
-                pkgs.mercurial
-                pkgs.lsof
-              ]
-            }:$PATH"
-
-            echo
-            echo Invoking deploy-rs on that host ...
-            ${pkgs.bitte}/bin/bitte deploy \
-              --ssh-opts="-oUserKnownHostsFile=/dev/null" \
-              --ssh-opts="-oNumberOfPasswordPrompts=0" \
-              --ssh-opts="-oServerAliveInterval=60" \
-              --ssh-opts="-oControlPersist=600" \
-              --ssh-opts="-oStrictHostKeyChecking=no" \
-              --skip-checks \
-              --no-magic-rollback \
-              --no-auto-rollback \
-              ${this.config.name}
-
-            sleep 1
-
-            echo
-            echo Rebooting the host to load eventually newer kernels ...
-            timeout 5 ${pkgs.openssh}/bin/ssh -C \
-              -oUserKnownHostsFile=/dev/null \
-              -oNumberOfPasswordPrompts=0 \
-              -oServerAliveInterval=60 \
-              -oControlPersist=600 \
-              -oStrictHostKeyChecking=accept-new \
-              -i ./secrets/ssh-${cfg.name} \
-              root@${ip} \
-              "if [ \"$(cat /proc/sys/kernel/osrelease)\" != \"${newKernelVersion}\" ]; then \
-               ${pkgs.systemd}/bin/systemctl kexec \
-               || (echo Rebooting instead ... && ${pkgs.systemd}/bin/systemctl reboot) ; fi" \
-            || true
-          '';
+          protoCommand = localProvisionerDefaultCommand;
         };
       };
 
@@ -654,7 +689,7 @@ let
 
   localExecType = submodule {
     options = {
-      command = mkOption { type = str; };
+      protoCommand = mkOption { type = functionTo str; };
 
       workingDir = mkOption {
         type = nullOr path;
@@ -718,31 +753,16 @@ let
         };
       };
 
-      userData = let
-        nixConf = ''
-          extra-substituters = ${cfg.s3Cache}
-          extra-trusted-public-keys = ${cfg.s3CachePubKey}
-        '';
-      in mkOption {
+      userData = mkOption {
         type = nullOr str;
-        default = ''
-          #!/usr/bin/env bash
-          export NIX_CONFIG="${nixConf}"
+        default = userDataDefaultNixosConfigAsg this.config.name;
+      };
 
-          nix shell nixpkgs#zfs -c zfs set com.sun:auto-snapshot=true tank/system
-          nix shell nixpkgs#zfs -c zfs set atime=off tank/local/nix
-
-          set -exuo pipefail
-
-          pushd /run/keys
-          nix shell nixpkgs#awscli -c aws s3 cp "s3://${cfg.s3Bucket}/infra/secrets/${cfg.name}/${cfg.kms}/source/source.tar.xz" source.tar.xz
-          mkdir -p source
-          tar xvf source.tar.xz -C source
-
-          nix build ./source#nixosConfigurations.${cfg.name}-${this.config.name}.config.system.build.toplevel
-          /run/current-system/sw/bin/nixos-rebuild --flake ./source#${cfg.name}-${this.config.name} switch &
-          disown -a
-        '';
+      localProvisioner = mkOption {
+        type = localExecType;
+        default = {
+          protoCommand = localProvisionerDefaultCommand;
+        };
       };
 
       minSize = mkOption {

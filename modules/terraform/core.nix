@@ -283,14 +283,15 @@ in {
                 command = "${
                     self.nixosConfigurations."${config.cluster.name}-${name}".config.secrets.generateScript
                   }/bin/generate-secrets";
-
-                environment = { IP = var "self.public_ip"; };
               };
             }
             {
-              local-exec = {
+              local-exec = let
+                command = server.localProvisioner.protoCommand (var "self.public_ip");
+              in {
+                inherit command;
                 inherit (server.localProvisioner)
-                  interpreter command environment;
+                  interpreter environment;
                 working_dir = server.localProvisioner.workingDir;
               };
             }
