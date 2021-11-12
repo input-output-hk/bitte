@@ -3,6 +3,7 @@
     ./consul/default.nix
     ./nix.nix
     ./promtail.nix
+    ./slim.nix
     ./ssh.nix
     ./vault/default.nix
   ];
@@ -18,6 +19,7 @@
   boot.loader.grub.devices = lib.mkForce [ "/dev/nvme0n1" ];
 
   environment.variables = { AWS_DEFAULT_REGION = config.cluster.region; };
+  environment.systemPackages = with pkgs; [ consul nomad vault-bin ];
 
   # Don't `nixos-rebuild switch` after the initial deploy.
   systemd.services.amazon-init.enable = false;
@@ -31,8 +33,8 @@
 
   # remove after upgrading past 21.05
   users.users.ntp.group = "ntp";
-  users.groups.ntp = {};
-  users.groups.systemd-coredump = {};
+  users.groups.ntp = { };
+  users.groups.systemd-coredump = { };
 
   networking.firewall = let
     all = {
@@ -59,28 +61,6 @@
   programs.ssh.package = pkgs.opensshNoCoredump;
 
   programs.sysdig.enable = true;
-
-  environment.systemPackages = with pkgs; [
-    bat
-    bind
-    di
-    fd
-    file
-    gitMinimal
-    htop
-    jq
-    lsof
-    ncdu
-    openssl
-    ripgrep
-    tcpdump
-    tmux
-    tree
-    vim
-    vault-bin
-    consul
-    nomad
-  ];
 
   networking.extraHosts = ''
     ${config.cluster.instances.core-1.privateIP} core.vault.service.consul
