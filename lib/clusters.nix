@@ -25,7 +25,11 @@ let
       inherit pkgs system;
       modules = [
         self.inputs.bitte.nixosModule
-        (self.inputs.nixpkgs + "/nixos/modules/virtualisation/amazon-image.nix")
+        ({ modulesPath, ... }: {
+          imports = [
+            "${modulesPath}/../maintainers/scripts/ec2/amazon-image.nix"
+          ];
+        })
       ] ++ modules;
       specialArgs = { inherit nodeName self; };
     };
