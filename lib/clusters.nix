@@ -1,12 +1,18 @@
-{ self, pkgs, system, lib, root, ... }:
+{ mkSystem
+, mkJob
+, lib
+}:
+
+{ self # target flake's 'self'
+, pkgs
+, root
+}:
 
 let
-  inherit (builtins) attrNames readDir mapAttrs;
-  inherit (lib)
-    flip pipe mkForce filterAttrs flatten listToAttrs forEach nameValuePair
-    mapAttrs';
-
-  readDirRec = path:
+  readDirRec = path: let
+    inherit (builtins) attrNames readDir;
+    inherit (lib) pipe filterAttrs flatten;
+  in
     pipe path [
       readDir
       (filterAttrs (n: v: v == "directory" || n == "default.nix"))
@@ -20,66 +26,37 @@ let
       flatten
     ];
 
-  mkSystem = nodeName: modules:
-    self.inputs.nixpkgs.lib.nixosSystem {
-      inherit pkgs system;
-      modules = [
-        self.inputs.bitte.nixosModule
-        ({ modulesPath, ... }: {
-          imports = [
-            "${modulesPath}/../maintainers/scripts/ec2/amazon-image.nix"
-          ];
-        })
-      ] ++ modules;
-      specialArgs = { inherit nodeName self; };
-    };
-
-  mkAMI = nodeName: modules:
-    self.inputs.nixpkgs.lib.nixosSystem {
-      inherit pkgs system;
-      modules = [
-        self.inputs.bitte.nixosModule
-        ({ modulesPath, ... }: {
-          imports = [
-            "${modulesPath}/../maintainers/scripts/ec2/amazon-image-zfs.nix"
-          ];
-          services.openssh.enable = true;
-        })
-      ] ++ modules;
-      specialArgs = { inherit nodeName self; };
-    };
-
   clusterFiles = readDirRec root;
 
-in listToAttrs (forEach clusterFiles (file:
+in lib.listToAttrs (lib.forEach clusterFiles (file:
   let
-    proto = self.inputs.nixpkgs.lib.nixosSystem {
-      inherit pkgs system;
-      modules = [
-        self.inputs.bitte.nixosModule
-        ../profiles/nix.nix
-        ../profiles/consul/policies.nix
-        file
-      ];
-      specialArgs = { inherit self; };
-    };
 
+    mkJob = mkJob proto;
     tf = proto.config.tf;
 
-    nodes = mapAttrs (name: instance:
-      mkSystem name
-      ([ { networking.hostName = mkForce name; } file ] ++ instance.modules))
-      proto.config.cluster.instances;
+    proto = (
+      mkSystem {
+        inherit pkgs self;
+        modules = [ file ];
+      }
+    ).bitteProtoSystem;
 
-    ami = mapAttrs (name: instance: mkAMI name ([ file ] ++ instance.modules))
-      proto.config.cluster.autoscalingGroups;
+    nodes =
+      lib.mapAttrs (nodeName: instance:
+        ( mkSystem {
+            inherit pkgs self nodeName;
+            modules = [ { networking.hostName = lib.mkForce nodeName; } file ] ++ instance.modules;
+        } ).bitteAmazonSystem
+      ) proto.config.cluster.instances;
 
     groups =
-      mapAttrs (name: instance: mkSystem name ([ file ] ++ instance.modules))
-      proto.config.cluster.autoscalingGroups;
+      lib.mapAttrs (nodeName: instance:
+        ( mkSystem {
+          inherit pkgs self nodeName;
+          modules = [ file ] ++ instance.modules;
+        } ).bitteAmazonZfsSystem
+      ) proto.config.cluster.autoscalingGroups;
 
-    mkJob = import ./mk-job.nix proto;
-
-  in nameValuePair proto.config.cluster.name {
-    inherit proto tf nodes groups mkJob ami;
+  in lib.nameValuePair proto.config.cluster.name {
+    inherit proto tf nodes groups mkJob;
   }))

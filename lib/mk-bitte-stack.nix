@@ -1,10 +1,18 @@
-{ flake, domain # E.g. "mantis.ws"
+{ mkCluster
+, lib
+}:
+
+{ flake
+, domain
+, jobs
+, clusters
+, docker
 , dockerRegistry ? "docker." + domain, dockerRole ? "developer"
-, vaultDockerPasswordKey ? "kv/nomad-cluster/docker-developer-password" }:
+, vaultDockerPasswordKey ? "kv/nomad-cluster/docker-developer-password"
+}:
 
 let
   inherit (flake.inputs) nixpkgs;
-  inherit (nixpkgs) lib;
 
   pkgs = nixpkgs.legacyPackages.x86_64-linux.extend flake.overlay;
 
@@ -89,6 +97,16 @@ let
         dockerImages)}
     '';
 
+  mkNixosConfigurations = clusters:
+    lib.pipe clusters [
+      (lib.mapAttrsToList (clusterName: cluster:
+        lib.mapAttrsToList
+        (name: value: lib.nameValuePair "${clusterName}-${name}" value)
+        (cluster.nodes // cluster.groups)))
+      lib.flatten
+      lib.listToAttrs
+    ];
+
   buildConsulTemplates = { nomadJobs, writeText, linkFarm }:
     let
       sources = lib.pipe nomadJobs [
@@ -121,25 +139,18 @@ let
 
 in lib.makeScope pkgs.newScope (self:
   with self; {
-    nomadJobs = recursiveCallPackage (flake + "/jobs") prod-pkgs.callPackage;
+
+    clusters = mkCluster { inherit pkgs; root = clusters; self = flake; };
+    nixosConfigurations = mkNixosConfigurations self.clusters;
 
     dockerImages = let
-      images = recursiveCallPackage (flake + "/docker") prod-pkgs.callPackages;
+      images = recursiveCallPackage (docker) prod-pkgs.callPackages;
     in lib.mapAttrs imageAttrToCommands images;
-
     push-docker-images = callPackage push-docker-images { };
-
     load-docker-images = callPackage load-docker-images { };
 
     consulTemplates = callPackage buildConsulTemplates { };
-
-    clusters = pkgs.mkClusters {
-      root = flake + "/clusters";
-      self = flake;
-      inherit (pkgs.hostPlatform) system;
-    };
-
-    nixosConfigurations = pkgs.mkNixosConfigurations self.clusters;
+    nomadJobs = recursiveCallPackage (jobs) prod-pkgs.callPackage;
 
     hydraJobs.x86_64-linux = let
       nixosConfigurations =
