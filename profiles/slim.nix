@@ -7,6 +7,8 @@
 
   programs.sysdig.enable = true;
 
+  time.timeZone = "UTC";
+
   environment.systemPackages = with pkgs; [
     awscli
     bat

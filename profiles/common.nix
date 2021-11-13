@@ -16,8 +16,6 @@
     fail2ban.enable = true;
   };
 
-  boot.loader.grub.devices = lib.mkForce [ "/dev/nvme0n1" ];
-
   environment.variables = { AWS_DEFAULT_REGION = config.cluster.region; };
   environment.systemPackages = with pkgs; [ consul nomad vault-bin ];
 
@@ -48,19 +46,9 @@
     allowedUDPPortRanges = [ all ];
   };
 
-  time.timeZone = "UTC";
-
-  documentation.man.enable = false;
-  documentation.nixos.enable = false;
-  documentation.info.enable = false;
-  documentation.doc.enable = false;
-  i18n.supportedLocales = [ "en_US.UTF-8/UTF-8" "en_US/ISO-8859-1" ];
-
   # Remove once nixpkgs is using openssh 8.7p1+ by default to avoid coredumps
   # Ref: https://bbs.archlinux.org/viewtopic.php?id=265221
   programs.ssh.package = pkgs.opensshNoCoredump;
-
-  programs.sysdig.enable = true;
 
   networking.extraHosts = ''
     ${config.cluster.instances.core-1.privateIP} core.vault.service.consul
