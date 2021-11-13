@@ -124,10 +124,10 @@ in final: prev:
     export bucket=bitte-amis
     # export regions="eu-west-1 eu-central-1 us-east-1 us-east-2"
 
-    # echo Cores ...
-    # ${nixpkgs + /nixos/maintainers/scripts/ec2/create-amis.sh} \
-    #   ${(self.lib.mkSystem { pkgs = final; }).bitteAmazonSystemBaseAMI}
-    # echo Cores done.
+    echo Cores ...
+    ${nixpkgs + /nixos/maintainers/scripts/ec2/create-amis.sh} \
+      ${(self.lib.mkSystem { pkgs = final; }).bitteAmazonSystemBaseAMI}
+    echo Cores done.
 
     echo Clients ...
     ${nixpkgs + /nixos/maintainers/scripts/ec2/create-amis.sh} \
