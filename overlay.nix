@@ -102,18 +102,6 @@ in final: prev:
   terraform-with-plugins = final.terraform_0_13.withPlugins
     (plugins: lib.attrVals final.terraform-provider-names plugins);
 
-  AMIClients = (final.mkAsgAMIClients {
-    inherit nixpkgs;
-    inherit (prev) system;
-    extraModules = [ ];
-  }).config.system.build.amazonImage;
-
-  AMICores = (final.mkAsgAMICores {
-    inherit nixpkgs;
-    inherit (prev) system;
-    extraModules = [ ];
-  }).config.system.build.amazonImage;
-
   uploadBaseAMIs = final.writeBashBinChecked "upload-base-amis-to-development-profile-iohk-amis-bucket" ''
 
     export AWS_PROFILE="development"
