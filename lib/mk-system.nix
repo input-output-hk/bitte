@@ -29,7 +29,7 @@ let
   bitteAmazonSystemBaseAMI = bitteSystem ({ modulesPath, ... }: {
     imports = [
       "${modulesPath}/../maintainers/scripts/ec2/amazon-image.nix"
-      ../../profiles/ami-base.nix
+      ../../profiles/ami-base-config.nix
     ];
   });
 
@@ -39,7 +39,7 @@ let
   bitteAmazonZfsSystemBaseAMI = bitteSystem ({ modulesPath, ... }: {
     imports = [
       "${modulesPath}/../maintainers/scripts/ec2/amazon-image-zfs.nix"
-      ../../profiles/ami-base.nix
+      ../../profiles/ami-base-config.nix
     ];
   });
 
