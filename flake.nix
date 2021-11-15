@@ -6,7 +6,7 @@
     utils.url = "github:numtide/flake-utils";
     cli.url = "github:input-output-hk/bitte-cli";
     cli.inputs.utils.follows = "utils";
-    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/7733d9cae98ab91f36d35005d8aef52873d23b5b";
     hydra.url = "github:kreisys/hydra/hydra-server-includes";
     hydra.inputs.nix.follows = "nix";
     hydra.inputs.nixpkgs.follows = "nixpkgs";

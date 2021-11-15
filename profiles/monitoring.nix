@@ -95,10 +95,13 @@ in {
         AUTH_SIGNOUT_REDIRECT_URL = "/oauth2/sign_out";
         USERS_AUTO_ASSIGN_ORG_ROLE = "Editor";
 
-        # Enable next generation alerting for >= 8.2.x
+        # Enable next generation alerting for >= 8.2.x and disable legacy
         UNIFIED_ALERTING_ENABLED = "true";
-        # Enable next generation alerting for >= 8.0.x && < 8.2.x
-        FEATURE_TOGGLES_ENABLE = "ngalert";
+        ALERTING_ENABLED = "false";
+
+        # Enable next generation alerting for >= 8.0.x && < 8.2.x and enable legacy
+        # FEATURE_TOGGLES_ENABLE = "ngalert";
+        # ALERTING_ENABLED = "true";
       };
       rootUrl = "https://monitoring.${domain}/";
       provision = {
