@@ -26,6 +26,6 @@
   '';
 
   # systemctl kexec can only be used on efi images
-  # ec2.efi = true;
+  ec2.efi = true;
   amazonImage.sizeMB = 4096;
 }

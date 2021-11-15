@@ -24,26 +24,33 @@ let
   });
 
   bitteAmazonSystem = bitteSystem ({ modulesPath, ... }: {
-    imports = [ "${modulesPath}/../maintainers/scripts/ec2/amazon-image.nix" ];
+    imports = [
+      "${modulesPath}/../maintainers/scripts/ec2/amazon-image.nix"
+      { ec2.efi = true; }
+    ];
   });
   bitteAmazonSystemBaseAMI = bitteSystem ({ modulesPath, ... }: {
     imports = [
       "${modulesPath}/../maintainers/scripts/ec2/amazon-image.nix"
-      ../../profiles/ami-base-config.nix
+      ../profiles/ami-base-config.nix
     ];
   });
 
   bitteAmazonZfsSystem = bitteSystem ({ modulesPath, ... }: {
-    imports = [ "${modulesPath}/../maintainers/scripts/ec2/amazon-image-zfs.nix" ];
+    imports = [
+      "${modulesPath}/../maintainers/scripts/ec2/amazon-image-zfs.nix"
+      { ec2.efi = true; }
+    ];
   });
   bitteAmazonZfsSystemBaseAMI = bitteSystem ({ modulesPath, ... }: {
     imports = [
       "${modulesPath}/../maintainers/scripts/ec2/amazon-image-zfs.nix"
-      ../../profiles/ami-base-config.nix
+      ../profiles/ami-base-config.nix
     ];
   });
 
-in {
+in
+{
   inherit
     bitteSystem
     bitteProtoSystem
@@ -51,5 +58,5 @@ in {
     bitteAmazonSystemBaseAMI
     bitteAmazonZfsSystem
     bitteAmazonZfsSystemBaseAMI
-  ;
+    ;
 }
