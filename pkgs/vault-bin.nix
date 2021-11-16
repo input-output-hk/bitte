@@ -1,26 +1,25 @@
 { stdenv, lib, fetchurl, unzip, makeWrapper, gawk, glibc }:
 
 let
-  version = "1.8.2";
+  version = "1.8.5";
 
   # Hashes for misc systems and architectures can be obtained with:
   #   curl -OL https://releases.hashicorp.com/vault/${version}/vault_${version}_${system}_${arch}.zip
   #   nix-hash --flat --base32 --type sha256 vault_${version}_${system}_${arch}.zip | nix hash to-sri --type sha256 $(cat -)
   sources =
     let base = "https://releases.hashicorp.com/vault/${version}";
-    in
-    {
+    in {
       x86_64-linux = fetchurl {
         url = "${base}/vault_${version}_linux_amd64.zip";
-        sha256 = "sha256-10ck1swivx4cfFGQCbAXaAms9vHCDuVhB94Mq1TNhGM=";
+        sha256 = "sha256-l9eskUX/3yVquRBFpIV6ZA7Kp8VrvWa2H7cJkGIPPTM=";
       };
       x86_64-darwin = fetchurl {
         url = "${base}/vault_${version}_darwin_amd64.zip";
-        sha256 = "sha256-4zmC64YaU5qBIr9nTDmvMJAYJcBgtMgXXL+gbptdS/U=";
+        sha256 = "sha256-P3CHZhayiertbb3ZMzNIHOwrjBnIBRW//0492BbNinA=";
       };
       aarch64-linux = fetchurl {
         url = "${base}/vault_${version}_linux_arm64.zip";
-        sha256 = "sha256-CgNDNQnyxZSgNV3rZycMd/vG1w6ALMUiNYTDtgAp4gI=";
+        sha256 = "sha256-oaV8UVBczghXwyoVntGT3TMOQ77h8zQNIUOZPGTPBkU=";
       };
     };
 
