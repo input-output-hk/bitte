@@ -171,7 +171,7 @@ in {
           -ca-key secrets/ca-key.pem \
           -config "${caConfigJson}" \
           -profile core \
-          cert.config \
+          ${certConfig} \
         | jq --arg ca "$(< secrets/ca.pem)" '.ca = $ca'
       )"
       echo "$cert" | cfssljson -bare secrets/cert
@@ -179,8 +179,6 @@ in {
       cert="$(echo "$cert" | jq --arg full "$(< secrets/full.pem)" '.full = $full')"
       echo "$cert" | ${sopsEncrypt} > encrypted/cert.json
     fi
-
-    rm -f cert.config
   '';
 
   secrets.install.certs = lib.mkIf isInstance {
