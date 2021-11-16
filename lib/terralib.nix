@@ -3,6 +3,18 @@
 }:
 let
   inherit (builtins) attrValues fromJSON toJSON trace mapAttrs genList foldl';
+
+  nullRoute' = {
+    egress_only_gateway_id = null;
+    instance_id = null;
+    local_gateway_id = null;
+    nat_gateway_id = null;
+    network_interface_id = null;
+    transit_gateway_id = null;
+    vpc_peering_connection_id = null;
+    gateway_id = null;
+    vpc_endpoint_id = null;
+  };
 in
 rec {
   amis = import (nixpkgs + "/nixos/modules/virtualisation/ec2-amis.nix");
@@ -22,27 +34,22 @@ rec {
 
   merge = lib.foldl' lib.recursiveUpdate { };
 
-  nullRoute = {
-    egress_only_gateway_id = null;
-    instance_id = null;
+  nullRouteInline = nullRoute' // {
     ipv6_cidr_block = null;
-    local_gateway_id = null;
-    nat_gateway_id = null;
-    network_interface_id = null;
-    transit_gateway_id = null;
-    vpc_peering_connection_id = null;
-    gateway_id = null;
-    vpc_endpoint_id = null;
   };
 
-  vpcs = cluster:
+  nullRoute = nullRoute' //  {
+    destination_ipv6_cidr_block = null;
+  };
+
+  asgVpcs = cluster:
     lib.forEach (builtins.attrValues cluster.autoscalingGroups)
     (asg: asg.vpc);
 
-  mapVpcs = cluster: f:
-    lib.listToAttrs (lib.flatten (lib.forEach (vpcs cluster) f));
+  mapAsgVpcs = cluster: f:
+    lib.listToAttrs (lib.flatten (lib.forEach (asgVpcs cluster) f));
 
-  mapVpcsToList = cluster: lib.forEach (vpcs cluster);
+  mapAsgVpcsToList = cluster: lib.forEach (asgVpcs cluster);
 
   regions = [
     # "ap-east-1"
