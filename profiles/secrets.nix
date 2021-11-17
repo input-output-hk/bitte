@@ -158,7 +158,7 @@ in {
       lib.makeBinPath (with pkgs; [ cfssl jq coreutils terraform-with-plugins ])
     }"
 
-    if [ ! -s secrets/ca.pem ]; then
+    if [ ! -s encrypted/ca.json ]; then
       ca="$(cfssl gencert -initca ${caJson})"
       echo "$ca" | cfssljson -bare secrets/ca
       echo "$ca" | ${sopsEncrypt} > encrypted/ca.json

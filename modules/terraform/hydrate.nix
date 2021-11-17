@@ -34,10 +34,12 @@ in {
 
     /*
     Bootstrap vault intermediate pki endpoint
-    with local root CA from well-known locations at
-      - ./secrets/ca.pem
-      - ./secrets/ca-key.pem
+    with local root CA from well-known encrypted
+    locations.
     */
+    data.sops_file.ca = {
+      source_file = "./encrypted/ca.json";
+    };
     resource = {
       # TODO: commented parts are currently accomplished by a systemd one-shot
       # vault_pki_secret_backend.pki = {
@@ -93,8 +95,8 @@ in {
       tls_locally_signed_cert.issuing_ca = {
         cert_request_pem = var "vault_pki_secret_backend_intermediate_cert_request.issuing_ca.csr";
         ca_key_algorithm = "ECDSA";
-        ca_private_key_pem = var "file(\"./secrets/ca-key.pem\")";
-        ca_cert_pem = var "file(\"./secrets/ca.pem\")";
+        ca_private_key_pem = var "data.sops_file.ca.data[\"key\"]";
+        ca_cert_pem = var "data.sops_file.ca.data[\"cert\"]";
 
         validity_period_hours = 43800;
         is_ca_certificate = true;
@@ -110,7 +112,7 @@ in {
         backend = "pki";
         certificate = ''
           ${var "tls_locally_signed_cert.issuing_ca.cert_pem"}
-          ${var "file(\"./secrets/ca.pem\")"}
+          ${var "data.sops_file.ca.data[\"cert\"]"}
         '';
       };
     };
