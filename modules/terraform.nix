@@ -51,7 +51,7 @@ let
   userDataDefaultNixosConfigCore = ''
     ### https://nixos.org/channels/nixpkgs-unstable nixos
     { pkgs, config, ... }: {
-      imports = [ "<nixpkgs/nixos/modules/virtualisation/amazon-image.nix>" ];
+      imports = [ <nixpkgs/nixos/modules/virtualisation/amazon-image.nix> ];
 
       nix = {
         package = pkgs.nixFlakes;
