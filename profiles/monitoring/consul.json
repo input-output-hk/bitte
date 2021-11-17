@@ -59,20 +59,14 @@
         "conditions": [
           {
             "evaluator": {
-              "params": [
-                1
-              ],
+              "params": [1],
               "type": "gt"
             },
             "operator": {
               "type": "and"
             },
             "query": {
-              "params": [
-                "A",
-                "5m",
-                "now"
-              ]
+              "params": ["A", "5m", "now"]
             },
             "reducer": {
               "params": [],
@@ -203,20 +197,14 @@
         "conditions": [
           {
             "evaluator": {
-              "params": [
-                1
-              ],
+              "params": [1],
               "type": "gt"
             },
             "operator": {
               "type": "and"
             },
             "query": {
-              "params": [
-                "A",
-                "5m",
-                "now"
-              ]
+              "params": ["A", "5m", "now"]
             },
             "reducer": {
               "params": [],
@@ -345,20 +333,14 @@
         "conditions": [
           {
             "evaluator": {
-              "params": [
-                50
-              ],
+              "params": [50],
               "type": "gt"
             },
             "operator": {
               "type": "and"
             },
             "query": {
-              "params": [
-                "A",
-                "5m",
-                "now"
-              ]
+              "params": ["A", "5m", "now"]
             },
             "reducer": {
               "params": [],
@@ -486,20 +468,14 @@
         "conditions": [
           {
             "evaluator": {
-              "params": [
-                50
-              ],
+              "params": [50],
               "type": "gt"
             },
             "operator": {
               "type": "and"
             },
             "query": {
-              "params": [
-                "A",
-                "5m",
-                "now"
-              ]
+              "params": ["A", "5m", "now"]
             },
             "reducer": {
               "params": [],
@@ -643,20 +619,14 @@
         "conditions": [
           {
             "evaluator": {
-              "params": [
-                20
-              ],
+              "params": [20],
               "type": "gt"
             },
             "operator": {
               "type": "and"
             },
             "query": {
-              "params": [
-                "B",
-                "5m",
-                "now"
-              ]
+              "params": ["B", "5m", "now"]
             },
             "reducer": {
               "params": [],
@@ -791,20 +761,14 @@
         "conditions": [
           {
             "evaluator": {
-              "params": [
-                20
-              ],
+              "params": [20],
               "type": "gt"
             },
             "operator": {
               "type": "and"
             },
             "query": {
-              "params": [
-                "B",
-                "5m",
-                "now"
-              ]
+              "params": ["B", "5m", "now"]
             },
             "reducer": {
               "params": [],
@@ -942,20 +906,14 @@
         "conditions": [
           {
             "evaluator": {
-              "params": [
-                20
-              ],
+              "params": [20],
               "type": "gt"
             },
             "operator": {
               "type": "and"
             },
             "query": {
-              "params": [
-                "B",
-                "5m",
-                "now"
-              ]
+              "params": ["B", "5m", "now"]
             },
             "reducer": {
               "params": [],
@@ -1237,20 +1195,14 @@
         "conditions": [
           {
             "evaluator": {
-              "params": [
-                3000
-              ],
+              "params": [3000],
               "type": "gt"
             },
             "operator": {
               "type": "and"
             },
             "query": {
-              "params": [
-                "A",
-                "5m",
-                "now"
-              ]
+              "params": ["A", "5m", "now"]
             },
             "reducer": {
               "params": [],
@@ -1396,20 +1348,14 @@
         "conditions": [
           {
             "evaluator": {
-              "params": [
-                10
-              ],
+              "params": [10],
               "type": "gt"
             },
             "operator": {
               "type": "and"
             },
             "query": {
-              "params": [
-                "A",
-                "5m",
-                "now"
-              ]
+              "params": ["A", "5m", "now"]
             },
             "reducer": {
               "params": [],
@@ -1419,20 +1365,14 @@
           },
           {
             "evaluator": {
-              "params": [
-                10
-              ],
+              "params": [10],
               "type": "gt"
             },
             "operator": {
               "type": "or"
             },
             "query": {
-              "params": [
-                "B",
-                "5m",
-                "now"
-              ]
+              "params": ["B", "5m", "now"]
             },
             "reducer": {
               "params": [],
