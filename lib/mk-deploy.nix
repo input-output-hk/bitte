@@ -1,9 +1,9 @@
 { deploy, lib }:
 
-{ self, ssh-key }:
+{ self, deploySshKey }:
 
-assert lib.assertMsg (builtins.typeOf ssh-key == "string") ''
-  'ssh-key' arg to 'bitte.lib.mkDeploy' must be a string
+assert lib.assertMsg (builtins.typeOf deploySshKey == "string") ''
+  'deploySshKey' arg to 'bitte.lib.mkDeploy' must be a string
   relative to the flake root where the ssh key can be found.
 '';
 
@@ -11,7 +11,7 @@ let
 
   deploy' = {
     sshUser = "root";
-    sshOpts = [ "-C" "-i" "${ssh-key}" ];
+    sshOpts = [ "-C" "-i" "${deploySshKey}" ];
     nodes = builtins.mapAttrs
       (k: _: {
         profiles.system.user = "root";

@@ -1,4 +1,5 @@
 { mkCluster
+, mkDeploy
 , lib
 }:
 
@@ -7,6 +8,7 @@
 , pkgs
 , domain
 , clusters
+, deploySshKey
 , jobs ? null
 , docker ? null
 , dockerRegistry ? "docker." + domain
@@ -173,8 +175,6 @@ lib.makeScope pkgs.newScope (scope: {
 
   nixosConfigurations = mkNixosConfigurations scope.clusters;
 
-  consulTemplates = scope.callPackage buildConsulTemplates { };
-
   hydraJobs.x86_64-linux =
     let
       nixosConfigurations =
@@ -185,8 +185,11 @@ lib.makeScope pkgs.newScope (scope: {
       required = pkgs.mkRequired nixosConfigurations;
     };
 
-} // lib.optionalAttrs (jobs != null) {
+} // (
+  mkDeploy { inherit self deploySshKey; }
+) // lib.optionalAttrs (jobs != null) {
   nomadJobs = recursiveCallPackage (jobs) extended-pkgs.callPackage;
+  consulTemplates = scope.callPackage buildConsulTemplates { };
 } // lib.optionalAttrs (docker != null) {
   dockerImages =
     let
