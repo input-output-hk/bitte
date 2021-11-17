@@ -110,10 +110,10 @@ in {
       vault_pki_secret_backend_intermediate_set_signed.issuing_ca = {
         # backend = var "vault_pki_secret_backend.pki.path";
         backend = "pki";
-        certificate = ''
-          ${var "tls_locally_signed_cert.issuing_ca.cert_pem"}
-          ${var "data.sops_file.ca.data[\"cert\"]"}
-        '';
+        certificate =
+          (var "tls_locally_signed_cert.issuing_ca.cert_pem") +
+          (var "data.sops_file.ca.data[\"cert\"]")
+        ;
       };
     };
 
