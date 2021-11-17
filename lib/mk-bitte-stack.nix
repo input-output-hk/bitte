@@ -2,7 +2,9 @@
 , lib
 }:
 
-{ flake
+{ self # target flake self
+, inputs
+, pkgs
 , domain
 , clusters
 , jobs ? null
@@ -12,15 +14,6 @@
 }:
 
 let
-  inherit (flake.inputs) nixpkgs;
-
-  pkgs = nixpkgs.legacyPackages.x86_64-linux.extend flake.overlay;
-
-  # extend package set with deployment specifc items
-  prod-pkgs = pkgs.extend (final: prev: {
-    inherit domain dockerRegistry dockerRole vaultDockerPasswordKey;
-  });
-
   # Recurse through a directory and evaluate all expressions
   #
   # Directory -> callPackage(s) -> AttrSet
@@ -137,29 +130,53 @@ let
       ];
     in linkFarm "consul-templates" sources;
 
-in lib.makeScope pkgs.newScope (self:
-  with self; {
+  # extend package set with deployment specifc items
+  # TODO: cleanup
+  extended-pkgs = pkgs.extend (final: prev: {
+    inherit domain dockerRegistry dockerRole vaultDockerPasswordKey;
+  });
 
-    clusters = mkCluster { inherit pkgs; root = clusters; self = flake; };
-    nixosConfigurations = mkNixosConfigurations self.clusters;
+  readDirRec = path: let
+    inherit (builtins) attrNames readDir;
+    inherit (lib) pipe filterAttrs flatten;
+  in
+    pipe path [
+      readDir
+      (filterAttrs (n: v: v == "directory" || n == "default.nix"))
+      attrNames
+      (map (name: path + "/${name}"))
+      (map (child:
+        if (baseNameOf child) == "default.nix" then
+          child
+        else
+          readDirRec child))
+      flatten
+    ];
 
-    consulTemplates = callPackage buildConsulTemplates { };
+in lib.makeScope pkgs.newScope (scope: {
+
+    clusters = mkCluster { inherit pkgs self inputs; clusterFiles = readDirRec clusters; };
+
+    nixosConfigurations = mkNixosConfigurations scope.clusters;
+
+    consulTemplates = scope.callPackage buildConsulTemplates { };
 
     hydraJobs.x86_64-linux = let
       nixosConfigurations =
         lib.mapAttrs (_: { config, ... }: config.system.build.toplevel)
-        self.nixosConfigurations;
+        scope.nixosConfigurations;
     in nixosConfigurations // {
       required = pkgs.mkRequired nixosConfigurations;
     };
+
   } // lib.optionalAttrs (jobs != null) {
-    nomadJobs = recursiveCallPackage (jobs) prod-pkgs.callPackage;
+    nomadJobs = recursiveCallPackage (jobs) extended-pkgs.callPackage;
   } // lib.optionalAttrs (docker != null) {
     dockerImages = let
-      images = recursiveCallPackage (docker) prod-pkgs.callPackages;
+      images = recursiveCallPackage (docker) extended-pkgs.callPackages;
     in lib.mapAttrs imageAttrToCommands images;
-    push-docker-images = callPackage push-docker-images { };
-    load-docker-images = callPackage load-docker-images { };
+    push-docker-images = scope.callPackage push-docker-images { };
+    load-docker-images = scope.callPackage load-docker-images { };
   }
 )
 

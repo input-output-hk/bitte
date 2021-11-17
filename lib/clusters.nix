@@ -4,31 +4,12 @@
 }:
 
 { self # target flake's 'self'
+, inputs
 , pkgs
-, root
+, clusterFiles
 }:
 
-let
-  readDirRec = path: let
-    inherit (builtins) attrNames readDir;
-    inherit (lib) pipe filterAttrs flatten;
-  in
-    pipe path [
-      readDir
-      (filterAttrs (n: v: v == "directory" || n == "default.nix"))
-      attrNames
-      (map (name: path + "/${name}"))
-      (map (child:
-        if (baseNameOf child) == "default.nix" then
-          child
-        else
-          readDirRec child))
-      flatten
-    ];
-
-  clusterFiles = readDirRec root;
-
-in lib.listToAttrs (lib.forEach clusterFiles (file:
+lib.listToAttrs (lib.forEach clusterFiles (file:
   let
 
     mkJob = mkJob proto;
@@ -36,7 +17,7 @@ in lib.listToAttrs (lib.forEach clusterFiles (file:
 
     proto = (
       mkSystem {
-        inherit pkgs self;
+        inherit pkgs self inputs;
         modules = [ file ];
       }
     ).bitteProtoSystem;
@@ -44,7 +25,7 @@ in lib.listToAttrs (lib.forEach clusterFiles (file:
     nodes =
       lib.mapAttrs (nodeName: instance:
         ( mkSystem {
-            inherit pkgs self nodeName;
+            inherit pkgs self inputs nodeName;
             modules = [ { networking.hostName = lib.mkForce nodeName; } file ] ++ instance.modules;
         } ).bitteAmazonSystem
       ) proto.config.cluster.instances;
@@ -52,7 +33,7 @@ in lib.listToAttrs (lib.forEach clusterFiles (file:
     groups =
       lib.mapAttrs (nodeName: instance:
         ( mkSystem {
-          inherit pkgs self nodeName;
+          inherit pkgs self inputs nodeName;
           modules = [ file ] ++ instance.modules;
         } ).bitteAmazonZfsSystem
       ) proto.config.cluster.autoscalingGroups;

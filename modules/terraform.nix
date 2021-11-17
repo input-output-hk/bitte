@@ -1,4 +1,4 @@
-{ self, config, pkgs, lib, nodeName, terralib, ... }:
+{ self, config, pkgs, lib, nodeName, terralib, terranix, ... }:
 let
   inherit (lib) mkOption reverseList;
   inherit (lib.types)
@@ -934,17 +934,11 @@ in {
 
           output = lib.mkOption {
             type = lib.mkOptionType { name = "${name}_config.tf.json"; };
-            apply = v:
-              let
-                compiledConfig =
-                  import (self.inputs.terranix + "/core/default.nix") {
-                    pkgs = self.inputs.nixpkgs.legacyPackages.x86_64-linux;
-                    strip_nulls = false;
-                    terranix_config = {
-                      imports = [ this.config.configuration ];
-                    };
-                  };
-              in pkgs.toPrettyJSON "${name}.tf" compiledConfig.config;
+            apply = v: terranix.lib.terranixConfiguration {
+              inherit pkgs;
+              modules = [ this.config.configuration ];
+              strip_nulls = false;
+            };
           };
 
           config = lib.mkOption {

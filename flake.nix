@@ -14,16 +14,14 @@
     hydra-provisioner.url = "github:input-output-hk/hydra-provisioner";
     hydra-provisioner.inputs.nixpkgs.follows = "nixpkgs";
     hydra-provisioner.inputs.utils.follows = "utils";
+    terranix.url = "github:terranix/terranix";
+    terranix.inputs.nixpkgs.follows = "nixpkgs";
     deploy.url = "github:input-output-hk/deploy-rs";
     deploy.inputs.fenix.follows = "bitte-cli/fenix";
     deploy.inputs.nixpkgs.follows = "bitte-cli/nixpkgs";
     deploy.inputs.utils.follows = "utils";
     ops-lib = {
       url = "github:input-output-hk/ops-lib";
-      flake = false;
-    };
-    terranix = {
-      url = "github:manveru/terranix/cleanup";
       flake = false;
     };
     nomad-source = {

@@ -3,7 +3,12 @@
 }:
 
 { pkgs
+# Different mkSystem service levels:
+#  - While systems might share the foundations herein
+#  - Not all are customized with self, inputs, nodeName, etc.
+# This is no contradiction.
 , self ? null
+, inputs ? null
 , modules ? null
 , nodeName ? null
 }:
@@ -14,7 +19,8 @@ let
       inherit (pkgs) system;
       modules = [ bitte.nixosModule specializationModule ] ++ modules;
       specialArgs = {
-        inherit nodeName self;
+        inherit nodeName self inputs;
+        inherit (bitte.inputs) terranix;
         bittelib = bitte.lib;
         terralib = bitte.lib.terralib;
       };

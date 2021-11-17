@@ -21,12 +21,22 @@ in rec {
     , dockerRegistry ? "docker." + domain, dockerRole ? "developer"
     , vaultDockerPasswordKey ? "kv/nomad-cluster/docker-developer-password"
     }:
-    lib.warn ''
-    mkHashiStack will be deprecated shortly, please use mkBitteStack direcly.
-    See: bitte/lib/default.nix
-    ''
+    if (flake.inputs ? terranix) then
+      lib.warn ''
+      mkHashiStack will be deprecated shortly, please use mkBitteStack direcly.
+      See: bitte/lib/default.nix
+      -> The confusing terranix inputs indirection has been cleaned up, as well.
+      ''
+    else
+      lib.warn ''
+      mkHashiStack will be deprecated shortly, please use mkBitteStack direcly.
+      See: bitte/lib/default.nix
+      ''
     mkBitteStack {
-      inherit flake domain;
+      self = flake;
+      pkgs = flake.inputs.nixpkgs.legacyPackages.x86_64-linux.extend flake.overlay;
+      inherit (flake) inputs;
+      inherit domain;
       inherit dockerRegistry vaultDockerPasswordKey;
       jobs = flake + "/jobs";
       docker = flake + "/docker";
