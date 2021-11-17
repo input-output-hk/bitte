@@ -1,4 +1,4 @@
-{ self, lib, pkgs, nodeName, config, ... }:
+{ self, lib, pkgs, nodeName, config, bittelib, ... }:
 let
   cfg = config.services.nomad;
 
@@ -9,7 +9,7 @@ let
     toLower optionalString;
   inherit (lib.types)
     attrs nullOr attrsOf path package str submodule bool listOf enum port ints;
-  inherit (pkgs) snakeCase;
+  inherit (bittelib) snakeCase ensureDependencies;
 
   # TODO: put this in lib
   sanitize = obj:
@@ -1129,7 +1129,7 @@ in
           start-pre = pkgs.writeShellScript "nomad-start-pre" ''
             PATH="${makeBinPath [ pkgs.coreutils pkgs.busybox ]}"
             set -exuo pipefail
-            # ${pkgs.ensureDependencies [ "consul" "vault" ]}
+            # ${ensureDependencies pkgs [ "consul" "vault" ]}
             cp /etc/ssl/certs/cert-key.pem .
             cp /run/keys/vault-token .
             chown --reference . *.pem

@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, bittelib, ... }:
 let
   cfg = config.services.consul;
   inherit (builtins) elem;
@@ -8,7 +8,7 @@ let
   inherit (lib.types)
     package str enum ints submodule listOf nullOr port path attrsOf attrs bool;
   inherit (builtins) toJSON length attrNames split typeOf;
-  inherit (pkgs) snakeCase;
+  inherit (bittelib) snakeCase;
 
   sanitize = obj:
     lib.getAttr (typeOf obj) {

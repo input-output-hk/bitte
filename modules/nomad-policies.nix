@@ -1,10 +1,11 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, bittelib, ... }:
 let
   inherit (builtins) mapAttrs typeOf listToAttrs length attrNames;
   inherit (lib)
     flip mkOption mkIf mkEnableOption mapAttrsToList remove concatStringsSep;
   inherit (lib.types) addCheck str enum submodule nullOr attrsOf listOf;
-  inherit (pkgs) toPrettyJSON ensureDependencies;
+  inherit (pkgs) toPrettyJSON;
+  inherit (bittelib) ensureDependencies;
 
   sanitize = set:
     let
@@ -165,7 +166,7 @@ in
       Restart = "on-failure";
       RestartSec = "20s";
       WorkingDirectory = "/var/lib/nomad";
-      ExecStartPre = ensureDependencies [ "nomad" ];
+      ExecStartPre = ensureDependencies pkgs [ "nomad" ];
     };
 
     path = with pkgs; [ config.services.nomad.package jq ];

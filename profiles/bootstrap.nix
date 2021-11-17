@@ -1,7 +1,7 @@
-{ lib, pkgs, config, ... }:
+{ lib, pkgs, config, bittelib, ... }:
 
 let
-  inherit (pkgs) ensureDependencies;
+  inherit (bittelib) ensureDependencies;
   inherit (lib)
     mkOption mkOverride mkIf attrNames concatStringsSep optional forEach types;
   inherit (types) lines;
@@ -105,7 +105,7 @@ in
           Restart = "on-failure";
           RestartSec = "20s";
           WorkingDirectory = "/run/keys";
-          ExecStartPre = ensureDependencies [ "consul" "consul-policies" ];
+          ExecStartPre = ensureDependencies pkgs [ "consul" "consul-policies" ];
         };
 
         path = with pkgs; [ consul jq systemd sops ];
@@ -183,7 +183,7 @@ in
         Restart = "on-failure";
         RestartSec = "20s";
         ExecStartPre =
-          ensureDependencies [ "consul-policies" "vault-consul-token" ];
+          ensureDependencies pkgs [ "consul-policies" "vault-consul-token" ];
       };
 
       environment = {
@@ -277,7 +277,7 @@ in
         RemainAfterExit = true;
         Restart = "on-failure";
         RestartSec = "20s";
-        ExecStartPre = ensureDependencies [ "vault" "nomad" ];
+        ExecStartPre = ensureDependencies pkgs [ "vault" "nomad" ];
       };
 
       environment = {
@@ -352,7 +352,7 @@ in
         Restart = "on-failure";
         RestartSec = "20s";
         ExecStartPre =
-          ensureDependencies [ "consul-initial-tokens" "vault-consul-token" ];
+          ensureDependencies pkgs [ "consul-initial-tokens" "vault-consul-token" ];
       };
 
       environment = {

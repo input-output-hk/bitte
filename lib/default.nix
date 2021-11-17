@@ -17,6 +17,8 @@ rec {
   mkSystem = import ./mk-system.nix { inherit nixpkgs bitte; };
   mkJob = import ./mk-job.nix;
 
+  ensureDependencies = import ./ensure-dependencies.nix { inherit lib; };
+
   mkHashiStack =
     { flake
     , domain

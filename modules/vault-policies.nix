@@ -1,11 +1,11 @@
-{ pkgs, lib, config, ... }:
+{ pkgs, lib, config, bittelib, ... }:
 let
   inherit (builtins) toJSON typeOf toFile attrNames;
   inherit (lib)
     mkOption mkIf mkEnableOption mapAttrsToList concatStringsSep remove
     listToAttrs flip forEach;
   inherit (lib.types) listOf enum attrsOf str submodule nullOr;
-  inherit (pkgs) ensureDependencies;
+  inherit (bittelib) ensureDependencies;
 
   rmModules = arg:
     let
@@ -76,7 +76,7 @@ in
       Restart = "on-failure";
       RestartSec = "20s";
       WorkingDirectory = "/var/lib/vault";
-      ExecStartPre = ensureDependencies [ "vault-bootstrap" "vault" ];
+      ExecStartPre = ensureDependencies pkgs [ "vault-bootstrap" "vault" ];
     };
 
     environment = {

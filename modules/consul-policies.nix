@@ -1,10 +1,11 @@
-{ lib, pkgs, config, ... }:
+{ lib, pkgs, config, bittelib, ... }:
 let
   inherit (builtins)
     mapAttrs toJSON readFile concatStringsSep attrValues isString;
   inherit (lib) mkOption mkIf filterAttrs filter flip mkEnableOption;
   inherit (lib.types) attrsOf enum submodule nullOr str listOf;
   inherit (config.instance) bootstrapper;
+  inherit (bittelib) ensureDependencies;
 
   consulIntentionsType = submodule {
     options = {
@@ -203,7 +204,7 @@ in
         RemainAfterExit = true;
         Restart = "on-failure";
         RestartSec = "30s";
-        ExecStartPre = pkgs.ensureDependencies [ "consul" ];
+        ExecStartPre = ensureDependencies pkgs [ "consul" ];
       };
 
       path = with pkgs; [ consul coreutils jq ];

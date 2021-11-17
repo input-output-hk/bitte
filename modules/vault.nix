@@ -1,7 +1,7 @@
-{ lib, config, pkgs, nodeName, ... }:
+{ lib, config, pkgs, nodeName, bittelib, ... }:
 let
   inherit (builtins) split typeOf length attrNames;
-  inherit (pkgs) ensureDependencies snakeCase;
+  inherit (bittelib) ensureDependencies snakeCase;
   inherit (lib)
     mkIf mkEnableOption mkOption flip pipe concatMapStrings isList toLower
     mapAttrs' nameValuePair fileContents filterAttrs hasPrefix mapAttrsToList
@@ -396,7 +396,7 @@ in
           RemainAfterExit = true;
           Restart = "on-failure";
           RestartSec = "20s";
-          ExecStartPre = ensureDependencies [ "consul" ];
+          ExecStartPre = ensureDependencies pkgs [ "consul" ];
         };
 
         path = with pkgs; [ consul curl jq ];
