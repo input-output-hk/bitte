@@ -6,7 +6,7 @@
     nixpkgs-terraform.url =
       "github:input-output-hk/nixpkgs/iohk-terraform-2021-06";
     utils.url = "github:numtide/flake-utils";
-    bitte-cli.url = "github:input-output-hk/bitte-cli/ef59ff2358791c7758865771e28f2b49d939b5aa";
+    bitte-cli.url = "github:input-output-hk/bitte-cli/4f62230520d768dc0c4e0bab5f2c73827a7f367e";
     bitte-cli.inputs.utils.follows = "utils";
     hydra.url = "github:kreisys/hydra/hydra-server-includes";
     hydra.inputs.nix.follows = "nix";
@@ -61,13 +61,7 @@
         config.allowUnfree = true; # for ssm-session-manager-plugin
       };
 
-      lib = import ./lib
-        {
-          inherit (nixpkgs) lib;
-          inherit inputs;
-        } // {
-        inherit (utils.lib) simpleFlake;
-      };
+      lib = import ./lib { inherit (nixpkgs) lib; inherit inputs; };
 
     in
     utils.lib.eachSystem [ "x86_64-linux" ]
@@ -111,6 +105,7 @@
           };
 
       }) // {
+      inherit lib;
       overlay = nixpkgs.lib.composeManyExtensions overlays;
       profiles = lib.mkModules ./profiles;
       nixosModules = lib.mkModules ./modules;
