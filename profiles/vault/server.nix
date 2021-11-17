@@ -6,7 +6,8 @@ let
   full = "/etc/ssl/certs/full.pem";
   cert = "/etc/ssl/certs/cert.pem";
   key = "/var/lib/vault/cert-key.pem";
-in {
+in
+{
   imports = [ ./default.nix ./policies.nix ];
   config = {
     services.vault = {

@@ -7,7 +7,8 @@ let
   ca = "/etc/ssl/certs/ca.pem";
   cert = "/etc/ssl/certs/cert.pem";
   key = "/var/lib/nomad/cert-key.pem";
-in {
+in
+{
   environment.variables = {
     NOMAD_ADDR =
       "https://127.0.0.1:${toString config.services.nomad.ports.http}";
@@ -16,10 +17,11 @@ in {
   services.nomad = {
     data_dir = /var/lib/nomad;
     log_level = "DEBUG";
-    name = if (instances.${nodeName} or null) != null then
-      "nomad-${nodeName}"
-    else
-      null;
+    name =
+      if (instances.${nodeName} or null) != null then
+        "nomad-${nodeName}"
+      else
+        null;
 
     acl.enabled = true;
 

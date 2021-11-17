@@ -4,7 +4,8 @@ with lib;
 with types;
 
 let cfg = config.services.hydra.evaluator;
-in {
+in
+{
   options.services.hydra.evaluator = {
     restricted = (mkEnableOption "restricted evaluation mode") // {
       default = true;

@@ -38,13 +38,13 @@ rec {
     ipv6_cidr_block = null;
   };
 
-  nullRoute = nullRoute' //  {
+  nullRoute = nullRoute' // {
     destination_ipv6_cidr_block = null;
   };
 
   asgVpcs = cluster:
     lib.forEach (builtins.attrValues cluster.autoscalingGroups)
-    (asg: asg.vpc);
+      (asg: asg.vpc);
 
   mapAsgVpcs = cluster: f:
     lib.listToAttrs (lib.flatten (lib.forEach (asgVpcs cluster) f));
@@ -92,11 +92,13 @@ rec {
         (common // { cidr_blocks = lib.unique rule.cidrs; }));
 
       from-ssgi = (lib.nameValuePair
-        "${prefix}-${rule.type}-${protocol}-${rule.name}-ssgi" (common // {
+        "${prefix}-${rule.type}-${protocol}-${rule.name}-ssgi"
+        (common // {
           source_security_group_id = rule.sourceSecurityGroupId;
         }));
 
-    in (lib.optional (rule.self != false) from-self)
+    in
+    (lib.optional (rule.self != false) from-self)
     ++ (lib.optional (rule.cidrs != [ ]) from-cidr)
     ++ (lib.optional (rule.sourceSecurityGroupId != null) from-ssgi));
 }

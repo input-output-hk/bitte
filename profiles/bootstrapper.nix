@@ -4,7 +4,8 @@ let
   inherit (lib) listToAttrs imap1 nameValuePair;
   inherit (config) cluster;
   inherit (cluster) instances domain;
-in {
+in
+{
   imports = [ ./bootstrap.nix ];
 
   services = {

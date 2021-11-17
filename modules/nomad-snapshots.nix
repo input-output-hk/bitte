@@ -212,7 +212,8 @@ let
     };
   };
 
-in {
+in
+{
   options = {
     services.nomad-snapshots = {
       enable = mkEnableOption ''

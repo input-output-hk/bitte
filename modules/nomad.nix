@@ -21,14 +21,15 @@ let
       path = toString obj;
       list = map sanitize obj;
       null = null;
-      set = if (length (attrNames obj) == 0) then
-        null
-      else
-        pipe obj [
-          (filterAttrs
-            (name: value: name != "_module" && name != "_ref" && value != null))
-          (mapAttrs' (name: value: nameValuePair name (sanitize value)))
-        ];
+      set =
+        if (length (attrNames obj) == 0) then
+          null
+        else
+          pipe obj [
+            (filterAttrs
+              (name: value: name != "_module" && name != "_ref" && value != null))
+            (mapAttrs' (name: value: nameValuePair name (sanitize value)))
+          ];
     };
 
   serverJoinType = submodule {
@@ -89,7 +90,8 @@ let
       };
     };
   }));
-in {
+in
+{
   options.services.nomad = {
     enable = mkEnableOption "Enable the Nomad agent";
 
@@ -1122,53 +1124,57 @@ in {
         HOME = "/var/lib/nomad";
       };
 
-      serviceConfig = let
-        start-pre = pkgs.writeShellScript "nomad-start-pre" ''
-          PATH="${makeBinPath [ pkgs.coreutils pkgs.busybox ]}"
-          set -exuo pipefail
-          # ${pkgs.ensureDependencies [ "consul" "vault" ]}
-          cp /etc/ssl/certs/cert-key.pem .
-          cp /run/keys/vault-token .
-          chown --reference . *.pem
-        '';
-      in {
-        ExecStartPre = "!${start-pre}";
-        ExecStart = let
-          args = [ "${cfg.package}/bin/nomad" "agent" ]
-            ++ (lib.optionals (cfg.configDir != null) [
-              "-config"
-              (toString cfg.configDir)
-            ]) ++ (lib.optionals (cfg.pluginDir != null) [
-              "-plugin-dir"
-              (toString cfg.pluginDir)
-            ]);
-        in pkgs.writeShellScript "nomad" ''
-          # TODO: caching this
-          set -euo pipefail
+      serviceConfig =
+        let
+          start-pre = pkgs.writeShellScript "nomad-start-pre" ''
+            PATH="${makeBinPath [ pkgs.coreutils pkgs.busybox ]}"
+            set -exuo pipefail
+            # ${pkgs.ensureDependencies [ "consul" "vault" ]}
+            cp /etc/ssl/certs/cert-key.pem .
+            cp /run/keys/vault-token .
+            chown --reference . *.pem
+          '';
+        in
+        {
+          ExecStartPre = "!${start-pre}";
+          ExecStart =
+            let
+              args = [ "${cfg.package}/bin/nomad" "agent" ]
+                ++ (lib.optionals (cfg.configDir != null) [
+                "-config"
+                (toString cfg.configDir)
+              ]) ++ (lib.optionals (cfg.pluginDir != null) [
+                "-plugin-dir"
+                (toString cfg.pluginDir)
+              ]);
+            in
+            pkgs.writeShellScript "nomad" ''
+              # TODO: caching this
+              set -euo pipefail
 
-          ${optionalString cfg.server.enabled ''
-            VAULT_TOKEN="$(< vault-token)"
-            export VAULT_TOKEN
+              ${optionalString cfg.server.enabled ''
+                VAULT_TOKEN="$(< vault-token)"
+                export VAULT_TOKEN
 
-            token="$(vault token create -policy ${cfg.tokenPolicy} -period 72h -orphan -field token)"
-            export VAULT_TOKEN="$token"
-          ''}
+                token="$(vault token create -policy ${cfg.tokenPolicy} -period 72h -orphan -field token)"
+                export VAULT_TOKEN="$token"
+              ''}
 
-          exec ${
-            lib.concatStringsSep " " args
-          } -consul-token "$(< /run/keys/nomad-consul-token)"
-        '';
+              exec ${
+                lib.concatStringsSep " " args
+              } -consul-token "$(< /run/keys/nomad-consul-token)"
+            '';
 
-        KillMode = "process";
-        LimitNOFILE = "infinity";
-        LimitNPROC = "infinity";
-        TasksMax = "infinity";
-        Restart = "on-failure";
-        RestartSec = 10;
-        StartLimitBurst = 0;
-        WorkingDirectory = "/var/lib/nomad";
-        StateDirectory = "nomad";
-      };
+          KillMode = "process";
+          LimitNOFILE = "infinity";
+          LimitNPROC = "infinity";
+          TasksMax = "infinity";
+          Restart = "on-failure";
+          RestartSec = 10;
+          StartLimitBurst = 0;
+          WorkingDirectory = "/var/lib/nomad";
+          StateDirectory = "nomad";
+        };
     };
   };
 }

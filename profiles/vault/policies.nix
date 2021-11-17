@@ -6,7 +6,8 @@ let
   d = "delete";
   l = "list";
   s = "sudo";
-in {
+in
+{
   services.vault.policies = {
     admin.path = {
       "approle/*".capabilities = [ c r u d l ];

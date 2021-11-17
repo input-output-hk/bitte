@@ -9,7 +9,8 @@
 , clusters
 , jobs ? null
 , docker ? null
-, dockerRegistry ? "docker." + domain, dockerRole ? "developer"
+, dockerRegistry ? "docker." + domain
+, dockerRole ? "developer"
 , vaultDockerPasswordKey ? "kv/nomad-cluster/docker-developer-password"
 }:
 
@@ -24,46 +25,50 @@ let
       fileNames = builtins.attrNames (lib.filterAttrs toImport contents);
       imported = lib.forEach fileNames
         (fileName: callPackage (rootPath + "/${fileName}") { });
-    in lib.foldl' lib.recursiveUpdate { } imported;
+    in
+    lib.foldl' lib.recursiveUpdate { } imported;
 
   # "Expands" a docker image into a set which allows for docker commands
   # to be easily performed. E.g. ".#dockerImages.$Image.push
   imageAttrToCommands = key: image:
     let id = "${image.imageName}:${image.imageTag}";
-    in {
+    in
+    {
       inherit id image;
 
       # Turning this attribute set into a string will return the outPath instead.
       outPath = id;
 
-      push = let
-        parts = builtins.split "/" image.imageName;
-        registry = builtins.elemAt parts 0;
-        repo = builtins.elemAt parts 2;
-      in pkgs.writeShellScriptBin "push" ''
-        set -euo pipefail
+      push =
+        let
+          parts = builtins.split "/" image.imageName;
+          registry = builtins.elemAt parts 0;
+          repo = builtins.elemAt parts 2;
+        in
+        pkgs.writeShellScriptBin "push" ''
+          set -euo pipefail
 
-        export dockerLoginDone="''${dockerLoginDone:-}"
-        export dockerPassword="''${dockerPassword:-}"
+          export dockerLoginDone="''${dockerLoginDone:-}"
+          export dockerPassword="''${dockerPassword:-}"
 
-        if [ -z "$dockerPassword" ]; then
-          dockerPassword="$(vault kv get -field value ${vaultDockerPasswordKey})"
-        fi
+          if [ -z "$dockerPassword" ]; then
+            dockerPassword="$(vault kv get -field value ${vaultDockerPasswordKey})"
+          fi
 
-        if [ -z "$dockerLoginDone" ]; then
-          echo "$dockerPassword" | docker login ${registry} -u ${dockerRole} --password-stdin
-          dockerLoginDone=1
-        fi
+          if [ -z "$dockerLoginDone" ]; then
+            echo "$dockerPassword" | docker login ${registry} -u ${dockerRole} --password-stdin
+            dockerLoginDone=1
+          fi
 
-        echo -n "Pushing ${image.imageName}:${image.imageTag} ... "
+          echo -n "Pushing ${image.imageName}:${image.imageTag} ... "
 
-        if curl -s "https://developer:$dockerPassword@${registry}/v2/${repo}/tags/list" | grep "${image.imageTag}" &> /dev/null; then
-          echo "Image already exists in registry"
-        else
-          docker load -i ${image}
-          docker push ${image.imageName}:${image.imageTag}
-        fi
-      '';
+          if curl -s "https://developer:$dockerPassword@${registry}/v2/${repo}/tags/list" | grep "${image.imageTag}" &> /dev/null; then
+            echo "Image already exists in registry"
+          else
+            docker load -i ${image}
+            docker push ${image.imageName}:${image.imageTag}
+          fi
+        '';
 
       load = pkgs.writeShellScriptBin "load" ''
         set -euo pipefail
@@ -94,8 +99,8 @@ let
     lib.pipe clusters [
       (lib.mapAttrsToList (clusterName: cluster:
         lib.mapAttrsToList
-        (name: value: lib.nameValuePair "${clusterName}-${name}" value)
-        (cluster.nodes // cluster.groups)))
+          (name: value: lib.nameValuePair "${clusterName}-${name}" value)
+          (cluster.nodes // cluster.groups)))
       lib.flatten
       lib.listToAttrs
     ];
@@ -109,16 +114,22 @@ let
           taskGroups = v.evaluated.Job.TaskGroups;
         }))
         (map (e:
-          map (tg:
-            map (t:
-              if t.Templates != null then
-                map (tpl: {
-                  name = lib.concatStringsSep "/"
-                    (e.path ++ [ tg.Name t.Name tpl.DestPath ]);
-                  tmpl = tpl.EmbeddedTmpl;
-                }) t.Templates
-              else
-                null) tg.Tasks) e.taskGroups))
+          map
+            (tg:
+              map
+                (t:
+                  if t.Templates != null then
+                    map
+                      (tpl: {
+                        name = lib.concatStringsSep "/"
+                          (e.path ++ [ tg.Name t.Name tpl.DestPath ]);
+                        tmpl = tpl.EmbeddedTmpl;
+                      })
+                      t.Templates
+                  else
+                    null)
+                tg.Tasks)
+            e.taskGroups))
         builtins.concatLists
         builtins.concatLists
         (lib.filter (e: e != null))
@@ -128,7 +139,8 @@ let
           path = writeText t.name t.tmpl;
         }))
       ];
-    in linkFarm "consul-templates" sources;
+    in
+    linkFarm "consul-templates" sources;
 
   # extend package set with deployment specifc items
   # TODO: cleanup
@@ -136,10 +148,11 @@ let
     inherit domain dockerRegistry dockerRole vaultDockerPasswordKey;
   });
 
-  readDirRec = path: let
-    inherit (builtins) attrNames readDir;
-    inherit (lib) pipe filterAttrs flatten;
-  in
+  readDirRec = path:
+    let
+      inherit (builtins) attrNames readDir;
+      inherit (lib) pipe filterAttrs flatten;
+    in
     pipe path [
       readDir
       (filterAttrs (n: v: v == "directory" || n == "default.nix"))
@@ -153,30 +166,35 @@ let
       flatten
     ];
 
-in lib.makeScope pkgs.newScope (scope: {
+in
+lib.makeScope pkgs.newScope (scope: {
 
-    clusters = mkCluster { inherit pkgs self inputs; clusterFiles = readDirRec clusters; };
+  clusters = mkCluster { inherit pkgs self inputs; clusterFiles = readDirRec clusters; };
 
-    nixosConfigurations = mkNixosConfigurations scope.clusters;
+  nixosConfigurations = mkNixosConfigurations scope.clusters;
 
-    consulTemplates = scope.callPackage buildConsulTemplates { };
+  consulTemplates = scope.callPackage buildConsulTemplates { };
 
-    hydraJobs.x86_64-linux = let
+  hydraJobs.x86_64-linux =
+    let
       nixosConfigurations =
         lib.mapAttrs (_: { config, ... }: config.system.build.toplevel)
-        scope.nixosConfigurations;
-    in nixosConfigurations // {
+          scope.nixosConfigurations;
+    in
+    nixosConfigurations // {
       required = pkgs.mkRequired nixosConfigurations;
     };
 
-  } // lib.optionalAttrs (jobs != null) {
-    nomadJobs = recursiveCallPackage (jobs) extended-pkgs.callPackage;
-  } // lib.optionalAttrs (docker != null) {
-    dockerImages = let
+} // lib.optionalAttrs (jobs != null) {
+  nomadJobs = recursiveCallPackage (jobs) extended-pkgs.callPackage;
+} // lib.optionalAttrs (docker != null) {
+  dockerImages =
+    let
       images = recursiveCallPackage (docker) extended-pkgs.callPackages;
-    in lib.mapAttrs imageAttrToCommands images;
-    push-docker-images = scope.callPackage push-docker-images { };
-    load-docker-images = scope.callPackage load-docker-images { };
-  }
+    in
+    lib.mapAttrs imageAttrToCommands images;
+  push-docker-images = scope.callPackage push-docker-images { };
+  load-docker-images = scope.callPackage load-docker-images { };
+}
 )
 

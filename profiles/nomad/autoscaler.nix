@@ -49,7 +49,8 @@ let
       };
     };
   });
-in {
+in
+{
 
   services.nomad-autoscaler = {
     enable = true;

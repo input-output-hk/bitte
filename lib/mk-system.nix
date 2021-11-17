@@ -3,10 +3,10 @@
 }:
 
 { pkgs
-# Different mkSystem service levels:
-#  - While systems might share the foundations herein
-#  - Not all are customized with self, inputs, nodeName, etc.
-# This is no contradiction.
+  # Different mkSystem service levels:
+  #  - While systems might share the foundations herein
+  #  - Not all are customized with self, inputs, nodeName, etc.
+  # This is no contradiction.
 , self ? null
 , inputs ? null
 , modules ? null
@@ -53,7 +53,8 @@ let
     ];
   });
 
-in {
+in
+{
   inherit
     bitteSystem
     bitteProtoSystem
@@ -61,5 +62,5 @@ in {
     bitteAmazonSystemBaseAMI
     bitteAmazonZfsSystem
     bitteAmazonZfsSystemBaseAMI
-  ;
+    ;
 }

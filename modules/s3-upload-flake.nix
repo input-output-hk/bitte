@@ -3,7 +3,8 @@ let
   inherit (lib) mkIf mkEnableOption;
   inherit (config) cluster;
   inherit (config.cluster) s3Bucket kms;
-in {
+in
+{
   options = {
     services.s3-upload-flake.enable = mkEnableOption ''
       Upload latest flake of this auto scaling group to S3

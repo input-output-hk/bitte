@@ -2,31 +2,34 @@
 let
   inherit (config.cluster) region instances;
   inherit (lib) optional optionalAttrs;
-in {
+in
+{
   systemd.services.telegraf.path = with pkgs; [ procps ];
 
-  services.vulnix.sink = let
-    inherit (config.services.telegraf.extraConfig.inputs.http_listener_v2)
-      service_address path;
-    address =
-      (lib.optionalString (lib.hasPrefix ":" service_address) "127.0.0.1")
-      + service_address;
-  in pkgs.writeBashChecked "vulnix-telegraf" ''
-    function send {
-      ${pkgs.curl}/bin/curl --no-progress-meter \
-        -XPOST http://${address}${path} --data-binary @- "$@"
-    }
+  services.vulnix.sink =
+    let
+      inherit (config.services.telegraf.extraConfig.inputs.http_listener_v2)
+        service_address path;
+      address =
+        (lib.optionalString (lib.hasPrefix ":" service_address) "127.0.0.1")
+        + service_address;
+    in
+    pkgs.writeBashChecked "vulnix-telegraf" ''
+      function send {
+        ${pkgs.curl}/bin/curl --no-progress-meter \
+          -XPOST http://${address}${path} --data-binary @- "$@"
+      }
 
-    if [[ -n "$NOMAD_JOB_NAMESPACE$NOMAD_JOB_ID$NOMAD_JOB_TASKGROUP_NAME$NOMAD_JOB_TASK_NAME" ]]; then
-      send \
-        -H "X-Telegraf-Tag-nomad_namespace: $NOMAD_JOB_NAMESPACE" \
-        -H "X-Telegraf-Tag-nomad_job: $NOMAD_JOB_ID" \
-        -H "X-Telegraf-Tag-nomad_taskgroup: $NOMAD_JOB_TASKGROUP_NAME" \
-        -H "X-Telegraf-Tag-nomad_task: $NOMAD_JOB_TASK_NAME"
-    else
-      send
-    fi
-  '';
+      if [[ -n "$NOMAD_JOB_NAMESPACE$NOMAD_JOB_ID$NOMAD_JOB_TASKGROUP_NAME$NOMAD_JOB_TASK_NAME" ]]; then
+        send \
+          -H "X-Telegraf-Tag-nomad_namespace: $NOMAD_JOB_NAMESPACE" \
+          -H "X-Telegraf-Tag-nomad_job: $NOMAD_JOB_ID" \
+          -H "X-Telegraf-Tag-nomad_taskgroup: $NOMAD_JOB_TASKGROUP_NAME" \
+          -H "X-Telegraf-Tag-nomad_task: $NOMAD_JOB_TASK_NAME"
+      else
+        send
+      fi
+    '';
 
   services.telegraf = {
     enable = true;
@@ -65,27 +68,29 @@ in {
           percentile_limit = 1000;
         };
 
-        prometheus = let
-          promtail = "http://127.0.0.1:${
+        prometheus =
+          let
+            promtail = "http://127.0.0.1:${
               toString config.services.promtail.server.http_listen_port
             }/metrics";
-          autoscaling = "http://127.0.0.1:${
+            autoscaling = "http://127.0.0.1:${
               toString config.services.nomad-autoscaler.http.bind_port
             }/v1/metrics?format=prometheus";
-          loki = "http://127.0.0.1:${
+            loki = "http://127.0.0.1:${
               toString
               config.services.loki.configuration.server.http_listen_port
             }/metrics";
-          traefik = "http://127.0.0.1:${
+            traefik = "http://127.0.0.1:${
               toString config.services.traefik.prometheusPort
             }/metrics";
-        in {
-          urls = optional config.services.promtail.enable promtail
-            ++ optional config.services.loki.enable loki
-            ++ optional config.services.nomad-autoscaler.enable autoscaling
-            ++ optional config.services.traefik.enable traefik;
-          metric_version = 2;
-        };
+          in
+          {
+            urls = optional config.services.promtail.enable promtail
+              ++ optional config.services.loki.enable loki
+              ++ optional config.services.nomad-autoscaler.enable autoscaling
+              ++ optional config.services.traefik.enable traefik;
+            metric_version = 2;
+          };
 
         cpu = {
           percpu = true;

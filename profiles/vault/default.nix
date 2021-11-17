@@ -8,7 +8,8 @@ let
   ca = "/etc/ssl/certs/ca.pem";
   cert = "/etc/ssl/certs/cert.pem";
   key = "/var/lib/vault/cert-key.pem";
-in {
+in
+{
   config = mkIf cfg.enable {
     environment.variables = {
       VAULT_FORMAT = "json";

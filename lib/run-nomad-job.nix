@@ -1,5 +1,20 @@
-{ name, lib, json, dockerImages, writeShellScriptBin, vault-bin, awscli
-, coreutils, jq, nomad, consul, nixFlakes, curl, gnugrep, gitMinimal, skopeo }:
+{ name
+, lib
+, json
+, dockerImages
+, writeShellScriptBin
+, vault-bin
+, awscli
+, coreutils
+, jq
+, nomad
+, consul
+, nixFlakes
+, curl
+, gnugrep
+, gitMinimal
+, skopeo
+}:
 let
   pushImage = imageId: image:
     let
@@ -8,7 +23,8 @@ let
       repo = builtins.elemAt parts 2;
       url =
         "https://developer:$dockerPassword@${registry}/v2/${repo}/tags/list";
-    in ''
+    in
+    ''
       echo -n "Pushing ${image.imageName}:${image.imageTag} ... "
 
       if curl -s "${url}" | grep "${image.imageTag}" &> /dev/null; then
@@ -25,7 +41,8 @@ let
       fi
     '';
   pushImages = lib.mapAttrsToList pushImage dockerImages;
-in writeShellScriptBin "nomad-run" ''
+in
+writeShellScriptBin "nomad-run" ''
   export PATH="${
     lib.makeBinPath [
       vault-bin

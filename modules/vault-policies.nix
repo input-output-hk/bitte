@@ -9,20 +9,24 @@ let
 
   rmModules = arg:
     let
-      sanitized = mapAttrsToList (name: value:
-        if name == "_module" then
-          null
-        else {
-          inherit name;
-          value = if typeOf value == "set" then rmModules value else value;
-        }) arg;
-    in listToAttrs (remove null sanitized);
+      sanitized = mapAttrsToList
+        (name: value:
+          if name == "_module" then
+            null
+          else {
+            inherit name;
+            value = if typeOf value == "set" then rmModules value else value;
+          })
+        arg;
+    in
+    listToAttrs (remove null sanitized);
 
   policy2hcl = name: value:
-    pkgs.runCommandLocal "json2hcl" {
-      src = toFile "${name}.json" (toJSON (rmModules value));
-      nativeBuildInputs = [ pkgs.json2hcl ];
-    } ''
+    pkgs.runCommandLocal "json2hcl"
+      {
+        src = toFile "${name}.json" (toJSON (rmModules value));
+        nativeBuildInputs = [ pkgs.json2hcl ];
+      } ''
       json2hcl < "$src" > "$out"
     '';
 
@@ -49,7 +53,8 @@ let
 
   createNomadRoles = flip mapAttrsToList config.services.nomad.policies
     (name: policy: ''vault write "nomad/role/${name}" "policies=${name}"'');
-in {
+in
+{
   options = {
     services.vault.policies = mkOption {
       type = attrsOf vaultPoliciesType;

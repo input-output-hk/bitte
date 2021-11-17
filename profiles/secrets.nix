@@ -69,7 +69,8 @@ let
     ] ++ (lib.mapAttrsToList (_: i: i.privateIP) instances);
   };
 
-in {
+in
+{
   secrets.generate.consul = lib.mkIf isInstance ''
     export PATH="${lib.makeBinPath (with pkgs; [ consul toybox jq coreutils ])}"
 

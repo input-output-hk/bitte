@@ -5,22 +5,21 @@ let
   deprecated = k: v:
     lib.warn ''${k} is deprecated from the bitte overlay.
       See bitte/overlay.nix
-    '' v;
-in final: prev:
+    ''
+      v;
+in
+final: prev:
 {
   nix = inputs.nix.packages.x86_64-linux.nix;
   nixFlakes = final.nix;
   nixUnstable = final.nix;
 
-  inherit (inputs.bitte-cli.legacyPackages.${final.system})
-    damon
-    bitte
-  ;
-
-  ssh-keys = let
-    keys = import (ops-lib + "/overlays/ssh-keys.nix") lib;
-    inherit (keys) allKeysFrom devOps;
-  in { devOps = allKeysFrom devOps; };
+  ssh-keys =
+    let
+      keys = import (ops-lib + "/overlays/ssh-keys.nix") lib;
+      inherit (keys) allKeysFrom devOps;
+    in
+    { devOps = allKeysFrom devOps; };
 
 
   ssm-agent = prev.callPackage ./pkgs/ssm-agent { };
@@ -50,14 +49,16 @@ in final: prev:
 
   # Remove once nixpkgs is using openssh 8.7p1+ by default to avoid coredumps
   # Ref: https://bbs.archlinux.org/viewtopic.php?id=265221
-  opensshNoCoredump = let version = "8.7p1";
-  in prev.opensshPackages.openssh.overrideAttrs (oldAttrs: {
-    inherit version;
-    src = prev.fetchurl {
-      url = "mirror://openbsd/OpenSSH/portable/openssh-${version}.tar.gz";
-      sha256 = "sha256-fKNLi7JK6eUPM3krcJGzhB1+G0QP9XvJ+r3fAeLtHiQ=";
-    };
-  });
+  opensshNoCoredump =
+    let version = "8.7p1";
+    in
+    prev.opensshPackages.openssh.overrideAttrs (oldAttrs: {
+      inherit version;
+      src = prev.fetchurl {
+        url = "mirror://openbsd/OpenSSH/portable/openssh-${version}.tar.gz";
+        sha256 = "sha256-fKNLi7JK6eUPM3krcJGzhB1+G0QP9XvJ+r3fAeLtHiQ=";
+      };
+    });
 
   # Little convenience function helping us to containing the bash
   # madness: forcing our bash scripts to be shellChecked.
@@ -71,28 +72,34 @@ in final: prev:
   toPrettyJSON = final.callPackage ./pkgs/to-pretty-json.nix { };
 
 
-  scaler-guard = let deps = with final; [ awscli bash curl jq nomad ];
-  in prev.runCommandLocal "scaler-guard" {
-    script = ./scripts/scaler-guard.sh;
-    nativeBuildInputs = [ prev.makeWrapper ];
-  } ''
-    makeWrapper $script $out/bin/scaler-guard \
-      --prefix PATH : ${prev.lib.makeBinPath deps}
-  '';
+  scaler-guard =
+    let deps = with final; [ awscli bash curl jq nomad ];
+    in
+    prev.runCommandLocal "scaler-guard"
+      {
+        script = ./scripts/scaler-guard.sh;
+        nativeBuildInputs = [ prev.makeWrapper ];
+      } ''
+      makeWrapper $script $out/bin/scaler-guard \
+        --prefix PATH : ${prev.lib.makeBinPath deps}
+    '';
 
   terraform-provider-names =
     [ "acme" "aws" "consul" "local" "nomad" "null" "sops" "tls" "vault" ];
-  terraform-provider-versions = lib.listToAttrs (map (name:
-    let
-      provider = final.terraform-providers.${name};
-      provider-source-address =
-        provider.provider-source-address or "registry.terraform.io/nixpkgs/${name}";
-      parts = lib.splitString "/" provider-source-address;
-      source = lib.concatStringsSep "/" (lib.tail parts);
-    in lib.nameValuePair name {
-      inherit source;
-      version = "= ${provider.version}";
-    }) final.terraform-provider-names);
+  terraform-provider-versions = lib.listToAttrs (map
+    (name:
+      let
+        provider = final.terraform-providers.${name};
+        provider-source-address =
+          provider.provider-source-address or "registry.terraform.io/nixpkgs/${name}";
+        parts = lib.splitString "/" provider-source-address;
+        source = lib.concatStringsSep "/" (lib.tail parts);
+      in
+      lib.nameValuePair name {
+        inherit source;
+        version = "= ${provider.version}";
+      })
+    final.terraform-provider-names);
 
   nixpkgs-terraform-pkgs = nixpkgs-terraform.legacyPackages.${final.system};
 
@@ -124,8 +131,8 @@ in final: prev:
   '';
 
 }
-//
-# DEPRECATED
+  //
+  # DEPRECATED
 (lib.mapAttrs deprecated {
 
   # Do use bitte.lib directly, instead
@@ -135,13 +142,14 @@ in final: prev:
     snakeCase
     mkNomadJob
     terralib
-  ;
+    ;
 
   # Do use bitteShell, instead
   bitteShellCompat = lib.warn ''
     'bitteShellCompat' is deprecated.
     Use the unified 'bitteShell' instead.
-  '' final.bitteShell;
+  ''
+    final.bitteShell;
 
   # Clutter: organize better or remove
   mkShellNoCC = prev.mkShell.override { stdenv = prev.stdenvNoCC; };
@@ -154,7 +162,8 @@ in final: prev:
     let
       checks = lib.concatStringsSep "\n" (lib.forEach services (service:
         "${prev.systemd}/bin/systemctl is-active '${service}.service'"));
-    in prev.writeShellScript "check" ''
+    in
+    prev.writeShellScript "check" ''
       set -exuo pipefail
       ${checks}
     '';
@@ -166,7 +175,8 @@ in final: prev:
         inherit (inputs.self)
           lastModified lastModifiedDate narHash outPath shortRev rev;
       });
-    in final.releaseTools.aggregate {
+    in
+    final.releaseTools.aggregate {
       name = "required";
       constituents = (lib.attrValues constituents) ++ [ build-version ];
       meta.description = "All required derivations";

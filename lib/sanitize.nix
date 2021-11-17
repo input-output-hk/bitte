@@ -13,13 +13,15 @@ let
       path = toString obj;
       list = map sanitize obj;
       null = null;
-      set = if (length (attrNames obj) == 0) then
-        null
-      else
-        pipe obj [
-          (filterAttrs
-            (name: value: name != "_module" && name != "_ref" && value != null))
-          (mapAttrs' (name: value: nameValuePair name (sanitize value)))
-        ];
+      set =
+        if (length (attrNames obj) == 0) then
+          null
+        else
+          pipe obj [
+            (filterAttrs
+              (name: value: name != "_module" && name != "_ref" && value != null))
+            (mapAttrs' (name: value: nameValuePair name (sanitize value)))
+          ];
     };
-in sanitize
+in
+sanitize

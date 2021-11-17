@@ -75,40 +75,44 @@ let
   # ${asg}-source.tar.xz is produced by s3-upload-flake.service
   # of one of the latest successfully provisioned member of this
   # auto scaling group
-  userDataDefaultNixosConfigAsg = asg: let
-    nixConf = ''
-      extra-substituters = ${cfg.s3Cache}
-      extra-trusted-public-keys = ${cfg.s3CachePubKey}
+  userDataDefaultNixosConfigAsg = asg:
+    let
+      nixConf = ''
+        extra-substituters = ${cfg.s3Cache}
+        extra-trusted-public-keys = ${cfg.s3CachePubKey}
+      '';
+      # amazon-init detects the shebang as a signal
+      # but does not actually execve the script:
+      # interpreter fixed to pkgs.runtimeShell.
+      # For available packages, see or modify /profiles/slim.nix
+    in
+    ''
+      #!
+      export NIX_CONFIG="${nixConf}"
+      export PATH="/run/current-system/sw/bin:$PATH"
+      set -exuo pipefail
+      pushd /run/keys
+      err_code=0
+      aws s3 cp \
+        "s3://${cfg.s3Bucket}/infra/secrets/${cfg.name}/${cfg.kms}/source/${asg}-source.tar.xz" \
+        source.tar.xz || err_code=$?
+      if test $err_code -eq 0
+      then # automated provisioning
+        mkdir -p source
+        tar xvf source.tar.xz -C source
+        nix build ./source#nixosConfigurations.${cfg.name}-${asg}.config.system.build.toplevel
+        nixos-rebuild --flake ./source#${cfg.name}-${asg} switch
+      fi # manual provisioning
     '';
-  # amazon-init detects the shebang as a signal
-  # but does not actually execve the script:
-  # interpreter fixed to pkgs.runtimeShell.
-  # For available packages, see or modify /profiles/slim.nix
-  in ''
-    #!
-    export NIX_CONFIG="${nixConf}"
-    export PATH="/run/current-system/sw/bin:$PATH"
-    set -exuo pipefail
-    pushd /run/keys
-    err_code=0
-    aws s3 cp \
-      "s3://${cfg.s3Bucket}/infra/secrets/${cfg.name}/${cfg.kms}/source/${asg}-source.tar.xz" \
-      source.tar.xz || err_code=$?
-    if test $err_code -eq 0
-    then # automated provisioning
-      mkdir -p source
-      tar xvf source.tar.xz -C source
-      nix build ./source#nixosConfigurations.${cfg.name}-${asg}.config.system.build.toplevel
-      nixos-rebuild --flake ./source#${cfg.name}-${asg} switch
-    fi # manual provisioning
-  '';
 
-  localProvisionerDefaultCommand = ip: let
+  localProvisionerDefaultCommand = ip:
+    let
       nixConf = ''
         experimental-features = nix-command flakes ca-references
       '';
       newKernelVersion = config.boot.kernelPackages.kernel.version;
-    in ''
+    in
+    ''
       echo
       echo Waiting for ssh to come up on port 22 ...
       while [ -z "$(
@@ -736,20 +740,22 @@ let
 
       vpc = mkOption {
         type = vpcType this.config.uid;
-        default = let base = toString (vpcMap.${this.config.region} * 4);
-        in {
-          region = this.config.region;
+        default =
+          let base = toString (vpcMap.${this.config.region} * 4);
+          in
+          {
+            region = this.config.region;
 
-          cidr = "10.${base}.0.0/16";
+            cidr = "10.${base}.0.0/16";
 
-          name = "${cfg.name}-${this.config.region}-asgs";
-          subnets = {
-            a.cidr = "10.${base}.0.0/18";
-            b.cidr = "10.${base}.64.0/18";
-            c.cidr = "10.${base}.128.0/18";
-            # d.cidr = "10.${base}.192.0/18";
+            name = "${cfg.name}-${this.config.region}-asgs";
+            subnets = {
+              a.cidr = "10.${base}.0.0/18";
+              b.cidr = "10.${base}.64.0/18";
+              c.cidr = "10.${base}.128.0/18";
+              # d.cidr = "10.${base}.192.0/18";
+            };
           };
-        };
       };
 
       userData = mkOption {
@@ -827,7 +833,8 @@ let
       };
     };
   });
-in {
+in
+{
   options = {
     cluster = mkOption {
       type = clusterType;
@@ -847,135 +854,137 @@ in {
     tf = lib.mkOption {
       default = { };
       type = attrsOf (submodule ({ name, ... }@this: {
-        options = let
-          backend = "https://vault.infra.aws.iohkdev.io/v1";
-          copy = ''
-            export PATH="${
-              lib.makeBinPath [ pkgs.coreutils pkgs.terraform-with-plugins ]
-            }"
-            set -euo pipefail
+        options =
+          let
+            backend = "https://vault.infra.aws.iohkdev.io/v1";
+            copy = ''
+              export PATH="${
+                lib.makeBinPath [ pkgs.coreutils pkgs.terraform-with-plugins ]
+              }"
+              set -euo pipefail
 
-            rm -f config.tf.json
-            cp "${this.config.output}" config.tf.json
-            chmod u+rw config.tf.json
-          '';
+              rm -f config.tf.json
+              cp "${this.config.output}" config.tf.json
+              chmod u+rw config.tf.json
+            '';
 
-          prepare = ''
-            for arg in "$@"
-            do
-              case "$arg" in
-                *routing*|routing*|*routing)
-                  echo
-                  echo -----------------------------------------------------
-                  echo CAUTION: It appears that you are indulging on a
-                  echo terraform operation specifically involving routing.
-                  echo Are you redeploying routing?
-                  echo -----------------------------------------------------
-                  echo You MUST know that a redeploy of routing will
-                  echo necesarily re-trigger the bootstrapping of the ACME
-                  echo service.
-                  echo -----------------------------------------------------
-                  echo You MUST also know that LetsEncrypt enforces a non-
-                  echo recoverable rate limit of 5 generations per week.
-                  echo That means: only ever redeploy routing max 5 times
-                  echo per week on a rolling basis. Switch to the LetsEncrypt
-                  echo staging envirenment if you plan on deploying routing
-                  echo more often!
-                  echo -----------------------------------------------------
-                  echo
-                  read -p "Do you want to continue this operation? [y/n] " -n 1 -r
-                  if [[ ! "$REPLY" =~ ^[Yy]$ ]]
-                  then
-                    exit
-                  fi
-                  ;;
-              esac
-            done
+            prepare = ''
+              for arg in "$@"
+              do
+                case "$arg" in
+                  *routing*|routing*|*routing)
+                    echo
+                    echo -----------------------------------------------------
+                    echo CAUTION: It appears that you are indulging on a
+                    echo terraform operation specifically involving routing.
+                    echo Are you redeploying routing?
+                    echo -----------------------------------------------------
+                    echo You MUST know that a redeploy of routing will
+                    echo necesarily re-trigger the bootstrapping of the ACME
+                    echo service.
+                    echo -----------------------------------------------------
+                    echo You MUST also know that LetsEncrypt enforces a non-
+                    echo recoverable rate limit of 5 generations per week.
+                    echo That means: only ever redeploy routing max 5 times
+                    echo per week on a rolling basis. Switch to the LetsEncrypt
+                    echo staging envirenment if you plan on deploying routing
+                    echo more often!
+                    echo -----------------------------------------------------
+                    echo
+                    read -p "Do you want to continue this operation? [y/n] " -n 1 -r
+                    if [[ ! "$REPLY" =~ ^[Yy]$ ]]
+                    then
+                      exit
+                    fi
+                    ;;
+                esac
+              done
 
-            ${copy}
-            if [ -z "''${GITHUB_TOKEN:-}" ]; then
-              echo
-              echo -----------------------------------------------------
-              echo ERROR: env variable GITHUB_TOKEN is not set or empty.
-              echo Yet, it is required to authenticate before the
-              echo infra cluster vault terraform backend.
-              echo -----------------------------------------------------
-              echo "Please 'export GITHUB_TOKEN=ghp_hhhhhhhh...' using"
-              echo your appropriate personal github access token.
-              echo -----------------------------------------------------
-              exit 1
-            fi
+              ${copy}
+              if [ -z "''${GITHUB_TOKEN:-}" ]; then
+                echo
+                echo -----------------------------------------------------
+                echo ERROR: env variable GITHUB_TOKEN is not set or empty.
+                echo Yet, it is required to authenticate before the
+                echo infra cluster vault terraform backend.
+                echo -----------------------------------------------------
+                echo "Please 'export GITHUB_TOKEN=ghp_hhhhhhhh...' using"
+                echo your appropriate personal github access token.
+                echo -----------------------------------------------------
+                exit 1
+              fi
 
-            user="''${TF_HTTP_USERNAME:-TOKEN}"
-            pass="''${TF_HTTP_PASSWORD:-$( \
-              ${pkgs.curl}/bin/curl -s -d "{\"token\": \"$GITHUB_TOKEN\"}" \
-              ${backend}/auth/github-terraform/login \
-              | ${pkgs.jq}/bin/jq -r '.auth.client_token' \
-            )}"
+              user="''${TF_HTTP_USERNAME:-TOKEN}"
+              pass="''${TF_HTTP_PASSWORD:-$( \
+                ${pkgs.curl}/bin/curl -s -d "{\"token\": \"$GITHUB_TOKEN\"}" \
+                ${backend}/auth/github-terraform/login \
+                | ${pkgs.jq}/bin/jq -r '.auth.client_token' \
+              )}"
 
-            if [ -z "''${TF_HTTP_PASSWORD:-}" ]; then
-              echo
-              echo -----------------------------------------------------
-              echo TIP: you can avoid repetitive calls to the infra auth
-              echo api by exporting the following env variables as is:
-              echo -----------------------------------------------------
-              echo "export TF_HTTP_USERNAME=\"$user\""
-              echo "export TF_HTTP_PASSWORD=\"$pass\""
-              echo -----------------------------------------------------
-            fi
+              if [ -z "''${TF_HTTP_PASSWORD:-}" ]; then
+                echo
+                echo -----------------------------------------------------
+                echo TIP: you can avoid repetitive calls to the infra auth
+                echo api by exporting the following env variables as is:
+                echo -----------------------------------------------------
+                echo "export TF_HTTP_USERNAME=\"$user\""
+                echo "export TF_HTTP_PASSWORD=\"$pass\""
+                echo -----------------------------------------------------
+              fi
 
-            export TF_HTTP_USERNAME="$user"
-            export TF_HTTP_PASSWORD="$pass"
+              export TF_HTTP_USERNAME="$user"
+              export TF_HTTP_PASSWORD="$pass"
 
-            terraform init 1>&2
-          '';
-        in {
-          configuration = lib.mkOption { type = attrsOf unspecified; };
+              terraform init 1>&2
+            '';
+          in
+          {
+            configuration = lib.mkOption { type = attrsOf unspecified; };
 
-          output = lib.mkOption {
-            type = lib.mkOptionType { name = "${name}_config.tf.json"; };
-            apply = v: terranix.lib.terranixConfiguration {
-              inherit pkgs;
-              modules = [ this.config.configuration ];
-              strip_nulls = false;
+            output = lib.mkOption {
+              type = lib.mkOptionType { name = "${name}_config.tf.json"; };
+              apply = v: terranix.lib.terranixConfiguration {
+                inherit pkgs;
+                modules = [ this.config.configuration ];
+                strip_nulls = false;
+              };
+            };
+
+            config = lib.mkOption {
+              type = lib.mkOptionType { name = "${name}-config"; };
+              apply = v: pkgs.writeShellScriptBin "${name}-config" copy;
+            };
+
+            plan = lib.mkOption {
+              type = lib.mkOptionType { name = "${name}-plan"; };
+              apply = v:
+                pkgs.writeShellScriptBin "${name}-plan" ''
+                  ${prepare}
+
+                  terraform plan -out ${name}.plan "$@"
+                '';
+            };
+
+            apply = lib.mkOption {
+              type = lib.mkOptionType { name = "${name}-apply"; };
+              apply = v:
+                pkgs.writeShellScriptBin "${name}-apply" ''
+                  ${prepare}
+
+                  terraform apply ${name}.plan "$@"
+                '';
+            };
+
+            terraform = lib.mkOption {
+              type = lib.mkOptionType { name = "${name}-apply"; };
+              apply = v:
+                pkgs.writeShellScriptBin "${name}-apply" ''
+                  ${prepare}
+
+                  terraform $@
+                '';
             };
           };
-
-          config = lib.mkOption {
-            type = lib.mkOptionType { name = "${name}-config"; };
-            apply = v: pkgs.writeShellScriptBin "${name}-config" copy;
-          };
-
-          plan = lib.mkOption {
-            type = lib.mkOptionType { name = "${name}-plan"; };
-            apply = v:
-              pkgs.writeShellScriptBin "${name}-plan" ''
-                ${prepare}
-
-                terraform plan -out ${name}.plan "$@"
-              '';
-          };
-
-          apply = lib.mkOption {
-            type = lib.mkOptionType { name = "${name}-apply"; };
-            apply = v:
-              pkgs.writeShellScriptBin "${name}-apply" ''
-                ${prepare}
-
-                terraform apply ${name}.plan "$@"
-              '';
-          };
-
-          terraform = lib.mkOption {
-            type = lib.mkOptionType { name = "${name}-apply"; };
-            apply = v:
-              pkgs.writeShellScriptBin "${name}-apply" ''
-                ${prepare}
-
-                terraform $@
-              '';
-          };
-        };
       }));
     };
   };

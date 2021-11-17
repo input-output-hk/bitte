@@ -21,6 +21,5 @@ mkShell.override { stdenv = stdenvNoCC; } {
     ssm-session-manager-plugin
     terraform-with-plugins
     vault-bin
-    hydra-provisioner
   ];
 }

@@ -5,7 +5,8 @@ let
   # it to 2*0.9 = 1.8.
   quotaSize =
     config.tf.core.configuration.resource.aws_ebs_volume.${nodeName}.size * 1.8;
-in {
+in
+{
   imports =
     [ ../common.nix ../telegraf.nix ../secrets.nix ../vault/client.nix ];
 

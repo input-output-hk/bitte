@@ -5,15 +5,12 @@
     nixpkgs.url = "github:nixos/nixpkgs/release-21.05";
     nixpkgs-terraform.url =
       "github:input-output-hk/nixpkgs/iohk-terraform-2021-06";
-    utils.url = "github:kreisys/flake-utils";
-    bitte-cli.url = "github:input-output-hk/bitte-cli/v21.11.08";
+    utils.url = "github:numtide/flake-utils";
+    bitte-cli.url = "github:input-output-hk/bitte-cli/ef59ff2358791c7758865771e28f2b49d939b5aa";
     bitte-cli.inputs.utils.follows = "utils";
     hydra.url = "github:kreisys/hydra/hydra-server-includes";
     hydra.inputs.nix.follows = "nix";
     hydra.inputs.nixpkgs.follows = "nixpkgs";
-    hydra-provisioner.url = "github:input-output-hk/hydra-provisioner";
-    hydra-provisioner.inputs.nixpkgs.follows = "nixpkgs";
-    hydra-provisioner.inputs.utils.follows = "utils";
     terranix.url = "github:terranix/terranix";
     terranix.inputs.nixpkgs.follows = "nixpkgs";
     deploy.url = "github:input-output-hk/deploy-rs";
@@ -37,57 +34,86 @@
     nix.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, hydra, hydra-provisioner, nixpkgs, utils, bitte-cli, deploy
-    , ... }@inputs:
+  outputs =
+    { self
+    , hydra
+    , nixpkgs
+    , utils
+    , bitte-cli
+    , deploy
+    , ...
+    }@inputs:
     let
-      lib = import ./lib {
-        inherit (nixpkgs) lib;
-        inherit inputs;
-      } // {
+
+      overlays = [
+        bitte-cli.overlay
+        # `bitte` build depend on nixpkgs-unstable rust version
+        # TODO: remove when bitte itself is bumped
+        (final: prev: { inherit (bitte-cli.legacyPackages.${final.system}) bitte; })
+        hydra.overlay
+        deploy.overlay
+        localPkgsOverlay
+      ];
+      localPkgsOverlay = import ./overlay.nix inputs;
+
+      pkgsForSystem = system: import nixpkgs {
+        inherit overlays system;
+        config.allowUnfree = true; # for ssm-session-manager-plugin
+      };
+
+      lib = import ./lib
+        {
+          inherit (nixpkgs) lib;
+          inherit inputs;
+        } // {
         inherit (utils.lib) simpleFlake;
       };
-      localOverlay = import ./overlay.nix inputs;
-      overlays = [ bitte-cli.overlay localOverlay ];
-    in lib.simpleFlake rec {
-      inherit lib nixpkgs;
 
-      systems = [ "x86_64-linux" ];
+    in
+    utils.lib.eachSystem [ "x86_64-linux" ]
+      (system: rec {
 
-      preOverlays = [ hydra-provisioner hydra deploy ];
+        legacyPackages = pkgsForSystem system;
+
+        devShell = legacyPackages.devShell;
+
+        hydraJobs =
+          let
+            constituents = {
+              inherit (legacyPackages)
+                asgAMIClients
+                asgAMICores
+                bitte
+                cfssl
+                ci-env
+                consul
+                cue
+                glusterfs
+                grafana-loki
+                haproxy
+                haproxy-auth-request
+                haproxy-cors
+                nixFlakes
+                nomad
+                nomad-autoscaler
+                oauth2-proxy
+                sops
+                ssm-agent
+                terraform-with-plugins
+                vault-backend
+                vault-bin
+                ;
+            };
+          in
+          {
+            inherit constituents;
+            required = legacyPackages.mkRequired constituents;
+          };
+
+      }) // {
       overlay = nixpkgs.lib.composeManyExtensions overlays;
-
-      config.allowUnfree = true; # for ssm-session-manager-plugin
-
-      shell = { devShell }: devShell;
-
-      packages = { bitte, cfssl, consul, cue, glusterfs, grafana-loki, haproxy
-        , haproxy-auth-request, haproxy-cors, nixFlakes, nomad, nomad-autoscaler
-        , oauth2-proxy, sops, ssm-agent, terraform-with-plugins, vault-backend
-        , vault-bin, ci-env, uploadBaseAMIs }@pkgs:
-        pkgs;
-
-      hydraJobs = { bitte, cfssl, consul, cue, glusterfs, grafana-loki, haproxy
-        , haproxy-auth-request, haproxy-cors, nixFlakes, nomad, nomad-autoscaler
-        , oauth2-proxy, sops, ssm-agent, terraform-with-plugins, vault-backend
-        , vault-bin, ci-env, mkRequired, asgAMIClients, asgAMICores }@pkgs:
-        let constituents = builtins.removeAttrs pkgs [ "mkRequired" ];
-        in constituents // { required = mkRequired constituents; };
-
-      apps = { bitte }: {
-        bitte = utils.lib.mkApp { drv = bitte; };
-        defaultApp = utils.lib.mkApp { drv = bitte; };
-      };
-
-      nixosModules = (lib.mkModules ./modules) // {
-        hydra-provisioner = hydra-provisioner.nixosModule;
-      };
-
-      # Nix supports both singular `nixosModule` and plural `nixosModules`
-      # so I use the singular as a `defaultNixosModule` that won't spew a warning.
+      profiles = lib.mkModules ./profiles;
+      nixosModules = lib.mkModules ./modules;
       nixosModule.imports = builtins.attrValues self.nixosModules;
-
-      # Outputs that aren't directly supported by simpleFlake can go here
-      # instead of having to doubleslash.
-      extraOutputs = { profiles = lib.mkModules ./profiles; };
     };
 }

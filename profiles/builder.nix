@@ -3,7 +3,8 @@ let
   isInstance = config.instance != null;
   isAsg = !isInstance;
   isMonitoring = nodeName == "monitoring";
-in {
+in
+{
   secrets.generate.nix-key-file = ''
     export PATH="${lib.makeBinPath (with pkgs; [ nixFlakes sops coreutils ])}"
     esk=encrypted/nix-secret-key-file

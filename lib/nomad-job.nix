@@ -23,22 +23,30 @@ let
     Mode = value.mode;
     DNS = value.dns;
 
-    ReservedPorts = let
-      reserved = lib.filterAttrs (k: v: v.static or null != null) value.ports;
-    in lib.mapAttrsToList (k: v: {
-      Label = k;
-      Value = v.static;
-      To = v.to;
-      HostNetwork = v.hostNetwork;
-    }) reserved;
+    ReservedPorts =
+      let
+        reserved = lib.filterAttrs (k: v: v.static or null != null) value.ports;
+      in
+      lib.mapAttrsToList
+        (k: v: {
+          Label = k;
+          Value = v.static;
+          To = v.to;
+          HostNetwork = v.hostNetwork;
+        })
+        reserved;
 
-    DynamicPorts = let
-      dynamic = lib.filterAttrs (k: v: v.static or null == null) value.ports;
-    in lib.mapAttrsToList (k: v: {
-      Label = k;
-      To = v.to;
-      HostNetwork = v.hostNetwork;
-    }) dynamic;
+    DynamicPorts =
+      let
+        dynamic = lib.filterAttrs (k: v: v.static or null == null) value.ports;
+      in
+      lib.mapAttrsToList
+        (k: v: {
+          Label = k;
+          To = v.to;
+          HostNetwork = v.hostNetwork;
+        })
+        dynamic;
   });
 
   mapVolumeMounts = nullMap (value: {
@@ -116,7 +124,8 @@ let
       groups = __match "^([0-9]+)(h|m|s)$" input;
       num = __fromJSON (__elemAt groups 0);
       kind = __elemAt groups 1;
-    in if kind == "h" then
+    in
+    if kind == "h" then
       num * 3600000000000
     else if kind == "m" then
       num * 60000000000
@@ -1421,7 +1430,8 @@ let
       };
     };
   };
-in {
+in
+{
   options = {
     affinities = mkOption {
       type = nullOr (listOf affinityType);

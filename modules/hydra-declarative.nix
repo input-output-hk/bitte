@@ -98,7 +98,8 @@ let
     };
   });
 
-in {
+in
+{
   options.services.hydra = {
     users = mkOption {
       type = attrsOf userType;

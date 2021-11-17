@@ -8,15 +8,18 @@ let
   inherit (terralib)
     var id pp regions awsProviderNameFor awsProviderFor mkSecurityGroupRule
     nullRoute;
-in {
+in
+{
   tf.hydrate.configuration = {
-    terraform.backend.http = let
-      vbk = "https://vbk.infra.aws.iohkdev.io/state/${config.cluster.name}/hydrate";
-    in {
-      address = vbk;
-      lock_address = vbk;
-      unlock_address = vbk;
-    };
+    terraform.backend.http =
+      let
+        vbk = "https://vbk.infra.aws.iohkdev.io/state/${config.cluster.name}/hydrate";
+      in
+      {
+        address = vbk;
+        lock_address = vbk;
+        unlock_address = vbk;
+      };
 
     terraform.required_providers = pkgs.terraform-provider-versions;
 
@@ -33,9 +36,9 @@ in {
     # hydrate vault backends
 
     /*
-    Bootstrap vault intermediate pki endpoint
-    with local root CA from well-known encrypted
-    locations.
+      Bootstrap vault intermediate pki endpoint
+      with local root CA from well-known encrypted
+      locations.
     */
     data.sops_file.ca = {
       source_file = "./encrypted/ca.json";
@@ -122,32 +125,34 @@ in {
       path = "github-employees";
     };
 
-    resource.vault_github_team = let
-      admins = lib.listToAttrs (lib.forEach config.cluster.adminGithubTeamNames
-        (name:
-          lib.nameValuePair name {
-            backend = var "vault_github_auth_backend.employee.path";
-            team = name;
-            policies = [ "admin" "default" ];
-          }));
+    resource.vault_github_team =
+      let
+        admins = lib.listToAttrs (lib.forEach config.cluster.adminGithubTeamNames
+          (name:
+            lib.nameValuePair name {
+              backend = var "vault_github_auth_backend.employee.path";
+              team = name;
+              policies = [ "admin" "default" ];
+            }));
 
-      developers = lib.listToAttrs
-        (lib.forEach config.cluster.developerGithubTeamNames (name:
-          lib.nameValuePair name {
-            backend = var "vault_github_auth_backend.employee.path";
-            team = name;
-            policies = [ "developer" "default" ];
-          }));
-    in admins // developers;
+        developers = lib.listToAttrs
+          (lib.forEach config.cluster.developerGithubTeamNames (name:
+            lib.nameValuePair name {
+              backend = var "vault_github_auth_backend.employee.path";
+              team = name;
+              policies = [ "developer" "default" ];
+            }));
+      in
+      admins // developers;
 
     resource.vault_github_user =
       lib.mkIf (builtins.length config.cluster.developerGithubNames > 0)
-      (lib.listToAttrs (lib.forEach config.cluster.developerGithubNames (name:
-        lib.nameValuePair name {
-          backend = var "vault_github_auth_backend.employee.path";
-          user = name;
-          policies = [ "developer" "default" ];
-        })));
+        (lib.listToAttrs (lib.forEach config.cluster.developerGithubNames (name:
+          lib.nameValuePair name {
+            backend = var "vault_github_auth_backend.employee.path";
+            user = name;
+            policies = [ "developer" "default" ];
+          })));
 
     resource.vault_aws_secret_backend_role = {
       developers = {

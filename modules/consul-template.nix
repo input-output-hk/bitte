@@ -38,7 +38,8 @@ let
     };
   };
 
-in {
+in
+{
 
   options.services.consul-templates = {
     enable = mkEnableOption "Enable consul-template services";
@@ -54,57 +55,62 @@ in {
     };
   };
 
-  config.services.consul.policies = mkMerge (mapAttrsToList (name: value:
-    let
-      sourceFile = pkgs.writeText "${name}.tpl" value.source;
-      ctName = "ct-${name}";
-    in { ${ctName} = mkIf (cfg.enable && value.enable) value.policies; })
+  config.services.consul.policies = mkMerge (mapAttrsToList
+    (name: value:
+      let
+        sourceFile = pkgs.writeText "${name}.tpl" value.source;
+        ctName = "ct-${name}";
+      in
+      { ${ctName} = mkIf (cfg.enable && value.enable) value.policies; })
     cfg.templates);
 
-  config.systemd.services = mkMerge (mapAttrsToList (name: value:
-    let
-      sourceFile = pkgs.writeText "${name}.tpl" value.source;
-      ctName = "ct-${name}";
-    in {
-      ${ctName} = mkIf (cfg.enable && value.enable) {
-        after = [
-          "consul.service"
-          "consul-policies.service"
-          "network-online.target"
-        ];
-        wantedBy = [ "multi-user.target" ];
-        requires = [ "network-online.target" ];
+  config.systemd.services = mkMerge (mapAttrsToList
+    (name: value:
+      let
+        sourceFile = pkgs.writeText "${name}.tpl" value.source;
+        ctName = "ct-${name}";
+      in
+      {
+        ${ctName} = mkIf (cfg.enable && value.enable) {
+          after = [
+            "consul.service"
+            "consul-policies.service"
+            "network-online.target"
+          ];
+          wantedBy = [ "multi-user.target" ];
+          requires = [ "network-online.target" ];
 
-        serviceConfig = {
-          DynamicUser = true;
-          User = ctName;
-          Group = "consul-policies"; # share /tmp to exchange tokens
-          RuntimeDirectoryPreserve = "yes";
-          StateDirectory = ctName;
-          WorkingDirectory = "/var/lib/${ctName}";
-          Restart = "on-failure";
+          serviceConfig = {
+            DynamicUser = true;
+            User = ctName;
+            Group = "consul-policies"; # share /tmp to exchange tokens
+            RuntimeDirectoryPreserve = "yes";
+            StateDirectory = ctName;
+            WorkingDirectory = "/var/lib/${ctName}";
+            Restart = "on-failure";
 
-          # ExecStartPre = let
-          #   PATH = lib.makeBinPath (with pkgs; [ coreutils jq ] );
-          #   execStartPre = pkgs.writeScript "${ctName}-start-pre" ''
-          #     #!${pkgs.bash}/bin/bash
-          #     PATH="${PATH}"
-          #     id
-          #     ls -la /var/lib/private/consul-policies/
-          #     jq -r -e .SecretID < /tmp/${ctName}.secret.json > consul.token
-          #   '';
-          # in
-          #   "+${execStartPre}";
+            # ExecStartPre = let
+            #   PATH = lib.makeBinPath (with pkgs; [ coreutils jq ] );
+            #   execStartPre = pkgs.writeScript "${ctName}-start-pre" ''
+            #     #!${pkgs.bash}/bin/bash
+            #     PATH="${PATH}"
+            #     id
+            #     ls -la /var/lib/private/consul-policies/
+            #     jq -r -e .SecretID < /tmp/${ctName}.secret.json > consul.token
+            #   '';
+            # in
+            #   "+${execStartPre}";
 
-          ExecStart = ''
-            @${cfg.package}/bin/consul-template consul-template \
-              -kill-signal SIGTERM \
-              -consul-token "$(< /tmp/${ctName}.json)" \
-              -log-level ${value.logLevel} \
-              -template "${sourceFile}:${value.target}"'';
+            ExecStart = ''
+              @${cfg.package}/bin/consul-template consul-template \
+                -kill-signal SIGTERM \
+                -consul-token "$(< /tmp/${ctName}.json)" \
+                -log-level ${value.logLevel} \
+                -template "${sourceFile}:${value.target}"'';
 
-          ExecStartPost = "${pkgs.coreutils}/bin/rm -f ${value.target}";
+            ExecStartPost = "${pkgs.coreutils}/bin/rm -f ${value.target}";
+          };
         };
-      };
-    }) cfg.templates);
+      })
+    cfg.templates);
 }

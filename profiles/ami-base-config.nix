@@ -1,7 +1,7 @@
 { config, pkgs, nixpkgs, ... }: {
 
   /* The base configuration of our
-  generic client & code node AMIs */
+    generic client & code node AMIs */
 
   imports = [ ./slim.nix ];
   nix.package = pkgs.nixUnstable;
