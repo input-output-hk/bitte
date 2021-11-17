@@ -3,9 +3,9 @@
 # - Hydrate the cluster with backends, roles & policies
 # - NB: some things (still) auto-hydrate through systemd one-shot jobs
 #       these could eventually be moved here.
-{ self, lib, pkgs, config, ... }:
+{ self, lib, pkgs, config, terralib, ... }:
 let
-  inherit (pkgs.terralib)
+  inherit (terralib)
     var id pp regions awsProviderNameFor awsProviderFor mkSecurityGroupRule
     nullRoute;
 in {

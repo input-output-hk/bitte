@@ -4,9 +4,9 @@
 
 { flake
 , domain
-, jobs
 , clusters
-, docker
+, jobs ? null
+, docker ? null
 , dockerRegistry ? "docker." + domain, dockerRole ? "developer"
 , vaultDockerPasswordKey ? "kv/nomad-cluster/docker-developer-password"
 }:
@@ -143,14 +143,7 @@ in lib.makeScope pkgs.newScope (self:
     clusters = mkCluster { inherit pkgs; root = clusters; self = flake; };
     nixosConfigurations = mkNixosConfigurations self.clusters;
 
-    dockerImages = let
-      images = recursiveCallPackage (docker) prod-pkgs.callPackages;
-    in lib.mapAttrs imageAttrToCommands images;
-    push-docker-images = callPackage push-docker-images { };
-    load-docker-images = callPackage load-docker-images { };
-
     consulTemplates = callPackage buildConsulTemplates { };
-    nomadJobs = recursiveCallPackage (jobs) prod-pkgs.callPackage;
 
     hydraJobs.x86_64-linux = let
       nixosConfigurations =
@@ -159,5 +152,14 @@ in lib.makeScope pkgs.newScope (self:
     in nixosConfigurations // {
       required = pkgs.mkRequired nixosConfigurations;
     };
-  })
+  } // lib.optionalAttrs (jobs != null) {
+    nomadJobs = recursiveCallPackage (jobs) prod-pkgs.callPackage;
+  } // lib.optionalAttrs (docker != null) {
+    dockerImages = let
+      images = recursiveCallPackage (docker) prod-pkgs.callPackages;
+    in lib.mapAttrs imageAttrToCommands images;
+    push-docker-images = callPackage push-docker-images { };
+    load-docker-images = callPackage load-docker-images { };
+  }
+)
 

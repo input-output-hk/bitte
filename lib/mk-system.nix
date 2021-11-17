@@ -13,7 +13,11 @@ let
       inherit pkgs;
       inherit (pkgs) system;
       modules = [ bitte.nixosModule specializationModule ] ++ modules;
-      specialArgs = { inherit nodeName self; };
+      specialArgs = {
+        inherit nodeName self;
+        bittelib = bitte.lib;
+        terralib = bitte.lib.terralib;
+      };
     };
 
   bitteProtoSystem = bitteSystem ({

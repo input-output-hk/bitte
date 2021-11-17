@@ -1,6 +1,5 @@
-{ self, config, pkgs, nodeName, ... }:
+{ self, config, pkgs, lib, nodeName, terralib, ... }:
 let
-  inherit (pkgs) lib terralib;
   inherit (lib) mkOption reverseList;
   inherit (lib.types)
     attrs submodule str functionTo attrsOf bool ints path enum port listof nullOr listOf

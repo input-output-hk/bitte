@@ -1,13 +1,13 @@
-{ self, config, pkgs, lib, ... }:
+{ self, config, pkgs, lib, terralib, ... }:
 let
-  inherit (pkgs.terralib)
+  inherit (terralib)
     id var regions awsProviderNameFor awsProviderFor merge mkSecurityGroupRule
     nullRoute nullRouteInline;
 
   tags = { Cluster = config.cluster.name; };
 
-  mapAsgVpcs = pkgs.terralib.mapAsgVpcs config.cluster;
-  mapAsgVpcsToList = pkgs.terralib.mapAsgVpcsToList config.cluster;
+  mapAsgVpcs = terralib.mapAsgVpcs config.cluster;
+  mapAsgVpcsToList = terralib.mapAsgVpcsToList config.cluster;
   # As long as we have 1 vpc per region for autoscaling groups,
   # the following approach should work for mesh vpc peering and routing
   # between them since we cannot route through a star vpc peered topology:
@@ -110,7 +110,7 @@ in
               id "aws_vpc_peering_connection.${vpc.region}";
           })
         ] ++ (lib.forEach
-          (lib.flip lib.filter (pkgs.terralib.asgVpcs config.cluster)
+          (lib.flip lib.filter (terralib.asgVpcs config.cluster)
             (innerVpc: innerVpc.region != vpc.region))
           (innerVpc:
             # Derive the proper peerPairing connection name using a comparison
