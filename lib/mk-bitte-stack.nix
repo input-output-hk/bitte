@@ -9,6 +9,7 @@
 , domain
 , clusters
 , deploySshKey
+, hydrateModule
 , jobs ? null
 , docker ? null
 , dockerRegistry ? "docker." + domain
@@ -171,7 +172,7 @@ let
 
 in rec {
 
-  clusters = mkCluster { inherit pkgs self inputs; clusterFiles = readDirRec clusters'; };
+  clusters = mkCluster { inherit pkgs self inputs hydrateModule; clusterFiles = readDirRec clusters'; };
 
   nixosConfigurations = mkNixosConfigurations clusters;
 

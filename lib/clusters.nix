@@ -7,6 +7,7 @@
 , inputs
 , pkgs
 , clusterFiles
+, hydrateModule
 }:
 
 lib.listToAttrs (lib.forEach clusterFiles (file:
@@ -18,7 +19,7 @@ lib.listToAttrs (lib.forEach clusterFiles (file:
     proto = (
       mkSystem {
         inherit pkgs self inputs;
-        modules = [ file ];
+        modules = [ file hydrateModule ];
       }
     ).bitteProtoSystem;
 
