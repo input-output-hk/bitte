@@ -79,7 +79,7 @@ let
       '';
     };
 
-  push-docker-images = { writeShellScriptBin, dockerImages }:
+  push-docker-images' = { writeShellScriptBin, dockerImages }:
     writeShellScriptBin "push-docker-images" ''
       set -euo pipefail
 
@@ -88,7 +88,7 @@ let
         dockerImages)}
     '';
 
-  load-docker-images = { writeShellScriptBin, dockerImages }:
+  load-docker-images' = { writeShellScriptBin, dockerImages }:
     writeShellScriptBin "load-docker-images" ''
       set -euo pipefail
 
@@ -167,37 +167,37 @@ let
           readDirRec child))
       flatten
     ];
+  clusters' = clusters;
 
-in
-lib.makeScope pkgs.newScope (scope: {
+in rec {
 
-  clusters = mkCluster { inherit pkgs self inputs; clusterFiles = readDirRec clusters; };
+  clusters = mkCluster { inherit pkgs self inputs; clusterFiles = readDirRec clusters'; };
 
-  nixosConfigurations = mkNixosConfigurations scope.clusters;
+  nixosConfigurations = mkNixosConfigurations clusters;
 
   hydraJobs.x86_64-linux =
     let
-      nixosConfigurations =
+      nixosConfigurations' =
         lib.mapAttrs (_: { config, ... }: config.system.build.toplevel)
-          scope.nixosConfigurations;
+          nixosConfigurations;
     in
-    nixosConfigurations // {
-      required = pkgs.mkRequired nixosConfigurations;
+    nixosConfigurations' // {
+      required = pkgs.mkRequired nixosConfigurations';
     };
 
 } // (
   mkDeploy { inherit self deploySshKey; }
-) // lib.optionalAttrs (jobs != null) {
+) // lib.optionalAttrs (jobs != null) rec {
   nomadJobs = recursiveCallPackage (jobs) extended-pkgs.callPackage;
-  consulTemplates = scope.callPackage buildConsulTemplates { };
-} // lib.optionalAttrs (docker != null) {
+  consulTemplates = pkgs.callPackage buildConsulTemplates { inherit nomadJobs; };
+} // lib.optionalAttrs (docker != null) rec {
   dockerImages =
     let
       images = recursiveCallPackage (docker) extended-pkgs.callPackages;
     in
     lib.mapAttrs imageAttrToCommands images;
-  push-docker-images = scope.callPackage push-docker-images { };
-  load-docker-images = scope.callPackage load-docker-images { };
+  push-docker-images = pkgs.callPackage push-docker-images' { inherit dockerImages; };
+  load-docker-images = pkgs.callPackage load-docker-images' { inherit dockerImages; };
 }
-)
+
 
