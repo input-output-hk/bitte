@@ -9,63 +9,6 @@ let
 in
 {
   services.vault.policies = {
-    admin.path = {
-      "approle/*".capabilities = [ c r u d l ];
-      "aws/*".capabilities = [ c r u d l ];
-      "consul/*".capabilities = [ c r u d l ];
-      "kv/*".capabilities = [ c r u d l ];
-      "nomad/*".capabilities = [ c r u d l ];
-      "pki/*".capabilities = [ c r u d l ];
-
-      "auth/aws/config/client".capabilities = [ c r u d l ];
-      "auth/aws/role/*".capabilities = [ c r u d l ];
-      "auth/github-employees/config".capabilities = [ c r u d l s ];
-      "auth/github-employees/map/teams/*".capabilities = [ c r u d l s ];
-      "auth/github-terraform/config".capabilities = [ c r u d l s ];
-      "auth/github-terraform/map/teams/*".capabilities = [ c r u d l s ];
-      "auth/token/create/*".capabilities = [ c r u d l ];
-      "auth/token/create".capabilities = [ c r u d l s ];
-      "auth/token/create/nomad-cluster".capabilities = [ c r u d l s ];
-      "auth/token/create/nomad-server".capabilities = [ c r u d l s ];
-      "auth/token/create-orphan".capabilities = [ c r u d l ];
-      "auth/token/lookup".capabilities = [ c r u d l ];
-      "auth/token/lookup-self".capabilities = [ r ];
-      "auth/token/renew-self".capabilities = [ u ];
-      "auth/token/revoke-accessor".capabilities = [ u ];
-      "auth/token/revoke".capabilities = [ u ];
-      "auth/token/roles/*".capabilities = [ c r u d l ];
-      "auth/token/roles/nomad-cluster".capabilities = [ c r u d l ];
-      "auth/token/roles/nomad-server".capabilities = [ r ];
-      "identity/*".capabilities = [ c r u d l ];
-      "sys/auth/aws".capabilities = [ c r u d l s ];
-      "sys/auth".capabilities = [ r l ];
-      "sys/auth/github-employees".capabilities = [ c r u d l s ];
-      "sys/auth/github-employees/config".capabilities = [ c r ];
-      "sys/auth/github-terraform".capabilities = [ c r u d l s ];
-      "sys/auth/github-terraform/config".capabilities = [ c r ];
-      "sys/capabilities-self".capabilities = [ s ];
-      "sys/mounts/auth/*".capabilities = [ c r u d l s ];
-      "sys/policies/*".capabilities = [ c r u d l ];
-      "sys/policy".capabilities = [ c r u d l ];
-      "sys/policy/*".capabilities = [ c r u d l ];
-    };
-
-    developer.path = {
-      # Allow all KV access
-      "kv/*".capabilities = [ c r u d l ];
-      # Allow creating AWS tokens
-      "aws/creds/developer".capabilities = [ r u ];
-      # Allow creating Nomad tokens
-      "nomad/creds/developer".capabilities = [ r u ];
-      # Allow creating Consul tokens
-      "consul/creds/developer".capabilities = [ r u ];
-      # Allow lookup of own capabilities
-      "sys/capabilities-self".capabilities = [ u ];
-      # Allow lookup of own tokens
-      "auth/token/lookup-self".capabilities = [ r ];
-      # Allow self renewing tokens
-      "auth/token/renew-self".capabilities = [ u ];
-    };
 
     core.path = {
       "auth/token/create".capabilities = [ c r u d l s ];

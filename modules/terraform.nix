@@ -939,7 +939,11 @@ in
             '';
           in
           {
-            configuration = lib.mkOption { type = attrsOf unspecified; };
+            configuration = lib.mkOption {
+              type = submodule {
+                imports = [ (terranix + "/core/terraform-options.nix") ];
+              };
+            };
 
             output = lib.mkOption {
               type = lib.mkOptionType { name = "${name}_config.tf.json"; };

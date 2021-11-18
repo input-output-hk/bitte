@@ -170,7 +170,8 @@ let
     ];
   clusters' = clusters;
 
-in rec {
+in
+rec {
 
   clusters = mkCluster { inherit pkgs self inputs hydrateModule; clusterFiles = readDirRec clusters'; };
 
