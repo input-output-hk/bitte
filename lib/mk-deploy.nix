@@ -12,6 +12,8 @@ let
   deploy' = {
     sshUser = "root";
     sshOpts = [ "-C" "-i" "${ssh-key}" ];
+    # TODO: fix sporadic systemd service failures that make this a QOL issue
+    autoRollback = false;
     nodes = builtins.mapAttrs (k: _: {
       profiles.system.user = "root";
       profiles.system.path = let
