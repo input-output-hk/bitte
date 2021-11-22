@@ -2,6 +2,7 @@
   "nodes": {
     "bitte-cli": {
       "inputs": {
+        "devshell": "devshell",
         "fenix": "fenix",
         "iogo": "iogo",
         "nixpkgs": [
@@ -9,21 +10,21 @@
           "fenix",
           "nixpkgs"
         ],
+        "treefmt": "treefmt",
         "utils": [
           "utils"
         ]
       },
       "locked": {
-        "lastModified": 1637359918,
-        "narHash": "sha256-4fnEIPg+Z4VzgaRmjYY7MrXOcV+OcCUhYM/C4yMNYBI=",
+        "lastModified": 1637376403,
+        "narHash": "sha256-0ytnNlqm8OVrVQQExLMfxeflTs16XVgO/INUuUKRXnA=",
         "owner": "input-output-hk",
         "repo": "bitte-cli",
-        "rev": "46447949e9d67f09b31294c2f4753d465f687137",
+        "rev": "5e653128ad590a5a2684dcb24f20a1e65092d6a4",
         "type": "github"
       },
       "original": {
         "owner": "input-output-hk",
-        "ref": "v0.4.3",
         "repo": "bitte-cli",
         "type": "github"
       }
@@ -107,6 +108,21 @@
         "type": "github"
       }
     },
+    "flake-utils": {
+      "locked": {
+        "lastModified": 1610051610,
+        "narHash": "sha256-U9rPz/usA1/Aohhk7Cmc2gBrEEKRzcW4nwPWMPwja4Y=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "3982c9903e93927c2164caa727cd3f6a0e6d14cc",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
     "hydra": {
       "inputs": {
         "nix": [
@@ -174,7 +190,10 @@
     },
     "iogo": {
       "inputs": {
-        "devshell": "devshell",
+        "devshell": [
+          "bitte-cli",
+          "devshell"
+        ],
         "inclusive": "inclusive",
         "nixpkgs": [
           "bitte-cli",
@@ -269,11 +288,27 @@
     },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1637316267,
-        "narHash": "sha256-hfAA/0W3tycKKOSwP7Xt6FXLG9h/FgCu45wdGubHtV0=",
+        "lastModified": 1636470166,
+        "narHash": "sha256-0tyWSS5rgMtML5p41ZdE5ocuAnRdtOGvdsqQyMUBYAI=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "f096b7122ab08e93c8b052c92461ca71b80c0cc8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixpkgs-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_3": {
+      "locked": {
+        "lastModified": 1637448181,
+        "narHash": "sha256-ujcXli4esmtIHUBjE1BjmMuBWrcNvlHZrVXx56i5B1M=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "24528474d2b3370f2f23879a557ae2cc92a5d50b",
+        "rev": "d5b65f812cd4f5a8fa74b406075b59a46f1cfd98",
         "type": "github"
       },
       "original": {
@@ -323,7 +358,7 @@
         "hydra": "hydra",
         "hydra-provisioner": "hydra-provisioner",
         "nix": "nix",
-        "nixpkgs": "nixpkgs_2",
+        "nixpkgs": "nixpkgs_3",
         "nixpkgs-terraform": "nixpkgs-terraform",
         "nomad-source": "nomad-source",
         "ops-lib": "ops-lib",
@@ -378,6 +413,25 @@
         "owner": "manveru",
         "ref": "cleanup",
         "repo": "terranix",
+        "type": "github"
+      }
+    },
+    "treefmt": {
+      "inputs": {
+        "flake-utils": "flake-utils",
+        "nixpkgs": "nixpkgs_2"
+      },
+      "locked": {
+        "lastModified": 1636996862,
+        "narHash": "sha256-oCx0uCm+WoHyPCBestbDU/M22aoXon+ixZBOUqmrqDs=",
+        "owner": "numtide",
+        "repo": "treefmt",
+        "rev": "1e38ba69ddf35bd30278932c3713e81d55cdd985",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "treefmt",
         "type": "github"
       }
     },
