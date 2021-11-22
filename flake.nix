@@ -3,8 +3,6 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/release-21.05";
-    nixpkgs-terraform.url =
-      "github:input-output-hk/nixpkgs/iohk-terraform-2021-06";
     utils.url = "github:numtide/flake-utils";
     bitte-cli.url = "github:input-output-hk/bitte-cli/30d7d141cb349246e8aa1254d848b51f6940a2a1";
     bitte-cli.inputs.utils.follows = "utils";
@@ -53,7 +51,9 @@
         hydra.overlay
         deploy.overlay
         localPkgsOverlay
+        terraformProvidersOverlay
       ];
+      terraformProvidersOverlay = import ./terraform-providers-overlay.nix inputs;
       localPkgsOverlay = import ./overlay.nix inputs;
 
       pkgsForSystem = system: import nixpkgs {

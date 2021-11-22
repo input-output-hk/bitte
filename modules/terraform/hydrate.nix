@@ -22,21 +22,23 @@ let
 
 in
 {
-  tf.secrets-hydrate.configuration = { # preconfigured
+  tf.secrets-hydrate.configuration = {
+    # preconfigured
     terraform.backend.http = {
-        address = "${vbkStub}/secrets-hydrate";
-        lock_address = "${vbkStub}/secrets-hydrate";
-        unlock_address = "${vbkStub}/secrets-hydrate";
+      address = "${vbkStub}/secrets-hydrate";
+      lock_address = "${vbkStub}/secrets-hydrate";
+      unlock_address = "${vbkStub}/secrets-hydrate";
     };
     terraform.required_providers = pkgs.terraform-provider-versions;
     provider.vault = { };
   };
 
-  tf.app-hydrate.configuration = { # preconfigured
+  tf.app-hydrate.configuration = {
+    # preconfigured
     terraform.backend.http = {
-        address = "${vbkStub}/app-hydrate";
-        lock_address = "${vbkStub}/app-hydrate";
-        unlock_address = "${vbkStub}/app-hydrate";
+      address = "${vbkStub}/app-hydrate";
+      lock_address = "${vbkStub}/app-hydrate";
+      unlock_address = "${vbkStub}/app-hydrate";
     };
     terraform.required_providers = pkgs.terraform-provider-versions;
     provider.vault = { };
@@ -44,17 +46,17 @@ in
 
   tf.hydrate.configuration = {
     terraform.backend.http = {
-        address = "${vbkStub}/hydrate";
-        lock_address = "${vbkStub}/hydrate";
-        unlock_address = "${vbkStub}/hydrate";
+      address = "${vbkStub}/hydrate";
+      lock_address = "${vbkStub}/hydrate";
+      unlock_address = "${vbkStub}/hydrate";
     };
     terraform.required_providers = pkgs.terraform-provider-versions;
     provider.vault = { };
-    provider.aws =  [{ region = config.cluster.region; }] ++ (lib.forEach regions
-     (region: {
-       inherit region;
-       alias = awsProviderNameFor region;
-     }));
+    provider.aws = [{ region = config.cluster.region; }] ++ (lib.forEach regions
+      (region: {
+        inherit region;
+        alias = awsProviderNameFor region;
+      }));
 
     # TODO: migrate stuff from nixos modules here (auth backends)
 
@@ -64,49 +66,51 @@ in
       -> Machine roles best remain within systemd one-shots.
     */
     # this policy document is (at least) overridable
-    data.vault_policy_document.admin.rule = let
-      rules = [
-        { path = "approle/*"; capabilities = [ c r u d l ]; description = ""; }
-        { path = "aws/*"; capabilities = [ c r u d l ]; description = ""; }
-        { path = "consul/*"; capabilities = [ c r u d l ]; description = ""; }
-        { path = "kv/*"; capabilities = [ c r u d l ]; description = ""; }
-        { path = "nomad/*"; capabilities = [ c r u d l ]; description = ""; }
-        { path = "pki/*"; capabilities = [ c r u d l ]; description = ""; }
-        { path = "sops/*"; capabilities = [ c r u d l ]; description = ""; }
-        { path = "auth/aws/config/client"; capabilities = [ c r u d l ]; description = ""; }
-        { path = "auth/aws/role/*"; capabilities = [ c r u d l ]; description = ""; }
-        { path = "auth/github-employees/config"; capabilities = [ c r u d l s ]; description = ""; }
-        { path = "auth/github-employees/map/teams/*"; capabilities = [ c r u d l s ]; description = ""; }
-        { path = "auth/github-terraform/config"; capabilities = [ c r u d l s ]; description = ""; }
-        { path = "auth/github-terraform/map/teams/*"; capabilities = [ c r u d l s ]; description = ""; }
-        { path = "auth/token/create/*"; capabilities = [ c r u d l ]; description = ""; }
-        { path = "auth/token/create"; capabilities = [ c r u d l s ]; description = ""; }
-        { path = "auth/token/create/nomad-cluster"; capabilities = [ c r u d l s ]; description = ""; }
-        { path = "auth/token/create/nomad-server"; capabilities = [ c r u d l s ]; description = ""; }
-        { path = "auth/token/create-orphan"; capabilities = [ c r u d l ]; description = ""; }
-        { path = "auth/token/lookup"; capabilities = [ c r u d l ]; description = ""; }
-        { path = "auth/token/lookup-self"; capabilities = [ r ]; description = ""; }
-        { path = "auth/token/renew-self"; capabilities = [ u ]; description = ""; }
-        { path = "auth/token/revoke-accessor"; capabilities = [ u ]; description = ""; }
-        { path = "auth/token/revoke"; capabilities = [ u ]; description = ""; }
-        { path = "auth/token/roles/*"; capabilities = [ c r u d l ]; description = ""; }
-        { path = "auth/token/roles/nomad-cluster"; capabilities = [ c r u d l ]; description = ""; }
-        { path = "auth/token/roles/nomad-server"; capabilities = [ r ]; description = ""; }
-        { path = "identity/*"; capabilities = [ c r u d l ]; description = ""; }
-        { path = "sys/auth/aws"; capabilities = [ c r u d l s ]; description = ""; }
-        { path = "sys/auth"; capabilities = [ r l ]; description = ""; }
-        { path = "sys/auth/github-employees"; capabilities = [ c r u d l s ]; description = ""; }
-        { path = "sys/auth/github-employees/config"; capabilities = [ c r ]; description = ""; }
-        { path = "sys/auth/github-terraform"; capabilities = [ c r u d l s ]; description = ""; }
-        { path = "sys/auth/github-terraform/config"; capabilities = [ c r ]; description = ""; }
-        { path = "sys/capabilities-self"; capabilities = [ s ]; description = ""; }
-        { path = "sys/mounts/auth/*"; capabilities = [ c r u d l s ]; description = ""; }
-        { path = "sys/mounts/sops"; capabilities = [ c r u d l s ]; description = ""; }
-        { path = "sys/policies/*"; capabilities = [ c r u d l ]; description = ""; }
-        { path = "sys/policy"; capabilities = [ c r u d l ]; description = ""; }
-        { path = "sys/policy/*"; capabilities = [ c r u d l ]; description = ""; }
-      ];
-    in rules;
+    data.vault_policy_document.admin.rule =
+      let
+        rules = [
+          { path = "approle/*"; capabilities = [ c r u d l ]; description = ""; }
+          { path = "aws/*"; capabilities = [ c r u d l ]; description = ""; }
+          { path = "consul/*"; capabilities = [ c r u d l ]; description = ""; }
+          { path = "kv/*"; capabilities = [ c r u d l ]; description = ""; }
+          { path = "nomad/*"; capabilities = [ c r u d l ]; description = ""; }
+          { path = "pki/*"; capabilities = [ c r u d l ]; description = ""; }
+          { path = "sops/*"; capabilities = [ c r u d l ]; description = ""; }
+          { path = "auth/aws/config/client"; capabilities = [ c r u d l ]; description = ""; }
+          { path = "auth/aws/role/*"; capabilities = [ c r u d l ]; description = ""; }
+          { path = "auth/github-employees/config"; capabilities = [ c r u d l s ]; description = ""; }
+          { path = "auth/github-employees/map/teams/*"; capabilities = [ c r u d l s ]; description = ""; }
+          { path = "auth/github-terraform/config"; capabilities = [ c r u d l s ]; description = ""; }
+          { path = "auth/github-terraform/map/teams/*"; capabilities = [ c r u d l s ]; description = ""; }
+          { path = "auth/token/create/*"; capabilities = [ c r u d l ]; description = ""; }
+          { path = "auth/token/create"; capabilities = [ c r u d l s ]; description = ""; }
+          { path = "auth/token/create/nomad-cluster"; capabilities = [ c r u d l s ]; description = ""; }
+          { path = "auth/token/create/nomad-server"; capabilities = [ c r u d l s ]; description = ""; }
+          { path = "auth/token/create-orphan"; capabilities = [ c r u d l ]; description = ""; }
+          { path = "auth/token/lookup"; capabilities = [ c r u d l ]; description = ""; }
+          { path = "auth/token/lookup-self"; capabilities = [ r ]; description = ""; }
+          { path = "auth/token/renew-self"; capabilities = [ u ]; description = ""; }
+          { path = "auth/token/revoke-accessor"; capabilities = [ u ]; description = ""; }
+          { path = "auth/token/revoke"; capabilities = [ u ]; description = ""; }
+          { path = "auth/token/roles/*"; capabilities = [ c r u d l ]; description = ""; }
+          { path = "auth/token/roles/nomad-cluster"; capabilities = [ c r u d l ]; description = ""; }
+          { path = "auth/token/roles/nomad-server"; capabilities = [ r ]; description = ""; }
+          { path = "identity/*"; capabilities = [ c r u d l ]; description = ""; }
+          { path = "sys/auth/aws"; capabilities = [ c r u d l s ]; description = ""; }
+          { path = "sys/auth"; capabilities = [ r l ]; description = ""; }
+          { path = "sys/auth/github-employees"; capabilities = [ c r u d l s ]; description = ""; }
+          { path = "sys/auth/github-employees/config"; capabilities = [ c r ]; description = ""; }
+          { path = "sys/auth/github-terraform"; capabilities = [ c r u d l s ]; description = ""; }
+          { path = "sys/auth/github-terraform/config"; capabilities = [ c r ]; description = ""; }
+          { path = "sys/capabilities-self"; capabilities = [ s ]; description = ""; }
+          { path = "sys/mounts/auth/*"; capabilities = [ c r u d l s ]; description = ""; }
+          { path = "sys/mounts/sops"; capabilities = [ c r u d l s ]; description = ""; }
+          { path = "sys/policies/*"; capabilities = [ c r u d l ]; description = ""; }
+          { path = "sys/policy"; capabilities = [ c r u d l ]; description = ""; }
+          { path = "sys/policy/*"; capabilities = [ c r u d l ]; description = ""; }
+        ];
+      in
+      rules;
 
     resource.vault_policy.admin = {
       name = "admin";

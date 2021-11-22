@@ -306,22 +306,6 @@
         "type": "github"
       }
     },
-    "nixpkgs-terraform": {
-      "locked": {
-        "lastModified": 1623440955,
-        "narHash": "sha256-4hM9akwZ2RojC1CT5geV4IZhek/fUPpFitb5ItdoK5s=",
-        "owner": "input-output-hk",
-        "repo": "nixpkgs",
-        "rev": "f94bea476f46784adf587e1cb3a5af9587fe9652",
-        "type": "github"
-      },
-      "original": {
-        "owner": "input-output-hk",
-        "ref": "iohk-terraform-2021-06",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
     "nixpkgs_2": {
       "locked": {
         "lastModified": 1636470166,
@@ -394,7 +378,6 @@
         "hydra": "hydra",
         "nix": "nix",
         "nixpkgs": "nixpkgs_3",
-        "nixpkgs-terraform": "nixpkgs-terraform",
         "nomad-source": "nomad-source",
         "ops-lib": "ops-lib",
         "terranix": "terranix",

@@ -1,6 +1,6 @@
 inputs:
 let
-  inherit (inputs) nixpkgs ops-lib nixpkgs-terraform self;
+  inherit (inputs) nixpkgs ops-lib self;
   inherit (nixpkgs) lib;
   deprecated = k: v:
     lib.warn ''${k} is deprecated from the bitte overlay.
@@ -83,31 +83,6 @@ final: prev:
       makeWrapper $script $out/bin/scaler-guard \
         --prefix PATH : ${prev.lib.makeBinPath deps}
     '';
-
-  terraform-provider-names =
-    [ "acme" "aws" "consul" "local" "nomad" "null" "sops" "tls" "vault" ];
-  terraform-provider-versions = lib.listToAttrs (map
-    (name:
-      let
-        provider = final.terraform-providers.${name};
-        provider-source-address =
-          provider.provider-source-address or "registry.terraform.io/nixpkgs/${name}";
-        parts = lib.splitString "/" provider-source-address;
-        source = lib.concatStringsSep "/" (lib.tail parts);
-      in
-      lib.nameValuePair name {
-        inherit source;
-        version = "= ${provider.version}";
-      })
-    final.terraform-provider-names);
-
-  nixpkgs-terraform-pkgs = nixpkgs-terraform.legacyPackages.${final.system};
-
-  inherit (final.nixpkgs-terraform-pkgs)
-    terraform_0_13 terraform_0_14 terraform-providers;
-
-  terraform-with-plugins = final.terraform_0_13.withPlugins
-    (plugins: lib.attrVals final.terraform-provider-names plugins);
 
   uploadBaseAMIs = final.writeBashBinChecked "upload-base-amis-to-development-profile-iohk-amis-bucket" ''
 
