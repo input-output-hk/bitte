@@ -11,6 +11,7 @@
 , deploySshKey
 , hydrateModule
 , jobs ? null
+, envs ? {}
 , docker ? null
 , dockerRegistry ? "docker." + domain
 , dockerRole ? "developer"
@@ -172,6 +173,8 @@ let
 
 in
 rec {
+
+  inherit envs;
 
   clusters = mkCluster { inherit pkgs self inputs hydrateModule; clusterFiles = readDirRec clusters'; };
 
