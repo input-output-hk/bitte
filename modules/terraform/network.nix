@@ -51,11 +51,17 @@ in {
 
     terraform.required_providers = pkgs.terraform-provider-versions;
 
-    provider.aws = [{ region = config.cluster.region; }] ++ (lib.forEach regions
+    provider = {
+      acme = {
+        server_url = "https://acme-v02.api.letsencrypt.org/directory";
+      };
+      
+      aws = [{ region = config.cluster.region; }] ++ (lib.forEach regions
       (region: {
         inherit region;
         alias = awsProviderNameFor region;
       }));
+    };
 
     data.aws_caller_identity.core = {
       provider = awsProviderFor config.cluster.region;
