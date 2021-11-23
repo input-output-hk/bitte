@@ -1,4 +1,6 @@
-{ self, lib, pkgs, config, nodeName, ... }: {
+{ self, lib, pkgs, config, nodeName, bittelib, ... }: let
+  inherit (bittelib) ensureDependencies;
+in {
 
   imports = [
     ./common.nix
@@ -43,6 +45,7 @@
       '';
     };
 
+    systemd.services."acme-${nodeName}".serviceConfig.ExecStartPre = ensureDependencies pkgs [ "vault-agent" ];
     security.acme = {
       acceptTerms = true;
       certs.routing = lib.mkIf (nodeName == "routing") {
