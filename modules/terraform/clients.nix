@@ -341,6 +341,7 @@ in
           lifecycle = [{ create_before_destroy = true; }];
         });
 
+    # this is indirectly accessored by tfDataName
     data.aws_iam_role = lib.flip lib.mapAttrs' config.cluster.iam.roles
       (roleName: role: lib.nameValuePair role.uid { name = role.uid; });
 
