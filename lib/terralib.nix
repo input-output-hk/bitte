@@ -51,6 +51,32 @@ rec {
 
   mapAsgVpcsToList = cluster: lib.forEach (asgVpcs cluster);
 
+  # "a/b/c/d" => [ "" "/a" "/a/b" "/a/b/c" "/a/b/c/d" ]
+  pathPrefix = rootDir: dir:
+    let
+      fullPath = "${rootDir}/${dir}";
+      splitPath = lib.splitString "/" fullPath;
+      cascade = lib.foldl'
+        (s: v:
+          let p = "${s.path}${v}/";
+          in
+          {
+            acc = s.acc ++ [ p ];
+            path = p;
+          })
+        {
+          acc = [ "" ];
+          path = "";
+        }
+        splitPath;
+      # Ensure that any "/dir1/dir2/*/" entries don't exist
+      # as this doesn't make allowance for nested subdirs.
+      allowWildcard = pathList:
+        map (p: if lib.hasSuffix "/*/" p then (lib.removeSuffix "/" p) else p)
+          pathList;
+    in
+    (allowWildcard cascade.acc);
+
   regions = [
     # "ap-east-1"
     "ap-northeast-1"
@@ -101,5 +127,33 @@ rec {
     (lib.optional (rule.self != false) from-self)
     ++ (lib.optional (rule.cidrs != [ ]) from-cidr)
     ++ (lib.optional (rule.sourceSecurityGroupId != null) from-ssgi));
+
+  allowS3For = bucketArn: prefix: rootDir: bucketDirs: {
+    "${prefix}-s3-bucket-console" = {
+      effect = "Allow";
+      actions = [ "s3:ListAllMyBuckets" "s3:GetBucketLocation" ];
+      resources = [ "arn:aws:s3:::*" ];
+    };
+
+    "${prefix}-s3-bucket-listing" = {
+      effect = "Allow";
+      actions = [ "s3:ListBucket" ];
+      resources = [ bucketArn ];
+      condition = lib.forEach bucketDirs (dir: {
+        test = "StringLike";
+        variable = "s3:prefix";
+        values = pathPrefix rootDir dir;
+      });
+    };
+
+    "${prefix}-s3-directory-actions" = {
+      effect = "Allow";
+      actions = [ "s3:*" ];
+      resources = lib.unique (lib.flatten (lib.forEach bucketDirs (dir: [
+        "${bucketArn}/${rootDir}/${dir}/*"
+        "${bucketArn}/${rootDir}/${dir}"
+      ])));
+    };
+  };
 }
 

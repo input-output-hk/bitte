@@ -7,62 +7,16 @@
 # - Keem these machine AWS IAM policies separate in here for overview
 # - Find (more volatile) operator policies in hydrate.nix
 
-{ self, lib, pkgs, config, ... }:
+{ self, lib, pkgs, config, terralib, ... }:
 let
+  inherit (terralib) allowS3For;
   bucketArn = "arn:aws:s3:::${config.cluster.s3Bucket}";
+  allowS3ForBucket = allowS3For bucketArn;
 in
 {
   cluster.iam = {
     roles =
       let
-        # "a/b/c/d" => [ "" "/a" "/a/b" "/a/b/c" "/a/b/c/d" ]
-        pathPrefix = rootDir: dir:
-          let
-            fullPath = "${rootDir}/${dir}";
-            splitPath = lib.splitString "/" fullPath;
-            cascade = lib.foldl'
-              (s: v:
-                let p = "${s.path}${v}/";
-                in
-                {
-                  acc = s.acc ++ [ p ];
-                  path = p;
-                })
-              {
-                acc = [ "" ];
-                path = "";
-              }
-              splitPath;
-
-          in
-          cascade.acc;
-        allowS3For = prefix: rootDir: bucketDirs: {
-          "${prefix}-s3-bucket-console" = {
-            effect = "Allow";
-            actions = [ "s3:ListAllMyBuckets" "s3:GetBucketLocation" ];
-            resources = [ "arn:aws:s3:::*" ];
-          };
-
-          "${prefix}-s3-bucket-listing" = {
-            effect = "Allow";
-            actions = [ "s3:ListBucket" ];
-            resources = [ bucketArn ];
-            condition = lib.forEach bucketDirs (dir: {
-              test = "StringLike";
-              variable = "s3:prefix";
-              values = pathPrefix rootDir dir;
-            });
-          };
-
-          "${prefix}-s3-directory-actions" = {
-            effect = "Allow";
-            actions = [ "s3:*" ];
-            resources = lib.unique (lib.flatten (lib.forEach bucketDirs (dir: [
-              "${bucketArn}/${rootDir}/${dir}/*"
-              "${bucketArn}/${rootDir}/${dir}"
-            ])));
-          };
-        };
       in
       {
         client = {
@@ -74,12 +28,12 @@ in
 
           policies =
             let
-              s3Secrets = allowS3For "secrets"
+              s3Secrets = allowS3ForBucket "secrets"
                 "infra/secrets/${config.cluster.name}/${config.cluster.kms}" [
                 "client"
                 "source"
               ];
-              s3Cache = allowS3For "cache" "infra" [ "binary-cache" ];
+              s3Cache = allowS3ForBucket "cache" "infra" [ "binary-cache" ];
             in
             s3Secrets // s3Cache // {
               ssm = {
@@ -180,13 +134,13 @@ in
 
           policies =
             let
-              s3Secrets = allowS3For "secret"
+              s3Secrets = allowS3ForBucket "secret"
                 "infra/secrets/${config.cluster.name}/${config.cluster.kms}" [
                 "server"
                 "client"
                 "source"
               ];
-              s3Cache = allowS3For "cache" "infra" [ "binary-cache" ];
+              s3Cache = allowS3ForBucket "cache" "infra" [ "binary-cache" ];
             in
             s3Secrets // s3Cache // {
               kms = {
