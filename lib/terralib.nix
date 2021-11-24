@@ -139,10 +139,14 @@ rec {
       effect = "Allow";
       actions = [ "s3:ListBucket" ];
       resources = [ bucketArn ];
-      condition = lib.forEach bucketDirs (dir: {
+      condition = lib.forEach bucketDirs (dir:
+      let
+        # apply policy on all subdirs
+        dir' = dir + "/*";
+      in {
         test = "StringLike";
         variable = "s3:prefix";
-        values = pathPrefix rootDir dir;
+        values = pathPrefix rootDir dir';
       });
     };
 
@@ -150,6 +154,7 @@ rec {
       effect = "Allow";
       actions = [ "s3:*" ];
       resources = lib.unique (lib.flatten (lib.forEach bucketDirs (dir: [
+        # apply policy on all subdirs
         "${bucketArn}/${rootDir}/${dir}/*"
         "${bucketArn}/${rootDir}/${dir}"
       ])));
