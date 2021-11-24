@@ -114,6 +114,7 @@ in
           { path = "sys/auth/github-terraform"; capabilities = [ c r u d l s ]; description = ""; }
           { path = "sys/auth/github-terraform/config"; capabilities = [ c r ]; description = ""; }
           { path = "sys/capabilities-self"; capabilities = [ s ]; description = ""; }
+          { path = "sys/mounts"; capabilities = [ r l ]; description = ""; }
           { path = "sys/mounts/auth/*"; capabilities = [ c r u d l s ]; description = ""; }
           { path = "sys/mounts/sops"; capabilities = [ c r u d l s ]; description = ""; }
           { path = "sys/policies/*"; capabilities = [ c r u d l ]; description = ""; }
