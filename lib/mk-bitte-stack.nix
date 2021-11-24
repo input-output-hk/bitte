@@ -15,10 +15,12 @@
 , docker ? null
 , dockerRegistry ? "docker." + domain
 , dockerRole ? "developer"
-, vaultDockerPasswordKey ? "kv/nomad-cluster/docker-developer-password"
 }:
 
 let
+  # a contract fulfilled by `tf.hydrate`
+  vaultDockerPasswordKey = "kv/nomad-cluster/docker-developer-password";
+
   # Recurse through a directory and evaluate all expressions
   #
   # Directory -> callPackage(s) -> AttrSet
@@ -56,7 +58,7 @@ let
           export dockerPassword="''${dockerPassword:-}"
 
           if [ -z "$dockerPassword" ]; then
-            dockerPassword="$(vault kv get -field value ${vaultDockerPasswordKey})"
+            dockerPassword="$(vault kv get -field password ${vaultDockerPasswordKey})"
           fi
 
           if [ -z "$dockerLoginDone" ]; then

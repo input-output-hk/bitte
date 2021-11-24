@@ -46,7 +46,7 @@ rec {
           deploySshKey = "fake"; # we can't infer this, please change to mkBitteStack
           inherit (flake) inputs;
           inherit domain;
-          inherit dockerRegistry vaultDockerPasswordKey;
+          inherit dockerRegistry;
           jobs = flake + "/jobs";
           docker = flake + "/docker";
           clusters = flake + "/clusters";

@@ -16,6 +16,9 @@
 , skopeo
 }:
 let
+  # a contract fulfilled by `tf.hydrate`
+  vaultDockerPasswordKey = "kv/nomad-cluster/docker-developer-password";
+
   pushImage = imageId: image:
     let
       parts = builtins.split "/" image.imageName;
@@ -114,7 +117,7 @@ writeShellScriptBin "nomad-run" ''
   fi
 
   ${lib.optionalString ((builtins.length pushImages) > 0) ''
-    dockerPassword="$(vault kv get -field value kv/nomad-cluster/docker-developer-password)"
+    dockerPassword="$(vault kv get -field password ${vaultDockerPasswordKey})"
   ''}
 
   ${builtins.concatStringsSep "\n" pushImages}

@@ -61,6 +61,17 @@ in
     # TODO: migrate stuff from nixos modules here (auth backends)
 
     /*
+      Load docker developer password into vault
+    */
+
+    data.sops_file.docker-developer-password.source_file =
+      "./encrypted/docker-passwords.json";
+    resource.vault_generic_secret.docker-developer-password = {
+      path = "kv/nomad-cluster/docker-developer-password";
+      data_json = var ''data.sops_file.docker-developer-password.raw'';
+    };
+
+    /*
       Polices. (vault, todo: nomad & consul)
       Related to roles that are impersonated by humans.
       -> Machine roles best remain within systemd one-shots.
