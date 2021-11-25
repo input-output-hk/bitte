@@ -935,7 +935,7 @@ in
               export TF_HTTP_USERNAME="$user"
               export TF_HTTP_PASSWORD="$pass"
 
-              terraform init 1>&2
+              terraform init -reconfigure 1>&2
             '';
           in
           {
