@@ -169,11 +169,13 @@ in
       backend = var "vault_mount.sops.path";
       name = "ops"; # devops
       allow_plaintext_backup = true; # enables key backup into vaultwarden
+      exportable = true; # enables key backup into vaultwarden
     };
     resource.vault_transit_secret_backend_key.dev = {
       backend = var "vault_mount.sops.path";
       name = "dev"; # developers
       allow_plaintext_backup = true; # enables key backup into vaultwarden
+      exportable = true; # enables key backup into vaultwarden
     };
 
     /*
