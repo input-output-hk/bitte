@@ -331,11 +331,6 @@ let
         default = var "aws_iam_role.${this.config.uid}.name";
       };
 
-      tfDataName = mkOption {
-        type = str;
-        default = var "data.aws_iam_role.${this.config.uid}.name";
-      };
-
       assumePolicy = mkOption {
         type = iamRoleAssumePolicyType;
         default = { };
