@@ -33,7 +33,7 @@ let
 
   # Some config cannot be snakeCase sanitized without breaking the functionality.
   # Example: consul service router, resolver and splitter configuration.
-  excluded = [ "failover" "splits" "subsets" ];
+  excluded = [ "failover" "loadbalancer" "splits" "subsets" ];
   sanitizeName = name: if elem name excluded then name else snakeCase name;
   sanitizeValue = name: value:
     if elem name excluded then value else sanitize value;
