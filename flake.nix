@@ -2,18 +2,19 @@
   description = "Flake containing Bitte clusters";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/release-21.05";
+    nixpkgs.follows = "cli/nixpkgs";
     utils.url = "github:numtide/flake-utils";
-    bitte-cli.url = "github:input-output-hk/bitte-cli/30d7d141cb349246e8aa1254d848b51f6940a2a1";
-    bitte-cli.inputs.utils.follows = "utils";
+    cli.url = "github:input-output-hk/bitte-cli";
+    cli.inputs.utils.follows = "utils";
     hydra.url = "github:kreisys/hydra/hydra-server-includes";
     hydra.inputs.nix.follows = "nix";
     hydra.inputs.nixpkgs.follows = "nixpkgs";
     terranix.url = "github:terranix/terranix";
     terranix.inputs.nixpkgs.follows = "nixpkgs";
+    terranix.inputs.flake-utils.follows = "utils";
     deploy.url = "github:input-output-hk/deploy-rs";
-    deploy.inputs.fenix.follows = "bitte-cli/fenix";
-    deploy.inputs.nixpkgs.follows = "bitte-cli/nixpkgs";
+    deploy.inputs.fenix.follows = "cli/fenix";
+    deploy.inputs.nixpkgs.follows = "cli/nixpkgs";
     deploy.inputs.utils.follows = "utils";
     ops-lib = {
       url = "github:input-output-hk/ops-lib";
@@ -37,17 +38,17 @@
     , hydra
     , nixpkgs
     , utils
-    , bitte-cli
+    , cli
     , deploy
     , ...
     }@inputs:
     let
 
       overlays = [
-        bitte-cli.overlay
+        cli.overlay
         # `bitte` build depend on nixpkgs-unstable rust version
         # TODO: remove when bitte itself is bumped
-        (final: prev: { inherit (bitte-cli.legacyPackages.${final.system}) bitte; })
+        (final: prev: { inherit (cli.legacyPackages.${final.system}) bitte; })
         hydra.overlay
         deploy.overlay
         localPkgsOverlay
