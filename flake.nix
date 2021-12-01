@@ -86,7 +86,7 @@
     }) // {
       inherit lib;
       # eta reduce not possibe since flake check validates for "final" / "prev"
-      overlay = nixpkgs.lib.composeManyExtensions overlays;
+      overlay = final: prev: nixpkgs.lib.composeManyExtensions overlays final prev;
       profiles = lib.mkModules ./profiles;
       nixosModules = lib.mkModules ./modules;
       nixosModule.imports = builtins.attrValues self.nixosModules;
