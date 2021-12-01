@@ -45,7 +45,11 @@ in {
       '';
     };
 
-    systemd.services."acme-${nodeName}".serviceConfig.ExecStartPre = ensureDependencies pkgs [ "vault-agent" ];
+    systemd.services."acme-${nodeName}".serviceConfig = {
+      ExecStartPre = ensureDependencies pkgs [ "vault-agent" ];
+      RestrictAddressFamilies = [ "AF_UNIX" ];
+    };
+
     security.acme = {
       acceptTerms = true;
       certs.routing = lib.mkIf (nodeName == "routing") {
