@@ -64,26 +64,30 @@
         inherit inputs;
       };
 
-    in utils.lib.eachSystem [ "x86_64-linux" ] (system: rec {
+    in
+    utils.lib.eachSystem [ "x86_64-linux" ]
+      (system: rec {
 
-      legacyPackages = pkgsForSystem system;
+        legacyPackages = pkgsForSystem system;
 
-      inherit (legacyPackages) devShell;
+        inherit (legacyPackages) devShell;
 
-      hydraJobs = let
-        constituents = {
-          inherit (legacyPackages)
-            asgAMIClients asgAMICores bitte cfssl ci-env consul cue glusterfs
-            grafana-loki haproxy haproxy-auth-request haproxy-cors nixFlakes
-            nomad nomad-autoscaler oauth2-proxy sops ssm-agent
-            terraform-with-plugins vault-backend vault-bin;
-        };
-      in {
-        inherit constituents;
-        required = legacyPackages.mkRequired constituents;
-      };
+        hydraJobs =
+          let
+            constituents = {
+              inherit (legacyPackages)
+                asgAMIClients asgAMICores bitte cfssl ci-env consul cue glusterfs
+                grafana-loki haproxy haproxy-auth-request haproxy-cors nixFlakes
+                nomad nomad-autoscaler oauth2-proxy sops ssm-agent
+                terraform-with-plugins vault-backend vault-bin;
+            };
+          in
+          {
+            inherit constituents;
+            required = legacyPackages.mkRequired constituents;
+          };
 
-    }) // {
+      }) // {
       inherit lib;
       # eta reduce not possibe since flake check validates for "final" / "prev"
       overlay = final: prev: nixpkgs.lib.composeManyExtensions overlays final prev;

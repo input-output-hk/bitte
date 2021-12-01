@@ -140,14 +140,15 @@ rec {
       actions = [ "s3:ListBucket" ];
       resources = [ bucketArn ];
       condition = lib.forEach bucketDirs (dir:
-      let
-        # apply policy on all subdirs
-        dir' = dir + "/*";
-      in {
-        test = "StringLike";
-        variable = "s3:prefix";
-        values = pathPrefix rootDir dir';
-      });
+        let
+          # apply policy on all subdirs
+          dir' = dir + "/*";
+        in
+        {
+          test = "StringLike";
+          variable = "s3:prefix";
+          values = pathPrefix rootDir dir';
+        });
     };
 
     "${prefix}-s3-directory-actions" = {

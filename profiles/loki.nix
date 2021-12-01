@@ -3,7 +3,7 @@
   # Required for Loki >= 2.3.0 ruler
   systemd.services.loki.serviceConfig.ExecStartPre =
     lib.mkIf config.services.loki.enable
-    "+${pkgs.coreutils}/bin/mkdir -p /etc/loki/rules/fake";
+      "+${pkgs.coreutils}/bin/mkdir -p /etc/loki/rules/fake";
 
   services.loki = {
     configuration = {

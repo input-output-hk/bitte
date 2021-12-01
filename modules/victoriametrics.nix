@@ -3,7 +3,8 @@ let
   cfg = config.services.victoriametrics;
   cfgVmagent = config.services.vmagent;
   cfgVmalert = config.services.vmalert;
-in with lib; {
+in
+with lib; {
   options.services.victoriametrics = {
     enable = mkEnableOption "victoriametrics";
     package = mkOption {
@@ -225,17 +226,19 @@ in with lib; {
       };
       wantedBy = [ "multi-user.target" ];
 
-      postStart = let
-        bindAddr =
-          (optionalString (hasPrefix ":" cfg.httpListenAddr) "127.0.0.1")
-          + cfg.httpListenAddr;
-      in mkBefore ''
-        until ${
-          lib.getBin pkgs.curl
-        }/bin/curl -s -o /dev/null http://${bindAddr}/ping; do
-          sleep 1;
-        done
-      '';
+      postStart =
+        let
+          bindAddr =
+            (optionalString (hasPrefix ":" cfg.httpListenAddr) "127.0.0.1")
+            + cfg.httpListenAddr;
+        in
+        mkBefore ''
+          until ${
+            lib.getBin pkgs.curl
+          }/bin/curl -s -o /dev/null http://${bindAddr}/ping; do
+            sleep 1;
+          done
+        '';
     };
 
     systemd.services.vmagent = mkIf cfgVmagent.enable {

@@ -8,7 +8,8 @@ let
   #   nix-hash --flat --base32 --type sha256 vault_${version}_${system}_${arch}.zip | nix hash to-sri --type sha256 $(cat -)
   sources =
     let base = "https://releases.hashicorp.com/vault/${version}";
-    in {
+    in
+    {
       x86_64-linux = fetchurl {
         url = "${base}/vault_${version}_linux_amd64.zip";
         sha256 = "sha256-l9eskUX/3yVquRBFpIV6ZA7Kp8VrvWa2H7cJkGIPPTM=";

@@ -11,7 +11,7 @@
 , deploySshKey
 , hydrateModule
 , jobs ? null
-, envs ? {}
+, envs ? { }
 , docker ? null
 , dockerRegistry ? "docker." + domain
 , dockerRole ? "developer"

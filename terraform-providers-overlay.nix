@@ -9,7 +9,7 @@ final: prev:
   inherit (prev)
     terraform_0_13
     terraform_0_14
-  ;
+    ;
 
   terraform-provider-names = [
     "acme"

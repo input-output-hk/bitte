@@ -171,18 +171,20 @@ in
     # Core Instance IAM + Security Group
     # ---------------------------------------------------------------
 
-    data.aws_iam_policy_document = let
-      # deploy for core role
-      role = config.cluster.iam.roles.core;
-      op = policyName: policy:
-        lib.nameValuePair policy.uid {
-          statement = {
-            inherit (policy) effect actions resources;
-          } // (lib.optionalAttrs (policy.condition != null) {
-            inherit (policy) condition;
-          });
-        };
-    in lib.listToAttrs (lib.mapAttrsToList op role.policies);
+    data.aws_iam_policy_document =
+      let
+        # deploy for core role
+        role = config.cluster.iam.roles.core;
+        op = policyName: policy:
+          lib.nameValuePair policy.uid {
+            statement = {
+              inherit (policy) effect actions resources;
+            } // (lib.optionalAttrs (policy.condition != null) {
+              inherit (policy) condition;
+            });
+          };
+      in
+      lib.listToAttrs (lib.mapAttrsToList op role.policies);
 
     resource.aws_iam_instance_profile =
       lib.flip lib.mapAttrs' config.cluster.instances (name: instance:
@@ -193,27 +195,31 @@ in
           lifecycle = [{ create_before_destroy = true; }];
         });
 
-    resource.aws_iam_role = let
-      # deploy for core role
-      role = config.cluster.iam.roles.core;
-    in {
-      "${role.uid}" = {
-        name = role.uid;
-        assume_role_policy = role.assumePolicy.tfJson;
-        lifecycle = [{ create_before_destroy = true; }];
-      };
-    };
-
-    resource.aws_iam_role_policy = let
-      # deploy for core role
-      role = config.cluster.iam.roles.core;
-      op = policyName: policy:
-        lib.nameValuePair policy.uid {
-          name = policy.uid;
-          role = role.id;
-          policy = var "data.aws_iam_policy_document.${policy.uid}.json";
+    resource.aws_iam_role =
+      let
+        # deploy for core role
+        role = config.cluster.iam.roles.core;
+      in
+      {
+        "${role.uid}" = {
+          name = role.uid;
+          assume_role_policy = role.assumePolicy.tfJson;
+          lifecycle = [{ create_before_destroy = true; }];
         };
-    in lib.listToAttrs (lib.mapAttrsToList op role.policies);
+      };
+
+    resource.aws_iam_role_policy =
+      let
+        # deploy for core role
+        role = config.cluster.iam.roles.core;
+        op = policyName: policy:
+          lib.nameValuePair policy.uid {
+            name = policy.uid;
+            role = role.id;
+            policy = var "data.aws_iam_policy_document.${policy.uid}.json";
+          };
+      in
+      lib.listToAttrs (lib.mapAttrsToList op role.policies);
 
     resource.aws_security_group = {
       "${config.cluster.name}" = {

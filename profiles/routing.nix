@@ -1,6 +1,8 @@
-{ self, lib, pkgs, config, nodeName, bittelib, ... }: let
+{ self, lib, pkgs, config, nodeName, bittelib, ... }:
+let
   inherit (bittelib) ensureDependencies;
-in {
+in
+{
 
   imports = [
     ./common.nix
