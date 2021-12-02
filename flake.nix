@@ -8,15 +8,25 @@
     nixpkgs-unstable.url =
       "github:nixos/nixpkgs/7733d9cae98ab91f36d35005d8aef52873d23b5b";
 
+    # in function of https://github.com/NixOS/nix/pull/5544
+    # we want to bump this nix version soon-ish
+    # that pr "fixes" builds on monitoring "do the right thing"
+    nix-core.url = "github:NixOS/nix/c6fa7775de413a799b9a137dceced5dcf0f5e6ed";
+    nix-core.inputs.nixpkgs.follows = "nixpkgs-core";
+    # currently includes `computeLocks` fix - so follows are not screwed
+    nix-auxiliary.url = "github:NixOS/nix/2ff71b021379a2c9bbdcb789a93cdc585b3520ca";
+    nix-auxiliary.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
+
+    # Legacy alias / TODO
     nixpkgs.follows = "nixpkgs-core";
-    nix.url = "github:NixOS/nix/c6fa7775de413a799b9a137dceced5dcf0f5e6ed";
-    nix.inputs.nixpkgs.follows = "nixpkgs-core";
+    nix.follows = "nix-core";
 
     fenix.url = "github:nix-community/fenix";
 
     cli.url = "github:input-output-hk/bitte-cli";
     cli.inputs.fenix.follows = "fenix";
     cli.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
+    cli.inputs.nix.follows = "nix-auxiliary";
 
     deploy.url = "github:input-output-hk/deploy-rs";
     deploy.inputs.fenix.follows = "fenix";
