@@ -2,20 +2,30 @@
   description = "Flake containing Bitte clusters";
 
   inputs = {
-    nixpkgs.follows = "cli/nixpkgs";
-    utils.url = "github:numtide/flake-utils";
+    nixpkgs-core.url = "github:nixos/nixpkgs/release-21.05";
+    nixpkgs-client.url = "github:nixos/nixpkgs/release-21.05";
+    nixpkgs-auxiliary.url = "github:nixos/nixpkgs/nixos-21.11";
+
+    nixpkgs.follows = "nixpkgs-core";
+    nix.url = "github:NixOS/nix/c6fa7775de413a799b9a137dceced5dcf0f5e6ed";
+    nix.inputs.nixpkgs.follows = "nixpkgs-core";
+
+    fenix.url = "github:nix-community/fenix";
+
     cli.url = "github:input-output-hk/bitte-cli";
-    cli.inputs.utils.follows = "utils";
-    hydra.url = "github:kreisys/hydra/hydra-server-includes";
-    hydra.inputs.nix.follows = "nix";
-    hydra.inputs.nixpkgs.follows = "nixpkgs";
-    terranix.url = "github:terranix/terranix";
-    terranix.inputs.nixpkgs.follows = "nixpkgs";
-    terranix.inputs.flake-utils.follows = "utils";
+    cli.inputs.fenix.follows = "fenix";
+    cli.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
+
     deploy.url = "github:input-output-hk/deploy-rs";
-    deploy.inputs.fenix.follows = "cli/fenix";
-    deploy.inputs.nixpkgs.follows = "cli/nixpkgs";
-    deploy.inputs.utils.follows = "utils";
+    deploy.inputs.fenix.follows = "fenix";
+    deploy.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
+
+    terranix.url = "github:terranix/terranix";
+    terranix.inputs.nixpkgs.follows = "blank";
+
+    utils.url = "github:numtide/flake-utils";
+    blank.url = "github:divnix/blank";
+
     ops-lib = {
       url = "github:input-output-hk/ops-lib";
       flake = false;
@@ -29,8 +39,10 @@
       flake = false;
     };
 
-    nix.url = "github:NixOS/nix/c6fa7775de413a799b9a137dceced5dcf0f5e6ed";
-    nix.inputs.nixpkgs.follows = "nixpkgs";
+    # DEPRECATED: will be replaces by cicero soon
+    hydra.url = "github:kreisys/hydra/hydra-server-includes";
+    hydra.inputs.nix.follows = "nix";
+    hydra.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs =
