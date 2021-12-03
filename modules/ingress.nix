@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, pkiFiles, ... }:
 
 {
   options = {
@@ -21,9 +21,9 @@
           preScript = pkgs.writeShellScript "ingress-start-pre" ''
             export PATH="${lib.makeBinPath [ pkgs.coreutils ]}"
             set -exuo pipefail
-            cp /etc/ssl/certs/cert-key.pem consul-key.pem
-            cp /etc/ssl/certs/full.pem consul-ca.pem
-            cat /etc/ssl/certs/{ca,cert,cert-key}.pem > consul-crt.pem
+            cp ${pkiFiles.keyFile} consul-key.pem
+            cp ${pkiFiles.caCertFile} consul-ca.pem
+            cat ${pkiFiles.certChainFile} ${pkiFiles.keyFile} > consul-crt.pem
 
             cat /etc/ssl/certs/${config.cluster.domain}-{cert,key}.pem \
               ${../lib/letsencrypt.pem} \

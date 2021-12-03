@@ -1,4 +1,4 @@
-{ pkgs, config, lib, ... }:
+{ pkgs, config, lib, pkiFiles, ... }:
 let
   inherit (lib) mkIf makeBinPath concatStringsSep mapAttrsToList;
   inherit (config.cluster) domain instances;
@@ -201,7 +201,7 @@ in
         environment = {
           CONSUL_HTTP_ADDR = "http://127.0.0.1:8500";
           VAULT_ADDR = "http://127.0.0.1:8200";
-          VAULT_CACERT = "/etc/ssl/certs/full.pem";
+          VAULT_CACERT = pkiFiles.caCertFile;
         };
 
         script = ''

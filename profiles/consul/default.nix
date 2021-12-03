@@ -1,7 +1,9 @@
-{ lib, pkgs, config, nodeName, ... }:
+{ lib, pkgs, config, nodeName, pkiFiles, ... }:
 let
   inherit (lib) mapAttrsToList mkIf mkDefault;
   inherit (config.cluster) instances region;
+
+  ownedKey = "/var/lib/consul/cert-key.pem";
 in
 {
   services.consul = mkIf config.services.consul.enable {
@@ -17,9 +19,9 @@ in
     verifyOutgoing = true;
     verifyServerHostname = true;
 
-    caFile = "/etc/ssl/certs/full.pem";
-    certFile = "/etc/ssl/certs/cert.pem";
-    keyFile = "/var/lib/consul/cert-key.pem";
+    caFile = pkiFiles.caCertFile;
+    certFile = pkiFiles.certChainFile;
+    keyFile = ownedKey;
 
     telemetry = {
       dogstatsdAddr = "localhost:8125";

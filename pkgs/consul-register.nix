@@ -1,5 +1,5 @@
 { lib, consul, vault-bin, coreutils, writeShellScriptBin, toPrettyJSON }:
-{ creds ? "consul-register", extraServiceConfig ? { }, service }:
+{ creds ? "consul-register", extraServiceConfig ? { }, service, pkiFiles }:
 let
   serviceJson = toPrettyJSON service.name {
     service = (service // {
@@ -58,9 +58,9 @@ rec {
 
     environment = {
       VAULT_ADDR = "https://127.0.0.1:8200";
-      VAULT_CACERT = "/etc/ssl/certs/full.pem";
+      VAULT_CACERT = pkiFiles.caCertFile;
       CONSUL_HTTP_ADDR = "127.0.0.1:8500";
-      CONSUL_CACERT = "/etc/ssl/certs/full.pem";
+      CONSUL_CACERT = pkiFiles.caCertFile;
     };
 
     serviceConfig = {
