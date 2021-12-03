@@ -1,4 +1,4 @@
-{ lib, pkgs, config, bittelib, ... }:
+{ lib, pkgs, config, bittelib, pkiFiles, ... }:
 
 let
   inherit (bittelib) ensureDependencies;
@@ -282,7 +282,7 @@ in
 
       environment = {
         inherit (config.environment.variables) AWS_DEFAULT_REGION NOMAD_ADDR;
-        CURL_CA_BUNDLE = "/etc/ssl/certs/full.pem";
+        CURL_CA_BUNDLE = pkiFiles.caCertFile;
       };
 
       path = with pkgs; [ curl sops coreutils jq nomad vault-bin gawk ];

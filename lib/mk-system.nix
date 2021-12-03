@@ -13,13 +13,20 @@
 , nodeName ? null
 }:
 let
+  pkiFiles = {
+    caCertFile = "/etc/ssl/certs/ca.pem";
+    certChainFile = "/etc/ssl/certs/full.pem";
+    certFile = "/etc/ssl/certs/cert.pem";
+    keyFile = "/etc/ssl/certs/cert-key.pem";
+  };
+
   bitteSystem = specializationModule:
     nixpkgs.lib.nixosSystem {
       inherit pkgs;
       inherit (pkgs) system;
       modules = [ bitte.nixosModule specializationModule ] ++ modules;
       specialArgs = {
-        inherit nodeName self inputs;
+        inherit nodeName self inputs pkiFiles;
         inherit (bitte.inputs) terranix;
         bittelib = bitte.lib;
         terralib = bitte.lib.terralib;

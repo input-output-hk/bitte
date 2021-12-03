@@ -1,4 +1,4 @@
-{ config, self, pkgs, lib, nodeName, ... }:
+{ config, self, pkgs, lib, nodeName, pkiFiles, ... }:
 let
   # with 3 storage nodes, and redundancy at 1, we have 2/3 of size*3. We only
   # want to use 90% to ensure the quota is actually applied in time, so ew set
@@ -38,6 +38,7 @@ in
   };
 
   systemd.services.storage-service = (pkgs.consulRegister {
+    inherit pkiFiles;
     service = {
       name = "glusterd";
       port = 24007;

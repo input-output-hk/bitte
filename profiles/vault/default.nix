@@ -1,20 +1,16 @@
-{ lib, pkgs, config, ... }:
+{ lib, pkgs, config, pkiFiles, ... }:
 let
   inherit (lib) mapAttrsToList mkIf;
   inherit (config.cluster) region instances kms;
   cfg = config.services.vault;
-
-  full = "/etc/ssl/certs/full.pem";
-  ca = "/etc/ssl/certs/ca.pem";
-  cert = "/etc/ssl/certs/cert.pem";
-  key = "/var/lib/vault/cert-key.pem";
+  ownedKey = "/var/lib/vault/cert-key.pem";
 in
 {
   config = mkIf cfg.enable {
     environment.variables = {
       VAULT_FORMAT = "json";
       VAULT_ADDR = lib.mkDefault "https://127.0.0.1:8200";
-      VAULT_CACERT = "/etc/ssl/certs/full.pem";
+      VAULT_CACERT = pkiFiles.caCertFile;
     };
 
     services.vault = {
@@ -29,9 +25,9 @@ in
 
       listener.tcp = {
         address = "0.0.0.0:8200";
-        tlsClientCaFile = full;
-        tlsCertFile = cert;
-        tlsKeyFile = key;
+        tlsClientCaFile = pkiFiles.caCertFile;
+        tlsCertFile = pkiFiles.certChainFile;
+        tlsKeyFile = ownedKey;
         tlsMinVersion = "tls12";
       };
 

@@ -1,4 +1,4 @@
-{ lib, pkgs, config, ... }:
+{ lib, pkgs, config, pkiFiles, ... }:
 let cfg = config.services.nomad.namespaces;
 in
 {
@@ -48,7 +48,7 @@ in
 
         environment = {
           inherit (config.environment.variables) NOMAD_ADDR;
-          CURL_CA_BUNDLE = "/etc/ssl/certs/full.pem";
+          CURL_CA_BUNDLE = pkiFiles.caCertFile;
         };
 
         path = with pkgs; [ nomad jq ];

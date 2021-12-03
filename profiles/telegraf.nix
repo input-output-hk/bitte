@@ -1,4 +1,4 @@
-{ pkgs, config, lib, ... }:
+{ pkgs, config, lib, pkiFiles, ... }:
 let
   inherit (config.cluster) region instances;
   inherit (lib) optional optionalAttrs;
@@ -108,7 +108,7 @@ in
 
         systemd_units = { unittype = "service"; };
 
-        x509_cert = { sources = [ "/etc/ssl/certs/cert.pem" ]; };
+        x509_cert = { sources = [ pkiFiles.certFile ]; };
 
         kernel = { };
         linux_sysctl_fs = { };

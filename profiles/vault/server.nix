@@ -1,11 +1,9 @@
-{ config, nodeName, lib, ... }:
+{ config, nodeName, lib, pkiFiles, ... }:
 let
   inherit (config.cluster) instances;
   inherit (instances.${nodeName}) privateIP;
 
-  full = "/etc/ssl/certs/full.pem";
-  cert = "/etc/ssl/certs/cert.pem";
-  key = "/var/lib/vault/cert-key.pem";
+  owendKey = "/var/lib/vault/cert-key.pem";
 in
 {
   imports = [ ./default.nix ./policies.nix ];
@@ -21,9 +19,9 @@ in
 
       storage.consul = lib.mkDefault {
         address = "127.0.0.1:8500";
-        tlsCaFile = full;
-        tlsCertFile = cert;
-        tlsKeyFile = key;
+        tlsCaFile = pkiFiles.caCertFile;
+        tlsCertFile = pkiFiles.certChainFile;
+        tlsKeyFile = owendKey;
       };
     };
 
