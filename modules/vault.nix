@@ -111,35 +111,6 @@ let
     };
   };
 
-  storageConsulType = submodule {
-    options = {
-      address = mkOption {
-        type = nullOr str;
-        default = null;
-      };
-
-      scheme = mkOption {
-        type = nullOr (enum [ "http" "https" ]);
-        default = null;
-      };
-
-      tlsCaFile = mkOption {
-        type = nullOr str;
-        default = null;
-      };
-
-      tlsCertFile = mkOption {
-        type = nullOr str;
-        default = null;
-      };
-
-      tlsKeyFile = mkOption {
-        type = nullOr str;
-        default = null;
-      };
-    };
-  };
-
   cfg = config.services.vault;
 in
 {
@@ -186,11 +157,6 @@ in
         options = {
           raft = mkOption {
             type = nullOr storageRaftType;
-            default = null;
-          };
-
-          consul = mkOption {
-            type = nullOr storageConsulType;
             default = null;
           };
         };
