@@ -176,7 +176,7 @@ in
         | jq --arg ca "$(< secrets/ca.pem)" '.ca = $ca'
       )"
       echo "$cert" | cfssljson -bare secrets/cert
-      cat secrets/ca.pem <(echo) secrets/cert.pem > secrets/full.pem
+      cat secrets/cert.pem secrets/ca.pem > secrets/full.pem
       cert="$(echo "$cert" | jq --arg full "$(< secrets/full.pem)" '.full = $full')"
       echo "$cert" | ${sopsEncrypt} > encrypted/cert.json
     fi
