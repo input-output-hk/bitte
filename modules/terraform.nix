@@ -113,6 +113,8 @@ let
       newKernelVersion = config.boot.kernelPackages.kernel.version;
     in
     ''
+      set -euo pipefail
+
       echo
       echo Waiting for ssh to come up on port 22 ...
       while [ -z "$(
