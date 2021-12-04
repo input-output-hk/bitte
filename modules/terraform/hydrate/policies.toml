@@ -1,0 +1,99 @@
+[vault] # policy roles
+
+[vault.admin]
+path."approle/*" = { capabilities = [ "create", "read", "update", "delete", "list" ] } #
+path."aws/*" = { capabilities = [ "create", "read", "update", "delete", "list" ] } #
+path."consul/*" = { capabilities = [ "create", "read", "update", "delete", "list" ] } #
+path."kv/*" = { capabilities = [ "create", "read", "update", "delete", "list" ] } #
+path."nomad/*" = { capabilities = [ "create", "read", "update", "delete", "list" ] } #
+path."pki/*" = { capabilities = [ "create", "read", "update", "delete", "list" ] } #
+path."sops/*" = { capabilities = [ "create", "read", "update", "delete", "list" ] } #
+
+path."auth/aws/config/client" = { capabilities = [ "create", "read", "update", "delete", "list" ] } #
+path."auth/aws/role/*" = { capabilities = [ "create", "read", "update", "delete", "list" ] } #
+path."auth/github-employees/config" = { capabilities = [ "create", "read", "update", "delete", "list", "sudo" ] } #
+path."auth/github-employees/map/teams/*" = { capabilities = [ "create", "read", "update", "delete", "list", "sudo" ] } #
+path."auth/github-terraform/config" = { capabilities = [ "create", "read", "update", "delete", "list", "sudo" ] } #
+path."auth/github-terraform/map/teams/*" = { capabilities = [ "create", "read", "update", "delete", "list", "sudo" ] } #
+path."auth/token/create/*" = { capabilities = [ "create", "read", "update", "delete", "list" ] } #
+path."auth/token/create" = { capabilities = [ "create", "read", "update", "delete", "list", "sudo" ] } #
+path."auth/token/create/nomad-cluster" = { capabilities = [ "create", "read", "update", "delete", "list", "sudo" ] } #
+path."auth/token/create/nomad-server" = { capabilities = [ "create", "read", "update", "delete", "list", "sudo" ] } #
+path."auth/token/create-orphan" = { capabilities = [ "create", "read", "update", "delete", "list" ] } #
+path."auth/token/lookup" = { capabilities = [ "create", "read", "update", "delete", "list" ] } #
+path."auth/token/lookup-self" = { capabilities = [ "read" ] } #
+path."auth/token/renew-self" = { capabilities = [ "update" ] } #
+path."auth/token/revoke-accessor" = { capabilities = [ "update" ] } #
+path."auth/token/revoke" = { capabilities = [ "update" ] } #
+path."auth/token/roles/*" = { capabilities = [ "create", "read", "update", "delete", "list" ] } #
+path."auth/token/roles/nomad-cluster" = { capabilities = [ "create", "read", "update", "delete", "list" ] } #
+path."auth/token/roles/nomad-server" = { capabilities = [ "read" ] } #
+path."identity/*" = { capabilities = [ "create", "read", "update", "delete", "list" ] } #
+path."sys/auth/aws" = { capabilities = [ "create", "read", "update", "delete", "list", "sudo" ] } #
+path."sys/auth" = { capabilities = [ "read", "list" ] } #
+path."sys/auth/github-employees" = { capabilities = [ "create", "read", "update", "delete", "list", "sudo" ] } #
+path."sys/auth/github-employees/config" = { capabilities = [ "create", "read" ] } #
+path."sys/auth/github-terraform" = { capabilities = [ "create", "read", "update", "delete", "list", "sudo" ] } #
+path."sys/auth/github-terraform/config" = { capabilities = [ "create", "read" ] } #
+path."sys/capabilities-self" = { capabilities = [ "sudo" ] } #
+path."sys/mounts" = { capabilities = [ "read", "list" ] } #
+path."sys/mounts/auth/*" = { capabilities = [ "create", "read", "update", "delete", "list", "sudo" ] } #
+path."sys/mounts/sops" = { capabilities = [ "create", "read", "update", "delete", "list", "sudo" ] } #
+path."sys/policies/*" = { capabilities = [ "create", "read", "update", "delete", "list" ] } #
+path."sys/policy" = { capabilities = [ "create", "read", "update", "delete", "list" ] } #
+path."sys/policy/*" = { capabilities = [ "create", "read", "update", "delete", "list" ] } #
+
+
+[vault.developer]
+path."aws/creds/developer".capabilities = [ "read", "update", ] # Allow creating AWS tokens
+path."consul/creds/developer".capabilities = [ "read", "update", ] # Allow creating Consul tokens
+path."kv/*".capabilities = [ "create", "read", "update", "delete", "list", ] # Allow all KV access
+path."nomad/creds/developer".capabilities = [ "read", "update", ] # Allow creating Nomad tokens
+path."sops/dev".capabilities = [ "read", "list", ] # Allow to decrypt dev sops secrets
+
+path."auth/token/lookup-self".capabilities = [ "read", ] # Allow lookup of own tokens
+path."auth/token/renew-self".capabilities = [ "update", ] # Allow self renewing tokens
+path."sys/capabilities-self".capabilities = [ "update", ] # Allow lookup of own capabilities
+
+[vault.nomad-cluster] # the nomad workload scheduler
+path."kv/data/nomad-cluster/*".capabilities = [ "read", "list", ]
+path."kv/metadata/nomad-cluster/*".capabilities = [ "read", "list", ]
+path."starttime/data/*".capabilities = [ "read", "list", ]
+path."starttime/metadata/*".capabilities = [ "read", "list", ]
+path."auth/token/renew-self".capabilities = [ "update", ]
+path."auth/token/lookup-self".capabilities = [ "read", ]
+path."auth/token/lookup".capabilities = [ "update", ]
+
+[consul] # policy roles
+
+[consul.admin]
+acl = "write"
+operator = "write"
+agent_prefix."" = { intentions = "deny", policy = "write" }
+event_prefix."" = { intentions = "deny", policy = "write" }
+key_prefix."" = { intentions = "deny", policy = "write" }
+node_prefix."" = { intentions = "deny", policy = "write" }
+query_prefix."" = { intentions = "deny", policy = "write" }
+service_prefix."" = { intentions = "write", policy = "write" }
+session_prefix."" = { intentions = "deny", policy = "write" }
+
+[consul.developer]
+agent_prefix."" = { intentions = "deny", policy = "read" }
+event_prefix."" = { intentions = "deny", policy = "read" }
+key_prefix."" = { intentions = "deny", policy = "read" }
+node_prefix."" = { intentions = "deny", policy = "read" }
+query_prefix."" = { intentions = "deny", policy = "read" }
+service_prefix."" = { intentions = "read", policy = "read" }
+
+[nomad] # policy roles
+
+[nomad.admin]
+agent.policy = "write"
+host_volume."*" = { policy = "write" }
+namespace."*" = { capabilities = [ "alloc-node-exec" ], policy = "write" }
+node.policy = "write"
+operator.policy = "write"
+quota.policy = "write"
+
+[nomad.developer]
+

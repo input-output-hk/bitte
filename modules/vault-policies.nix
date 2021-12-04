@@ -97,7 +97,10 @@ in {
       '') config.services.vault.policies)}
 
       keepNames=(default root ${
-        toString (attrNames config.services.vault.policies)
+        toString (
+          (attrNames config.services.vault.policies) ++
+          (attrNames config.tf.hydrate.configuration.locals.policies.vault)
+        )
       })
       policyNames=($(vault policy list | jq -e -r '.[]'))
 
@@ -120,7 +123,11 @@ in {
       vault write "nomad/role/management" "policies=" "type=management"
 
       keepNames=(${
-        toString (attrNames config.services.nomad.policies ++ [ "management" ])
+        toString (
+          (attrNames config.services.nomad.policies ++ [ "management" ])
+          ++
+          (attrNames config.tf.hydrate.configuration.locals.policies.nomad)
+        )
       })
       nomadRoles=($(nomad acl policy list -json | jq -r -e '.[].Name'))
 

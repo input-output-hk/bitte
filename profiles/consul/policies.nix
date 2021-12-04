@@ -25,7 +25,6 @@
     roles = with config.services.consul.policies; {
       consul-agent.policyNames = [ consul-agent.name ];
       consul-server.policyNames = [ consul-agent.name ];
-      nomad-client.policyNames = [ nomad-client.name ];
       nomad-server.policyNames = [ nomad-server.name ];
       vault-server.policyNames = [ vault-server.name ];
     };
@@ -40,38 +39,6 @@
       read = path: { "${path}".policy = "read"; };
       write = path: { "${path}".policy = "write"; };
     in {
-      admin = {
-        agentPrefix = allWrite;
-        eventPrefix = allWrite;
-        keyPrefix = allWrite;
-        nodePrefix = allWrite;
-        queryPrefix = allWrite;
-        servicePrefix = {
-          "" = {
-            policy = "write";
-            intentions = "write";
-          };
-        };
-        sessionPrefix = allWrite;
-
-        acl = "write";
-        keyring = "write";
-        operator = "write";
-      };
-
-      developer = {
-        agentPrefix = allRead;
-        eventPrefix = allRead;
-        keyPrefix = allRead;
-        nodePrefix = allRead;
-        queryPrefix = allRead;
-        servicePrefix = {
-          "" = {
-            policy = "read";
-            intentions = "read";
-          };
-        };
-      };
 
       dns = {
         nodePrefix = allRead;
@@ -143,20 +110,6 @@
         acl = "write";
       };
 
-      # Not used anymore...
-      nomad-client = {
-        agentPrefix = allRead;
-        nodePrefix = allRead;
-        servicePrefix = allWrite;
-        keyPrefix = allRead;
-      };
-
-      # Not used anymore...
-      ingress = {
-        nodePrefix = allRead;
-        servicePrefix = allRead;
-        queryPrefix = allRead;
-      };
     };
   };
 }

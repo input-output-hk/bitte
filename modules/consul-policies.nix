@@ -301,12 +301,14 @@ in {
         done
 
         # Remove Consul Policies
+        keepNames=(${toString (__attrNames config.tf.hydrate.configuration.locals.policies.consul)})
 
         for policy in $(consul acl policy list -format json | jq -r '.[].Name'); do
           name="$(basename "$policy")"
 
           [ -s "${policyDir}/$policy" ] && continue
           [ "global-management" = "$name" ] && continue
+          [ " ''${keepNames[*]} " =~ " $name " ] && continue
 
           echo "Deleting policy $name"
           consul acl policy delete -name "$name"
@@ -338,6 +340,7 @@ in {
           name="$(basename "$role")"
 
           [ -d "${rolesDir}/$role" ] && continue
+          [ " ''${keepNames[*]} " =~ " $role " ] && continue
 
           echo "Deleting role $name"
           consul acl role delete -name "$name"

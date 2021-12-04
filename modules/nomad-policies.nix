@@ -175,7 +175,11 @@ in {
 
       ${concatStringsSep "" createPolicies}
 
-      keepNames=(${toString (attrNames config.services.nomad.policies)})
+      keepNames=(${
+        toString ((attrNames config.services.nomad.policies)
+          ++
+          (attrNames config.tf.hydrate.configuration.locals.policies.nomad))
+      })
       policyNames=($(nomad acl policy list -json | jq -r -e '.[].Name'))
 
       for name in "''${policyNames[@]}"; do
