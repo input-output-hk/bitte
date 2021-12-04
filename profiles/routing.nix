@@ -47,7 +47,7 @@ in {
 
     systemd.services."acme-${nodeName}".serviceConfig = {
       ExecStartPre = ensureDependencies pkgs [ "vault-agent" ];
-      RestrictAddressFamilies = [ "AF_UNIX" ];
+      RestrictAddressFamilies = [ "AF_UNIX" "AF_INET" "AF_INET6" ];
     };
 
     security.acme = {
