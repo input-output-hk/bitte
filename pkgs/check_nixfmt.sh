@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 
 test_fmt() {
-  hash nixfmt 2>&- || { echo >&2 "nixfmt not in PATH."; exit 1; }
+  hash nixfmt 2>&- || {
+    echo >&2 "nixfmt not in PATH."
+    exit 1
+  }
   IFS='
 '
 
@@ -19,10 +22,10 @@ test_fmt() {
 }
 
 case "$1" in
-  --about )
-    echo "Check Nix code formatting"
-    ;;
-  * )
-    test_fmt
-    ;;
+--about)
+  echo "Check Nix code formatting"
+  ;;
+*)
+  test_fmt
+  ;;
 esac

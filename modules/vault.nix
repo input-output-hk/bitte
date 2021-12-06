@@ -1,7 +1,7 @@
-{ lib, config, pkgs, nodeName, ... }:
+{ lib, config, pkgs, nodeName, bittelib, ... }:
 let
   inherit (builtins) split typeOf length attrNames;
-  inherit (pkgs) ensureDependencies snakeCase;
+  inherit (bittelib) ensureDependencies snakeCase;
   inherit (lib)
     mkIf mkEnableOption mkOption flip pipe concatMapStrings isList toLower
     mapAttrs' nameValuePair fileContents filterAttrs hasPrefix mapAttrsToList
@@ -17,15 +17,16 @@ let
       str = obj;
       list = map sanitize obj;
       null = null;
-      set = if (length (attrNames obj) == 0) then
-        null
-      else
-        pipe obj [
-          (filterAttrs
-            (name: value: name != "_module" && name != "_ref" && value != null))
-          (mapAttrs'
-            (name: value: nameValuePair (snakeCase name) (sanitize value)))
-        ];
+      set =
+        if (length (attrNames obj) == 0) then
+          null
+        else
+          pipe obj [
+            (filterAttrs
+              (name: value: name != "_module" && name != "_ref" && value != null))
+            (mapAttrs'
+              (name: value: nameValuePair (snakeCase name) (sanitize value)))
+          ];
     };
 
   storageRaftType = submodule {
@@ -110,37 +111,9 @@ let
     };
   };
 
-  storageConsulType = submodule {
-    options = {
-      address = mkOption {
-        type = nullOr str;
-        default = null;
-      };
-
-      scheme = mkOption {
-        type = nullOr (enum [ "http" "https" ]);
-        default = null;
-      };
-
-      tlsCaFile = mkOption {
-        type = nullOr str;
-        default = null;
-      };
-
-      tlsCertFile = mkOption {
-        type = nullOr str;
-        default = null;
-      };
-
-      tlsKeyFile = mkOption {
-        type = nullOr str;
-        default = null;
-      };
-    };
-  };
-
   cfg = config.services.vault;
-in {
+in
+{
   options.services.vault = {
     enable = mkEnableOption "Vault daemon";
 
@@ -184,11 +157,6 @@ in {
         options = {
           raft = mkOption {
             type = nullOr storageRaftType;
-            default = null;
-          };
-
-          consul = mkOption {
-            type = nullOr storageConsulType;
             default = null;
           };
         };
@@ -339,45 +307,47 @@ in {
         StartLimitBurst = 3;
       };
 
-      serviceConfig = let
-        preScript = pkgs.writeShellScriptBin "vault-start-pre" ''
-          export PATH="${makeBinPath [ pkgs.coreutils ]}"
-          set -exuo pipefail
-          cp /etc/ssl/certs/cert-key.pem .
-          chown --reference . --recursive .
-        '';
+      serviceConfig =
+        let
+          preScript = pkgs.writeShellScriptBin "vault-start-pre" ''
+            export PATH="${makeBinPath [ pkgs.coreutils ]}"
+            set -exuo pipefail
+            cp /etc/ssl/certs/cert-key.pem .
+            chown --reference . --recursive .
+          '';
 
-        postScript = pkgs.writeShellScriptBin "vault-start-post" ''
-          export PATH="${makeBinPath [ pkgs.coreutils pkgs.vault-bin ]}"
-          while ! vault status; do sleep 3; done
-        '';
-      in {
-        ExecStartPre = "!${preScript}/bin/vault-start-pre";
-        ExecStart =
-          "@${pkgs.vault-bin}/bin/vault vault server -config /etc/${cfg.configDir}";
+          postScript = pkgs.writeShellScriptBin "vault-start-post" ''
+            export PATH="${makeBinPath [ pkgs.coreutils pkgs.vault-bin ]}"
+            while ! vault status; do sleep 3; done
+          '';
+        in
+        {
+          ExecStartPre = "!${preScript}/bin/vault-start-pre";
+          ExecStart =
+            "@${pkgs.vault-bin}/bin/vault vault server -config /etc/${cfg.configDir}";
 
-        ExecStartPost = "!${postScript}/bin/vault-start-post";
-        KillSignal = "SIGINT";
+          ExecStartPost = "!${postScript}/bin/vault-start-post";
+          KillSignal = "SIGINT";
 
-        StateDirectory = baseNameOf cfg.storagePath;
-        WorkingDirectory = cfg.storagePath;
+          StateDirectory = baseNameOf cfg.storagePath;
+          WorkingDirectory = cfg.storagePath;
 
-        DynamicUser = true;
-        User = "vault";
-        Group = "vault";
+          DynamicUser = true;
+          User = "vault";
+          Group = "vault";
 
-        LimitMEMLOCK = "infinity";
-        PrivateDevices = true;
-        PrivateTmp = true;
-        ProtectSystem = "full";
-        ProtectHome = "read-only";
-        AmbientCapabilities = "cap_ipc_lock";
-        NoNewPrivileges = true;
+          LimitMEMLOCK = "infinity";
+          PrivateDevices = true;
+          PrivateTmp = true;
+          ProtectSystem = "full";
+          ProtectHome = "read-only";
+          AmbientCapabilities = "cap_ipc_lock";
+          NoNewPrivileges = true;
 
-        TimeoutStopSec = "30s";
-        RestartSec = "10s";
-        Restart = "on-failure";
-      };
+          TimeoutStopSec = "30s";
+          RestartSec = "10s";
+          Restart = "on-failure";
+        };
     };
 
     systemd.services.vault-consul-token =
@@ -392,7 +362,7 @@ in {
           RemainAfterExit = true;
           Restart = "on-failure";
           RestartSec = "20s";
-          ExecStartPre = ensureDependencies [ "consul" ];
+          ExecStartPre = ensureDependencies pkgs [ "consul" ];
         };
 
         path = with pkgs; [ consul curl jq ];

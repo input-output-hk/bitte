@@ -1,28 +1,32 @@
-{ pkgs, lib, config, ... }:
+{ pkgs, lib, config, bittelib, ... }:
 let
   inherit (builtins) toJSON typeOf toFile attrNames;
   inherit (lib)
     mkOption mkIf mkEnableOption mapAttrsToList concatStringsSep remove
     listToAttrs flip forEach;
   inherit (lib.types) listOf enum attrsOf str submodule nullOr;
-  inherit (pkgs) ensureDependencies;
+  inherit (bittelib) ensureDependencies;
 
   rmModules = arg:
     let
-      sanitized = mapAttrsToList (name: value:
-        if name == "_module" then
-          null
-        else {
-          inherit name;
-          value = if typeOf value == "set" then rmModules value else value;
-        }) arg;
-    in listToAttrs (remove null sanitized);
+      sanitized = mapAttrsToList
+        (name: value:
+          if name == "_module" then
+            null
+          else {
+            inherit name;
+            value = if typeOf value == "set" then rmModules value else value;
+          })
+        arg;
+    in
+    listToAttrs (remove null sanitized);
 
   policy2hcl = name: value:
-    pkgs.runCommandLocal "json2hcl" {
-      src = toFile "${name}.json" (toJSON (rmModules value));
-      nativeBuildInputs = [ pkgs.json2hcl ];
-    } ''
+    pkgs.runCommandLocal "json2hcl"
+      {
+        src = toFile "${name}.json" (toJSON (rmModules value));
+        nativeBuildInputs = [ pkgs.json2hcl ];
+      } ''
       json2hcl < "$src" > "$out"
     '';
 
@@ -49,7 +53,8 @@ let
 
   createNomadRoles = flip mapAttrsToList config.services.nomad.policies
     (name: policy: ''vault write "nomad/role/${name}" "policies=${name}"'');
-in {
+in
+{
   options = {
     services.vault.policies = mkOption {
       type = attrsOf vaultPoliciesType;
@@ -71,7 +76,7 @@ in {
       Restart = "on-failure";
       RestartSec = "20s";
       WorkingDirectory = "/var/lib/vault";
-      ExecStartPre = ensureDependencies [ "vault-bootstrap" "vault" ];
+      ExecStartPre = ensureDependencies pkgs [ "vault-bootstrap" "vault" ];
     };
 
     environment = {

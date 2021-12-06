@@ -1,8 +1,45 @@
-{ lib, stdenv, fetchFromGitHub, fuse, bison, flex_2_5_35, openssl, python3
-, ncurses, readline, autoconf, automake, libtool, pkg-config, zlib, libaio
-, libxml2, acl, sqlite, liburcu, attr, makeWrapper, coreutils, gnused, gnugrep
-, which, openssh, gawk, findutils, util-linux, lvm2, btrfs-progs, e2fsprogs
-, xfsprogs, systemd, rsync, glibc, rpcsvc-proto, libtirpc, nettools, liburing }:
+{ lib
+, stdenv
+, fetchFromGitHub
+, fuse
+, bison
+, flex_2_5_35
+, openssl
+, python3
+, ncurses
+, readline
+, autoconf
+, automake
+, libtool
+, pkg-config
+, zlib
+, libaio
+, libxml2
+, acl
+, sqlite
+, liburcu
+, attr
+, makeWrapper
+, coreutils
+, gnused
+, gnugrep
+, which
+, openssh
+, gawk
+, findutils
+, util-linux
+, lvm2
+, btrfs-progs
+, e2fsprogs
+, xfsprogs
+, systemd
+, rsync
+, glibc
+, rpcsvc-proto
+, libtirpc
+, nettools
+, liburing
+}:
 let
   # NOTE: On each glusterfs release, it should be checked if gluster added
   #       new, or changed, Python scripts whose PYTHONPATH has to be set in
@@ -64,7 +101,8 @@ let
     xfsprogs # xfs_info
     nettools # hostname
   ];
-in stdenv.mkDerivation rec {
+in
+stdenv.mkDerivation rec {
   pname = "glusterfs";
   version = "9.1";
 

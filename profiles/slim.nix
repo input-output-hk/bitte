@@ -7,10 +7,14 @@
 
   programs.sysdig.enable = true;
 
+  time.timeZone = "UTC";
+
   environment.systemPackages = with pkgs; [
+    awscli
     bat
     bind
     di
+    dnsutils
     fd
     file
     gitMinimal
@@ -20,16 +24,10 @@
     ncdu
     openssl
     ripgrep
+    sops
     tcpdump
     tmux
     tree
     vim
-    vault-bin
-    consul
-    nomad
   ];
-
-  networking.extraHosts = lib.concatStringsSep "\n"
-    (lib.mapAttrsToList (name: instance: "${instance.privateIP} ${name}")
-      config.cluster.instances);
 }

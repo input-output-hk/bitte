@@ -1,6 +1,24 @@
-{ name, lib, json, dockerImages, writeShellScriptBin, vault-bin, awscli
-, coreutils, jq, nomad, consul, nixFlakes, curl, gnugrep, gitMinimal, skopeo }:
+{ name
+, lib
+, json
+, dockerImages
+, writeShellScriptBin
+, vault-bin
+, awscli
+, coreutils
+, jq
+, nomad
+, consul
+, nixFlakes
+, curl
+, gnugrep
+, gitMinimal
+, skopeo
+}:
 let
+  # a contract fulfilled by `tf.hydrate`
+  vaultDockerPasswordKey = "kv/nomad-cluster/docker-developer-password";
+
   pushImage = imageId: image:
     let
       parts = builtins.split "/" image.imageName;
@@ -8,7 +26,8 @@ let
       repo = builtins.elemAt parts 2;
       url =
         "https://developer:$dockerPassword@${registry}/v2/${repo}/tags/list";
-    in ''
+    in
+    ''
       echo -n "Pushing ${image.imageName}:${image.imageTag} ... "
 
       if curl -s "${url}" | grep "${image.imageTag}" &> /dev/null; then
@@ -25,7 +44,8 @@ let
       fi
     '';
   pushImages = lib.mapAttrsToList pushImage dockerImages;
-in writeShellScriptBin "nomad-run" ''
+in
+writeShellScriptBin "nomad-run" ''
   export PATH="${
     lib.makeBinPath [
       vault-bin
@@ -97,7 +117,7 @@ in writeShellScriptBin "nomad-run" ''
   fi
 
   ${lib.optionalString ((builtins.length pushImages) > 0) ''
-    dockerPassword="$(vault kv get -field value kv/nomad-cluster/docker-developer-password)"
+    dockerPassword="$(vault kv get -field password ${vaultDockerPasswordKey})"
   ''}
 
   ${builtins.concatStringsSep "\n" pushImages}

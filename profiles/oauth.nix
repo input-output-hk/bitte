@@ -29,4 +29,5 @@
   '';
 
   systemd.services.oauth2_proxy.after = [ "secret-oauth.service" ];
+  systemd.services.oauth2_proxy.wants = [ "secret-oauth.service" ];
 }

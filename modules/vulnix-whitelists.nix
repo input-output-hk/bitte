@@ -8,7 +8,8 @@ let
     type = types.attrs;
     description = "The computed whitelist.";
   };
-in {
+in
+{
   options.services.vulnix.defaultWhitelists = {
     ephemeral.whitelist = resultOption // {
       default = {
@@ -46,7 +47,8 @@ in {
             "https://github.com/NixOS/nixpkgs/issues/109204"
           ];
         };
-        "zip-3.0" = { # comes up as version "3" in Grafana, not sure why
+        "zip-3.0" = {
+          # comes up as version "3" in Grafana, not sure why
           cve = [ "CVE-2018-13410" ];
           comment = "disputed";
           issue_url = [
@@ -101,49 +103,57 @@ in {
       };
 
       whitelist = resultOption // {
-        default = let
-          inherit (cfg.systemDependent) nixosConfig;
-        in (
-          lib.optionalAttrs (!nixosConfig.services.xserver.enable) {
-            "libX11-1.7.0" = {
-              cve = [ "CVE-2021-31535" ];
-              # XXX nomad jobs might, though very unlikely
-              comment = "we don't run a graphical session";
-            };
-          } // lib.optionalAttrs (
-            !lib.systems.inspect.predicates.isWindows (
-              # we cannot use `nixosConfig.nixpkgs.pkgs` here
-              # due to evaluation order as that is in _module.args
-              with nixosConfig.nixpkgs;
-              if crossSystem != null
-              then crossSystem
-              else localSystem
+        default =
+          let
+            inherit (cfg.systemDependent) nixosConfig;
+          in
+          (
+            lib.optionalAttrs (!nixosConfig.services.xserver.enable)
+              {
+                "libX11-1.7.0" = {
+                  cve = [ "CVE-2021-31535" ];
+                  # XXX nomad jobs might, though very unlikely
+                  comment = "we don't run a graphical session";
+                };
+              } // lib.optionalAttrs
+              (
+                !lib.systems.inspect.predicates.isWindows (
+                  # we cannot use `nixosConfig.nixpkgs.pkgs` here
+                  # due to evaluation order as that is in _module.args
+                  with nixosConfig.nixpkgs;
+                  if crossSystem != null
+                  then crossSystem
+                  else localSystem
+                )
+              )
+              {
+                "ripgrep" = {
+                  cve = [ "CVE-2021-3013" ];
+                  comment = "we're not on windows";
+                };
+                "bat" = {
+                  cve = [ "CVE-2021-36753" ];
+                  comment = "we're not on windows";
+                };
+              } // (
+              let
+                disabled = !nixosConfig.services.httpd.enable;
+                fixed = lib.versionAtLeast nixosConfig.services.httpd.package.version "2.4.49";
+              in
+              lib.optionalAttrs (disabled || fixed) {
+                "openssl-1.1.1k" = {
+                  cve = [ "CVE-2019-0190" ];
+                  comment =
+                    lib.optional disabled "we don't use Apache" ++
+                      lib.optional fixed "version not affected";
+                  issue_url = [
+                    "https://github.com/NixOS/nixpkgs/issues/88371"
+                    "https://httpd.apache.org/security/vulnerabilities_24.html"
+                  ];
+                };
+              }
             )
-          ) {
-            "ripgrep" = {
-              cve = [ "CVE-2021-3013" ];
-              comment = "we're not on windows";
-            };
-            "bat" = {
-              cve = [ "CVE-2021-36753" ];
-              comment = "we're not on windows";
-            };
-          } // (let
-            disabled = !nixosConfig.services.httpd.enable;
-            fixed = lib.versionAtLeast nixosConfig.services.httpd.package.version "2.4.49";
-          in lib.optionalAttrs (disabled || fixed) {
-            "openssl-1.1.1k" = {
-              cve = [ "CVE-2019-0190" ];
-              comment =
-                lib.optional disabled "we don't use Apache" ++
-                lib.optional fixed "version not affected";
-              issue_url = [
-                "https://github.com/NixOS/nixpkgs/issues/88371"
-                "https://httpd.apache.org/security/vulnerabilities_24.html"
-              ];
-            };
-          })
-        );
+          );
       };
     };
   };

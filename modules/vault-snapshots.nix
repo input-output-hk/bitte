@@ -217,7 +217,8 @@ let
     };
   };
 
-in {
+in
+{
   options = {
     services.vault-snapshots = {
       enable = mkEnableOption ''

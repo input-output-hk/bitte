@@ -69,7 +69,8 @@ let
     ] ++ (lib.mapAttrsToList (_: i: i.privateIP) instances);
   };
 
-in {
+in
+{
   secrets.generate.consul = lib.mkIf isInstance ''
     export PATH="${lib.makeBinPath (with pkgs; [ consul toybox jq coreutils ])}"
 
@@ -158,15 +159,11 @@ in {
       lib.makeBinPath (with pkgs; [ cfssl jq coreutils terraform-with-plugins ])
     }"
 
-    if [ ! -s secrets/ca.pem ]; then
+    if [ ! -s encrypted/ca.json ]; then
       ca="$(cfssl gencert -initca ${caJson})"
       echo "$ca" | cfssljson -bare secrets/ca
       echo "$ca" | ${sopsEncrypt} > encrypted/ca.json
     fi
-
-    certConfigJson="${certConfig}"
-    jq --arg ip "$IP" '.hosts += [$ip]' < "$certConfigJson" \
-    > cert.config
 
     if [ ! -s encrypted/cert.json ]; then
       cert="$(
@@ -175,16 +172,14 @@ in {
           -ca-key secrets/ca-key.pem \
           -config "${caConfigJson}" \
           -profile core \
-          cert.config \
+          ${certConfig} \
         | jq --arg ca "$(< secrets/ca.pem)" '.ca = $ca'
       )"
       echo "$cert" | cfssljson -bare secrets/cert
-      cat secrets/ca.pem <(echo) secrets/cert.pem > secrets/full.pem
+      cat secrets/cert.pem secrets/ca.pem > secrets/full.pem
       cert="$(echo "$cert" | jq --arg full "$(< secrets/full.pem)" '.full = $full')"
       echo "$cert" | ${sopsEncrypt} > encrypted/cert.json
     fi
-
-    rm -f cert.config
   '';
 
   secrets.install.certs = lib.mkIf isInstance {

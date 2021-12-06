@@ -2,28 +2,42 @@
   description = "Flake containing Bitte clusters";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-21.05";
-    nixpkgs-terraform.url =
-      "github:input-output-hk/nixpkgs/iohk-terraform-2021-06";
-    utils.url = "github:kreisys/flake-utils";
-    bitte-cli.url = "github:input-output-hk/bitte-cli/v0.4.3";
-    bitte-cli.inputs.utils.follows = "utils";
-    hydra.url = "github:kreisys/hydra/hydra-server-includes";
-    hydra.inputs.nix.follows = "nix";
-    hydra.inputs.nixpkgs.follows = "nixpkgs";
-    hydra-provisioner.url = "github:input-output-hk/hydra-provisioner";
-    hydra-provisioner.inputs.nixpkgs.follows = "nixpkgs";
-    hydra-provisioner.inputs.utils.follows = "utils";
+    nixpkgs-core.url = "github:nixos/nixpkgs/release-21.05";
+    nixpkgs-client.url = "github:nixos/nixpkgs/release-21.05";
+    nixpkgs-auxiliary.url = "github:nixos/nixpkgs/nixos-21.11";
+
+    # in function of https://github.com/NixOS/nix/pull/5544
+    # we want to bump this nix version soon-ish
+    # that pr "fixes" builds on monitoring "do the right thing"
+    nix-core.url = "github:NixOS/nix/c6fa7775de413a799b9a137dceced5dcf0f5e6ed";
+    nix-core.inputs.nixpkgs.follows = "nixpkgs-core";
+    # currently includes `computeLocks` fix - so follows are not screwed
+    nix-auxiliary.url = "github:NixOS/nix/2ff71b021379a2c9bbdcb789a93cdc585b3520ca";
+    nix-auxiliary.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
+
+    # Legacy alias / TODO
+    nixpkgs.follows = "nixpkgs-core";
+    nix.follows = "nix-core";
+
+    fenix.url = "github:nix-community/fenix";
+
+    cli.url = "github:input-output-hk/bitte-cli";
+    cli.inputs.fenix.follows = "fenix";
+    cli.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
+    cli.inputs.nix.follows = "nix-auxiliary";
+
     deploy.url = "github:input-output-hk/deploy-rs";
-    deploy.inputs.fenix.follows = "bitte-cli/fenix";
-    deploy.inputs.nixpkgs.follows = "bitte-cli/nixpkgs";
-    deploy.inputs.utils.follows = "utils";
+    deploy.inputs.fenix.follows = "fenix";
+    deploy.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
+
+    terranix.url = "github:terranix/terranix";
+    terranix.inputs.nixpkgs.follows = "blank";
+
+    utils.url = "github:numtide/flake-utils";
+    blank.url = "github:divnix/blank";
+
     ops-lib = {
       url = "github:input-output-hk/ops-lib";
-      flake = false;
-    };
-    terranix = {
-      url = "github:manveru/terranix/cleanup";
       flake = false;
     };
     nomad-source = {
@@ -35,61 +49,90 @@
       flake = false;
     };
 
-    nix.url = "github:NixOS/nix/c6fa7775de413a799b9a137dceced5dcf0f5e6ed";
-    nix.inputs.nixpkgs.follows = "nixpkgs";
+    # DEPRECATED: will be replaces by cicero soon
+    hydra.url = "github:kreisys/hydra/hydra-server-includes";
+    hydra.inputs.nix.follows = "nix";
+    hydra.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, hydra, hydra-provisioner, nixpkgs, utils, bitte-cli, deploy
-    , ... }@inputs:
+  outputs =
+    { self
+    , hydra
+    , nixpkgs
+    , utils
+    , cli
+    , deploy
+    , ...
+    }@inputs:
     let
-      lib = import ./lib {
-        inherit (nixpkgs) lib;
-        inherit inputs;
-      } // {
-        inherit (utils.lib) simpleFlake;
-      };
-      localOverlay = import ./overlay.nix inputs;
-      overlays = [ bitte-cli.overlay localOverlay ];
-    in lib.simpleFlake rec {
-      inherit lib nixpkgs;
 
-      systems = [ "x86_64-linux" ];
+      overlays = [
+        cli.overlay
+        # `bitte` build depend on nixpkgs-unstable rust version
+        # TODO: remove when bitte itself is bumped
+        (final: prev: { inherit (cli.legacyPackages.${final.system}) bitte; })
+        hydra.overlay
+        deploy.overlay
+        localPkgsOverlay
+        terraformProvidersOverlay
+      ];
+      terraformProvidersOverlay = import ./terraform-providers-overlay.nix inputs;
+      localPkgsOverlay = import ./overlay.nix inputs;
 
-      preOverlays = [ hydra-provisioner hydra deploy ];
-      overlay = nixpkgs.lib.composeManyExtensions overlays;
-
-      config.allowUnfree = true; # for ssm-session-manager-plugin
-
-      shell = { devShell }: devShell;
-
-      packages = { bitte, cfssl, consul, cue, glusterfs, grafana-loki, haproxy
-        , haproxy-auth-request, haproxy-cors, nixFlakes, nomad, nomad-autoscaler
-        , oauth2-proxy, sops, ssm-agent, terraform-with-plugins, vault-backend
-        , vault-bin, ci-env }@pkgs:
-        pkgs;
-
-      hydraJobs = { bitte, cfssl, consul, cue, glusterfs, grafana-loki, haproxy
-        , haproxy-auth-request, haproxy-cors, nixFlakes, nomad, nomad-autoscaler
-        , oauth2-proxy, sops, ssm-agent, terraform-with-plugins, vault-backend
-        , vault-bin, ci-env, mkRequired, asgAMI }@pkgs:
-        let constituents = builtins.removeAttrs pkgs [ "mkRequired" ];
-        in constituents // { required = mkRequired constituents; };
-
-      apps = { bitte }: {
-        bitte = utils.lib.mkApp { drv = bitte; };
-        defaultApp = utils.lib.mkApp { drv = bitte; };
+      pkgsForSystem = system: import nixpkgs {
+        inherit overlays system;
+        config.allowUnfree = true; # for ssm-session-manager-plugin
       };
 
-      nixosModules = (lib.mkModules ./modules) // {
-        hydra-provisioner = hydra-provisioner.nixosModule;
-      };
+      lib = import ./lib { inherit (nixpkgs) lib; inherit inputs; };
 
-      # Nix supports both singular `nixosModule` and plural `nixosModules`
-      # so I use the singular as a `defaultNixosModule` that won't spew a warning.
+    in
+    utils.lib.eachSystem [ "x86_64-linux" ]
+      (system: rec {
+
+        legacyPackages = pkgsForSystem system;
+
+        devShell = legacyPackages.devShell;
+
+        hydraJobs =
+          let
+            constituents = {
+              inherit (legacyPackages)
+                asgAMIClients
+                asgAMICores
+                bitte
+                cfssl
+                ci-env
+                consul
+                cue
+                glusterfs
+                grafana-loki
+                haproxy
+                haproxy-auth-request
+                haproxy-cors
+                nixFlakes
+                nomad
+                nomad-autoscaler
+                oauth2-proxy
+                sops
+                ssm-agent
+                terraform-with-plugins
+                vault-backend
+                vault-bin
+                ;
+            };
+          in
+          {
+            inherit constituents;
+            required = legacyPackages.mkRequired constituents;
+          };
+
+      }) // {
+      inherit lib;
+      # eta reduce not possibe since flake check validates for "final" / "prev"
+      overlay = final: prev: nixpkgs.lib.composeManyExtensions overlays final prev;
+      profiles = lib.mkModules ./profiles;
+      nixosModules = lib.mkModules ./modules;
       nixosModule.imports = builtins.attrValues self.nixosModules;
-
-      # Outputs that aren't directly supported by simpleFlake can go here
-      # instead of having to doubleslash.
-      extraOutputs = { profiles = lib.mkModules ./profiles; };
     };
 }

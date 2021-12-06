@@ -1,13 +1,11 @@
-{ lib, pkgs, config, nodeName, ... }:
+{ lib, pkgs, config, nodeName, pkiFiles, ... }:
 let
   inherit (config.cluster) name region domain kms instances;
   inherit (lib) mkIf mapAttrsToList;
 
-  full = "/etc/ssl/certs/full.pem";
-  ca = "/etc/ssl/certs/ca.pem";
-  cert = "/etc/ssl/certs/cert.pem";
-  key = "/var/lib/nomad/cert-key.pem";
-in {
+  ownedKey = "/var/lib/nomad/cert-key.pem";
+in
+{
   environment.variables = {
     NOMAD_ADDR =
       "https://127.0.0.1:${toString config.services.nomad.ports.http}";
@@ -16,10 +14,11 @@ in {
   services.nomad = {
     data_dir = /var/lib/nomad;
     log_level = "DEBUG";
-    name = if (instances.${nodeName} or null) != null then
-      "nomad-${nodeName}"
-    else
-      null;
+    name =
+      if (instances.${nodeName} or null) != null then
+        "nomad-${nodeName}"
+      else
+        null;
 
     acl.enabled = true;
 
@@ -32,17 +31,17 @@ in {
     tls = {
       http = true;
       rpc = true;
-      ca_file = full;
-      cert_file = cert;
-      key_file = key;
+      ca_file = pkiFiles.caCertFile;
+      cert_file = pkiFiles.certChainFile;
+      key_file = ownedKey;
       tls_min_version = "tls12";
     };
 
     vault = {
       enabled = true;
-      # ca_file = full;
-      # cert_file = cert;
-      # key_file = key;
+      # ca_file = pkiFiles.caCertFile;
+      # cert_file = pkiFiles.certChainFile;
+      # key_file = ownedKey;
       create_from_role = "nomad-cluster";
     };
 
@@ -50,9 +49,9 @@ in {
       address = "127.0.0.1:${toString config.services.consul.ports.https}";
       ssl = true;
       allow_unauthenticated = true;
-      ca_file = full;
-      cert_file = cert;
-      key_file = key;
+      ca_file = pkiFiles.caCertFile;
+      cert_file = pkiFiles.certChainFile;
+      key_file = ownedKey;
     };
 
     telemetry = {

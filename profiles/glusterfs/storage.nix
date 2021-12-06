@@ -1,11 +1,12 @@
-{ config, self, pkgs, lib, nodeName, ... }:
+{ config, self, pkgs, lib, nodeName, pkiFiles, ... }:
 let
   # with 3 storage nodes, and redundancy at 1, we have 2/3 of size*3. We only
   # want to use 90% to ensure the quota is actually applied in time, so ew set
   # it to 2*0.9 = 1.8.
   quotaSize =
     config.tf.core.configuration.resource.aws_ebs_volume.${nodeName}.size * 1.8;
-in {
+in
+{
   imports =
     [ ../common.nix ../telegraf.nix ../secrets.nix ../vault/client.nix ];
 
@@ -37,6 +38,7 @@ in {
   };
 
   systemd.services.storage-service = (pkgs.consulRegister {
+    inherit pkiFiles;
     service = {
       name = "glusterd";
       port = 24007;

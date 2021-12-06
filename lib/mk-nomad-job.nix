@@ -11,13 +11,14 @@ let
 
   specialUpper = parents: name:
     let path = parents ++ [ name ];
-    in if parents == [ "TaskGroups" "Volumes" ] then
+    in
+    if parents == [ "TaskGroups" "Volumes" ] then
       name
     else if path == [ "id" ] then
       "ID"
     else if path == [ "TaskGroups" "Tasks" "Resources" "memoryMB" ] then
       "MemoryMB"
-      # Task config has to be passed verbatim to the driver.
+    # Task config has to be passed verbatim to the driver.
     else if (lib.take 3 parents) == [ "TaskGroups" "Tasks" "Config" ] then
       name
     else
@@ -25,7 +26,8 @@ let
 
   capitalizeString = parents: name:
     let special = specialUpper parents name;
-    in if special != null then
+    in
+    if special != null then
       special
     else
       ((lib.toUpper (lib.substring 0 1 name))
@@ -42,25 +44,27 @@ let
   sanitize = parents: value:
     let
       type = builtins.typeOf value;
-      sanitized = if type == "list" then
-        map (sanitize parents) value
-      else if type == null then
-        null
-      else if type == "set" then
-        lib.pipe (builtins.attrNames value) [
-          (lib.remove "_ref")
-          (lib.remove "_module")
-          (lib.flip lib.getAttrs value)
-          (capitalizeAttrs parents)
-          (builtins.mapAttrs (k: v: sanitize (parents ++ [ k ]) v))
-        ]
-      else
-        value;
-    in sanitized;
+      sanitized =
+        if type == "list" then
+          map (sanitize parents) value
+        else if type == null then
+          null
+        else if type == "set" then
+          lib.pipe (builtins.attrNames value) [
+            (lib.remove "_ref")
+            (lib.remove "_module")
+            (lib.flip lib.getAttrs value)
+            (capitalizeAttrs parents)
+            (builtins.mapAttrs (k: v: sanitize (parents ++ [ k ]) v))
+          ]
+        else
+          value;
+    in
+    sanitized;
 
   evaluateConfiguration = configuration:
     lib.evalModules {
-      modules = [ { imports = [ ./nomad-job.nix ]; } configuration ];
+      modules = [{ imports = [ ./nomad-job.nix ]; } configuration];
       specialArgs = { inherit pkgs name; };
     };
 
@@ -86,4 +90,5 @@ let
   json = toPrettyJSON name evaluated;
 
   run = callPackage ./run-nomad-job.nix { inherit json name dockerImages; };
-in { inherit json evaluated run dockerImages; }
+in
+{ inherit json evaluated run dockerImages; }

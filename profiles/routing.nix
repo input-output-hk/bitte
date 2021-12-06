@@ -1,4 +1,6 @@
-{ self, lib, pkgs, config, nodeName, ... }: {
+{ self, lib, pkgs, config, nodeName, bittelib, ... }: let
+  inherit (bittelib) ensureDependencies;
+in {
 
   imports = [
     ./common.nix
@@ -41,6 +43,11 @@
         cp /etc/ssl/certs/${config.cluster.domain}-*.pem /var/lib/traefik/certs
         chown -R traefik:traefik /var/lib/traefik
       '';
+    };
+
+    systemd.services."acme-${nodeName}".serviceConfig = {
+      ExecStartPre = ensureDependencies pkgs [ "vault-agent" ];
+      RestrictAddressFamilies = [ "AF_UNIX" "AF_INET" "AF_INET6" ];
     };
 
     security.acme = {

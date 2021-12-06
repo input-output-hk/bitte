@@ -1,6 +1,7 @@
-{ lib, pkgs, config, ... }:
+{ lib, pkgs, config, pkiFiles, ... }:
 let cfg = config.services.nomad.namespaces;
-in {
+in
+{
   options = {
     services.nomad.namespaces = lib.mkOption {
       type = lib.types.attrsOf (lib.types.submodule ({ name, ... }: {
@@ -47,7 +48,7 @@ in {
 
         environment = {
           inherit (config.environment.variables) NOMAD_ADDR;
-          CURL_CA_BUNDLE = "/etc/ssl/certs/full.pem";
+          CURL_CA_BUNDLE = pkiFiles.caCertFile;
         };
 
         path = with pkgs; [ nomad jq ];

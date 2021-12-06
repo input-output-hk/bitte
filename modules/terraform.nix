@@ -1,9 +1,8 @@
-{ self, config, pkgs, nodeName, ... }:
+{ self, config, pkgs, lib, nodeName, terralib, terranix, ... }:
 let
-  inherit (pkgs) lib terralib;
   inherit (lib) mkOption reverseList;
   inherit (lib.types)
-    attrs submodule str attrsOf bool ints path enum port listof nullOr listOf
+    attrs submodule str functionTo attrsOf bool ints path enum port listof nullOr listOf
     oneOf list package unspecified anything;
   inherit (terralib) var id regions awsProviderFor;
 
@@ -11,19 +10,20 @@ let
 
   merge = lib.foldl' lib.recursiveUpdate { };
 
-  amis = let
-    nixosAmis = import
-      (self.inputs.nixpkgs + "/nixos/modules/virtualisation/ec2-amis.nix");
-  in {
-    nixos = lib.mapAttrs' (name: value: lib.nameValuePair name value.hvm-ebs)
-      nixosAmis.latest;
+  # without zfs
+  coreAMIs = {
+    eu-central-1.x86_64-linux = "ami-047e751e259941f2f";
+    eu-west-1.x86_64-linux = "ami-044a76cb8331c48a3";
+    us-east-1.x86_64-linux = "ami-050070221cf65ceeb";
+    us-east-2.x86_64-linux = "ami-0ceaa7e9906493388";
   };
 
-  autoscalingAMIs = {
-    eu-central-1 = "ami-07cf06fc2cf0de485";
-    us-east-2 = "ami-08c2048194fde1422";
-    eu-west-1 = "ami-0ac83c4afcc9e6ecc";
-    us-east-1 = "ami-0baa6fb5107677998";
+  # with zfs
+  clientAMIs = {
+    eu-central-1.x86_64-linux = "ami-05a056d7d6246ea93";
+    eu-west-1.x86_64-linux = "ami-00c9d0c31d5026e79";
+    us-east-1.x86_64-linux = "ami-04ef2f0257befa9e9";
+    us-east-2.x86_64-linux = "ami-0d900463abfb006dc";
   };
 
   vpcMap = lib.pipe [
@@ -44,6 +44,147 @@ let
     "us-west-1"
     "us-west-2"
   ] [ (lib.imap0 (i: v: lib.nameValuePair v i)) builtins.listToAttrs ];
+
+  # This user data only injects the cache and nix3 config so that
+  # deploy-rs can take it from there (efficiently)
+  userDataDefaultNixosConfigCore = ''
+    ### https://nixos.org/channels/nixpkgs-unstable nixos
+    { pkgs, config, ... }: {
+      imports = [ <nixpkgs/nixos/modules/virtualisation/amazon-image.nix> ];
+
+      nix = {
+        package = pkgs.nixFlakes;
+        extraOptions = '''
+          show-trace = true
+          experimental-features = nix-command flakes ca-references
+        ''';
+        binaryCaches = [
+          "https://hydra.iohk.io"
+          "${cfg.s3Cache}"
+        ];
+        binaryCachePublicKeys = [
+          "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
+          "${cfg.s3CachePubKey}"
+        ];
+      };
+
+      environment.etc.ready.text = "true";
+    }
+  '';
+
+  # ${asg}-source.tar.xz is produced by s3-upload-flake.service
+  # of one of the latest successfully provisioned member of this
+  # auto scaling group
+  userDataDefaultNixosConfigAsg = asg:
+    let
+      nixConf = ''
+        extra-substituters = ${cfg.s3Cache}
+        extra-trusted-public-keys = ${cfg.s3CachePubKey}
+      '';
+      # amazon-init detects the shebang as a signal
+      # but does not actually execve the script:
+      # interpreter fixed to pkgs.runtimeShell.
+      # For available packages, see or modify /profiles/slim.nix
+    in
+    ''
+      #!
+      export NIX_CONFIG="${nixConf}"
+      export PATH="/run/current-system/sw/bin:$PATH"
+      set -exuo pipefail
+      pushd /run/keys
+      err_code=0
+      aws s3 cp \
+        "s3://${cfg.s3Bucket}/infra/secrets/${cfg.name}/${cfg.kms}/source/${asg}-source.tar.xz" \
+        source.tar.xz || err_code=$?
+      if test $err_code -eq 0
+      then # automated provisioning
+        mkdir -p source
+        tar xvf source.tar.xz -C source
+        nix build ./source#nixosConfigurations.${cfg.name}-${asg}.config.system.build.toplevel
+        nixos-rebuild --flake ./source#${cfg.name}-${asg} switch
+      fi # manual provisioning
+    '';
+
+  localProvisionerDefaultCommand = ip:
+    let
+      nixConf = ''
+        experimental-features = nix-command flakes ca-references
+      '';
+      newKernelVersion = config.boot.kernelPackages.kernel.version;
+    in
+    ''
+      set -euo pipefail
+
+      echo
+      echo Waiting for ssh to come up on port 22 ...
+      while [ -z "$(
+        ${pkgs.socat}/bin/socat \
+          -T2 stdout \
+          tcp:${ip}:22,connect-timeout=2,readbytes=1 \
+          2>/dev/null
+      )" ]
+      do
+          printf " ."
+          sleep 5
+      done
+
+      sleep 1
+
+      echo
+      echo Waiting for host to become ready ...
+      ${pkgs.openssh}/bin/ssh -C \
+        -oUserKnownHostsFile=/dev/null \
+        -oNumberOfPasswordPrompts=0 \
+        -oServerAliveInterval=60 \
+        -oControlPersist=600 \
+        -oStrictHostKeyChecking=accept-new \
+        -i ./secrets/ssh-${cfg.name} \
+        root@${ip} \
+        "until grep true /etc/ready &>/dev/null; do sleep 1; done 2>/dev/null"
+
+      sleep 1
+
+      export NIX_CONFIG="${nixConf}"
+      export PATH="${
+        lib.makeBinPath [
+          pkgs.openssh
+          pkgs.nixUnstable
+          pkgs.git
+          pkgs.mercurial
+          pkgs.lsof
+        ]
+      }:$PATH"
+
+      echo
+      echo Invoking deploy-rs on that host ...
+      ${pkgs.bitte}/bin/bitte deploy \
+        --ssh-opts="-oUserKnownHostsFile=/dev/null" \
+        --ssh-opts="-oNumberOfPasswordPrompts=0" \
+        --ssh-opts="-oServerAliveInterval=60" \
+        --ssh-opts="-oControlPersist=600" \
+        --ssh-opts="-oStrictHostKeyChecking=no" \
+        --skip-checks \
+        --no-magic-rollback \
+        --no-auto-rollback \
+        ${ip}
+
+      sleep 1
+
+      echo
+      echo Rebooting the host to load eventually newer kernels ...
+      timeout 5 ${pkgs.openssh}/bin/ssh -C \
+        -oUserKnownHostsFile=/dev/null \
+        -oNumberOfPasswordPrompts=0 \
+        -oServerAliveInterval=60 \
+        -oControlPersist=600 \
+        -oStrictHostKeyChecking=accept-new \
+        -i ./secrets/ssh-${cfg.name} \
+        root@${ip} \
+        "if [ \"$(cat /proc/sys/kernel/osrelease)\" != \"${newKernelVersion}\" ]; then \
+         ${pkgs.systemd}/bin/systemctl kexec \
+         || (echo Rebooting instead ... && ${pkgs.systemd}/bin/systemctl reboot) ; fi" \
+      || true
+    '';
 
   cfg = config.cluster;
 
@@ -75,7 +216,8 @@ let
 
       ami = mkOption {
         type = str;
-        default = amis.nixos.${cfg.region};
+        default = coreAMIs.${cfg.region}.${pkgs.system} or (throw
+          "Please make sure the NixOS core AMI is copied to ${cfg.region}");
       };
 
       iam = mkOption {
@@ -189,11 +331,6 @@ let
       tfName = mkOption {
         type = str;
         default = var "aws_iam_role.${this.config.uid}.name";
-      };
-
-      tfDataName = mkOption {
-        type = str;
-        default = var "data.aws_iam_role.${this.config.uid}.name";
       };
 
       assumePolicy = mkOption {
@@ -483,95 +620,13 @@ let
 
       userData = mkOption {
         type = nullOr str;
-        default = ''
-          ### https://nixos.org/channels/nixpkgs-unstable nixos
-          { pkgs, config, ... }: {
-            imports = [ <nixpkgs/nixos/modules/virtualisation/amazon-image.nix> ];
-
-            nix = {
-              package = pkgs.nixFlakes;
-              extraOptions = '''
-                show-trace = true
-                experimental-features = nix-command flakes ca-references
-              ''';
-              binaryCaches = [
-                "https://hydra.iohk.io"
-                "${cfg.s3Cache}"
-              ];
-              binaryCachePublicKeys = [
-                "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
-                "${cfg.s3CachePubKey}"
-              ];
-            };
-
-            environment.etc.ready.text = "true";
-          }
-        '';
+        default = userDataDefaultNixosConfigCore;
       };
 
-      # Gotta do it this way since TF outputs aren't generated at this point and we need the IP.
       localProvisioner = mkOption {
         type = localExecType;
         default = {
-          command = let
-            ip = var "aws_eip.${this.config.uid}.public_ip";
-            nixConf = ''
-              experimental-features = nix-command flakes ca-references
-            '';
-          in ''
-            echo
-            echo Waiting for ssh to come up on port 22 ...
-            while [ -z "$(
-              ${pkgs.socat}/bin/socat \
-                -T2 stdout \
-                tcp:${ip}:22,connect-timeout=2,readbytes=1 \
-                2>/dev/null
-            )" ]
-            do
-                printf " ."
-                sleep 5
-            done
-
-            sleep 1
-
-            echo
-            echo Waiting for host to become ready ...
-            ${pkgs.openssh}/bin/ssh -C \
-              -oUserKnownHostsFile=/dev/null \
-              -oNumberOfPasswordPrompts=0 \
-              -oServerAliveInterval=60 \
-              -oControlPersist=600 \
-              -oStrictHostKeyChecking=accept-new \
-              -i ./secrets/ssh-${cfg.name} \
-              root@${ip} \
-              "until grep true /etc/ready &>/dev/null; do sleep 1; done 2>/dev/null"
-
-            sleep 1
-
-            export NIX_CONFIG="${nixConf}"
-            export PATH="${
-              lib.makeBinPath [
-                pkgs.openssh
-                pkgs.nixUnstable
-                pkgs.git
-                pkgs.mercurial
-                pkgs.lsof
-              ]
-            }:$PATH"
-
-            echo
-            echo Invoking deploy-rs on that host ...
-            ${pkgs.bitte}/bin/bitte deploy \
-              --ssh-opts="-oUserKnownHostsFile=/dev/null" \
-              --ssh-opts="-oNumberOfPasswordPrompts=0" \
-              --ssh-opts="-oServerAliveInterval=60" \
-              --ssh-opts="-oControlPersist=600" \
-              --ssh-opts="-oStrictHostKeyChecking=no" \
-              --skip-checks \
-              --no-magic-rollback \
-              --no-auto-rollback \
-              ${this.config.name}
-          '';
+          protoCommand = localProvisionerDefaultCommand;
         };
       };
 
@@ -634,7 +689,7 @@ let
 
   localExecType = submodule {
     options = {
-      command = mkOption { type = str; };
+      protoCommand = mkOption { type = functionTo str; };
 
       workingDir = mkOption {
         type = nullOr path;
@@ -672,8 +727,8 @@ let
 
       ami = mkOption {
         type = str;
-        default = autoscalingAMIs.${this.config.region} or (throw
-          "Please make sure the NixOS ZFS AMI is copied to ${this.config.region}");
+        default = clientAMIs.${this.config.region}.${pkgs.system} or (throw
+          "Please make sure the NixOS ZFS Client AMI is copied to ${this.config.region}");
       };
 
       region = mkOption { type = str; };
@@ -682,47 +737,34 @@ let
 
       vpc = mkOption {
         type = vpcType this.config.uid;
-        default = let base = toString (vpcMap.${this.config.region} * 4);
-        in {
-          region = this.config.region;
+        default =
+          let base = toString (vpcMap.${this.config.region} * 4);
+          in
+          {
+            region = this.config.region;
 
-          cidr = "10.${base}.0.0/16";
+            cidr = "10.${base}.0.0/16";
 
-          name = "${cfg.name}-${this.config.region}-asgs";
-          subnets = {
-            a.cidr = "10.${base}.0.0/18";
-            b.cidr = "10.${base}.64.0/18";
-            c.cidr = "10.${base}.128.0/18";
-            # d.cidr = "10.${base}.192.0/18";
+            name = "${cfg.name}-${this.config.region}-asgs";
+            subnets = {
+              a.cidr = "10.${base}.0.0/18";
+              b.cidr = "10.${base}.64.0/18";
+              c.cidr = "10.${base}.128.0/18";
+              # d.cidr = "10.${base}.192.0/18";
+            };
           };
-        };
       };
 
-      userData = let
-        nixConf = ''
-          extra-substituters = ${cfg.s3Cache}
-          extra-trusted-public-keys = ${cfg.s3CachePubKey}
-        '';
-      in mkOption {
+      userData = mkOption {
         type = nullOr str;
-        default = ''
-          #!/usr/bin/env bash
-          export NIX_CONFIG="${nixConf}"
+        default = userDataDefaultNixosConfigAsg this.config.name;
+      };
 
-          nix shell nixpkgs#zfs -c zfs set com.sun:auto-snapshot=true tank/system
-          nix shell nixpkgs#zfs -c zfs set atime=off tank/local/nix
-
-          set -exuo pipefail
-
-          pushd /run/keys
-          nix shell nixpkgs#awscli -c aws s3 cp "s3://${cfg.s3Bucket}/infra/secrets/${cfg.name}/${cfg.kms}/source/source.tar.xz" source.tar.xz
-          mkdir -p source
-          tar xvf source.tar.xz -C source
-
-          nix build ./source#nixosConfigurations.${cfg.name}-${this.config.name}.config.system.build.toplevel
-          /run/current-system/sw/bin/nixos-rebuild --flake ./source#${cfg.name}-${this.config.name} switch &
-          disown -a
-        '';
+      localProvisioner = mkOption {
+        type = localExecType;
+        default = {
+          protoCommand = localProvisionerDefaultCommand;
+        };
       };
 
       minSize = mkOption {
@@ -788,7 +830,8 @@ let
       };
     };
   });
-in {
+in
+{
   options = {
     cluster = mkOption {
       type = clusterType;
@@ -808,110 +851,141 @@ in {
     tf = lib.mkOption {
       default = { };
       type = attrsOf (submodule ({ name, ... }@this: {
-        options = let
-          backend = "https://vault.infra.aws.iohkdev.io/v1";
-          copy = ''
-            export PATH="${
-              lib.makeBinPath [ pkgs.coreutils pkgs.terraform-with-plugins ]
-            }"
-            set -euo pipefail
+        options =
+          let
+            backend = "https://vault.infra.aws.iohkdev.io/v1";
+            copy = ''
+              export PATH="${
+                lib.makeBinPath [ pkgs.coreutils pkgs.terraform-with-plugins ]
+              }"
+              set -euo pipefail
 
-            rm -f config.tf.json
-            cp "${this.config.output}" config.tf.json
-            chmod u+rw config.tf.json
-          '';
+              rm -f config.tf.json
+              cp "${this.config.output}" config.tf.json
+              chmod u+rw config.tf.json
+            '';
 
-          prepare = ''
-            ${copy}
-            if [ -z "''${GITHUB_TOKEN:-}" ]; then
-              echo
-              echo -----------------------------------------------------
-              echo ERROR: env variable GITHUB_TOKEN is not set or empty.
-              echo Yet, it is required to authenticate before the
-              echo infra cluster vault terraform backend.
-              echo -----------------------------------------------------
-              echo "Please 'export GITHUB_TOKEN=ghp_hhhhhhhh...' using"
-              echo your appropriate personal github access token.
-              echo -----------------------------------------------------
-              exit 1
-            fi
+            prepare = ''
+              for arg in "$@"
+              do
+                case "$arg" in
+                  *routing*|routing*|*routing)
+                    echo
+                    echo -----------------------------------------------------
+                    echo CAUTION: It appears that you are indulging on a
+                    echo terraform operation specifically involving routing.
+                    echo Are you redeploying routing?
+                    echo -----------------------------------------------------
+                    echo You MUST know that a redeploy of routing will
+                    echo necesarily re-trigger the bootstrapping of the ACME
+                    echo service.
+                    echo -----------------------------------------------------
+                    echo You MUST also know that LetsEncrypt enforces a non-
+                    echo recoverable rate limit of 5 generations per week.
+                    echo That means: only ever redeploy routing max 5 times
+                    echo per week on a rolling basis. Switch to the LetsEncrypt
+                    echo staging envirenment if you plan on deploying routing
+                    echo more often!
+                    echo -----------------------------------------------------
+                    echo
+                    read -p "Do you want to continue this operation? [y/n] " -n 1 -r
+                    if [[ ! "$REPLY" =~ ^[Yy]$ ]]
+                    then
+                      exit
+                    fi
+                    ;;
+                esac
+              done
 
-            user="''${TF_HTTP_USERNAME:-TOKEN}"
-            pass="''${TF_HTTP_PASSWORD:-$( \
-              ${pkgs.curl}/bin/curl -s -d "{\"token\": \"$GITHUB_TOKEN\"}" \
-              ${backend}/auth/github-terraform/login \
-              | ${pkgs.jq}/bin/jq -r '.auth.client_token' \
-            )}"
+              ${copy}
+              if [ -z "''${GITHUB_TOKEN:-}" ]; then
+                echo
+                echo -----------------------------------------------------
+                echo ERROR: env variable GITHUB_TOKEN is not set or empty.
+                echo Yet, it is required to authenticate before the
+                echo infra cluster vault terraform backend.
+                echo -----------------------------------------------------
+                echo "Please 'export GITHUB_TOKEN=ghp_hhhhhhhh...' using"
+                echo your appropriate personal github access token.
+                echo -----------------------------------------------------
+                exit 1
+              fi
 
-            if [ -z "''${TF_HTTP_PASSWORD:-}" ]; then
-              echo
-              echo -----------------------------------------------------
-              echo TIP: you can avoid repetitive calls to the infra auth
-              echo api by exporting the following env variables as is:
-              echo -----------------------------------------------------
-              echo "export TF_HTTP_USERNAME=\"$user\""
-              echo "export TF_HTTP_PASSWORD=\"$pass\""
-              echo -----------------------------------------------------
-            fi
+              user="''${TF_HTTP_USERNAME:-TOKEN}"
+              pass="''${TF_HTTP_PASSWORD:-$( \
+                ${pkgs.curl}/bin/curl -s -d "{\"token\": \"$GITHUB_TOKEN\"}" \
+                ${backend}/auth/github-terraform/login \
+                | ${pkgs.jq}/bin/jq -r '.auth.client_token' \
+              )}"
 
-            export TF_HTTP_USERNAME="$user"
-            export TF_HTTP_PASSWORD="$pass"
+              if [ -z "''${TF_HTTP_PASSWORD:-}" ]; then
+                echo
+                echo -----------------------------------------------------
+                echo TIP: you can avoid repetitive calls to the infra auth
+                echo api by exporting the following env variables as is:
+                echo -----------------------------------------------------
+                echo "export TF_HTTP_USERNAME=\"$user\""
+                echo "export TF_HTTP_PASSWORD=\"$pass\""
+                echo -----------------------------------------------------
+              fi
 
-            terraform init 1>&2
-          '';
-        in {
-          configuration = lib.mkOption { type = attrsOf unspecified; };
+              export TF_HTTP_USERNAME="$user"
+              export TF_HTTP_PASSWORD="$pass"
 
-          output = lib.mkOption {
-            type = lib.mkOptionType { name = "${name}_config.tf.json"; };
-            apply = v:
-              let
-                compiledConfig =
-                  import (self.inputs.terranix + "/core/default.nix") {
-                    pkgs = self.inputs.nixpkgs.legacyPackages.x86_64-linux;
-                    strip_nulls = false;
-                    terranix_config = {
-                      imports = [ this.config.configuration ];
-                    };
-                  };
-              in pkgs.toPrettyJSON "${name}.tf" compiledConfig.config;
+              terraform init -reconfigure 1>&2
+            '';
+          in
+          {
+            configuration = lib.mkOption {
+              type = submodule {
+                imports = [ (terranix + "/core/terraform-options.nix") ];
+              };
+            };
+
+            output = lib.mkOption {
+              type = lib.mkOptionType { name = "${name}_config.tf.json"; };
+              apply = v: terranix.lib.terranixConfiguration {
+                inherit pkgs;
+                modules = [ this.config.configuration ];
+                strip_nulls = false;
+              };
+            };
+
+            config = lib.mkOption {
+              type = lib.mkOptionType { name = "${name}-config"; };
+              apply = v: pkgs.writeShellScriptBin "${name}-config" copy;
+            };
+
+            plan = lib.mkOption {
+              type = lib.mkOptionType { name = "${name}-plan"; };
+              apply = v:
+                pkgs.writeShellScriptBin "${name}-plan" ''
+                  ${prepare}
+
+                  terraform plan -out ${name}.plan "$@"
+                '';
+            };
+
+            apply = lib.mkOption {
+              type = lib.mkOptionType { name = "${name}-apply"; };
+              apply = v:
+                pkgs.writeShellScriptBin "${name}-apply" ''
+                  ${prepare}
+
+                  terraform apply ${name}.plan "$@"
+                '';
+            };
+
+            terraform = lib.mkOption {
+              type = lib.mkOptionType { name = "${name}-apply"; };
+              apply = v:
+                pkgs.writeShellScriptBin "${name}-apply" ''
+                  ${prepare}
+
+                  terraform $@
+                '';
+            };
           };
-
-          config = lib.mkOption {
-            type = lib.mkOptionType { name = "${name}-config"; };
-            apply = v: pkgs.writeShellScriptBin "${name}-config" copy;
-          };
-
-          plan = lib.mkOption {
-            type = lib.mkOptionType { name = "${name}-plan"; };
-            apply = v:
-              pkgs.writeShellScriptBin "${name}-plan" ''
-                ${prepare}
-
-                terraform plan -out ${name}.plan
-              '';
-          };
-
-          apply = lib.mkOption {
-            type = lib.mkOptionType { name = "${name}-apply"; };
-            apply = v:
-              pkgs.writeShellScriptBin "${name}-apply" ''
-                ${prepare}
-
-                terraform apply ${name}.plan
-              '';
-          };
-
-          terraform = lib.mkOption {
-            type = lib.mkOptionType { name = "${name}-apply"; };
-            apply = v:
-              pkgs.writeShellScriptBin "${name}-apply" ''
-                ${prepare}
-
-                terraform $@
-              '';
-          };
-        };
       }));
     };
   };

@@ -14,6 +14,7 @@
 
   services = {
     amazon-ssm-agent.enable = true;
+    s3-upload-flake.enable = true;
     vault-agent-client = {
       enable = true;
       disableTokenRotation = {

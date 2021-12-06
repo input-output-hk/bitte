@@ -1,4 +1,4 @@
-{ pkgs, config, lib, ... }:
+{ pkgs, config, lib, pkiFiles, ... }:
 let
   asgs = config.cluster.autoscalingGroups;
 
@@ -49,7 +49,8 @@ let
       };
     };
   });
-in {
+in
+{
 
   services.nomad-autoscaler = {
     enable = true;
@@ -61,10 +62,10 @@ in {
 
     nomad = {
       address = "https://127.0.0.1:4646";
-      ca_cert = "/etc/ssl/certs/ca.pem";
+      ca_cert = pkiFiles.caCertFile;
       ca_path = "/etc/ssl/certs";
-      client_cert = "/etc/ssl/certs/cert.pem";
-      client_key = "/etc/ssl/certs/cert-key.pem";
+      client_cert = pkiFiles.certChainFile;
+      client_key = pkiFiles.keyFile;
     };
 
     apm.victoriametrics = {

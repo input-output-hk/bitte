@@ -1,33 +1,39 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, bittelib, ... }:
 let
   inherit (builtins) mapAttrs typeOf listToAttrs length attrNames;
   inherit (lib)
     flip mkOption mkIf mkEnableOption mapAttrsToList remove concatStringsSep;
   inherit (lib.types) addCheck str enum submodule nullOr attrsOf listOf;
-  inherit (pkgs) toPrettyJSON ensureDependencies;
+  inherit (pkgs) toPrettyJSON;
+  inherit (bittelib) ensureDependencies;
 
   sanitize = set:
     let
-      sanitized = mapAttrsToList (name: value:
-        let type = typeOf value;
-        in if name == "_module" then
-          null
-        else if value == null then
-          null
-        else if type == "set" && (length (attrNames value)) == 0 then
-          null
-        else if type == "list" && (length value) == 0 then
-          null
-        else {
-          inherit name;
-          value = if type == "set" then
-            sanitize value
-          else if type == "list" then
-            remove null value
-          else
-            value;
-        }) set;
-    in listToAttrs (remove null sanitized);
+      sanitized = mapAttrsToList
+        (name: value:
+          let type = typeOf value;
+          in
+          if name == "_module" then
+            null
+          else if value == null then
+            null
+          else if type == "set" && (length (attrNames value)) == 0 then
+            null
+          else if type == "list" && (length value) == 0 then
+            null
+          else {
+            inherit name;
+            value =
+              if type == "set" then
+                sanitize value
+              else if type == "list" then
+                remove null value
+              else
+                value;
+          })
+        set;
+    in
+    listToAttrs (remove null sanitized);
 
   policyOption =
     mkOption { type = enum [ "deny" "read" "write" "scale" "list" ]; };
@@ -43,8 +49,8 @@ let
         # Disallow "management" to avoid collision with a
         # default Vault nomad/creds/management role
         type = addCheck str (x: assert lib.assertMsg (x != "management") ''
-            The "management" Nomad policy name is reserved, please change it.
-          '';
+          The "management" Nomad policy name is reserved, please change it.
+        '';
           x != "management"
         );
         default = name;
@@ -138,7 +144,8 @@ let
         toPrettyJSON "nomad-policy-${policy.name}" (policyJson policy)
       }
     '');
-in {
+in
+{
   options = {
     services.nomad.policies = mkOption {
       type = attrsOf nomadPoliciesType;
@@ -159,7 +166,7 @@ in {
       Restart = "on-failure";
       RestartSec = "20s";
       WorkingDirectory = "/var/lib/nomad";
-      ExecStartPre = ensureDependencies [ "nomad" ];
+      ExecStartPre = ensureDependencies pkgs [ "nomad" ];
     };
 
     path = with pkgs; [ config.services.nomad.package jq ];

@@ -2,7 +2,8 @@
 let
   inherit (config.cluster) region instances;
   inherit (lib) mkIf mapAttrsToList;
-in {
+in
+{
   imports = [ ./default.nix ./policies.nix ];
 
   services.nomad = {

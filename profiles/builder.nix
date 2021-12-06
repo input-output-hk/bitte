@@ -3,7 +3,8 @@ let
   isInstance = config.instance != null;
   isAsg = !isInstance;
   isMonitoring = nodeName == "monitoring";
-in {
+in
+{
   secrets.generate.nix-key-file = ''
     export PATH="${lib.makeBinPath (with pkgs; [ nixFlakes sops coreutils ])}"
     esk=encrypted/nix-secret-key-file
@@ -68,7 +69,6 @@ in {
 
   nix = {
     distributedBuilds = isAsg;
-    daemonNiceLevel = 10;
     maxJobs = lib.mkIf isAsg 0;
     extraOptions = ''
       builders-use-substitutes = true
