@@ -89,10 +89,8 @@ final: prev:
     export AWS_PROFILE="development"
 
     export home_region=eu-central-1
-    export regions="eu-west-1 eu-central-1"
-    # export home_region=eu-central-1
     export bucket=bitte-amis
-    # export regions="eu-west-1 eu-central-1 us-east-1 us-east-2"
+    export regions="eu-west-1 eu-central-1 us-east-1 us-east-2 us-west-1 us-west-2"
 
     echo Cores ...
     ${nixpkgs + /nixos/maintainers/scripts/ec2/create-amis.sh} \
