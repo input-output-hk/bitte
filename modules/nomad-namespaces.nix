@@ -1,7 +1,6 @@
 { lib, pkgs, config, pkiFiles, ... }:
 let cfg = config.services.nomad.namespaces;
-in
-{
+in {
   options = {
     services.nomad.namespaces = lib.mkOption {
       type = lib.types.attrsOf (lib.types.submodule ({ name, ... }: {

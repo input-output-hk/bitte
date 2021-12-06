@@ -1,7 +1,8 @@
-{ config, pkgs, nixpkgs, ... }: {
+{ config, pkgs, ... }: {
 
   /* The base configuration of our
-    generic client & code node AMIs */
+     generic client & code node AMIs
+  */
 
   imports = [ ./slim.nix ];
   nix.package = pkgs.nixUnstable;
@@ -9,7 +10,6 @@
   nix.binaryCachePublicKeys =
     [ "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=" ];
 
-  nix.registry.nixpkgs.flake = nixpkgs;
   nix.nixPath =
     [ "nixpkgs=${pkgs.path}" "nixos-config=/etc/nixos/configuration.nix" ];
 

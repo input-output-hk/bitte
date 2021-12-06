@@ -1,7 +1,6 @@
 { lib, pkgs, config, ... }:
 let kms = config.cluster.kms;
-in
-{
+in {
   systemd.services.docker-registry.serviceConfig.Environment = [
     "REGISTRY_AUTH=htpasswd"
     "REGISTRY_AUTH_HTPASSWD_REALM=docker-registry"

@@ -27,14 +27,12 @@ buildGoModule rec {
   vendorSha256 = "sha256-mWW1LGrkLaLC/D62Q+rm3fCQ6HGZORRx3AcmN6w5JX8=";
   deleteVendor = true;
 
-  preBuild =
-    let
-      tags = [ "ui" ];
-      tagsString = lib.concatStringsSep " " tags;
-    in
-    ''
-      export buildFlagsArray=(
-        -tags="${tagsString}"
-      )
-    '';
+  preBuild = let
+    tags = [ "ui" ];
+    tagsString = lib.concatStringsSep " " tags;
+  in ''
+    export buildFlagsArray=(
+      -tags="${tagsString}"
+    )
+  '';
 }

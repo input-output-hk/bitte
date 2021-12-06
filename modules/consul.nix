@@ -19,16 +19,15 @@ let
       list = map sanitize obj;
       path = toString obj;
       null = null;
-      set =
-        if (length (attrNames obj) == 0) then
-          null
-        else
-          pipe obj [
-            (filterAttrs
-              (name: value: name != "_module" && name != "_ref" && value != null))
-            (mapAttrs' (name: value:
-              nameValuePair (sanitizeName name) (sanitizeValue name value)))
-          ];
+      set = if (length (attrNames obj) == 0) then
+        null
+      else
+        pipe obj [
+          (filterAttrs
+            (name: value: name != "_module" && name != "_ref" && value != null))
+          (mapAttrs' (name: value:
+            nameValuePair (sanitizeName name) (sanitizeValue name value)))
+        ];
     };
 
   # Some config cannot be snakeCase sanitized without breaking the functionality.
@@ -38,8 +37,7 @@ let
   sanitizeValue = name: value:
     if elem name excluded then value else sanitize value;
 
-in
-{
+in {
   options = {
     services.consul = {
       enable = mkEnableOption "Enable the consul daemon.";
@@ -232,12 +230,8 @@ in
             };
 
             downPolicy = mkOption {
-              type = nullOr (enum [
-                "allow"
-                "deny"
-                "extend-cache"
-                "async-cache"
-              ]);
+              type =
+                nullOr (enum [ "allow" "deny" "extend-cache" "async-cache" ]);
               default = "extend-cache";
               description = ''
                 In the case that a policy or token cannot be read from the
@@ -423,99 +417,91 @@ in
 
       path = with pkgs; [ envoy ];
 
-      serviceConfig =
-        let
-          preScript =
-            let
-              start-pre = pkgs.writeShellScriptBin "consul-start-pre" ''
-                PATH="${makeBinPath [ pkgs.coreutils ]}"
-                set -exuo pipefail
-                cp /etc/ssl/certs/cert-key.pem .
-                chown --reference . --recursive .
-              '';
-            in
-            "!${start-pre}/bin/consul-start-pre";
+      serviceConfig = let
+        preScript = let
+          start-pre = pkgs.writeShellScriptBin "consul-start-pre" ''
+            PATH="${makeBinPath [ pkgs.coreutils ]}"
+            set -exuo pipefail
+            cp /etc/ssl/certs/cert-key.pem .
+            chown --reference . --recursive .
+          '';
+        in "!${start-pre}/bin/consul-start-pre";
 
-          postScript =
-            let
-              start-post = pkgs.writeShellScriptBin "consul-start-post" ''
-                set -exuo pipefail
-                PATH="${makeBinPath [ pkgs.jq cfg.package pkgs.coreutils ]}"
-                set +x
+        postScript = let
+          start-post = pkgs.writeShellScriptBin "consul-start-post" ''
+            set -exuo pipefail
+            PATH="${makeBinPath [ pkgs.jq cfg.package pkgs.coreutils ]}"
+            set +x
 
-                # During bootstrap the vault generated token are not yet available
-                if [ -s /run/keys/consul-default-token ]
-                then
-                  CONSUL_HTTP_TOKEN="$(< /run/keys/consul-default-token)"
-                  export CONSUL_HTTP_TOKEN
-                # Therefore, on core nodes, use the sops out-of-band bootstrapped master token
-                elif [ -s /etc/consul.d/secrets.json ]
-                then
-                  # as of writing: core nodes are observed to posess the master token
-                  # while clients do not
-                  jq -e .acl.tokens.master /etc/consul.d/secrets.json || exit 5
-                  CONSUL_HTTP_TOKEN="$(jq -e -r .acl.tokens.master /etc/consul.d/secrets.json)"
-                  export CONSUL_HTTP_TOKEN
-                else
-                  # Unknown state, should never reach this.
-                  exit 6
-                fi
+            # During bootstrap the vault generated token are not yet available
+            if [ -s /run/keys/consul-default-token ]
+            then
+              CONSUL_HTTP_TOKEN="$(< /run/keys/consul-default-token)"
+              export CONSUL_HTTP_TOKEN
+            # Therefore, on core nodes, use the sops out-of-band bootstrapped master token
+            elif [ -s /etc/consul.d/secrets.json ]
+            then
+              # as of writing: core nodes are observed to posess the master token
+              # while clients do not
+              jq -e .acl.tokens.master /etc/consul.d/secrets.json || exit 5
+              CONSUL_HTTP_TOKEN="$(jq -e -r .acl.tokens.master /etc/consul.d/secrets.json)"
+              export CONSUL_HTTP_TOKEN
+            else
+              # Unknown state, should never reach this.
+              exit 6
+            fi
 
-                set -x
-                while ! consul info &>/dev/null; do sleep 3; done
-              '';
-            in
-            "!${start-post}/bin/consul-start-post";
+            set -x
+            while ! consul info &>/dev/null; do sleep 3; done
+          '';
+        in "!${start-post}/bin/consul-start-post";
 
-          reloadScript =
-            let
-              reload = pkgs.writeShellScriptBin "consul-reload" ''
-                set -exuo pipefail
-                PATH="${makeBinPath [ pkgs.jq cfg.package pkgs.coreutils ]}"
-                set +x
+        reloadScript = let
+          reload = pkgs.writeShellScriptBin "consul-reload" ''
+            set -exuo pipefail
+            PATH="${makeBinPath [ pkgs.jq cfg.package pkgs.coreutils ]}"
+            set +x
 
-                # During bootstrap the vault generated token are not yet available
-                if [ -s /run/keys/consul-default-token ]
-                then
-                  CONSUL_HTTP_TOKEN="$(< /run/keys/consul-default-token)"
-                  export CONSUL_HTTP_TOKEN
-                # Therefore, on core nodes, use the sops out-of-band bootstrapped master token
-                elif [ -s /etc/consul.d/secrets.json ]
-                then
-                  # as of writing: core nodes are observed to posess the master token
-                  # while clients do not
-                  jq -e .acl.tokens.master /etc/consul.d/secrets.json || exit 5
-                  CONSUL_HTTP_TOKEN="$(jq -e -r .acl.tokens.master /etc/consul.d/secrets.json)"
-                  export CONSUL_HTTP_TOKEN
-                else
-                  # Unknown state, should never reach this.
-                  exit 6
-                fi
+            # During bootstrap the vault generated token are not yet available
+            if [ -s /run/keys/consul-default-token ]
+            then
+              CONSUL_HTTP_TOKEN="$(< /run/keys/consul-default-token)"
+              export CONSUL_HTTP_TOKEN
+            # Therefore, on core nodes, use the sops out-of-band bootstrapped master token
+            elif [ -s /etc/consul.d/secrets.json ]
+            then
+              # as of writing: core nodes are observed to posess the master token
+              # while clients do not
+              jq -e .acl.tokens.master /etc/consul.d/secrets.json || exit 5
+              CONSUL_HTTP_TOKEN="$(jq -e -r .acl.tokens.master /etc/consul.d/secrets.json)"
+              export CONSUL_HTTP_TOKEN
+            else
+              # Unknown state, should never reach this.
+              exit 6
+            fi
 
-                set -x
-                cd /var/lib/consul/
-                cp /etc/ssl/certs/cert-key.pem .
-                chown --reference . --recursive .
-                consul reload
-              '';
-            in
-            "!${reload}/bin/consul-reload";
-        in
-        {
-          ExecStartPre = preScript;
-          ExecReload = reloadScript;
-          ExecStart =
-            "@${cfg.package}/bin/consul consul agent -config-dir /etc/${cfg.configDir}";
-          ExecStartPost = postScript;
-          Restart = "on-failure";
-          RestartSec = "10s";
-          DynamicUser = true;
-          User = "consul";
-          Group = "consul";
-          PrivateTmp = true;
-          StateDirectory = baseNameOf cfg.dataDir;
-          WorkingDirectory = toString cfg.dataDir;
-        };
+            set -x
+            cd /var/lib/consul/
+            cp /etc/ssl/certs/cert-key.pem .
+            chown --reference . --recursive .
+            consul reload
+          '';
+        in "!${reload}/bin/consul-reload";
+      in {
+        ExecStartPre = preScript;
+        ExecReload = reloadScript;
+        ExecStart =
+          "@${cfg.package}/bin/consul consul agent -config-dir /etc/${cfg.configDir}";
+        ExecStartPost = postScript;
+        Restart = "on-failure";
+        RestartSec = "10s";
+        DynamicUser = true;
+        User = "consul";
+        Group = "consul";
+        PrivateTmp = true;
+        StateDirectory = baseNameOf cfg.dataDir;
+        WorkingDirectory = toString cfg.dataDir;
+      };
     };
   };
 }

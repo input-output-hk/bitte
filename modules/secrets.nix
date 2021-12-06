@@ -60,11 +60,8 @@ let
 
                     ${value}
                   '';
-                in
-                "${script}/bin/${name}")
-              config.secrets.generate);
-          in
-          pkgs.writeShellScriptBin "generate-secrets" ''
+                in "${script}/bin/${name}") config.secrets.generate);
+          in pkgs.writeShellScriptBin "generate-secrets" ''
             export PATH="$PATH:${
               lib.makeBinPath (with pkgs; [ utillinux git ])
             }"
@@ -79,8 +76,7 @@ let
       };
     };
   };
-in
-{
+in {
   options = {
     secrets = lib.mkOption {
       default = { };

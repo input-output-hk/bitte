@@ -221,8 +221,7 @@ let
     };
   });
 
-in
-{
+in {
   options.services.nomad-autoscaler = {
     enable = mkEnableOption "nomad-autoscaler";
 
@@ -515,7 +514,7 @@ in
         default = "";
         description =
           "Specifies a special tag which, when coupled with the instance id, helps to narrow down the search results when neither a Submission URL or Check ID is provided. By default, this is set to "
-            "service:app" " (e.g. service:nomad-autoscaler).";
+          "service:app" " (e.g. service:nomad-autoscaler).";
       };
 
       circonus_check_display_name = mkOption {

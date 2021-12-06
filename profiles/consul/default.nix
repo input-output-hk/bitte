@@ -4,8 +4,7 @@ let
   inherit (config.cluster) instances region;
 
   ownedKey = "/var/lib/consul/cert-key.pem";
-in
-{
+in {
   services.consul = mkIf config.services.consul.enable {
     addresses = { http = mkDefault "127.0.0.1"; };
 

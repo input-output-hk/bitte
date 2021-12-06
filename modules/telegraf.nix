@@ -14,8 +14,7 @@ let
       | ${pkgs.remarshal}/bin/remarshal -if json -of toml \
       > /etc/telegraf/config.toml
   '';
-in
-{
+in {
   ###### interface
   options = {
     services.telegraf = {

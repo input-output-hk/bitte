@@ -1,5 +1,4 @@
-{ pkgs, config, lib, ... }:
-{
+{ pkgs, config, lib, ... }: {
   # Workaround to address broken lo interface in Nomad created net namespaces
   # https://github.com/hashicorp/nomad/issues/10014
   systemd.services.monitor-exec-driver-lo = {

@@ -34,19 +34,17 @@
   users.groups.ntp = { };
   users.groups.systemd-coredump = { };
 
-  networking.firewall =
-    let
-      all = {
-        from = 0;
-        to = 65535;
-      };
-    in
-    {
-      enable = true;
-      allowPing = true;
-      allowedTCPPortRanges = [ all ];
-      allowedUDPPortRanges = [ all ];
+  networking.firewall = let
+    all = {
+      from = 0;
+      to = 65535;
     };
+  in {
+    enable = true;
+    allowPing = true;
+    allowedTCPPortRanges = [ all ];
+    allowedUDPPortRanges = [ all ];
+  };
 
   # Remove once nixpkgs is using openssh 8.7p1+ by default to avoid coredumps
   # Ref: https://bbs.archlinux.org/viewtopic.php?id=265221

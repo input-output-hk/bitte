@@ -2,8 +2,7 @@
 
 let cfg = config.nix;
 
-in
-{
+in {
   options.nix.allowedUris = lib.mkOption {
     type = with lib.types; listOf str;
     default = [ ];

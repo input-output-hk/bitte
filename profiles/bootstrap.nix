@@ -33,37 +33,34 @@ let
     } | vault kv put kv/bootstrap/cache/nix-key -
   '';
 
-  initialVaultStaticSecrets =
-    let
-      mkStaticTokenCheck = policy: ''
-        echo "Checking for ${policy} static token..."
-        if ! vault kv get -field token "kv/bootstrap/static-tokens/clients/${policy}" &> /dev/null; then
-          echo "Creating ${policy} static token..."
-          token="$(${mkStaticToken "${policy}"})"
-          echo "Storing ${policy} static token in Vault secrets."
-          vault kv put "kv/bootstrap/static-tokens/clients/${policy}" token="$token"
-        else
-          echo "Found ${policy} static token."
-        fi
-      '';
-      mkStaticToken = policy: ''
-        consul acl token create \
-          -policy-name="${policy}" \
-          -description "${policy} static $(date '+%Y-%m-%d %H:%M:%S')" \
-          -format json | \
-          jq -e -r .SecretID
-      '';
-    in
-    ''
-      set +x
-      ${mkStaticTokenCheck "consul-agent"}
-      ${mkStaticTokenCheck "consul-default"}
-      ${mkStaticTokenCheck "consul-server-agent"}
-      ${mkStaticTokenCheck "consul-server-default"}
-      set -x
+  initialVaultStaticSecrets = let
+    mkStaticTokenCheck = policy: ''
+      echo "Checking for ${policy} static token..."
+      if ! vault kv get -field token "kv/bootstrap/static-tokens/clients/${policy}" &> /dev/null; then
+        echo "Creating ${policy} static token..."
+        token="$(${mkStaticToken "${policy}"})"
+        echo "Storing ${policy} static token in Vault secrets."
+        vault kv put "kv/bootstrap/static-tokens/clients/${policy}" token="$token"
+      else
+        echo "Found ${policy} static token."
+      fi
     '';
-in
-{
+    mkStaticToken = policy: ''
+      consul acl token create \
+        -policy-name="${policy}" \
+        -description "${policy} static $(date '+%Y-%m-%d %H:%M:%S')" \
+        -format json | \
+        jq -e -r .SecretID
+    '';
+  in ''
+    set +x
+    ${mkStaticTokenCheck "consul-agent"}
+    ${mkStaticTokenCheck "consul-default"}
+    ${mkStaticTokenCheck "consul-server-agent"}
+    ${mkStaticTokenCheck "consul-server-default"}
+    set -x
+  '';
+in {
   options = {
     services.bootstrap = {
       extraConsulInitialTokensConfig = mkOption {
@@ -110,67 +107,65 @@ in
 
         path = with pkgs; [ consul jq systemd sops ];
 
-        script =
-          let
-            mkToken = purpose: policy: ''
-              consul acl token create \
-                -policy-name=${policy} \
-                -description "${purpose} $(date '+%Y-%m-%d %H:%M:%S')" \
-                -expires-ttl 1h \
-                -format json | \
-                jq -e -r .SecretID
-            '';
-          in
-          ''
-            set -euo pipefail
-
-            ${exportConsulMaster}
-
-            ##########
-            # Consul #
-            ##########
-
-            if [ ! -s /etc/consul.d/tokens.json ]; then
-              default="$(${
-                mkToken "consul-server-default" "consul-server-default"
-              })"
-              agent="$(${mkToken "consul-server-agent" "consul-server-agent"})"
-
-              echo '{}' \
-              | jq \
-                -S \
-                --arg default "$default" \
-                --arg agent "$agent" \
-                '.acl.tokens = { default: $default, agent: $agent }' \
-              > /etc/consul.d/tokens.json.new
-
-              mv /etc/consul.d/tokens.json.new /etc/consul.d/tokens.json
-
-              systemctl restart consul.service
-            fi
-
-            # # # # #
-            # Nomad #
-            # # # # #
-
-            if [ ! -s /etc/nomad.d/consul-token.json ]; then
-              nomad="$(${mkToken "nomad-server" "nomad-server"})"
-
-              mkdir -p /etc/nomad.d
-
-              echo '{}' \
-              | jq --arg nomad "$nomad" '.consul.token = $nomad' \
-              > /etc/nomad.d/consul-token.json.new
-
-              mv /etc/nomad.d/consul-token.json.new /etc/nomad.d/consul-token.json
-            fi
-
-            ################
-            # Extra Config #
-            ################
-
-            ${cfg.extraConsulInitialTokensConfig}
+        script = let
+          mkToken = purpose: policy: ''
+            consul acl token create \
+              -policy-name=${policy} \
+              -description "${purpose} $(date '+%Y-%m-%d %H:%M:%S')" \
+              -expires-ttl 1h \
+              -format json | \
+              jq -e -r .SecretID
           '';
+        in ''
+          set -euo pipefail
+
+          ${exportConsulMaster}
+
+          ##########
+          # Consul #
+          ##########
+
+          if [ ! -s /etc/consul.d/tokens.json ]; then
+            default="$(${
+              mkToken "consul-server-default" "consul-server-default"
+            })"
+            agent="$(${mkToken "consul-server-agent" "consul-server-agent"})"
+
+            echo '{}' \
+            | jq \
+              -S \
+              --arg default "$default" \
+              --arg agent "$agent" \
+              '.acl.tokens = { default: $default, agent: $agent }' \
+            > /etc/consul.d/tokens.json.new
+
+            mv /etc/consul.d/tokens.json.new /etc/consul.d/tokens.json
+
+            systemctl restart consul.service
+          fi
+
+          # # # # #
+          # Nomad #
+          # # # # #
+
+          if [ ! -s /etc/nomad.d/consul-token.json ]; then
+            nomad="$(${mkToken "nomad-server" "nomad-server"})"
+
+            mkdir -p /etc/nomad.d
+
+            echo '{}' \
+            | jq --arg nomad "$nomad" '.consul.token = $nomad' \
+            > /etc/nomad.d/consul-token.json.new
+
+            mv /etc/nomad.d/consul-token.json.new /etc/nomad.d/consul-token.json
+          fi
+
+          ################
+          # Extra Config #
+          ################
+
+          ${cfg.extraConsulInitialTokensConfig}
+        '';
       };
 
     systemd.services.vault-setup = mkIf config.services.vault.enable {
@@ -194,77 +189,75 @@ in
 
       path = with pkgs; [ sops vault-bin consul nomad coreutils jq curl ];
 
-      script =
-        let
-          consulPolicies =
-            map (name: ''vault write "consul/roles/${name}" "policies=${name}"'')
-              (attrNames config.services.consul.policies);
+      script = let
+        consulPolicies =
+          map (name: ''vault write "consul/roles/${name}" "policies=${name}"'')
+          (attrNames config.services.consul.policies);
 
-          nomadClusterRole = pkgs.toPrettyJSON "nomad-cluster-role" {
-            disallowed_policies = "nomad-server,admin,core,client";
-            token_explicit_max_ttl = 0;
-            name = "nomad-cluster";
-            orphan = true;
-            token_period = 259200;
-            renewable = true;
-          };
-        in
-        ''
-          set -exuo pipefail
+        nomadClusterRole = pkgs.toPrettyJSON "nomad-cluster-role" {
+          disallowed_policies = "nomad-server,admin,core,client";
+          token_explicit_max_ttl = 0;
+          name = "nomad-cluster";
+          orphan = true;
+          token_period = 259200;
+          renewable = true;
+        };
+      in ''
+        set -exuo pipefail
 
-          pushd /var/lib/vault
+        pushd /var/lib/vault
 
-          set +x
-          VAULT_TOKEN="$(sops -d --extract '["root_token"]' vault.enc.json)"
-          export VAULT_TOKEN
-          set -x
+        set +x
+        VAULT_TOKEN="$(sops -d --extract '["root_token"]' vault.enc.json)"
+        export VAULT_TOKEN
+        set -x
 
-          ${concatStringsSep "\n" consulPolicies}
+        ${concatStringsSep "\n" consulPolicies}
 
-          vault write /auth/token/roles/nomad-cluster @${nomadClusterRole}
+        vault write /auth/token/roles/nomad-cluster @${nomadClusterRole}
 
-          # Finally allow IAM roles to login to Vault
+        # Finally allow IAM roles to login to Vault
 
-          arn="$(
-            curl -f -s http://169.254.169.254/latest/meta-data/iam/info \
-            | jq -e -r .InstanceProfileArn \
-            | sed 's/:instance.*//'
-          )"
+        arn="$(
+          curl -f -s http://169.254.169.254/latest/meta-data/iam/info \
+          | jq -e -r .InstanceProfileArn \
+          | sed 's/:instance.*//'
+        )"
 
-          vault write auth/aws/role/core-iam \
+        vault write auth/aws/role/core-iam \
+          auth_type=iam \
+          bound_iam_principal_arn="$arn:role/${config.cluster.name}-core" \
+          policies=default,core,nomad-server
+
+        vault write auth/aws/role/${config.cluster.name}-core \
+          auth_type=iam \
+          bound_iam_principal_arn="$arn:role/${config.cluster.name}-core" \
+          policies=default,core,nomad-server
+
+        vault write auth/aws/role/${config.cluster.name}-client \
+          auth_type=iam \
+          bound_iam_principal_arn="$arn:role/${config.cluster.name}-client" \
+          policies=default,client,nomad-server \
+          period=24h
+
+        ${concatStringsSep "\n" (forEach adminNames (name: ''
+          vault write "auth/aws/role/${name}" \
             auth_type=iam \
-            bound_iam_principal_arn="$arn:role/${config.cluster.name}-core" \
-            policies=default,core,nomad-server
+            bound_iam_principal_arn="$arn:user/${name}" \
+            policies=default,admin \
+            max_ttl=24h
+        ''))}
 
-          vault write auth/aws/role/${config.cluster.name}-core \
-            auth_type=iam \
-            bound_iam_principal_arn="$arn:role/${config.cluster.name}-core" \
-            policies=default,core,nomad-server
+        ${initialVaultSecrets}
 
-          vault write auth/aws/role/${config.cluster.name}-client \
-            auth_type=iam \
-            bound_iam_principal_arn="$arn:role/${config.cluster.name}-client" \
-            policies=default,client,nomad-server \
-            period=24h
+        ${initialVaultStaticSecrets}
 
-          ${concatStringsSep "\n" (forEach adminNames (name: ''
-            vault write "auth/aws/role/${name}" \
-              auth_type=iam \
-              bound_iam_principal_arn="$arn:user/${name}" \
-              policies=default,admin \
-              max_ttl=24h
-          ''))}
+        ################
+        # Extra Config #
+        ################
 
-          ${initialVaultSecrets}
-
-          ${initialVaultStaticSecrets}
-
-          ################
-          # Extra Config #
-          ################
-
-          ${cfg.extraVaultSetupConfig}
-        '';
+        ${cfg.extraVaultSetupConfig}
+      '';
     };
 
     systemd.services.nomad-bootstrap = mkIf config.services.nomad.enable {
@@ -351,8 +344,10 @@ in
         RemainAfterExit = true;
         Restart = "on-failure";
         RestartSec = "20s";
-        ExecStartPre =
-          ensureDependencies pkgs [ "consul-initial-tokens" "vault-consul-token" ];
+        ExecStartPre = ensureDependencies pkgs [
+          "consul-initial-tokens"
+          "vault-consul-token"
+        ];
       };
 
       environment = {

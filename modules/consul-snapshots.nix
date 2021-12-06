@@ -198,8 +198,7 @@ let
     };
   };
 
-in
-{
+in {
   options = {
     services.consul-snapshots = {
       enable = mkEnableOption ''

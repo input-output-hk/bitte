@@ -6,26 +6,23 @@ let
   # Hashes for misc systems and architectures can be obtained with:
   #   curl -OL https://releases.hashicorp.com/vault/${version}/vault_${version}_${system}_${arch}.zip
   #   nix-hash --flat --base32 --type sha256 vault_${version}_${system}_${arch}.zip | nix hash to-sri --type sha256 $(cat -)
-  sources =
-    let base = "https://releases.hashicorp.com/vault/${version}";
-    in
-    {
-      x86_64-linux = fetchurl {
-        url = "${base}/vault_${version}_linux_amd64.zip";
-        sha256 = "sha256-10ck1swivx4cfFGQCbAXaAms9vHCDuVhB94Mq1TNhGM=";
-      };
-      x86_64-darwin = fetchurl {
-        url = "${base}/vault_${version}_darwin_amd64.zip";
-        sha256 = "sha256-4zmC64YaU5qBIr9nTDmvMJAYJcBgtMgXXL+gbptdS/U=";
-      };
-      aarch64-linux = fetchurl {
-        url = "${base}/vault_${version}_linux_arm64.zip";
-        sha256 = "sha256-CgNDNQnyxZSgNV3rZycMd/vG1w6ALMUiNYTDtgAp4gI=";
-      };
+  sources = let base = "https://releases.hashicorp.com/vault/${version}";
+  in {
+    x86_64-linux = fetchurl {
+      url = "${base}/vault_${version}_linux_amd64.zip";
+      sha256 = "sha256-10ck1swivx4cfFGQCbAXaAms9vHCDuVhB94Mq1TNhGM=";
     };
+    x86_64-darwin = fetchurl {
+      url = "${base}/vault_${version}_darwin_amd64.zip";
+      sha256 = "sha256-4zmC64YaU5qBIr9nTDmvMJAYJcBgtMgXXL+gbptdS/U=";
+    };
+    aarch64-linux = fetchurl {
+      url = "${base}/vault_${version}_linux_arm64.zip";
+      sha256 = "sha256-CgNDNQnyxZSgNV3rZycMd/vG1w6ALMUiNYTDtgAp4gI=";
+    };
+  };
 
-in
-stdenv.mkDerivation {
+in stdenv.mkDerivation {
   pname = "vault-bin";
   inherit version;
 

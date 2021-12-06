@@ -4,8 +4,7 @@ let
   inherit (config.cluster) instances region;
   instance = instances.${nodeName};
   inherit (instance) privateIP;
-in
-{
+in {
   imports = [ ./default.nix ./policies.nix ];
 
   services.consul = {

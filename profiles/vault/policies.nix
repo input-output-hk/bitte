@@ -6,8 +6,7 @@ let
   d = "delete";
   l = "list";
   s = "sudo";
-in
-{
+in {
   services.vault.policies = {
 
     core.path = {

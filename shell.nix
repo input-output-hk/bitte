@@ -9,5 +9,4 @@ let
   src = fetchTarball {
     url = "https://github.com/NixOS/nixpkgs/archive/${pkgsInfo.rev}.tar.gz";
   };
-in
-with import src { }; mkShell { buildInputs = [ nixFlakes ]; }
+in with import src { }; mkShell { buildInputs = [ nixFlakes ]; }

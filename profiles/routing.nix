@@ -1,5 +1,5 @@
-{ self, lib, pkgs, config, nodeName, bittelib, ... }: let
-  inherit (bittelib) ensureDependencies;
+{ self, lib, pkgs, config, nodeName, bittelib, ... }:
+let inherit (bittelib) ensureDependencies;
 in {
 
   imports = [

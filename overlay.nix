@@ -2,25 +2,21 @@ inputs:
 let
   inherit (inputs) nixpkgs ops-lib self;
   inherit (nixpkgs) lib;
-  deprecated = k: v:
-    lib.warn ''${k} is deprecated from the bitte overlay.
-      See bitte/overlay.nix
-    ''
-      v;
-in
-final: prev:
+  deprecated = k:
+    lib.warn ''
+      ${k} is deprecated from the bitte overlay.
+            See bitte/overlay.nix
+    '';
+in final: prev:
 {
-  nix = inputs.nix.packages.x86_64-linux.nix;
+  inherit (inputs.nix.packages.x86_64-linux) nix;
   nixFlakes = final.nix;
   nixUnstable = final.nix;
 
-  ssh-keys =
-    let
-      keys = import (ops-lib + "/overlays/ssh-keys.nix") lib;
-      inherit (keys) allKeysFrom devOps;
-    in
-    { devOps = allKeysFrom devOps; };
-
+  ssh-keys = let
+    keys = import (ops-lib + "/overlays/ssh-keys.nix") lib;
+    inherit (keys) allKeysFrom devOps;
+  in { devOps = allKeysFrom devOps; };
 
   ssm-agent = prev.callPackage ./pkgs/ssm-agent { };
   consul = prev.callPackage ./pkgs/consul { };
@@ -42,23 +38,21 @@ final: prev:
   filebeat = final.callPackage ./pkgs/filebeat.nix { };
 
   # XXX remove (also flake input) after nixpkgs bump that has vulnix 1.10.1
-  vulnix = import (inputs.vulnix) {
+  vulnix = import inputs.vulnix {
     inherit nixpkgs;
     pkgs = import nixpkgs { inherit (final) system; };
   };
 
   # Remove once nixpkgs is using openssh 8.7p1+ by default to avoid coredumps
   # Ref: https://bbs.archlinux.org/viewtopic.php?id=265221
-  opensshNoCoredump =
-    let version = "8.7p1";
-    in
-    prev.opensshPackages.openssh.overrideAttrs (oldAttrs: {
-      inherit version;
-      src = prev.fetchurl {
-        url = "mirror://openbsd/OpenSSH/portable/openssh-${version}.tar.gz";
-        sha256 = "sha256-fKNLi7JK6eUPM3krcJGzhB1+G0QP9XvJ+r3fAeLtHiQ=";
-      };
-    });
+  opensshNoCoredump = let version = "8.7p1";
+  in prev.opensshPackages.openssh.overrideAttrs (oldAttrs: {
+    inherit version;
+    src = prev.fetchurl {
+      url = "mirror://openbsd/OpenSSH/portable/openssh-${version}.tar.gz";
+      sha256 = "sha256-fKNLi7JK6eUPM3krcJGzhB1+G0QP9XvJ+r3fAeLtHiQ=";
+    };
+  });
 
   # Little convenience function helping us to containing the bash
   # madness: forcing our bash scripts to be shellChecked.
@@ -71,58 +65,54 @@ final: prev:
   writeBashBinChecked = name: final.writeBashChecked "/bin/${name}";
   toPrettyJSON = final.callPackage ./pkgs/to-pretty-json.nix { };
 
-
-  scaler-guard =
-    let deps = with final; [ awscli bash curl jq nomad ];
-    in
-    prev.runCommandLocal "scaler-guard"
-      {
-        script = ./scripts/scaler-guard.sh;
-        nativeBuildInputs = [ prev.makeWrapper ];
-      } ''
-      makeWrapper $script $out/bin/scaler-guard \
-        --prefix PATH : ${prev.lib.makeBinPath deps}
-    '';
-
-  uploadBaseAMIs = final.writeBashBinChecked "upload-base-amis-to-development-profile-iohk-amis-bucket" ''
-
-    export AWS_PROFILE="development"
-
-    export home_region=eu-central-1
-    export bucket=bitte-amis
-    export regions="eu-west-1 eu-central-1 us-east-1 us-east-2 us-west-1 us-west-2"
-
-    echo Cores ...
-    ${nixpkgs + /nixos/maintainers/scripts/ec2/create-amis.sh} \
-      ${(self.lib.mkSystem { pkgs = final; }).bitteAmazonSystemBaseAMI}
-    echo Cores done.
-
-    echo Clients ...
-    ${nixpkgs + /nixos/maintainers/scripts/ec2/create-amis.sh} \
-      ${(self.lib.mkSystem { pkgs = final; }).bitteAmazonZfsSystemBaseAMI}
-    echo Clients done.
+  scaler-guard = let deps = with final; [ awscli bash curl jq nomad ];
+  in prev.runCommandLocal "scaler-guard" {
+    script = ./scripts/scaler-guard.sh;
+    nativeBuildInputs = [ prev.makeWrapper ];
+  } ''
+    makeWrapper $script $out/bin/scaler-guard \
+      --prefix PATH : ${prev.lib.makeBinPath deps}
   '';
 
-}
-  //
-  # DEPRECATED
+  uploadBaseAMIs = final.writeBashBinChecked
+    "upload-base-amis-to-development-profile-iohk-amis-bucket" ''
+      export AWS_PROFILE="development"
+
+      export home_region=eu-central-1
+      export bucket=bitte-amis
+      export regions="eu-west-1 eu-central-1 us-east-1 us-east-2 us-west-1 us-west-2"
+
+      echo Cores ...
+      bash -x ${nixpkgs + /nixos/maintainers/scripts/ec2/create-amis.sh} \
+        ${
+          (self.lib.mkSystem {
+            pkgs = final;
+          }).bitteAmazonSystemBaseAMI.config.system.build.amazonImage
+        }
+      echo Cores done.
+
+      echo Clients ...
+      bash -x ${nixpkgs + /nixos/maintainers/scripts/ec2/create-amis.sh} \
+        ${
+          (self.lib.mkSystem {
+            pkgs = final;
+          }).bitteAmazonZfsSystemBaseAMI.config.system.build.amazonImage
+        }
+      echo Clients done.
+    '';
+
+} //
+# DEPRECATED
 (lib.mapAttrs deprecated {
 
   # Do use bitte.lib directly, instead
-  inherit (self.lib)
-    recImport
-    sanitize
-    snakeCase
-    mkNomadJob
-    terralib
-    ;
+  inherit (self.lib) recImport sanitize snakeCase mkNomadJob terralib;
 
   # Do use bitteShell, instead
   bitteShellCompat = lib.warn ''
     'bitteShellCompat' is deprecated.
     Use the unified 'bitteShell' instead.
-  ''
-    final.bitteShell;
+  '' final.bitteShell;
 
   # Clutter: organize better or remove
   mkShellNoCC = prev.mkShell.override { stdenv = prev.stdenvNoCC; };
@@ -135,8 +125,7 @@ final: prev:
     let
       checks = lib.concatStringsSep "\n" (lib.forEach services (service:
         "${prev.systemd}/bin/systemctl is-active '${service}.service'"));
-    in
-    prev.writeShellScript "check" ''
+    in prev.writeShellScript "check" ''
       set -exuo pipefail
       ${checks}
     '';
@@ -148,8 +137,7 @@ final: prev:
         inherit (inputs.self)
           lastModified lastModifiedDate narHash outPath shortRev rev;
       });
-    in
-    final.releaseTools.aggregate {
+    in final.releaseTools.aggregate {
       name = "required";
       constituents = (lib.attrValues constituents) ++ [ build-version ];
       meta.description = "All required derivations";

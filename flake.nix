@@ -9,10 +9,11 @@
     # in function of https://github.com/NixOS/nix/pull/5544
     # we want to bump this nix version soon-ish
     # that pr "fixes" builds on monitoring "do the right thing"
-    nix-core.url = "github:NixOS/nix/c6fa7775de413a799b9a137dceced5dcf0f5e6ed";
+    nix-core.url = "github:NixOS/nix/d1aaa7ef71713b6693ad3ddf8704ce62bab82095";
     nix-core.inputs.nixpkgs.follows = "nixpkgs-core";
     # currently includes `computeLocks` fix - so follows are not screwed
-    nix-auxiliary.url = "github:NixOS/nix/2ff71b021379a2c9bbdcb789a93cdc585b3520ca";
+    nix-auxiliary.url =
+      "github:NixOS/nix/d1aaa7ef71713b6693ad3ddf8704ce62bab82095";
     nix-auxiliary.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
 
     # Legacy alias / TODO
@@ -55,82 +56,57 @@
     hydra.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs =
-    { self
-    , hydra
-    , nixpkgs
-    , utils
-    , cli
-    , deploy
-    , ...
-    }@inputs:
+  outputs = { self, hydra, nixpkgs, utils, cli, deploy, ... }@inputs:
     let
 
       overlays = [
         cli.overlay
         # `bitte` build depend on nixpkgs-unstable rust version
         # TODO: remove when bitte itself is bumped
-        (final: prev: { inherit (cli.legacyPackages.${final.system}) bitte; })
+        (final: prev: { inherit (cli.legacyPackages."${final.system}") bitte; })
         hydra.overlay
         deploy.overlay
         localPkgsOverlay
         terraformProvidersOverlay
       ];
-      terraformProvidersOverlay = import ./terraform-providers-overlay.nix inputs;
+      terraformProvidersOverlay =
+        import ./terraform-providers-overlay.nix inputs;
       localPkgsOverlay = import ./overlay.nix inputs;
 
-      pkgsForSystem = system: import nixpkgs {
-        inherit overlays system;
-        config.allowUnfree = true; # for ssm-session-manager-plugin
+      pkgsForSystem = system:
+        import nixpkgs {
+          inherit overlays system;
+          config.allowUnfree = true; # for ssm-session-manager-plugin
+        };
+
+      lib = import ./lib {
+        inherit (nixpkgs) lib;
+        inherit inputs;
       };
 
-      lib = import ./lib { inherit (nixpkgs) lib; inherit inputs; };
+    in utils.lib.eachSystem [ "x86_64-linux" ] (system: rec {
 
-    in
-    utils.lib.eachSystem [ "x86_64-linux" ]
-      (system: rec {
+      legacyPackages = pkgsForSystem system;
 
-        legacyPackages = pkgsForSystem system;
+      inherit (legacyPackages) devShell;
 
-        devShell = legacyPackages.devShell;
+      hydraJobs = let
+        constituents = {
+          inherit (legacyPackages)
+            asgAMIClients asgAMICores bitte cfssl ci-env consul cue glusterfs
+            grafana-loki haproxy haproxy-auth-request haproxy-cors nixFlakes
+            nomad nomad-autoscaler oauth2-proxy sops ssm-agent
+            terraform-with-plugins vault-backend vault-bin;
+        };
+      in {
+        inherit constituents;
+        required = legacyPackages.mkRequired constituents;
+      };
 
-        hydraJobs =
-          let
-            constituents = {
-              inherit (legacyPackages)
-                asgAMIClients
-                asgAMICores
-                bitte
-                cfssl
-                ci-env
-                consul
-                cue
-                glusterfs
-                grafana-loki
-                haproxy
-                haproxy-auth-request
-                haproxy-cors
-                nixFlakes
-                nomad
-                nomad-autoscaler
-                oauth2-proxy
-                sops
-                ssm-agent
-                terraform-with-plugins
-                vault-backend
-                vault-bin
-                ;
-            };
-          in
-          {
-            inherit constituents;
-            required = legacyPackages.mkRequired constituents;
-          };
-
-      }) // {
+    }) // {
       inherit lib;
       # eta reduce not possibe since flake check validates for "final" / "prev"
-      overlay = final: prev: nixpkgs.lib.composeManyExtensions overlays final prev;
+      overlay = nixpkgs.lib.composeManyExtensions overlays;
       profiles = lib.mkModules ./profiles;
       nixosModules = lib.mkModules ./modules;
       nixosModule.imports = builtins.attrValues self.nixosModules;

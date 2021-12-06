@@ -1,7 +1,6 @@
 { lib, config, pkgs, ... }:
 let cfg = config.services.vault-backend;
-in
-{
+in {
   options = {
     services.vault-backend = {
       enable = lib.mkEnableOption "Enable the Terraform Vault Backend";
@@ -19,35 +18,33 @@ in
         LISTEN_ADDRESS = "127.0.0.1:8080";
       };
 
-      serviceConfig =
-        let
-          execStartPre = pkgs.writeShellScriptBin "vault-backend-pre" ''
-            set -exuo pipefail
-            export PATH="${lib.makeBinPath [ pkgs.coreutils ]}"
+      serviceConfig = let
+        execStartPre = pkgs.writeShellScriptBin "vault-backend-pre" ''
+          set -exuo pipefail
+          export PATH="${lib.makeBinPath [ pkgs.coreutils ]}"
 
-            cp /etc/ssl/certs/{cert,cert-key}.pem .
-            chown --reference . --recursive .
-          '';
-        in
-        {
-          ExecStartPre = "!${execStartPre}/bin/vault-backend-pre";
-          ExecStart = "${pkgs.vault-backend}/bin/vault-backend";
+          cp /etc/ssl/certs/{cert,cert-key}.pem .
+          chown --reference . --recursive .
+        '';
+      in {
+        ExecStartPre = "!${execStartPre}/bin/vault-backend-pre";
+        ExecStart = "${pkgs.vault-backend}/bin/vault-backend";
 
-          DynamicUser = true;
-          Group = "vault-backend";
-          NoNewPrivileges = true;
-          PrivateDevices = true;
-          PrivateTmp = true;
-          ProtectHome = "read-only";
-          ProtectSystem = "full";
-          Restart = "on-failure";
-          RestartSec = "10s";
-          StartLimitBurst = 3;
-          StateDirectory = "vault-backend";
-          TimeoutStopSec = "30s";
-          User = "vault-backend";
-          WorkingDirectory = "/var/lib/vault-backend";
-        };
+        DynamicUser = true;
+        Group = "vault-backend";
+        NoNewPrivileges = true;
+        PrivateDevices = true;
+        PrivateTmp = true;
+        ProtectHome = "read-only";
+        ProtectSystem = "full";
+        Restart = "on-failure";
+        RestartSec = "10s";
+        StartLimitBurst = 3;
+        StateDirectory = "vault-backend";
+        TimeoutStopSec = "30s";
+        User = "vault-backend";
+        WorkingDirectory = "/var/lib/vault-backend";
+      };
     };
 
     services.ingress-config = {

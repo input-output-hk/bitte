@@ -4,8 +4,7 @@ let
   inherit (config.cluster) region instances kms;
   cfg = config.services.vault;
   ownedKey = "/var/lib/vault/cert-key.pem";
-in
-{
+in {
   config = mkIf cfg.enable {
     environment.variables = {
       VAULT_FORMAT = "json";

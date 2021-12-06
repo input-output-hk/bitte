@@ -2,8 +2,7 @@
 let
   inherit (config.cluster) instances;
   inherit (instances.${nodeName}) privateIP;
-in
-{
+in {
   imports = [ ./default.nix ./policies.nix ];
   config = {
     services.vault = {
@@ -17,8 +16,7 @@ in
 
       storage.raft = let
         vcfg = config.services.vault.listener.tcp;
-        instances = lib.filterAttrs
-          (k: v: lib.hasPrefix "core-" k)
+        instances = lib.filterAttrs (k: v: lib.hasPrefix "core-" k)
           config.cluster.instances;
       in lib.mkDefault {
         retryJoin = lib.mapAttrsToList (_: v: {

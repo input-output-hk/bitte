@@ -33,8 +33,7 @@ let
 
     set -x
   '';
-in
-rec {
+in rec {
   deregister = writeShellScriptBin "${service.name}-deregister" ''
     ${common}
     consul services deregister ${serviceJson}

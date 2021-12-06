@@ -6,26 +6,21 @@ let
 
   merge = lib.foldl' lib.recursiveUpdate { };
   tags = { Cluster = config.cluster.name; };
-in
-{
+in {
   tf.core.configuration = {
-    terraform.backend.http =
-      let
-        vbk =
-          "https://vbk.infra.aws.iohkdev.io/state/${config.cluster.name}/core";
-      in
-      {
-        address = vbk;
-        lock_address = vbk;
-        unlock_address = vbk;
-      };
+    terraform.backend.http = let
+      vbk =
+        "https://vbk.infra.aws.iohkdev.io/state/${config.cluster.name}/core";
+    in {
+      address = vbk;
+      lock_address = vbk;
+      unlock_address = vbk;
+    };
 
     terraform.required_providers = pkgs.terraform-provider-versions;
 
     provider = {
-      acme = {
-        server_url = "https://acme-v02.api.letsencrypt.org/directory";
-      };
+      acme = { server_url = "https://acme-v02.api.letsencrypt.org/directory"; };
 
       aws = [{ region = config.cluster.region; }] ++ (lib.forEach regions
         (region: {
@@ -77,30 +72,26 @@ in
       gateway_id = id "aws_internet_gateway.${config.cluster.name}";
     };
 
-    resource.aws_subnet = lib.flip lib.mapAttrs' config.cluster.vpc.subnets (name: subnet:
-      lib.nameValuePair subnet.name {
-        provider = awsProviderFor config.cluster.vpc.region;
-        vpc_id = id "aws_vpc.core";
-        cidr_block = subnet.cidr;
-
-        lifecycle = [{ create_before_destroy = true; }];
-
-        tags = {
-          Cluster = config.cluster.name;
-          Name = subnet.name;
-        };
-      }
-    );
-
-    resource.aws_route_table_association = lib.mapAttrs'
+    resource.aws_subnet = lib.flip lib.mapAttrs' config.cluster.vpc.subnets
       (name: subnet:
-        lib.nameValuePair "${config.cluster.name}-${name}-internet" {
-          subnet_id = subnet.id;
-          route_table_id = id "aws_route_table.${config.cluster.name}";
-        }
-      )
-      config.cluster.vpc.subnets
-    ;
+        lib.nameValuePair subnet.name {
+          provider = awsProviderFor config.cluster.vpc.region;
+          vpc_id = id "aws_vpc.core";
+          cidr_block = subnet.cidr;
+
+          lifecycle = [{ create_before_destroy = true; }];
+
+          tags = {
+            Cluster = config.cluster.name;
+            Name = subnet.name;
+          };
+        });
+
+    resource.aws_route_table_association = lib.mapAttrs' (name: subnet:
+      lib.nameValuePair "${config.cluster.name}-${name}-internet" {
+        subnet_id = subnet.id;
+        route_table_id = id "aws_route_table.${config.cluster.name}";
+      }) config.cluster.vpc.subnets;
 
     # ---------------------------------------------------------------
     # DNS
@@ -111,27 +102,23 @@ in
       name = "${config.cluster.domain}.";
     };
 
-    resource.aws_route53_record = lib.mkIf config.cluster.route53 (
-      let
-        domains = (lib.flatten
-          (lib.flip lib.mapAttrsToList config.cluster.instances
-            (instanceName: instance:
-              lib.forEach instance.route53.domains
-                (domain: { ${domain} = instance.uid; }))));
-      in
-      lib.flip lib.mapAttrs' (lib.zipAttrs domains) (domain: instanceUids:
-        lib.nameValuePair "${config.cluster.name}-${
+    resource.aws_route53_record = lib.mkIf config.cluster.route53 (let
+      domains = (lib.flatten
+        (lib.flip lib.mapAttrsToList config.cluster.instances
+          (instanceName: instance:
+            lib.forEach instance.route53.domains
+            (domain: { ${domain} = instance.uid; }))));
+    in lib.flip lib.mapAttrs' (lib.zipAttrs domains) (domain: instanceUids:
+      lib.nameValuePair "${config.cluster.name}-${
         lib.replaceStrings [ "." "*" ] [ "_" "_" ] domain
-      }"
-          {
-            zone_id = id "data.aws_route53_zone.selected";
-            name = domain;
-            type = "A";
-            ttl = "60";
-            records =
-              lib.forEach instanceUids (uid: var "aws_eip.${uid}.public_ip");
-          })
-    );
+      }" {
+        zone_id = id "data.aws_route53_zone.selected";
+        name = domain;
+        type = "A";
+        ttl = "60";
+        records =
+          lib.forEach instanceUids (uid: var "aws_eip.${uid}.public_ip");
+      }));
 
     # ---------------------------------------------------------------
     # SSL/TLS - root ssh
@@ -225,116 +212,106 @@ in
       };
     };
 
-    resource.aws_security_group_rule =
-      let
-        mapInstances = _: instance:
-          merge (lib.flip lib.mapAttrsToList instance.securityGroupRules (_: rule:
-            lib.listToAttrs (lib.flatten (lib.flip map rule.protocols (protocol:
-              mkSecurityGroupRule {
-                prefix = config.cluster.name;
-                inherit (config.cluster) region;
-                inherit rule protocol;
-              })))));
+    resource.aws_security_group_rule = let
+      mapInstances = _: instance:
+        merge (lib.flip lib.mapAttrsToList instance.securityGroupRules (_: rule:
+          lib.listToAttrs (lib.flatten (lib.flip map rule.protocols (protocol:
+            mkSecurityGroupRule {
+              prefix = config.cluster.name;
+              inherit (config.cluster) region;
+              inherit rule protocol;
+            })))));
 
-        instances = lib.mapAttrsToList mapInstances config.cluster.instances;
-      in
-      merge instances;
+      instances = lib.mapAttrsToList mapInstances config.cluster.instances;
+    in merge instances;
 
     # ---------------------------------------------------------------
     # Core Instances
     # ---------------------------------------------------------------
 
-    resource.aws_eip = lib.mapAttrs'
-      (name: server:
-        lib.nameValuePair server.uid {
-          vpc = true;
-          network_interface = id "aws_network_interface.${server.uid}";
-          associate_with_private_ip = server.privateIP;
+    resource.aws_eip = lib.mapAttrs' (name: server:
+      lib.nameValuePair server.uid {
+        vpc = true;
+        network_interface = id "aws_network_interface.${server.uid}";
+        associate_with_private_ip = server.privateIP;
+        tags = {
+          Cluster = config.cluster.name;
+          Name = server.name;
+        };
+        lifecycle = [{ create_before_destroy = true; }];
+      }) config.cluster.instances;
+
+    resource.aws_network_interface = lib.mapAttrs' (name: server:
+      lib.nameValuePair server.uid {
+        subnet_id = server.subnet.id;
+        security_groups = [ server.securityGroupId ];
+        private_ips = [ server.privateIP ];
+        tags = {
+          Cluster = config.cluster.name;
+          Name = server.name;
+        };
+        lifecycle = [{ create_before_destroy = true; }];
+      }) config.cluster.instances;
+
+    resource.aws_instance = lib.mapAttrs (name: server:
+      lib.mkMerge [
+        (lib.mkIf server.enable {
+          ami = server.ami;
+          instance_type = server.instanceType;
+          monitoring = true;
+
           tags = {
             Cluster = config.cluster.name;
-            Name = server.name;
+            Name = name;
+            UID = server.uid;
+            Consul = "server";
+            Vault = "server";
+            Nomad = "server";
+            # Flake = server.flake;
+          } // server.tags;
+
+          root_block_device = {
+            volume_type = "gp2";
+            volume_size = server.volumeSize;
+            delete_on_termination = true;
           };
-          lifecycle = [{ create_before_destroy = true; }];
-        })
-      config.cluster.instances;
 
-    resource.aws_network_interface = lib.mapAttrs'
-      (name: server:
-        lib.nameValuePair server.uid {
-          subnet_id = server.subnet.id;
-          security_groups = [ server.securityGroupId ];
-          private_ips = [ server.privateIP ];
-          tags = {
-            Cluster = config.cluster.name;
-            Name = server.name;
+          iam_instance_profile = server.iam.instanceProfile.tfName;
+
+          network_interface = {
+            network_interface_id = id "aws_network_interface.${server.uid}";
+            device_index = 0;
           };
-          lifecycle = [{ create_before_destroy = true; }];
-        })
-      config.cluster.instances;
 
-    resource.aws_instance = lib.mapAttrs
-      (name: server:
-        lib.mkMerge [
-          (lib.mkIf server.enable {
-            ami = server.ami;
-            instance_type = server.instanceType;
-            monitoring = true;
+          user_data = server.userData;
 
-            tags = {
-              Cluster = config.cluster.name;
-              Name = name;
-              UID = server.uid;
-              Consul = "server";
-              Vault = "server";
-              Nomad = "server";
-              # Flake = server.flake;
-            } // server.tags;
+          ebs_optimized =
+            lib.mkIf (server.ebsOptimized != null) server.ebsOptimized;
 
-            root_block_device = {
-              volume_type = "gp2";
-              volume_size = server.volumeSize;
-              delete_on_termination = true;
-            };
-
-            iam_instance_profile = server.iam.instanceProfile.tfName;
-
-            network_interface = {
-              network_interface_id = id "aws_network_interface.${server.uid}";
-              device_index = 0;
-            };
-
-            user_data = server.userData;
-
-            ebs_optimized =
-              lib.mkIf (server.ebsOptimized != null) server.ebsOptimized;
-
-            provisioner = [
-              {
-                local-exec = {
-                  command = "${
+          provisioner = [
+            {
+              local-exec = {
+                command = "${
                     self.nixosConfigurations."${config.cluster.name}-${name}".config.secrets.generateScript
                   }/bin/generate-secrets";
-                };
-              }
-              {
-                local-exec =
-                  let
-                    command = server.localProvisioner.protoCommand (var "self.public_ip");
-                  in
-                  {
-                    inherit command;
-                    inherit (server.localProvisioner)
-                      interpreter environment;
-                    working_dir = server.localProvisioner.workingDir;
-                  };
-              }
-            ];
-          })
+              };
+            }
+            {
+              local-exec = let
+                command =
+                  server.localProvisioner.protoCommand (var "self.public_ip");
+              in {
+                inherit command;
+                inherit (server.localProvisioner) interpreter environment;
+                working_dir = server.localProvisioner.workingDir;
+              };
+            }
+          ];
+        })
 
-          (lib.mkIf config.cluster.generateSSHKey {
-            key_name = var "aws_key_pair.core.key_name";
-          })
-        ])
-      config.cluster.instances;
+        (lib.mkIf config.cluster.generateSSHKey {
+          key_name = var "aws_key_pair.core.key_name";
+        })
+      ]) config.cluster.instances;
   };
 }

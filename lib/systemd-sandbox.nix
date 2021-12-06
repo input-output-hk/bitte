@@ -1,30 +1,9 @@
-{ writeShellScript
-, writeReferencesToFile
-, writeText
-, bash
-, lib
-, systemd
-, systemd-runner
-, nixFlakes
-, cacert
-, gawk
-, coreutils
-}:
-{ name
-, command
-, args ? [ ]
-, env ? { }
-, extraSystemdProperties ? { }
-, resources ? { }
-, templates ? [ ]
-, artifacts ? [ ]
-, vault ? null
-, restartPolicy ? null
-, services ? { }
-, extraEnvironmentVariables ? [ ]
-, volumeMounts ? { }
-, mountPaths ? { }
-}:
+{ writeShellScript, writeReferencesToFile, writeText, bash, lib, systemd
+, systemd-runner, nixFlakes, cacert, gawk, coreutils }:
+{ name, command, args ? [ ], env ? { }, extraSystemdProperties ? { }
+, resources ? { }, templates ? [ ], artifacts ? [ ], vault ? null
+, restartPolicy ? null, services ? { }, extraEnvironmentVariables ? [ ]
+, volumeMounts ? { }, mountPaths ? { } }:
 let
   inherit (builtins) foldl' typeOf attrNames attrValues;
 
@@ -32,16 +11,14 @@ let
 
   onlyStringsWithContext = sum: input:
     let type = typeOf input;
-    in
-    sum ++ {
+    in sum ++ {
       string = if lib.pathHasContext input then [ input ] else [ ];
       list = (foldl' (s: v: s ++ (onlyStringsWithContext [ ] v)) [ ] input);
-      set =
-        if lib.isDerivation input then
-          [ input ]
-        else
-          (onlyStringsWithContext [ ] (attrNames input))
-          ++ (onlyStringsWithContext [ ] (attrValues input));
+      set = if lib.isDerivation input then
+        [ input ]
+      else
+        (onlyStringsWithContext [ ] (attrNames input))
+        ++ (onlyStringsWithContext [ ] (attrValues input));
     }.${typeOf input} or [ ];
 
   closure = writeText "${name}-closure" (lib.concatStringsSep "\n"
@@ -123,8 +100,7 @@ let
       }
       ${systemdRunFlags} -- ${toString command} ${toString args}
   '';
-in
-{
+in {
   inherit name env;
 
   driver = "raw_exec";

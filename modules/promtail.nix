@@ -95,8 +95,7 @@ let
       }
     ];
   };
-in
-{
+in {
   options = {
     services.promtail = {
       enable = mkEnableOption "Enable Promtail";

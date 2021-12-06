@@ -2,8 +2,7 @@
 let
   inherit (config.cluster) domain region instances kms;
   acme-full = "/etc/ssl/certs/${config.cluster.domain}-full.pem";
-in
-{
+in {
   imports = [
     ./builder.nix
     ./common.nix
@@ -115,39 +114,37 @@ in
   '';
 
   services.vault-agent = {
-    templates =
-      let
-        command =
-          "${pkgs.systemd}/bin/systemctl try-restart --no-block ingress.service";
-      in
-      {
-        "/etc/ssl/certs/${config.cluster.domain}-cert.pem" = {
-          contents = ''
-            {{ with secret "kv/bootstrap/letsencrypt/cert" }}{{ .Data.data.value }}{{ end }}
-          '';
-          inherit command;
-        };
-
-        "/etc/ssl/certs/${config.cluster.domain}-full.pem" = {
-          contents = ''
-            {{ with secret "kv/bootstrap/letsencrypt/fullchain" }}{{ .Data.data.value }}{{ end }}
-          '';
-          inherit command;
-        };
-
-        "/etc/ssl/certs/${config.cluster.domain}-key.pem" = {
-          contents = ''
-            {{ with secret "kv/bootstrap/letsencrypt/key" }}{{ .Data.data.value }}{{ end }}
-          '';
-          inherit command;
-        };
-
-        "/etc/ssl/certs/${config.cluster.domain}-full.pem.key" = {
-          contents = ''
-            {{ with secret "kv/bootstrap/letsencrypt/key" }}{{ .Data.data.value }}{{ end }}
-          '';
-          inherit command;
-        };
+    templates = let
+      command =
+        "${pkgs.systemd}/bin/systemctl try-restart --no-block ingress.service";
+    in {
+      "/etc/ssl/certs/${config.cluster.domain}-cert.pem" = {
+        contents = ''
+          {{ with secret "kv/bootstrap/letsencrypt/cert" }}{{ .Data.data.value }}{{ end }}
+        '';
+        inherit command;
       };
+
+      "/etc/ssl/certs/${config.cluster.domain}-full.pem" = {
+        contents = ''
+          {{ with secret "kv/bootstrap/letsencrypt/fullchain" }}{{ .Data.data.value }}{{ end }}
+        '';
+        inherit command;
+      };
+
+      "/etc/ssl/certs/${config.cluster.domain}-key.pem" = {
+        contents = ''
+          {{ with secret "kv/bootstrap/letsencrypt/key" }}{{ .Data.data.value }}{{ end }}
+        '';
+        inherit command;
+      };
+
+      "/etc/ssl/certs/${config.cluster.domain}-full.pem.key" = {
+        contents = ''
+          {{ with secret "kv/bootstrap/letsencrypt/key" }}{{ .Data.data.value }}{{ end }}
+        '';
+        inherit command;
+      };
+    };
   };
 }

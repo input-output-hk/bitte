@@ -6,8 +6,7 @@ let
 
   cfg = config.services.zfs-client-options;
 
-in
-{
+in {
   options = {
     services.zfs-client-options = {
       enable = mkEnableOption "Client ZFS options";

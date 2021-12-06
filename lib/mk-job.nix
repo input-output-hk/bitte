@@ -209,8 +209,7 @@ let
   };
 
   jobFile = jobdef.json;
-in
-{
+in {
   job = jobdef.json;
   run = writeShellScriptBin name ''
     set -euo pipefail

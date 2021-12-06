@@ -2,8 +2,8 @@
 let
   inherit (lib) mkOption reverseList;
   inherit (lib.types)
-    attrs submodule str functionTo attrsOf bool ints path enum port listof nullOr listOf
-    oneOf list package unspecified anything;
+    attrs submodule str functionTo attrsOf bool ints path enum port listof
+    nullOr listOf oneOf list package unspecified anything;
   inherit (terralib) var id regions awsProviderFor;
 
   kms2region = kms: builtins.elemAt (lib.splitString ":" kms) 3;
@@ -12,18 +12,22 @@ let
 
   # without zfs
   coreAMIs = {
-    eu-central-1.x86_64-linux = "ami-047e751e259941f2f";
-    eu-west-1.x86_64-linux = "ami-044a76cb8331c48a3";
-    us-east-1.x86_64-linux = "ami-050070221cf65ceeb";
-    us-east-2.x86_64-linux = "ami-0ceaa7e9906493388";
+    eu-central-1.x86_64-linux = "ami-0961cad26b3399fce";
+    eu-west-1.x86_64-linux = "ami-010d1407e12e86a68";
+    us-east-1.x86_64-linux = "ami-0641447e25cba1b93";
+    us-east-2.x86_64-linux = "ami-00bc9ae8a038a7ccd";
+    us-west-1.x86_64-linux = "ami-037994350972840c1";
+    us-west-2.x86_64-linux = "ami-0fe2b3e2649511a18";
   };
 
   # with zfs
   clientAMIs = {
-    eu-central-1.x86_64-linux = "ami-05a056d7d6246ea93";
-    eu-west-1.x86_64-linux = "ami-00c9d0c31d5026e79";
-    us-east-1.x86_64-linux = "ami-04ef2f0257befa9e9";
-    us-east-2.x86_64-linux = "ami-0d900463abfb006dc";
+    eu-central-1.x86_64-linux = "ami-06924f74c403bc518";
+    eu-west-1.x86_64-linux = "ami-0c38ecafe1b467389";
+    us-east-1.x86_64-linux = "ami-0227fb009752240fa";
+    us-east-2.x86_64-linux = "ami-04fc5c1fd5d3416ba";
+    us-west-1.x86_64-linux = "ami-0bffd39e683c9fab2";
+    us-west-2.x86_64-linux = "ami-09b83c344225d1128";
   };
 
   vpcMap = lib.pipe [
@@ -85,8 +89,7 @@ let
       # but does not actually execve the script:
       # interpreter fixed to pkgs.runtimeShell.
       # For available packages, see or modify /profiles/slim.nix
-    in
-    ''
+    in ''
       #!
       export NIX_CONFIG="${nixConf}"
       export PATH="/run/current-system/sw/bin:$PATH"
@@ -111,8 +114,7 @@ let
         experimental-features = nix-command flakes ca-references
       '';
       newKernelVersion = config.boot.kernelPackages.kernel.version;
-    in
-    ''
+    in ''
       set -euo pipefail
 
       echo
@@ -188,7 +190,7 @@ let
 
   cfg = config.cluster;
 
-  clusterType = submodule ({ ... }: {
+  clusterType = submodule (_: {
     options = {
       name = mkOption { type = str; };
 
@@ -216,7 +218,7 @@ let
 
       ami = mkOption {
         type = str;
-        default = coreAMIs.${cfg.region}.${pkgs.system} or (throw
+        default = coreAMIs."${cfg.region}"."${pkgs.system}" or (throw
           "Please make sure the NixOS core AMI is copied to ${cfg.region}");
       };
 
@@ -278,7 +280,7 @@ let
       vpc = mkOption {
         type = vpcType cfg.name;
         default = {
-          region = cfg.region;
+          inherit (cfg) region;
 
           cidr = "172.16.0.0/16";
 
@@ -374,7 +376,7 @@ let
       };
     }));
 
-  iamRoleAssumePolicyType = submodule ({ ... }@this: {
+  iamRoleAssumePolicyType = submodule (this: {
     options = {
       tfJson = mkOption {
         type = str;
@@ -404,7 +406,7 @@ let
   iamRolePrincipalsType =
     submodule { options = { service = mkOption { type = str; }; }; };
 
-  initialVaultSecretsType = submodule ({ ... }@this: {
+  initialVaultSecretsType = submodule (this: {
     options = {
       consul = mkOption {
         type = str;
@@ -417,7 +419,7 @@ let
     };
   });
 
-  certificateType = submodule ({ ... }@this: {
+  certificateType = submodule (this: {
     options = {
       organization = mkOption {
         type = str;
@@ -492,7 +494,7 @@ let
     });
 
   vpcType = prefix:
-    (submodule ({ ... }@this: {
+    (submodule (this: {
       options = {
         name = mkOption {
           type = str;
@@ -625,9 +627,7 @@ let
 
       localProvisioner = mkOption {
         type = localExecType;
-        default = {
-          protoCommand = localProvisionerDefaultCommand;
-        };
+        default = { protoCommand = localProvisionerDefaultCommand; };
       };
 
       instanceType = mkOption { type = str; };
@@ -727,7 +727,7 @@ let
 
       ami = mkOption {
         type = str;
-        default = clientAMIs.${this.config.region}.${pkgs.system} or (throw
+        default = clientAMIs."${this.config.region}"."${pkgs.system}" or (throw
           "Please make sure the NixOS ZFS Client AMI is copied to ${this.config.region}");
       };
 
@@ -737,22 +737,20 @@ let
 
       vpc = mkOption {
         type = vpcType this.config.uid;
-        default =
-          let base = toString (vpcMap.${this.config.region} * 4);
-          in
-          {
-            region = this.config.region;
+        default = let base = toString (vpcMap."${this.config.region}" * 4);
+        in {
+          inherit (this.config) region;
 
-            cidr = "10.${base}.0.0/16";
+          cidr = "10.${base}.0.0/16";
 
-            name = "${cfg.name}-${this.config.region}-asgs";
-            subnets = {
-              a.cidr = "10.${base}.0.0/18";
-              b.cidr = "10.${base}.64.0/18";
-              c.cidr = "10.${base}.128.0/18";
-              # d.cidr = "10.${base}.192.0/18";
-            };
+          name = "${cfg.name}-${this.config.region}-asgs";
+          subnets = {
+            a.cidr = "10.${base}.0.0/18";
+            b.cidr = "10.${base}.64.0/18";
+            c.cidr = "10.${base}.128.0/18";
+            # d.cidr = "10.${base}.192.0/18";
           };
+        };
       };
 
       userData = mkOption {
@@ -762,9 +760,7 @@ let
 
       localProvisioner = mkOption {
         type = localExecType;
-        default = {
-          protoCommand = localProvisionerDefaultCommand;
-        };
+        default = { protoCommand = localProvisionerDefaultCommand; };
       };
 
       minSize = mkOption {
@@ -830,8 +826,7 @@ let
       };
     };
   });
-in
-{
+in {
   options = {
     cluster = mkOption {
       type = clusterType;
@@ -840,152 +835,151 @@ in
 
     instance = mkOption {
       type = nullOr attrs;
-      default = cfg.instances.${nodeName} or null;
+      default = cfg.instances."${nodeName}" or null;
     };
 
     asg = mkOption {
       type = nullOr attrs;
-      default = cfg.autoscalingGroups.${nodeName} or null;
+      default = cfg.autoscalingGroups."${nodeName}" or null;
     };
 
     tf = lib.mkOption {
       default = { };
       type = attrsOf (submodule ({ name, ... }@this: {
-        options =
-          let
-            backend = "https://vault.infra.aws.iohkdev.io/v1";
-            copy = ''
-              export PATH="${
-                lib.makeBinPath [ pkgs.coreutils pkgs.terraform-with-plugins ]
-              }"
-              set -euo pipefail
+        options = let
+          backend = "https://vault.infra.aws.iohkdev.io/v1";
+          copy = ''
+            export PATH="${
+              lib.makeBinPath [ pkgs.coreutils pkgs.terraform-with-plugins ]
+            }"
+            set -euo pipefail
 
-              rm -f config.tf.json
-              cp "${this.config.output}" config.tf.json
-              chmod u+rw config.tf.json
-            '';
+            rm -f config.tf.json
+            cp "${this.config.output}" config.tf.json
+            chmod u+rw config.tf.json
+          '';
 
-            prepare = ''
-              for arg in "$@"
-              do
-                case "$arg" in
-                  *routing*|routing*|*routing)
-                    echo
-                    echo -----------------------------------------------------
-                    echo CAUTION: It appears that you are indulging on a
-                    echo terraform operation specifically involving routing.
-                    echo Are you redeploying routing?
-                    echo -----------------------------------------------------
-                    echo You MUST know that a redeploy of routing will
-                    echo necesarily re-trigger the bootstrapping of the ACME
-                    echo service.
-                    echo -----------------------------------------------------
-                    echo You MUST also know that LetsEncrypt enforces a non-
-                    echo recoverable rate limit of 5 generations per week.
-                    echo That means: only ever redeploy routing max 5 times
-                    echo per week on a rolling basis. Switch to the LetsEncrypt
-                    echo staging envirenment if you plan on deploying routing
-                    echo more often!
-                    echo -----------------------------------------------------
-                    echo
-                    read -p "Do you want to continue this operation? [y/n] " -n 1 -r
-                    if [[ ! "$REPLY" =~ ^[Yy]$ ]]
-                    then
-                      exit
-                    fi
-                    ;;
-                esac
-              done
+          prepare = ''
+            for arg in "$@"
+            do
+              case "$arg" in
+                *routing*|routing*|*routing)
+                  echo
+                  echo -----------------------------------------------------
+                  echo CAUTION: It appears that you are indulging on a
+                  echo terraform operation specifically involving routing.
+                  echo Are you redeploying routing?
+                  echo -----------------------------------------------------
+                  echo You MUST know that a redeploy of routing will
+                  echo necesarily re-trigger the bootstrapping of the ACME
+                  echo service.
+                  echo -----------------------------------------------------
+                  echo You MUST also know that LetsEncrypt enforces a non-
+                  echo recoverable rate limit of 5 generations per week.
+                  echo That means: only ever redeploy routing max 5 times
+                  echo per week on a rolling basis. Switch to the LetsEncrypt
+                  echo staging envirenment if you plan on deploying routing
+                  echo more often!
+                  echo -----------------------------------------------------
+                  echo
+                  read -p "Do you want to continue this operation? [y/n] " -n 1 -r
+                  if [[ ! "$REPLY" =~ ^[Yy]$ ]]
+                  then
+                    exit
+                  fi
+                  ;;
+              esac
+            done
 
-              ${copy}
-              if [ -z "''${GITHUB_TOKEN:-}" ]; then
-                echo
-                echo -----------------------------------------------------
-                echo ERROR: env variable GITHUB_TOKEN is not set or empty.
-                echo Yet, it is required to authenticate before the
-                echo infra cluster vault terraform backend.
-                echo -----------------------------------------------------
-                echo "Please 'export GITHUB_TOKEN=ghp_hhhhhhhh...' using"
-                echo your appropriate personal github access token.
-                echo -----------------------------------------------------
-                exit 1
-              fi
+            ${copy}
+            if [ -z "''${GITHUB_TOKEN:-}" ]; then
+              echo
+              echo -----------------------------------------------------
+              echo ERROR: env variable GITHUB_TOKEN is not set or empty.
+              echo Yet, it is required to authenticate before the
+              echo infra cluster vault terraform backend.
+              echo -----------------------------------------------------
+              echo "Please 'export GITHUB_TOKEN=ghp_hhhhhhhh...' using"
+              echo your appropriate personal github access token.
+              echo -----------------------------------------------------
+              exit 1
+            fi
 
-              user="''${TF_HTTP_USERNAME:-TOKEN}"
-              pass="''${TF_HTTP_PASSWORD:-$( \
-                ${pkgs.curl}/bin/curl -s -d "{\"token\": \"$GITHUB_TOKEN\"}" \
-                ${backend}/auth/github-terraform/login \
-                | ${pkgs.jq}/bin/jq -r '.auth.client_token' \
-              )}"
+            user="''${TF_HTTP_USERNAME:-TOKEN}"
+            pass="''${TF_HTTP_PASSWORD:-$( \
+              ${pkgs.curl}/bin/curl -s -d "{\"token\": \"$GITHUB_TOKEN\"}" \
+              ${backend}/auth/github-terraform/login \
+              | ${pkgs.jq}/bin/jq -r '.auth.client_token' \
+            )}"
 
-              if [ -z "''${TF_HTTP_PASSWORD:-}" ]; then
-                echo
-                echo -----------------------------------------------------
-                echo TIP: you can avoid repetitive calls to the infra auth
-                echo api by exporting the following env variables as is:
-                echo -----------------------------------------------------
-                echo "export TF_HTTP_USERNAME=\"$user\""
-                echo "export TF_HTTP_PASSWORD=\"$pass\""
-                echo -----------------------------------------------------
-              fi
+            if [ -z "''${TF_HTTP_PASSWORD:-}" ]; then
+              echo
+              echo -----------------------------------------------------
+              echo TIP: you can avoid repetitive calls to the infra auth
+              echo api by exporting the following env variables as is:
+              echo -----------------------------------------------------
+              echo "export TF_HTTP_USERNAME=\"$user\""
+              echo "export TF_HTTP_PASSWORD=\"$pass\""
+              echo -----------------------------------------------------
+            fi
 
-              export TF_HTTP_USERNAME="$user"
-              export TF_HTTP_PASSWORD="$pass"
+            export TF_HTTP_USERNAME="$user"
+            export TF_HTTP_PASSWORD="$pass"
 
-              terraform init -reconfigure 1>&2
-            '';
-          in
-          {
-            configuration = lib.mkOption {
-              type = submodule {
-                imports = [ (terranix + "/core/terraform-options.nix") ];
-              };
+            terraform init -reconfigure 1>&2
+          '';
+        in {
+          configuration = lib.mkOption {
+            type = submodule {
+              imports = [ (terranix + "/core/terraform-options.nix") ];
             };
+          };
 
-            output = lib.mkOption {
-              type = lib.mkOptionType { name = "${name}_config.tf.json"; };
-              apply = v: terranix.lib.terranixConfiguration {
+          output = lib.mkOption {
+            type = lib.mkOptionType { name = "${name}_config.tf.json"; };
+            apply = v:
+              terranix.lib.terranixConfiguration {
                 inherit pkgs;
                 modules = [ this.config.configuration ];
                 strip_nulls = false;
               };
-            };
-
-            config = lib.mkOption {
-              type = lib.mkOptionType { name = "${name}-config"; };
-              apply = v: pkgs.writeShellScriptBin "${name}-config" copy;
-            };
-
-            plan = lib.mkOption {
-              type = lib.mkOptionType { name = "${name}-plan"; };
-              apply = v:
-                pkgs.writeShellScriptBin "${name}-plan" ''
-                  ${prepare}
-
-                  terraform plan -out ${name}.plan "$@"
-                '';
-            };
-
-            apply = lib.mkOption {
-              type = lib.mkOptionType { name = "${name}-apply"; };
-              apply = v:
-                pkgs.writeShellScriptBin "${name}-apply" ''
-                  ${prepare}
-
-                  terraform apply ${name}.plan "$@"
-                '';
-            };
-
-            terraform = lib.mkOption {
-              type = lib.mkOptionType { name = "${name}-apply"; };
-              apply = v:
-                pkgs.writeShellScriptBin "${name}-apply" ''
-                  ${prepare}
-
-                  terraform $@
-                '';
-            };
           };
+
+          config = lib.mkOption {
+            type = lib.mkOptionType { name = "${name}-config"; };
+            apply = v: pkgs.writeShellScriptBin "${name}-config" copy;
+          };
+
+          plan = lib.mkOption {
+            type = lib.mkOptionType { name = "${name}-plan"; };
+            apply = v:
+              pkgs.writeShellScriptBin "${name}-plan" ''
+                ${prepare}
+
+                terraform plan -out ${name}.plan "$@"
+              '';
+          };
+
+          apply = lib.mkOption {
+            type = lib.mkOptionType { name = "${name}-apply"; };
+            apply = v:
+              pkgs.writeShellScriptBin "${name}-apply" ''
+                ${prepare}
+
+                terraform apply ${name}.plan "$@"
+              '';
+          };
+
+          terraform = lib.mkOption {
+            type = lib.mkOptionType { name = "${name}-apply"; };
+            apply = v:
+              pkgs.writeShellScriptBin "${name}-apply" ''
+                ${prepare}
+
+                terraform $@
+              '';
+          };
+        };
       }));
     };
   };

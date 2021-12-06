@@ -9,31 +9,26 @@ let
 
   sanitize = set:
     let
-      sanitized = mapAttrsToList
-        (name: value:
-          let type = typeOf value;
-          in
-          if name == "_module" then
-            null
-          else if value == null then
-            null
-          else if type == "set" && (length (attrNames value)) == 0 then
-            null
-          else if type == "list" && (length value) == 0 then
-            null
-          else {
-            inherit name;
-            value =
-              if type == "set" then
-                sanitize value
-              else if type == "list" then
-                remove null value
-              else
-                value;
-          })
-        set;
-    in
-    listToAttrs (remove null sanitized);
+      sanitized = mapAttrsToList (name: value:
+        let type = typeOf value;
+        in if name == "_module" then
+          null
+        else if value == null then
+          null
+        else if type == "set" && (length (attrNames value)) == 0 then
+          null
+        else if type == "list" && (length value) == 0 then
+          null
+        else {
+          inherit name;
+          value = if type == "set" then
+            sanitize value
+          else if type == "list" then
+            remove null value
+          else
+            value;
+        }) set;
+    in listToAttrs (remove null sanitized);
 
   policyOption =
     mkOption { type = enum [ "deny" "read" "write" "scale" "list" ]; };
@@ -48,11 +43,11 @@ let
       name = mkOption {
         # Disallow "management" to avoid collision with a
         # default Vault nomad/creds/management role
-        type = addCheck str (x: assert lib.assertMsg (x != "management") ''
-          The "management" Nomad policy name is reserved, please change it.
-        '';
-          x != "management"
-        );
+        type = addCheck str (x:
+          assert lib.assertMsg (x != "management") ''
+            The "management" Nomad policy name is reserved, please change it.
+          '';
+          x != "management");
         default = name;
       };
 
@@ -144,8 +139,7 @@ let
         toPrettyJSON "nomad-policy-${policy.name}" (policyJson policy)
       }
     '');
-in
-{
+in {
   options = {
     services.nomad.policies = mkOption {
       type = attrsOf nomadPoliciesType;

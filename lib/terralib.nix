@@ -1,6 +1,4 @@
-{ nixpkgs
-, lib
-}:
+{ nixpkgs, lib }:
 let
   inherit (builtins) attrValues fromJSON toJSON trace mapAttrs genList foldl';
 
@@ -15,8 +13,7 @@ let
     gateway_id = null;
     vpc_endpoint_id = null;
   };
-in
-rec {
+in rec {
   amis = import (nixpkgs + "/nixos/modules/virtualisation/ec2-amis.nix");
 
   var = v: "\${${v}}";
@@ -34,17 +31,12 @@ rec {
 
   merge = lib.foldl' lib.recursiveUpdate { };
 
-  nullRouteInline = nullRoute' // {
-    ipv6_cidr_block = null;
-  };
+  nullRouteInline = nullRoute' // { ipv6_cidr_block = null; };
 
-  nullRoute = nullRoute' // {
-    destination_ipv6_cidr_block = null;
-  };
+  nullRoute = nullRoute' // { destination_ipv6_cidr_block = null; };
 
   asgVpcs = cluster:
-    lib.forEach (builtins.attrValues cluster.autoscalingGroups)
-      (asg: asg.vpc);
+    lib.forEach (builtins.attrValues cluster.autoscalingGroups) (asg: asg.vpc);
 
   mapAsgVpcs = cluster: f:
     lib.listToAttrs (lib.flatten (lib.forEach (asgVpcs cluster) f));
@@ -56,26 +48,21 @@ rec {
     let
       fullPath = "${rootDir}/${dir}";
       splitPath = lib.splitString "/" fullPath;
-      cascade = lib.foldl'
-        (s: v:
-          let p = "${s.path}${v}/";
-          in
-          {
-            acc = s.acc ++ [ p ];
-            path = p;
-          })
-        {
+      cascade = lib.foldl' (s: v:
+        let p = "${s.path}${v}/";
+        in {
+          acc = s.acc ++ [ p ];
+          path = p;
+        }) {
           acc = [ "" ];
           path = "";
-        }
-        splitPath;
+        } splitPath;
       # Ensure that any "/dir1/dir2/*/" entries don't exist
       # as this doesn't make allowance for nested subdirs.
       allowWildcard = pathList:
         map (p: if lib.hasSuffix "/*/" p then (lib.removeSuffix "/" p) else p)
-          pathList;
-    in
-    (allowWildcard cascade.acc);
+        pathList;
+    in (allowWildcard cascade.acc);
 
   regions = [
     # "ap-east-1"
@@ -119,12 +106,9 @@ rec {
 
       from-ssgi = (lib.nameValuePair
         "${prefix}-${rule.type}-${protocol}-${rule.name}-ssgi"
-        (common // {
-          source_security_group_id = rule.sourceSecurityGroupId;
-        }));
+        (common // { source_security_group_id = rule.sourceSecurityGroupId; }));
 
-    in
-    (lib.optional (rule.self != false) from-self)
+    in (lib.optional (rule.self != false) from-self)
     ++ (lib.optional (rule.cidrs != [ ]) from-cidr)
     ++ (lib.optional (rule.sourceSecurityGroupId != null) from-ssgi));
 
@@ -140,14 +124,14 @@ rec {
       actions = [ "s3:ListBucket" ];
       resources = [ bucketArn ];
       condition = lib.forEach bucketDirs (dir:
-      let
-        # apply policy on all subdirs
-        dir' = dir + "/*";
-      in {
-        test = "StringLike";
-        variable = "s3:prefix";
-        values = pathPrefix rootDir dir';
-      });
+        let
+          # apply policy on all subdirs
+          dir' = dir + "/*";
+        in {
+          test = "StringLike";
+          variable = "s3:prefix";
+          values = pathPrefix rootDir dir';
+        });
     };
 
     "${prefix}-s3-directory-actions" = {

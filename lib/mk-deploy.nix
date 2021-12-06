@@ -12,25 +12,18 @@ let
   deploy' = {
     sshUser = "root";
     sshOpts = [ "-C" "-i" "${deploySshKey}" ];
-    nodes = builtins.mapAttrs
-      (k: _: {
-        profiles.system.user = "root";
-        profiles.system.path =
-          let
-            system = self.nixosConfigurations.${k}.pkgs.system;
-          in
-          deploy.lib.${system}.activate.nixos
-            self.nixosConfigurations.${k};
-      })
-      self.nixosConfigurations;
+    nodes = builtins.mapAttrs (k: _: {
+      profiles.system.user = "root";
+      profiles.system.path =
+        let system = self.nixosConfigurations.${k}.pkgs.system;
+        in deploy.lib.${system}.activate.nixos self.nixosConfigurations.${k};
+    }) self.nixosConfigurations;
   };
 
-in
-{
+in {
   deploy = deploy';
 
-  checks =
-    builtins.mapAttrs (system: deployLib: deployLib.deployChecks deploy')
-      deploy.lib;
+  checks = builtins.mapAttrs (system: deployLib: deployLib.deployChecks deploy')
+    deploy.lib;
 
 }
