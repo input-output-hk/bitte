@@ -10,6 +10,7 @@
     ./secrets.nix
     ./reaper.nix
     ./builder.nix
+    ./zfs-client-options.nix
   ];
 
   services = {
