@@ -7,6 +7,9 @@
     client = {
       enabled = true;
       gc_interval = "12h";
+      node_class = if config.asg.node_class != null
+      then config.asg.node_class
+      else "core";
       chroot_env = {
         # "/usr/bin/env" = "/usr/bin/env";
         "${builtins.unsafeDiscardStringContext pkgs.pkgsStatic.busybox}" =

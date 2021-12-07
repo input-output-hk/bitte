@@ -720,6 +720,10 @@ let
         default = "${cfg.name}-${this.config.name}";
       };
 
+      node_class = mkOption {
+        type = str;
+      };
+
       modules = mkOption {
         type = listOf (oneOf [ path attrs ]);
         default = [ ];
