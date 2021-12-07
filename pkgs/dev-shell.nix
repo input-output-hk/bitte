@@ -14,6 +14,7 @@ mkShell.override { stdenv = stdenvNoCC; } {
     dnsutils
     ipcalc
     jq
+    nixfmt
     nixpkgs-fmt
     nodePackages.prettier
     nomad
