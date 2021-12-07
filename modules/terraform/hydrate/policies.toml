@@ -7,7 +7,9 @@ path."consul/*" = { capabilities = [ "create", "read", "update", "delete", "list
 path."kv/*" = { capabilities = [ "create", "read", "update", "delete", "list" ] } #
 path."nomad/*" = { capabilities = [ "create", "read", "update", "delete", "list" ] } #
 path."pki/*" = { capabilities = [ "create", "read", "update", "delete", "list" ] } #
+path."runtime/*" = { capabilities = [ "create", "read", "update", "delete", "list" ] } # Runtime app secrets (not accessible by nomad-cluster role)
 path."sops/*" = { capabilities = [ "create", "read", "update", "delete", "list" ] } #
+path."starttime/*" = { capabilities = [ "create", "read", "update", "delete", "list" ] } # Starttime app secrets (accessible by nomad-cluster role)
 
 path."auth/aws/config/client" = { capabilities = [ "create", "read", "update", "delete", "list" ] } #
 path."auth/aws/role/*" = { capabilities = [ "create", "read", "update", "delete", "list" ] } #
@@ -47,7 +49,6 @@ path."sys/policy/*" = { capabilities = [ "create", "read", "update", "delete", "
 [vault.developer]
 path."aws/creds/developer".capabilities = [ "read", "update", ] # Allow creating AWS tokens
 path."consul/creds/developer".capabilities = [ "read", "update", ] # Allow creating Consul tokens
-path."kv/*".capabilities = [ "create", "read", "update", "delete", "list", ] # Allow all KV access
 path."nomad/creds/developer".capabilities = [ "read", "update", ] # Allow creating Nomad tokens
 path."sops/dev".capabilities = [ "read", "list", ] # Allow to decrypt dev sops secrets
 
@@ -56,8 +57,8 @@ path."auth/token/renew-self".capabilities = [ "update", ] # Allow self renewing 
 path."sys/capabilities-self".capabilities = [ "update", ] # Allow lookup of own capabilities
 
 [vault.nomad-cluster] # the nomad workload scheduler
-path."kv/data/nomad-cluster/*".capabilities = [ "read", "list", ]
-path."kv/metadata/nomad-cluster/*".capabilities = [ "read", "list", ]
+path."kv/data/nomad-cluster/*".capabilities = [ "read", "list", ] # TODO: should be removed in favor of starttime/
+path."kv/metadata/nomad-cluster/*".capabilities = [ "read", "list", ] # TODO: should be removed in favor of starttime/
 path."starttime/data/*".capabilities = [ "read", "list", ]
 path."starttime/metadata/*".capabilities = [ "read", "list", ]
 path."auth/token/renew-self".capabilities = [ "update", ]
