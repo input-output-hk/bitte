@@ -65,7 +65,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "nomad_client_unallocated_disk_value - nomad_client_allocated_disk_value",
+          "expr": "nomad_client_unallocated_disk_value",
           "interval": "",
           "legendFormat": "{{host}}",
           "refId": "A"
@@ -75,7 +75,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Disk",
+      "title": "Unallocated Disk",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -159,7 +159,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "nomad_client_unallocated_cpu_value - nomad_client_allocated_cpu_value",
+          "expr": "nomad_client_unallocated_cpu_value",
           "interval": "",
           "legendFormat": "{{host}}",
           "refId": "A"
@@ -169,7 +169,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "CPU",
+      "title": "Unallocated CPU",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -253,7 +253,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "nomad_client_unallocated_memory_value - nomad_client_allocated_memory_value",
+          "expr": "nomad_client_unallocated_memory_value",
           "interval": "",
           "legendFormat": "{{host}}",
           "refId": "A"
@@ -263,7 +263,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Memory",
+      "title": "Unallocated Memory",
       "tooltip": {
         "shared": true,
         "sort": 0,
