@@ -10,6 +10,7 @@ mkShellNoCC {
     agenix-cli
     awscli
     bitte
+    bundix
     bitte-ruby
     bitte-ruby.wrappedRuby
     cfssl
