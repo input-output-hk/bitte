@@ -19,6 +19,18 @@
     };
     version = "13.0.3";
   };
+  sshkey = {
+    groups = ["default"];
+    platforms = [];
+    source = {
+      fetchSubmodules = false;
+      rev = "b7762f36f29c0a79234e4f87ca13cb0379290a80";
+      sha256 = "1iw3p4j6g0ym5z8v5v12yx5vgzf5snp3gadixn7pps55gpih6nsj";
+      type = "git";
+      url = "https://github.com/bensie/sshkey";
+    };
+    version = "2.0.0";
+  };
   toml-rb = {
     dependencies = ["citrus"];
     groups = ["default"];

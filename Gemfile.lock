@@ -1,3 +1,13 @@
+GIT
+  remote: https://github.com/bensie/sshkey
+  revision: b7762f36f29c0a79234e4f87ca13cb0379290a80
+  ref: b7762f36f29c0a79234e4f87ca13cb0379290a80
+  specs:
+    sshkey (2.0.0)
+
+GEM
+  specs:
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -11,7 +21,8 @@ PLATFORMS
 
 DEPENDENCIES
   rake!
+  sshkey!
   toml-rb!
 
 BUNDLED WITH
-   2.1.4
+   2.2.24
