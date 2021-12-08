@@ -68,7 +68,6 @@ in {
 
   nix = {
     distributedBuilds = isAsg;
-    daemonNiceLevel = 10;
     maxJobs = lib.mkIf isAsg 0;
     extraOptions = ''
       builders-use-substitutes = true
