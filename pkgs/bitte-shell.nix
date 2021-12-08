@@ -52,7 +52,7 @@ in mkShell ({
 
   shellHook = ''
     export FLAKE_ROOT=$(git rev-parse --show-toplevel)
-    if ! git show HEAD:${"\${cache:=$FLAKE_ROOT/.cache.json}"}; then
+    if ! git show HEAD:${"\${cache:=$FLAKE_ROOT/.cache.json}"} > /dev/null; then
       rm -f $cache
       touch $cache
       git reset
