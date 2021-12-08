@@ -3,13 +3,13 @@
 , consul-template, python38Packages, direnv, jq }:
 
 { self, cluster ? builtins.head (builtins.attrNames self.clusters)
-, caCert ? null, domain ? self.clusters.${cluster}.proto.config.cluster.domain
+, caCert ? null, domain ? self.clusters."${cluster}".proto.config.cluster.domain
 , extraEnv ? { }, extraPackages ? [ ]
-, region ? self.clusters.${cluster}.proto.config.cluster.region or ""
+, region ? self.clusters."${cluster}".proto.config.cluster.region or ""
 , profile ? "", provider ? "AWS", namespace ? cluster, nixConfig ? null }:
 let
   asgRegions = lib.attrValues (lib.mapAttrs (_: v: v.region)
-    self.clusters.${cluster}.proto.config.cluster.autoscalingGroups);
+    self.clusters."${cluster}".proto.config.cluster.autoscalingGroups);
   asgRegionString =
     lib.strings.replaceStrings [ " " ] [ ":" ] (toString asgRegions);
 in mkShell ({
@@ -17,7 +17,7 @@ in mkShell ({
   LOG_LEVEL = "debug";
 
   NIX_CONFIG = ''
-    extra-experimental-features = nix-command flakes ca-references recursive-nix
+    extra-experimental-features = nix-command flakes recursive-nix
     extra-substituters = https://hydra.iohk.io
     extra-trusted-public-keys = hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=
     bash-prompt = \[\033[0;32m\][bitte]:\[\033[m\]\040
