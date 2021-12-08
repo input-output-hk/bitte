@@ -9,6 +9,16 @@
     };
     version = "3.0.2";
   };
+  ed25519 = {
+    groups = ["default"];
+    platforms = [];
+    source = {
+      remotes = ["https://rubygems.org"];
+      sha256 = "1f5kr8za7hvla38fc0n9jiv55iq62k5bzclsa5kdb14l3r4w6qnw";
+      type = "gem";
+    };
+    version = "1.2.4";
+  };
   rake = {
     groups = ["default"];
     platforms = [];
@@ -18,18 +28,6 @@
       type = "gem";
     };
     version = "13.0.6";
-  };
-  sshkey = {
-    groups = ["default"];
-    platforms = [];
-    source = {
-      fetchSubmodules = false;
-      rev = "6fd399213edd8611c1e540064d42d16b5e712782";
-      sha256 = "1q2kj62660nlggwknnb0a3gjmslan231r93v5hrhrsbwj4jgzwfa";
-      type = "git";
-      url = "https://github.com/bensie/sshkey";
-    };
-    version = "2.0.0";
   };
   toml-rb = {
     dependencies = ["citrus"];
