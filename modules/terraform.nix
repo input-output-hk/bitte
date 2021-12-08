@@ -47,7 +47,7 @@ let
 
   cfg = config.cluster;
 
-  clusterType = submodule ({ ... }: {
+  clusterType = submodule (_: {
     options = {
       name = mkOption { type = str; };
 
@@ -75,7 +75,7 @@ let
 
       ami = mkOption {
         type = str;
-        default = amis.nixos.${cfg.region};
+        default = amis.nixos."${cfg.region}";
       };
 
       iam = mkOption {
@@ -146,7 +146,7 @@ let
       vpc = mkOption {
         type = vpcType cfg.name;
         default = {
-          region = cfg.region;
+          inherit (cfg) region;
 
           cidr = "172.16.0.0/16";
 
@@ -247,7 +247,7 @@ let
       };
     }));
 
-  iamRoleAssumePolicyType = submodule ({ ... }@this: {
+  iamRoleAssumePolicyType = submodule (this: {
     options = {
       tfJson = mkOption {
         type = str;
@@ -277,7 +277,7 @@ let
   iamRolePrincipalsType =
     submodule { options = { service = mkOption { type = str; }; }; };
 
-  initialVaultSecretsType = submodule ({ ... }@this: {
+  initialVaultSecretsType = submodule (this: {
     options = {
       consul = mkOption {
         type = str;
@@ -290,7 +290,7 @@ let
     };
   });
 
-  certificateType = submodule ({ ... }@this: {
+  certificateType = submodule (this: {
     options = {
       organization = mkOption {
         type = str;
@@ -365,7 +365,7 @@ let
     });
 
   vpcType = prefix:
-    (submodule ({ ... }@this: {
+    (submodule (this: {
       options = {
         name = mkOption {
           type = str;
@@ -502,7 +502,7 @@ let
               package = pkgs.nixFlakes;
               extraOptions = '''
                 show-trace = true
-                experimental-features = nix-command flakes ca-references
+                experimental-features = nix-command flakes
               ''';
               binaryCaches = [
                 "https://hydra.iohk.io"
@@ -658,7 +658,7 @@ let
 
       ami = mkOption {
         type = str;
-        default = autoscalingAMIs.${this.config.region} or (throw
+        default = autoscalingAMIs."${this.config.region}" or (throw
           "Please make sure the NixOS ZFS AMI is copied to ${this.config.region}");
       };
 
@@ -668,9 +668,9 @@ let
 
       vpc = mkOption {
         type = vpcType this.config.uid;
-        default = let base = toString (vpcMap.${this.config.region} * 4);
+        default = let base = toString (vpcMap."${this.config.region}" * 4);
         in {
-          region = this.config.region;
+          inherit (this.config) region;
 
           cidr = "10.${base}.0.0/16";
 
@@ -781,12 +781,12 @@ in {
 
     instance = mkOption {
       type = nullOr attrs;
-      default = cfg.instances.${nodeName} or null;
+      default = cfg.instances."${nodeName}" or null;
     };
 
     asg = mkOption {
       type = nullOr attrs;
-      default = cfg.autoscalingGroups.${nodeName} or null;
+      default = cfg.autoscalingGroups."${nodeName}" or null;
     };
 
     tf = lib.mkOption {
