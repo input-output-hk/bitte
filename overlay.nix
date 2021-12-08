@@ -29,9 +29,9 @@ in final: prev: {
 
   fetch-ssh-keys = final.callPackage ./pkgs/fetch-ssh-keys.nix { };
 
-  inherit (inputs.agenix.packages.${final.system}) agenix;
+  inherit (inputs.agenix.packages."${final.system}") agenix;
 
-  agenix-cli = inputs.agenix-cli.packages.${final.system}.agenix;
+  agenix-cli = inputs.agenix-cli.packages."${final.system}".agenix;
 
   bitte-ruby = prev.bundlerEnv {
     inherit (prev) ruby;
@@ -112,7 +112,7 @@ in final: prev: {
 
   consulRegister = prev.callPackage ./pkgs/consul-register.nix { };
 
-  nomad = prev.callPackage ./pkgs/nomad.nix { inherit (inputs) nomad-source; };
+  nomad = inputs.nomad-flake.defaultPackage."${final.system}";
 
   boundary = prev.callPackage ./pkgs/boundary.nix { };
 
