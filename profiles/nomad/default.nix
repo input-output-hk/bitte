@@ -1,6 +1,4 @@
-{ lib, pkgs, config, nodeName, ... }:
-let inherit (config.cluster) name region domain kms instances;
-in {
+{ lib, pkgs, config, nodeName, ... }: {
   environment.variables = {
     NOMAD_ADDR =
       "https://127.0.0.1:${toString config.services.nomad.ports.http}";
@@ -41,7 +39,7 @@ in {
   services.nomad = {
     data_dir = /var/lib/nomad;
     log_level = "DEBUG";
-    name = if (instances.${nodeName} or null) != null then
+    name = if (config.cluster.instances."${nodeName}" or null) != null then
       "nomad-${nodeName}"
     else
       null;
@@ -81,7 +79,7 @@ in {
       publish_allocation_metrics = true;
       publish_node_metrics = true;
       datadog_address = "localhost:8125";
-      datadog_tags = [ "region:${region}" "role:nomad" ];
+      datadog_tags = [ "role:nomad" ];
     };
   };
 
