@@ -1,7 +1,7 @@
 GIT
   remote: https://github.com/bensie/sshkey
-  revision: b7762f36f29c0a79234e4f87ca13cb0379290a80
-  ref: b7762f36f29c0a79234e4f87ca13cb0379290a80
+  revision: 6fd399213edd8611c1e540064d42d16b5e712782
+  ref: 6fd399213edd8611c1e540064d42d16b5e712782
   specs:
     sshkey (2.0.0)
 
@@ -12,12 +12,12 @@ GEM
   remote: https://rubygems.org/
   specs:
     citrus (3.0.2)
-    rake (13.0.3)
-    toml-rb (2.0.1)
+    rake (13.0.6)
+    toml-rb (2.1.0)
       citrus (~> 3.0, > 3.0)
 
 PLATFORMS
-  ruby
+  x86_64-linux
 
 DEPENDENCIES
   rake!

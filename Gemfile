@@ -2,6 +2,6 @@
 
 source 'https://rubygems.org' do
   gem 'rake'
-  gem 'sshkey', git: 'https://github.com/bensie/sshkey', ref: 'b7762f36f29c0a79234e4f87ca13cb0379290a80'
+  gem 'sshkey', git: 'https://github.com/bensie/sshkey', ref: '6fd399213edd8611c1e540064d42d16b5e712782'
   gem 'toml-rb'
 end

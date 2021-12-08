@@ -14,18 +14,18 @@
     platforms = [];
     source = {
       remotes = ["https://rubygems.org"];
-      sha256 = "1iik52mf9ky4cgs38fp2m8r6skdkq1yz23vh18lk95fhbcxb6a67";
+      sha256 = "15whn7p9nrkxangbs9hh75q585yfn66lv0v2mhj6q6dl6x8bzr2w";
       type = "gem";
     };
-    version = "13.0.3";
+    version = "13.0.6";
   };
   sshkey = {
     groups = ["default"];
     platforms = [];
     source = {
       fetchSubmodules = false;
-      rev = "b7762f36f29c0a79234e4f87ca13cb0379290a80";
-      sha256 = "1iw3p4j6g0ym5z8v5v12yx5vgzf5snp3gadixn7pps55gpih6nsj";
+      rev = "6fd399213edd8611c1e540064d42d16b5e712782";
+      sha256 = "1q2kj62660nlggwknnb0a3gjmslan231r93v5hrhrsbwj4jgzwfa";
       type = "git";
       url = "https://github.com/bensie/sshkey";
     };
@@ -37,9 +37,9 @@
     platforms = [];
     source = {
       remotes = ["https://rubygems.org"];
-      sha256 = "0x5j95w28vj85bzw98g1dyd4gm7xpli2fdvwwrgwlay7gb3wc5jh";
+      sha256 = "1mrr8c9agmf9l9gs63lnsqzc62x08hj673yix7bjss1kvagwjnsr";
       type = "gem";
     };
-    version = "2.0.1";
+    version = "2.1.0";
   };
 }

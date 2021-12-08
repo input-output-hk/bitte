@@ -34,10 +34,15 @@ in final: prev: {
   agenix-cli = inputs.agenix-cli.packages."${final.system}".agenix;
 
   bitte-ruby = prev.bundlerEnv {
-    inherit (prev) ruby;
     name = "bitte-gems";
     gemdir = ./.;
   };
+
+  bundler = prev.bundler.overrideAttrs (o: {
+    postInstall = ''
+      sed -i -e '/if sudo_needed/I,+2 d' $out/${prev.ruby.gemPath}/gems/${o.gemName}-${o.version}/lib/bundler.rb
+    '';
+  });
 
   ipxe = prev.callPackage ./pkgs/ipxe.nix {
     src = inputs.ipxe-source;
