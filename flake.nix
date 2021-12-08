@@ -2,11 +2,10 @@
   description = "Flake containing Bitte clusters";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-21.05";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-21.11";
     nixpkgs-terraform.url =
       "github:input-output-hk/nixpkgs/iohk-terraform-2021-06";
     utils.url = "github:kreisys/flake-utils";
-    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     bitte-cli.url = "github:input-output-hk/bitte-cli";
     hydra.url = "github:kreisys/hydra/hydra-server-includes";
     hydra-provisioner.url = "github:input-output-hk/hydra-provisioner";
@@ -21,14 +20,7 @@
       url = "github:manveru/terranix/cleanup";
       flake = false;
     };
-    nomad-source = {
-      url = "github:input-output-hk/nomad/release-1.1.3";
-      flake = false;
-    };
-    ipxe-source = {
-      url = "github:ipxe/ipxe";
-      flake = false;
-    };
+    nomad-flake.url = "github:input-output-hk/nomad/release-1.2.2";
 
     ## workaround until https://github.com/NixOS/nix/pull/4641 is merged
     hydra.inputs.nixpkgs.follows = "nixpkgs";
@@ -51,11 +43,11 @@
       in inputs.nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [
-          ({
+          {
             nixpkgs.overlays =
               [ bitte-cli.overlay (import ./overlay.nix inputs) ];
             _module.args.self = self;
-          })
+          }
           (inputs.nixpkgs
             + /nixos/modules/installer/netboot/netboot-minimal.nix)
           ./profiles/deployer.nix

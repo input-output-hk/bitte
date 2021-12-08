@@ -4,7 +4,7 @@ let
   inherit (builtins) attrValues fromJSON toJSON trace mapAttrs genList foldl';
   inherit (nixpkgs) lib;
 in final: prev: {
-  nix = inputs.nix.packages.x86_64-linux.nix;
+  inherit (inputs.nix.packages.x86_64-linux) nix;
   nixFlakes = final.nix;
   nixUnstable = final.nix;
 
@@ -29,12 +29,12 @@ in final: prev: {
 
   fetch-ssh-keys = final.callPackage ./pkgs/fetch-ssh-keys.nix { };
 
-  agenix = inputs.agenix.packages.${final.system}.agenix;
+  inherit (inputs.agenix.packages."${final.system}") agenix;
 
-  agenix-cli = inputs.agenix-cli.packages.${final.system}.agenix;
+  agenix-cli = inputs.agenix-cli.packages."${final.system}".agenix;
 
   bitte-ruby = prev.bundlerEnv {
-    ruby = prev.ruby;
+    inherit (prev) ruby;
     name = "bitte-gems";
     gemdir = ./.;
   };
@@ -64,7 +64,7 @@ in final: prev: {
 
   terraform-provider-versions = lib.listToAttrs (map (name:
     let
-      provider = final.terraform-providers.${name};
+      provider = final.terraform-providers."${name}";
       provider-source-address =
         provider.provider-source-address or "registry.terraform.io/nixpkgs/${name}";
       parts = lib.splitString "/" provider-source-address;
@@ -74,7 +74,7 @@ in final: prev: {
       version = "= ${provider.version}";
     }) final.terraform-provider-names);
 
-  nixpkgs-terraform-pkgs = nixpkgs-terraform.legacyPackages.${final.system};
+  nixpkgs-terraform-pkgs = nixpkgs-terraform.legacyPackages."${final.system}";
 
   inherit (final.nixpkgs-terraform-pkgs)
     terraform_0_13 terraform_0_14 terraform-providers;
@@ -83,7 +83,7 @@ in final: prev: {
   #   (plugins: lib.attrVals final.terraform-provider-names plugins);
 
   terraform-with-plugins = final.terraform_0_13.withPlugins
-    (plugins: lib.attrVals final.terraform-provider-names plugins);
+    (lib.attrVals final.terraform-provider-names);
 
   mkShellNoCC = prev.mkShell.override { stdenv = prev.stdenvNoCC; };
 
@@ -112,7 +112,7 @@ in final: prev: {
 
   consulRegister = prev.callPackage ./pkgs/consul-register.nix { };
 
-  nomad = prev.callPackage ./pkgs/nomad.nix { inherit (inputs) nomad-source; };
+  nomad = inputs.nomad-flake.defaultPackage."${final.system}";
 
   boundary = prev.callPackage ./pkgs/boundary.nix { };
 
@@ -199,14 +199,13 @@ in final: prev: {
   mkClusters = args:
     import ./lib/clusters.nix ({
       pkgs = final;
-      lib = final.lib;
+      inherit (final) lib;
     } // args);
 
   mkNixosConfigurations = clusters:
     lib.pipe clusters [
       (lib.mapAttrsToList (clusterName: cluster:
-        lib.mapAttrsToList
-        (name: value: lib.nameValuePair "${clusterName}-${name}" value)
+        lib.mapAttrsToList (name: lib.nameValuePair "${clusterName}-${name}")
         (cluster.nodes // cluster.groups)))
       lib.flatten
       lib.listToAttrs
@@ -223,7 +222,7 @@ in final: prev: {
 
     cidrsOf = lib.mapAttrsToList (_: subnet: subnet.cidr);
 
-    awsProviderNameFor = region: lib.replaceStrings [ "-" ] [ "_" ] region;
+    awsProviderNameFor = lib.replaceStrings [ "-" ] [ "_" ];
     awsProviderFor = region: "aws.${awsProviderNameFor region}";
 
     merge = lib.foldl' lib.recursiveUpdate { };
@@ -271,33 +270,33 @@ in final: prev: {
       "us-west-2"
     ];
 
-    mkSecurityGroupRule = ({ region, prefix, rule, protocol }:
+    mkSecurityGroupRule = { region, prefix, rule, protocol }:
       let
         common = {
           provider = awsProviderFor region;
-          type = rule.type;
+          inherit (rule) type;
           from_port = rule.from;
           to_port = rule.to;
-          protocol = protocol;
+          inherit protocol;
           security_group_id = rule.securityGroupId;
         };
 
-        from-self = (lib.nameValuePair
+        from-self = lib.nameValuePair
           "${prefix}-${rule.type}-${protocol}-${rule.name}-self"
-          (common // { self = true; }));
+          (common // { self = true; });
 
-        from-cidr = (lib.nameValuePair
+        from-cidr = lib.nameValuePair
           "${prefix}-${rule.type}-${protocol}-${rule.name}-cidr"
-          (common // { cidr_blocks = lib.unique rule.cidrs; }));
+          (common // { cidr_blocks = lib.unique rule.cidrs; });
 
-        from-ssgi = (lib.nameValuePair
+        from-ssgi = lib.nameValuePair
           "${prefix}-${rule.type}-${protocol}-${rule.name}-ssgi" (common // {
             source_security_group_id = rule.sourceSecurityGroupId;
-          }));
+          });
 
-      in (lib.optional (rule.self != false) from-self)
+      in (lib.optional rule.self from-self)
       ++ (lib.optional (rule.cidrs != [ ]) from-cidr)
-      ++ (lib.optional (rule.sourceSecurityGroupId != null) from-ssgi));
+      ++ (lib.optional (rule.sourceSecurityGroupId != null) from-ssgi);
   };
 
   # systemd will not try to restart services whose dependencies have failed.
