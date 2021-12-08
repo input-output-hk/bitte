@@ -1,14 +1,10 @@
-{ lib, pkgs, config, ... }:
-let
-  inherit (config.cluster) region instances;
-  inherit (lib) mkIf mapAttrsToList;
-in {
+{ lib, pkgs, config, ... }: {
   imports = [ ./default.nix ./policies.nix ];
 
   services.nomad = {
     enable = true;
 
-    datacenter = config.cluster.region;
+    datacenter = lib.mkDefault "dc1";
 
     server = {
       enabled = true;
@@ -16,8 +12,8 @@ in {
       bootstrap_expect = 3;
 
       server_join = {
-        retry_join = (mapAttrsToList (_: v: v.privateIP) instances)
-          ++ [ "provider=aws region=${region} tag_key=Nomad tag_value=server" ];
+        retry_join =
+          lib.mapAttrsToList (_: v: v.privateIP) config.cluster.instances;
       };
 
       default_scheduler_config = {
