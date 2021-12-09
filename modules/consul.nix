@@ -492,7 +492,7 @@ in {
         ExecReload = reloadScript;
         ExecStart =
           "@${cfg.package}/bin/consul consul agent -config-dir /etc/${cfg.configDir}";
-        ExecStartPost = postScript;
+        ExecStartPost = [ postScript ];
         Restart = "on-failure";
         RestartSec = "10s";
         DynamicUser = true;
