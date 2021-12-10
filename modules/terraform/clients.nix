@@ -124,6 +124,22 @@ in {
         };
       });
 
+    data.aws_route_table."${config.cluster.name}" = {
+      provider = awsProviderFor config.cluster.region;
+      filter = {
+        name = "tag:Name";
+        values = [ config.cluster.name ];
+      };
+    };
+
+    resource.aws_route = mapAsgVpcs (vpc:
+      lib.nameValuePair vpc.region (nullRoute // {
+        route_table_id = id "data.aws_route_table.${config.cluster.name}";
+        destination_cidr_block = vpc.cidr;
+        vpc_peering_connection_id =
+          id "aws_vpc_peering_connection.${vpc.region}";
+      }));
+
     resource.aws_subnet = mapAsgVpcs (vpc:
       lib.flip lib.mapAttrsToList vpc.subnets (suffix: subnet:
         lib.nameValuePair "${vpc.region}-${suffix}" {
