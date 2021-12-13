@@ -603,11 +603,11 @@
     "ops-lib": {
       "flake": false,
       "locked": {
-        "lastModified": 1628170841,
-        "narHash": "sha256-0B8O8l9EPAODNXxc/Ce//UHTgAKSutwpRD8r8IqD8BU=",
+        "lastModified": 1639057337,
+        "narHash": "sha256-feMoyRT+5c2H9cm3HGVs/YknqI9NnFk/ncscRWaeA0Y=",
         "owner": "input-output-hk",
         "repo": "ops-lib",
-        "rev": "21f5a6e88f156370a85b5d0e6a2d24cc1083b421",
+        "rev": "61f65045dad618f684f76ab8e81d1e13039a8801",
         "type": "github"
       },
       "original": {
