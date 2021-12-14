@@ -16,6 +16,7 @@ let
   '';
 in {
   ###### interface
+  disabledModules = [ "services/monitoring/telegraf.nix" ];
   options = {
     services.telegraf = {
       enable = mkEnableOption "telegraf server";

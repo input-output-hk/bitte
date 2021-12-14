@@ -30,6 +30,7 @@ let
     };
 
 in {
+  disabledModules = [ "services/networking/consul.nix" ];
   options = {
     services.consul = {
       enable = mkEnableOption "Enable the consul daemon.";
