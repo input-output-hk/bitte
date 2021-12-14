@@ -356,6 +356,9 @@ in {
         StartLimitBurst = 3;
       };
 
+      startLimitBurst = 3;
+      startLimitIntervalSec = 0;
+
       serviceConfig = let
         preScript = pkgs.writeShellScriptBin "vault-start-pre" ''
           export PATH="${lib.makeBinPath [ pkgs.coreutils ]}"
