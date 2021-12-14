@@ -38,6 +38,7 @@ let
     if elem name excluded then value else sanitize value;
 
 in {
+  disabledModules = [ "services/networking/consul.nix" ];
   options = {
     services.consul = {
       enable = mkEnableOption "Enable the consul daemon.";
