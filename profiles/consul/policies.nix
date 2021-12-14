@@ -94,6 +94,12 @@
         sessionPrefix = allWrite;
       };
 
+      ingress = {
+        nodePrefix = allRead;
+        queryPrefix = allRead;
+        servicePrefix = allRead;
+      };
+
       vault-client = {
         agentPrefix = allWrite;
         keyPrefix = write "vault/";
