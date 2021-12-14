@@ -26,7 +26,7 @@ in rec {
 
   cidrsOf = lib.mapAttrsToList (_: subnet: subnet.cidr);
 
-  awsProviderNameFor = region: lib.replaceStrings [ "-" ] [ "_" ] region;
+  awsProviderNameFor = lib.replaceStrings [ "-" ] [ "_" ];
   awsProviderFor = region: "aws.${awsProviderNameFor region}";
 
   merge = lib.foldl' lib.recursiveUpdate { };
@@ -59,10 +59,9 @@ in rec {
         } splitPath;
       # Ensure that any "/dir1/dir2/*/" entries don't exist
       # as this doesn't make allowance for nested subdirs.
-      allowWildcard = pathList:
-        map (p: if lib.hasSuffix "/*/" p then (lib.removeSuffix "/" p) else p)
-        pathList;
-    in (allowWildcard cascade.acc);
+      allowWildcard =
+        map (p: if lib.hasSuffix "/*/" p then (lib.removeSuffix "/" p) else p);
+    in allowWildcard cascade.acc;
 
   regions = [
     # "ap-east-1"
@@ -85,32 +84,32 @@ in rec {
     "us-west-2"
   ];
 
-  mkSecurityGroupRule = ({ region, prefix, rule, protocol }:
+  mkSecurityGroupRule = { region, prefix, rule, protocol }:
     let
       common = {
         provider = awsProviderFor region;
-        type = rule.type;
+        inherit (rule) type;
         from_port = rule.from;
         to_port = rule.to;
-        protocol = protocol;
+        inherit protocol;
         security_group_id = rule.securityGroupId;
       };
 
-      from-self = (lib.nameValuePair
-        "${prefix}-${rule.type}-${protocol}-${rule.name}-self"
-        (common // { self = true; }));
+      from-self =
+        lib.nameValuePair "${prefix}-${rule.type}-${protocol}-${rule.name}-self"
+        (common // { self = true; });
 
-      from-cidr = (lib.nameValuePair
-        "${prefix}-${rule.type}-${protocol}-${rule.name}-cidr"
-        (common // { cidr_blocks = lib.unique rule.cidrs; }));
+      from-cidr =
+        lib.nameValuePair "${prefix}-${rule.type}-${protocol}-${rule.name}-cidr"
+        (common // { cidr_blocks = lib.unique rule.cidrs; });
 
-      from-ssgi = (lib.nameValuePair
-        "${prefix}-${rule.type}-${protocol}-${rule.name}-ssgi"
-        (common // { source_security_group_id = rule.sourceSecurityGroupId; }));
+      from-ssgi =
+        lib.nameValuePair "${prefix}-${rule.type}-${protocol}-${rule.name}-ssgi"
+        (common // { source_security_group_id = rule.sourceSecurityGroupId; });
 
-    in (lib.optional (rule.self != false) from-self)
+    in (lib.optional rule.self from-self)
     ++ (lib.optional (rule.cidrs != [ ]) from-cidr)
-    ++ (lib.optional (rule.sourceSecurityGroupId != null) from-ssgi));
+    ++ (lib.optional (rule.sourceSecurityGroupId != null) from-ssgi);
 
   allowS3For = bucketArn: prefix: rootDir: bucketDirs: {
     "${prefix}-s3-bucket-console" = {

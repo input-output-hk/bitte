@@ -123,12 +123,12 @@ let
   policyJson = policy:
     sanitize {
       host_volume = flip mapAttrs policy.hostVolume (name: value: {
-        policy = value.policy;
-        capabilities = value.capabilities;
+        inherit (value) policy;
+        inherit (value) capabilities;
       });
       namespace = flip mapAttrs policy.namespace (name: value: {
-        policy = value.policy;
-        capabilities = value.capabilities;
+        inherit (value) policy;
+        inherit (value) capabilities;
       });
       inherit (policy) agent node operator plugin quota;
     };
@@ -177,8 +177,7 @@ in {
 
       keepNames=(${
         toString ((attrNames config.services.nomad.policies)
-          ++
-          (attrNames config.tf.hydrate.configuration.locals.policies.nomad))
+          ++ (attrNames config.tf.hydrate.configuration.locals.policies.nomad))
       })
       policyNames=($(nomad acl policy list -json | jq -r -e '.[].Name'))
 

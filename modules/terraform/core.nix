@@ -22,7 +22,7 @@ in {
     provider = {
       acme = { server_url = "https://acme-v02.api.letsencrypt.org/directory"; };
 
-      aws = [{ region = config.cluster.region; }] ++ (lib.forEach regions
+      aws = [{ inherit (config.cluster) region; }] ++ (lib.forEach regions
         (region: {
           inherit region;
           alias = awsProviderNameFor region;
@@ -103,11 +103,11 @@ in {
     };
 
     resource.aws_route53_record = lib.mkIf config.cluster.route53 (let
-      domains = (lib.flatten
+      domains = lib.flatten
         (lib.flip lib.mapAttrsToList config.cluster.instances
           (instanceName: instance:
             lib.forEach instance.route53.domains
-            (domain: { ${domain} = instance.uid; }))));
+            (domain: { ${domain} = instance.uid; })));
     in lib.flip lib.mapAttrs' (lib.zipAttrs domains) (domain: instanceUids:
       lib.nameValuePair "${config.cluster.name}-${
         lib.replaceStrings [ "." "*" ] [ "_" "_" ] domain
@@ -175,7 +175,7 @@ in {
       lib.flip lib.mapAttrs' config.cluster.instances (name: instance:
         lib.nameValuePair instance.uid {
           name = instance.uid;
-          path = instance.iam.instanceProfile.path;
+          inherit (instance.iam.instanceProfile) path;
           role = instance.iam.instanceProfile.role.tfName;
           lifecycle = [{ create_before_destroy = true; }];
         });
@@ -256,7 +256,7 @@ in {
     resource.aws_instance = lib.mapAttrs (name: server:
       lib.mkMerge [
         (lib.mkIf server.enable {
-          ami = server.ami;
+          inherit (server) ami;
           instance_type = server.instanceType;
           monitoring = true;
 

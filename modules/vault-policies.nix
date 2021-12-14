@@ -26,7 +26,7 @@ let
       json2hcl < "$src" > "$out"
     '';
 
-  vaultPolicyOptionsType = submodule ({ ... }: {
+  vaultPolicyOptionsType = submodule (_: {
     options = {
       capabilities = mkOption {
         type =
@@ -35,7 +35,7 @@ let
     };
   });
 
-  vaultApproleType = submodule ({ ... }: {
+  vaultApproleType = submodule (_: {
     options = {
       token_ttl = mkOption { type = str; };
       token_max_ttl = mkOption { type = str; };
@@ -43,7 +43,7 @@ let
     };
   });
 
-  vaultPoliciesType = submodule ({ ... }: {
+  vaultPoliciesType = submodule (_: {
     options = { path = mkOption { type = attrsOf vaultPolicyOptionsType; }; };
   });
 
@@ -97,10 +97,8 @@ in {
       '') config.services.vault.policies)}
 
       keepNames=(default root ${
-        toString (
-          (attrNames config.services.vault.policies) ++
-          (attrNames config.tf.hydrate.configuration.locals.policies.vault)
-        )
+        toString ((attrNames config.services.vault.policies)
+          ++ (attrNames config.tf.hydrate.configuration.locals.policies.vault))
       })
       policyNames=($(vault policy list | jq -e -r '.[]'))
 
@@ -123,11 +121,8 @@ in {
       vault write "nomad/role/management" "policies=" "type=management"
 
       keepNames=(${
-        toString (
-          (attrNames config.services.nomad.policies ++ [ "management" ])
-          ++
-          (attrNames config.tf.hydrate.configuration.locals.policies.nomad)
-        )
+        toString ((attrNames config.services.nomad.policies ++ [ "management" ])
+          ++ (attrNames config.tf.hydrate.configuration.locals.policies.nomad))
       })
       nomadRoles=($(nomad acl policy list -json | jq -r -e '.[].Name'))
 

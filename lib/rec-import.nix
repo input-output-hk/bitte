@@ -18,13 +18,13 @@ let
 
       then
         let baseName = removeSuffix ".nix" n;
-        in nameValuePair (baseName) (if v == "regular" then
+        in nameValuePair baseName (if v == "regular" then
           _import baseName
         else
           recImport { dir = dir + "/${baseName}"; })
 
       else
-        nameValuePair ("") (null)) (readDir dir);
+        nameValuePair "" null) (readDir dir);
 
 in recImport
 

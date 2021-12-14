@@ -18,7 +18,7 @@ let
       str = obj;
       list = map sanitize obj;
       path = toString obj;
-      null = null;
+      inherit null;
       set = if (length (attrNames obj) == 0) then
         null
       else

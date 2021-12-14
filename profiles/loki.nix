@@ -1,4 +1,4 @@
-{ ... }: {
+_: {
   services.loki = {
     configuration = {
       auth_enabled = false;

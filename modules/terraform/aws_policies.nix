@@ -14,8 +14,7 @@ let
   allowS3ForBucket = allowS3For bucketArn;
 in {
   cluster.iam = {
-    roles = let
-    in {
+    roles = {
       client = {
         assumePolicy = {
           effect = "Allow";

@@ -2,7 +2,7 @@
 { creds ? "consul-register", extraServiceConfig ? { }, service, pkiFiles }:
 let
   serviceJson = toPrettyJSON service.name {
-    service = (service // {
+    service = service // {
       checks = lib.flip lib.mapAttrsToList (service.checks or { })
         (checkName: check:
           {
@@ -10,7 +10,7 @@ let
             service_id = service.name;
             name = checkName;
           } // check);
-    });
+    };
   };
 
   PATH = lib.makeBinPath [ coreutils consul vault-bin ];

@@ -6,8 +6,8 @@ let
 
   configJson = pkgs.toPrettyJSON "promtail" {
     server = {
-      http_listen_port = cfg.server.http_listen_port;
-      grpc_listen_port = cfg.server.grpc_listen_port;
+      inherit (cfg.server) http_listen_port;
+      inherit (cfg.server) grpc_listen_port;
     };
 
     clients = [{
@@ -19,7 +19,7 @@ let
 
     scrape_configs = [
       {
-        ec2_sd_configs = [{ region = config.cluster.region; }];
+        ec2_sd_configs = [{ inherit (config.cluster) region; }];
 
         job_name = "ec2-logs";
 
@@ -57,7 +57,7 @@ let
           json = false;
           labels = {
             job = "systemd-journal";
-            region = config.cluster.region;
+            inherit (config.cluster) region;
           };
           max_age = "12h";
           path = "/var/log/journal";

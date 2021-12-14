@@ -90,14 +90,14 @@ in {
           {
             inherit (value) destination contents;
           } // (lib.optionalAttrs (value.command != null) {
-            command = value.command;
+            inherit (value) command;
           })) cfg.templates;
       } // (lib.optionalAttrs (builtins.length cfg.listener > 0) {
         cache.use_auto_auth_token = cfg.cache.useAutoAuthToken;
 
         listener = lib.forEach cfg.listener (l: {
-          type = l.type;
-          address = l.address;
+          inherit (l) type;
+          inherit (l) address;
           tls_disable = l.tlsDisable;
         });
       }));

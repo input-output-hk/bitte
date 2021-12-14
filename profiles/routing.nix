@@ -54,7 +54,7 @@ in {
         dnsProvider = "route53";
         dnsResolver = "1.1.1.1:53";
         email = "devops@iohk.io";
-        domain = config.cluster.domain;
+        inherit (config.cluster) domain;
         credentialsFile = builtins.toFile "nothing" "";
         extraDomainNames = [ "*.${config.cluster.domain}" ]
           ++ config.cluster.extraAcmeSANs;

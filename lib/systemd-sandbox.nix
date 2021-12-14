@@ -13,7 +13,7 @@ let
     let type = typeOf input;
     in sum ++ {
       string = if lib.pathHasContext input then [ input ] else [ ];
-      list = (foldl' (s: v: s ++ (onlyStringsWithContext [ ] v)) [ ] input);
+      list = foldl' (s: v: s ++ (onlyStringsWithContext [ ] v)) [ ] input;
       set = if lib.isDerivation input then
         [ input ]
       else
@@ -26,7 +26,7 @@ let
 
   references = writeReferencesToFile closure;
 
-  lines = (lib.splitString "\n" (lib.fileContents references));
+  lines = lib.splitString "\n" (lib.fileContents references);
   cleanLines = lib.remove closure.outPath lines;
 
   paths = map (line: "${line}:${line}") cleanLines;
@@ -35,12 +35,7 @@ let
     lib.mapAttrsToList (name: value: "${name}=${transformer value}");
 
   toSystemd = value:
-    if value == true then
-      "yes"
-    else if value == false then
-      "no"
-    else
-      toString value;
+    if value then "yes" else if !value then "no" else toString value;
 
   toSystemdProperties = transformAttrs toSystemd;
 
