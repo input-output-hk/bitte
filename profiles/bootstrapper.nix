@@ -9,7 +9,7 @@ in {
 
   services = {
     s3-upload.enable = true;
-    consul-policies.enable = true;
+    consul-acl.enable = true;
     nomad-acl.enable = true;
     vault-acl.enable = true;
     nomad-namespaces.enable = true;
