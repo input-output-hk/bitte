@@ -25,8 +25,6 @@ in final: prev: {
     ];
   });
 
-  ssm-agent = prev.callPackage ./pkgs/ssm-agent { };
-
   consul = prev.callPackage ./pkgs/consul { };
 
   cue = prev.callPackage ./pkgs/cue.nix { };

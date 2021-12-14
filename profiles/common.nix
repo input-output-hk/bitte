@@ -9,7 +9,7 @@
   ];
 
   services = {
-    amazon-ssm-agent.enable = true;
+    ssm-agent.enable = true;
     vault.enable = true;
     consul.enable = true;
   };

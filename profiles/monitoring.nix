@@ -19,7 +19,6 @@ in {
     vault.enable = lib.mkForce false;
     consul.ui = true;
     nomad.enable = false;
-    amazon-ssm-agent.enable = true;
     ingress.enable = true;
     ingress-config.enable = true;
     minio.enable = true;

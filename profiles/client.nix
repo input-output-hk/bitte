@@ -13,7 +13,6 @@
   ];
 
   services = {
-    amazon-ssm-agent.enable = true;
     vault-agent-client.enable = true;
     vault.enable = lib.mkForce false;
     nomad.enable = true;
