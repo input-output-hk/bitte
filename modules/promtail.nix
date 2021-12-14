@@ -96,6 +96,7 @@ let
     ];
   };
 in {
+  disabledModules = [ "services/logging/promtail.nix" ];
   options = {
     services.promtail = {
       enable = mkEnableOption "Enable Promtail";
