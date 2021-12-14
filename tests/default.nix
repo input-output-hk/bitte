@@ -18,15 +18,13 @@ let
     echo "$key" | ${ssh machine} chmod 0600 /etc/ssh/ssh_host_ed25519_key
     echo "$(< ${../. + "/encrypted/ssh/${machine}.pub"})" \
       | ${ssh machine} tee /etc/ssh/ssh_host_ed25519_key.pub
+
+    # The activate script can now decrypt all secrets
+    ${ssh machine} /run/current-system/activate
   '');
 
   adminScriptPreRestart = pkgs.writeBashChecked "admin.sh" ''
     set -exuo pipefail
-
-    export PATH="${
-      lib.makeBinPath
-      (with pkgs; [ age agenix-cli consul jq coreutils openssh iproute ])
-    }"
 
     cp -r ${inputs.self} bitte
     pushd bitte
@@ -37,6 +35,34 @@ let
     ${lib.concatStringsSep "\n" copyKeys}
   '';
 
+  # TODO: it's very hard to get a flake built without internet connection.
+  #
+  # This was an idea of running nixos-rebuild after fetching the automatically
+  # generated SSH keys from each host and re-encrypting the files in
+  # ./encrypted/
+  # That way we wouldn't need to keep the private host keys in the repo and
+  # simplify adding new machines.
+  #
+  # agenixJSON="$(remarshal -if toml -of json < .agenix.toml)"
+  #
+  # while read -r line; do
+  #   echo line: "$line"
+  #   agenixJSON="$(
+  #     echo "$agenixJSON" | jq \
+  #       --arg host "$(echo "$line" | awk '{print $1}')" \
+  #       --arg key "$(echo "$line" | awk '{print $2 " " $3}')" \
+  #       '.identities[$host] = $key'
+  #   )"
+  # done < <(ssh-keyscan -t ed25519 core0 core1 core2)
+  #
+  # echo "$agenixJSON" | remarshal -if json -of toml > .agenix.toml
+  #
+  # fd . -e age encrypted -x agenix -i ${./age-bootstrap} --rekey
+  #
+  # for host in core0 core1 core2; do
+  #   nixos-rebuild switch --flake ".#test-$host" --target-host "$host"
+  # done
+
   bootstrapVaultPolicy = pkgs.writeText "bootstrap.hcl" ''
     path "*" {
       capabilities = ["create", "read", "update", "delete", "list", "sudo"]
@@ -46,26 +72,13 @@ let
   adminScriptPostRestart = pkgs.writeBashChecked "admin.sh" ''
     set -exuo pipefail
 
-    export PATH="${
-      lib.makeBinPath (with pkgs; [
-        age
-        agenix-cli
-        consul
-        jq
-        coreutils
-        openssh
-        iproute
-        vault-bin
-      ])
-    }"
-
     pushd bitte
 
-    echo "****************************************************************"
     ${ssh "core0"} vault operator init | tee /tmp/vault-bootstrap
 
     readarray -t keys < <(jq < /tmp/vault-bootstrap -e -r '.unseal_keys_b64[0,1,2]')
     VAULT_TOKEN="$(jq < /tmp/vault-bootstrap -e -r '.root_token')"
+    export VAULT_TOKEN
 
     set +xe
     for core in core0 core1 core2; do
@@ -92,22 +105,23 @@ let
     ${deage ../encrypted/ssl/ca.age} > /tmp/ca.pem
     ${deage ../encrypted/ssl/client.age} > /tmp/client.pem
     ${deage ../encrypted/ssl/client-key.age} > /tmp/client-key.pem
+    ${deage ../encrypted/ssl/server.age} > /tmp/server.pem
+    cat /tmp/ca.pem <(echo) /tmp/server.pem > /tmp/full.pem
 
-    export VAULT_TOKEN
     export VAULT_FORMAT=json
     export VAULT_ADDR=https://core0:8200
     export VAULT_CACERT=/tmp/ca.pem
-    export CONSUL_HTTP_ADDR=https://core0:8501
-    export CONSUL_CAPATH=/tmp/ca.pem
-    export CONSUL_CLIENT_CERT=/tmp/client.pem
-    export CONSUL_CLIENT_KEY=/tmp/client-key.pem
-    CONSUL_HTTP_TOKEN="$(${deage ../encrypted/consul/token-master.age})"
-    export CONSUL_HTTP_TOKEN
 
     for core in core1 core2; do
       vault operator raft join -address "https://$core:8200"
       vault operator raft list-peers -address "https://$core:8200"
     done
+
+    vault auth enable userpass
+
+    vault write auth/userpass/users/manveru \
+      password=letmein \
+      policies=admin
 
     vault auth enable cert
 
@@ -126,6 +140,17 @@ let
       certificate="$(${deage ../encrypted/ssl/client.age})" \
       ttl=3600
 
+    ###
+    ### Consul
+    ###
+
+    export CONSUL_HTTP_ADDR=https://core0:8501
+    export CONSUL_CAPATH=/tmp/ca.pem
+    export CONSUL_CLIENT_CERT=/tmp/client.pem
+    export CONSUL_CLIENT_KEY=/tmp/client-key.pem
+    CONSUL_HTTP_TOKEN="$(${deage ../encrypted/consul/token-master.age})"
+    export CONSUL_HTTP_TOKEN
+
     vault secrets enable consul
 
     vault_consul_token_response="$(
@@ -143,11 +168,43 @@ let
       client_key="$(${deage ../encrypted/ssl/client-key.age})" \
       token="$vault_consul_token"
 
-    vault secrets enable nomad
     vault secrets enable pki
     vault secrets enable -version=2 kv
 
-    echo "****************************************************************"
+    ###
+    ### Nomad
+    ###
+
+    vault secrets enable nomad
+
+    until nc -z -v core0 4646; do sleep 1; done
+    until nc -z -v core1 4646; do sleep 1; done
+    until nc -z -v core2 4646; do sleep 1; done
+
+    curl https://core0:4646/v1/acl/bootstrap --cacert /tmp/full.pem -f -s -X POST > /tmp/nomad-bootstrap.json
+    NOMAD_TOKEN="$(jq < /tmp/nomad-bootstrap.json -r -e .SecretID)"
+    export NOMAD_TOKEN
+
+    # TODO: replace with renewable tokens in vault-agent
+    echo "$NOMAD_TOKEN" | ${ssh "core0"} tee /var/lib/nomad/bootstrap.token
+    echo "$NOMAD_TOKEN" | ${ssh "core0"} tee /var/lib/vault/nomad_token
+
+    export NOMAD_ADDR=https://core0:4646
+    export NOMAD_CAPATH=/tmp/ca.pem
+    export NOMAD_CLIENT_CERT=/tmp/client.pem
+    export NOMAD_CLIENT_KEY=/tmp/client-key.pem
+
+    nomad_vault_token="$(
+      nomad acl token create -type management \
+      | awk '/Secret ID/ { print $4 }'
+    )"
+
+    vault write nomad/config/access \
+      address="https://127.0.0.1:4646" \
+      token="$nomad_vault_token" \
+      ca_cert="$(< /tmp/ca.pem)" \
+      client_cert="$(< /tmp/client.pem)" \
+      client_key="$(< /tmp/client-key.pem)"
   '';
 
   consulCheck = pkgs.writeBashChecked "consul.sh" ''
@@ -159,6 +216,24 @@ let
     export CONSUL_HTTP_TOKEN
 
     consul members
+  '';
+
+  developerScript = pkgs.writeBashChecked "dev.sh" ''
+    set -exuo pipefail
+
+    ${deage ../encrypted/ssl/ca.age} > /tmp/ca.pem
+    ${deage ../encrypted/ssl/client.age} > /tmp/client.pem
+    ${deage ../encrypted/ssl/client-key.age} > /tmp/client-key.pem
+
+    vault login -method userpass username=manveru password=letmein
+
+    CONSUL_HTTP_TOKEN="$(vault read -field token consul/creds/admin)"
+    export CONSUL_HTTP_TOKEN
+    NOMAD_TOKEN="$(vault read -field secret_id nomad/creds/admin)"
+    export NOMAD_TOKEN
+
+    consul members
+    nomad agent-info
   '';
 
   # cluster = import ../lib/clusters.nix {
@@ -186,35 +261,77 @@ let
       address = ip;
       prefixLength = 16;
     }];
-    services.amazon-ssm-agent.enable = false;
+    services.ssm-agent.enable = false;
 
     _module.args.nodeName = name;
     _module.args.self = { inherit inputs; };
+  };
+
+  mkCore = name: {
+    imports =
+      [ ../clusters/test (extra name cluster.instances.${name}.privateIP) ]
+      ++ cluster.instances.${name}.modules;
+  };
+
+  sessionVariables = {
+    VAULT_ADDR = "https://core0:8200";
+    VAULT_CACERT = "/tmp/ca.pem";
+
+    CONSUL_HTTP_ADDR = "https://core0:8501";
+    CONSUL_CAPATH = "/tmp/ca.pem";
+    CONSUL_CLIENT_CERT = "/tmp/client.pem";
+    CONSUL_CLIENT_KEY = "/tmp/client-key.pem";
+
+    NOMAD_ADDR = "https://core0:4646";
+    NOMAD_CAPATH = "/tmp/ca.pem";
+    NOMAD_CLIENT_CERT = "/tmp/client.pem";
+    NOMAD_CLIENT_KEY = "/tmp/client-key.pem";
   };
 in {
   testBitte = pkgs.nixosTest {
     name = "bitte";
 
     nodes = {
-      admin = { };
+      developer = {
+        environment.systemPackages = with pkgs; [
+          age
+          agenix-cli
+          consul
+          coreutils
+          curl
+          gawk
+          iproute
+          jq
+          netcat
+          nomad
+          openssh
+          vault-bin
+        ];
 
-      core0 = {
-        imports =
-          [ ../clusters/test (extra "core0" cluster.instances.core0.privateIP) ]
-          ++ cluster.instances.core0.modules;
+        environment.sessionVariables = sessionVariables;
       };
 
-      core1 = {
-        imports =
-          [ ../clusters/test (extra "core1" cluster.instances.core1.privateIP) ]
-          ++ cluster.instances.core1.modules;
+      admin = { pkgs, ... }: {
+        _module.args.self = { inherit inputs; };
+        imports = [ ../profiles/nix.nix ];
+        environment.systemPackages = with pkgs; [
+          age
+          agenix-cli
+          consul
+          fd
+          jq
+          nomad
+          remarshal
+          vault-bin
+          nixFlakes
+          which
+        ];
+        environment.sessionVariables = sessionVariables;
       };
+      core0 = mkCore "core0";
+      core1 = mkCore "core1";
+      core2 = mkCore "core2";
 
-      core2 = {
-        imports =
-          [ ../clusters/test (extra "core2" cluster.instances.core2.privateIP) ]
-          ++ cluster.instances.core2.modules;
-      };
     };
 
     testScript = ''
@@ -226,13 +343,8 @@ in {
       admin.systemctl("is-system-running --wait")
       admin.log(admin.succeed("${adminScriptPreRestart}"))
 
-      [core.shutdown() for core in cores]
-      [core.start() for core in cores]
-
       [core.wait_for_unit("vault") for core in cores]
       [core.wait_for_open_port("8200") for core in cores]
-
-      core0.log(core0.succeed("bat /etc/consul.d/*"))
 
       admin.log(admin.succeed("${adminScriptPostRestart}"))
 
@@ -253,9 +365,7 @@ in {
       core0.wait_for_unit("nomad-acl")
       core0.wait_for_unit("vault-acl")
 
-      admin.sleep(10)
-
-      core0.log(core0.succeed("journalctl -e -u nomad.service"))
+      developer.log(developer.succeed("${developerScript}"))
     '';
   };
 }

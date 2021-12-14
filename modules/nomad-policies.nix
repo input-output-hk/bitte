@@ -160,7 +160,12 @@ in {
 
       path = with pkgs; [ config.services.nomad.package jq ];
 
-      environment = { NOMAD_ADDR = "https://127.0.0.1:4646"; };
+      environment = {
+        NOMAD_ADDR = "https://127.0.0.1:4646";
+        NOMAD_CAPATH = config.age.secrets.nomad-ca.path;
+        NOMAD_CLIENT_CERT = config.age.secrets.nomad-client.path;
+        NOMAD_CLIENT_KEY = config.age.secrets.nomad-client-key.path;
+      };
 
       script = ''
         set -euo pipefail
