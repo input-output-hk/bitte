@@ -89,7 +89,7 @@ in {
   config = {
     systemd.services.consul-initial-tokens =
       mkIf config.services.consul.enable {
-        after = [ "consul.service" "consul-policies.service" ];
+        after = [ "consul.service" "consul-acl.service" ];
         wantedBy = [ "multi-user.target" ]
           ++ (optional config.services.vault.enable "vault.service")
           ++ (optional config.services.nomad.enable "nomad.service");
@@ -102,7 +102,7 @@ in {
           Restart = "on-failure";
           RestartSec = "20s";
           WorkingDirectory = "/run/keys";
-          ExecStartPre = ensureDependencies pkgs [ "consul" "consul-policies" ];
+          ExecStartPre = ensureDependencies pkgs [ "consul" "consul-acl" ];
         };
 
         path = with pkgs; [ consul jq systemd sops ];
@@ -169,7 +169,7 @@ in {
       };
 
     systemd.services.vault-setup = mkIf config.services.vault.enable {
-      after = [ "consul-policies.service" "vault-consul-token.service" ];
+      after = [ "consul-acl.service" "vault-consul-token.service" ];
       wantedBy = [ "multi-user.target" ];
 
       serviceConfig = {
@@ -178,7 +178,7 @@ in {
         Restart = "on-failure";
         RestartSec = "20s";
         ExecStartPre =
-          ensureDependencies pkgs [ "consul-policies" "vault-consul-token" ];
+          ensureDependencies pkgs [ "consul-acl" "vault-consul-token" ];
       };
 
       environment = {
