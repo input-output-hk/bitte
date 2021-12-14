@@ -1,7 +1,5 @@
 { lib, pkgs, config, ... }:
-let
-  inherit (config.cluster) region instances;
-  inherit (lib) mkIf mapAttrsToList;
+let inherit (config.cluster) region instances;
 in {
   imports = [ ./default.nix ./policies.nix ];
 
@@ -16,7 +14,7 @@ in {
       bootstrap_expect = 3;
 
       server_join = {
-        retry_join = (mapAttrsToList (_: v: v.privateIP) instances)
+        retry_join = (lib.mapAttrsToList (_: v: v.privateIP) instances)
           ++ [ "provider=aws region=${region} tag_key=Nomad tag_value=server" ];
       };
 

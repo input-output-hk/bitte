@@ -1,17 +1,10 @@
 { config, lib, pkgs, bittelib, ... }:
 let
   cfg = config.services.consul;
-  inherit (builtins) elem;
-  inherit (lib)
-    mkIf pipe filterAttrs mapAttrs' nameValuePair flip concatMapStrings isList
-    toLower mapAttrsToList hasPrefix mkEnableOption mkOption makeBinPath;
-  inherit (lib.types)
-    package str enum ints submodule listOf nullOr port path attrsOf attrs bool;
-  inherit (builtins) toJSON length attrNames split typeOf;
   inherit (bittelib) snakeCase;
 
   sanitize = obj:
-    lib.getAttr (typeOf obj) {
+    lib.getAttr (builtins.typeOf obj) {
       bool = obj;
       int = obj;
       string = obj;
@@ -19,59 +12,60 @@ let
       list = map sanitize obj;
       path = toString obj;
       inherit null;
-      set = if (length (attrNames obj) == 0) then
+      set = if (builtins.length (builtins.attrNames obj) == 0) then
         null
       else
-        pipe obj [
-          (filterAttrs
+        lib.pipe obj [
+          (lib.filterAttrs
             (name: value: name != "_module" && name != "_ref" && value != null))
-          (mapAttrs' (name: value:
-            nameValuePair (sanitizeName name) (sanitizeValue name value)))
+          (lib.mapAttrs' (name: value:
+            lib.nameValuePair (sanitizeName name) (sanitizeValue name value)))
         ];
     };
 
   # Some config cannot be snakeCase sanitized without breaking the functionality.
   # Example: consul service router, resolver and splitter configuration.
   excluded = [ "failover" "splits" "subsets" ];
-  sanitizeName = name: if elem name excluded then name else snakeCase name;
+  sanitizeName = name:
+    if builtins.elem name excluded then name else snakeCase name;
   sanitizeValue = name: value:
-    if elem name excluded then value else sanitize value;
+    if builtins.elem name excluded then value else sanitize value;
 
 in {
   disabledModules = [ "services/networking/consul.nix" ];
   options = {
     services.consul = {
-      enable = mkEnableOption "Enable the consul daemon.";
+      enable = lib.mkEnableOption "Enable the consul daemon.";
 
-      package = mkOption {
-        type = package;
+      package = lib.mkOption {
+        type = with lib.types; package;
         default = pkgs.consul;
       };
 
-      configDir = mkOption {
-        type = str;
+      configDir = lib.mkOption {
+        type = with lib.types; str;
         default = "consul.d";
       };
 
-      dataDir = mkOption {
-        type = path;
+      dataDir = lib.mkOption {
+        type = with lib.types; path;
         default = /var/lib/consul;
       };
 
-      ui = mkEnableOption "Enable the web UI.";
+      ui = lib.mkEnableOption "Enable the web UI.";
 
-      logLevel = mkOption {
-        type = enum [ "trace" "debug" "info" "warn" "err" ];
+      logLevel = lib.mkOption {
+        type = with lib.types; enum [ "trace" "debug" "info" "warn" "err" ];
         default = "info";
       };
 
-      extraConfig = mkOption {
-        type = attrs;
+      extraConfig = lib.mkOption {
+        type = with lib.types; attrs;
         default = { };
       };
 
-      datacenter = mkOption {
-        type = str;
+      datacenter = lib.mkOption {
+        type = with lib.types; str;
         default = "dc1";
         description = ''
           This flag controls the datacenter in which the agent is running. If
@@ -81,8 +75,8 @@ in {
         '';
       };
 
-      bootstrapExpect = mkOption {
-        type = nullOr ints.positive;
+      bootstrapExpect = lib.mkOption {
+        type = with lib.types; nullOr ints.positive;
         default = null;
         description = ''
           This flag provides the number of expected servers in the datacenter.
@@ -93,16 +87,16 @@ in {
         '';
       };
 
-      enableScriptChecks = mkEnableOption ''
+      enableScriptChecks = lib.mkEnableOption ''
         Enable script checks.
       '';
 
-      enableLocalScriptChecks = mkEnableOption ''
+      enableLocalScriptChecks = lib.mkEnableOption ''
         Enable script checks defined in local config files. Script checks
         defined via the HTTP API will not be allowed.
       '';
 
-      server = mkEnableOption ''
+      server = lib.mkEnableOption ''
         This flag is used to control if an agent is in server or client mode.
         When provided, an agent will act as a Consul server. Each Consul
         cluster must have at least one server and ideally no more than 5 per
@@ -115,8 +109,8 @@ in {
         traffic as appropriate.
       '';
 
-      advertiseAddr = mkOption {
-        type = str;
+      advertiseAddr = lib.mkOption {
+        type = with lib.types; str;
         default = "0.0.0.0";
         description = ''
           The address that should be bound to for internal cluster
@@ -139,8 +133,8 @@ in {
         '';
       };
 
-      bindAddr = mkOption {
-        type = str;
+      bindAddr = lib.mkOption {
+        type = with lib.types; str;
         default = "0.0.0.0";
         description = ''
           The address that should be bound to for internal cluster
@@ -163,8 +157,8 @@ in {
         '';
       };
 
-      clientAddr = mkOption {
-        type = str;
+      clientAddr = lib.mkOption {
+        type = with lib.types; str;
         default = "127.0.0.1";
         description = ''
           The address to which Consul will bind client interfaces, including
@@ -175,8 +169,8 @@ in {
         '';
       };
 
-      encrypt = mkOption {
-        type = nullOr str;
+      encrypt = lib.mkOption {
+        type = with lib.types; nullOr str;
         default = null;
         description = ''
           Specifies the secret key to use for encryption of Consul network
@@ -193,203 +187,212 @@ in {
         '';
       };
 
-      addresses = mkOption {
-        type = submodule { options = { http = mkOption { type = str; }; }; };
+      addresses = lib.mkOption {
+        type = with lib.types;
+          submodule {
+            options = { http = lib.mkOption { type = with lib.types; str; }; };
+          };
         default = { };
       };
 
-      retryJoin = mkOption {
-        type = listOf str;
+      retryJoin = lib.mkOption {
+        type = with lib.types; listOf str;
         default = [ ];
       };
 
-      primaryDatacenter = mkOption {
-        type = nullOr str;
+      primaryDatacenter = lib.mkOption {
+        type = with lib.types; nullOr str;
         default = null;
       };
 
-      acl = mkOption {
+      acl = lib.mkOption {
         default = { };
-        type = nullOr (submodule {
-          options = {
-            enabled = mkOption {
-              type = nullOr bool;
-              default = true;
-            };
+        type = with lib.types;
+          nullOr (submodule {
+            options = {
+              enabled = lib.mkOption {
+                type = with lib.types; nullOr bool;
+                default = true;
+              };
 
-            defaultPolicy = mkOption {
-              type = nullOr (enum [ "deny" "allow" ]);
-              default = "deny";
-            };
+              defaultPolicy = lib.mkOption {
+                type = with lib.types; nullOr (enum [ "deny" "allow" ]);
+                default = "deny";
+              };
 
-            enableTokenPersistence = mkOption {
-              type = nullOr bool;
-              default = true;
-              description = ''
-                Enable token persistence for `consul acl set-agent-token`
-              '';
-            };
+              enableTokenPersistence = lib.mkOption {
+                type = with lib.types; nullOr bool;
+                default = true;
+                description = ''
+                  Enable token persistence for `consul acl set-agent-token`
+                '';
+              };
 
-            downPolicy = mkOption {
-              type =
-                nullOr (enum [ "allow" "deny" "extend-cache" "async-cache" ]);
-              default = "extend-cache";
-              description = ''
-                In the case that a policy or token cannot be read from the
-                primary_datacenter or leader node, the down policy is applied.
-                In "allow" mode, all actions are permitted, "deny" restricts
-                all operations, and "extend-cache" allows any cached objects
-                to be used, ignoring their TTL values. If a non-cached ACL is
-                used, "extend-cache" acts like "deny". The value "async-cache"
-                acts the same way as "extend-cache" but performs updates
-                asynchronously when ACL is present but its TTL is expired,
-                thus, if latency is bad between the primary and secondary
-                datacenters, latency of operations is not impacted.
-              '';
+              downPolicy = lib.mkOption {
+                type =
+                  nullOr (enum [ "allow" "deny" "extend-cache" "async-cache" ]);
+                default = "extend-cache";
+                description = ''
+                  In the case that a policy or token cannot be read from the
+                  primary_datacenter or leader node, the down policy is applied.
+                  In "allow" mode, all actions are permitted, "deny" restricts
+                  all operations, and "extend-cache" allows any cached objects
+                  to be used, ignoring their TTL values. If a non-cached ACL is
+                  used, "extend-cache" acts like "deny". The value "async-cache"
+                  acts the same way as "extend-cache" but performs updates
+                  asynchronously when ACL is present but its TTL is expired,
+                  thus, if latency is bad between the primary and secondary
+                  datacenters, latency of operations is not impacted.
+                '';
+              };
             };
-          };
-        });
+          });
       };
 
-      connect = mkOption {
-        type = submodule {
-          options = {
-            enabled = mkEnableOption "Enable Consul Connect";
+      connect = lib.mkOption {
+        type = with lib.types;
+          submodule {
+            options = {
+              enabled = lib.mkEnableOption "Enable Consul Connect";
 
-            caProvider = mkOption {
-              type = str;
-              default = "consul";
-            };
+              caProvider = lib.mkOption {
+                type = with lib.types; str;
+                default = "consul";
+              };
 
-            caConfig = mkOption {
-              default = null;
-              type = nullOr (submodule {
-                options = {
-                  address = mkOption {
-                    default = null;
-                    type = nullOr str;
-                  };
+              caConfig = lib.mkOption {
+                default = null;
+                type = with lib.types;
+                  nullOr (submodule {
+                    options = {
+                      address = lib.mkOption {
+                        default = null;
+                        type = with lib.types; nullOr str;
+                      };
 
-                  rootPkiPath = mkOption {
-                    default = null;
-                    type = nullOr str;
-                  };
+                      rootPkiPath = lib.mkOption {
+                        default = null;
+                        type = with lib.types; nullOr str;
+                      };
 
-                  intermediatePkiPath = mkOption {
-                    default = null;
-                    type = nullOr str;
-                  };
+                      intermediatePkiPath = lib.mkOption {
+                        default = null;
+                        type = with lib.types; nullOr str;
+                      };
 
-                  privateKey = mkOption {
-                    default = null;
-                    type = nullOr str;
-                  };
+                      privateKey = lib.mkOption {
+                        default = null;
+                        type = with lib.types; nullOr str;
+                      };
 
-                  rootCert = mkOption {
-                    default = null;
-                    type = nullOr str;
-                  };
-                };
-              });
+                      rootCert = lib.mkOption {
+                        default = null;
+                        type = with lib.types; nullOr str;
+                      };
+                    };
+                  });
+              };
             };
           };
-        };
         default = { };
       };
 
-      caFile = mkOption {
-        type = nullOr str;
+      caFile = lib.mkOption {
+        type = with lib.types; nullOr str;
         default = null;
       };
 
-      certFile = mkOption {
-        type = nullOr str;
+      certFile = lib.mkOption {
+        type = with lib.types; nullOr str;
         default = null;
       };
 
-      keyFile = mkOption {
-        type = nullOr str;
+      keyFile = lib.mkOption {
+        type = with lib.types; nullOr str;
         default = null;
       };
 
-      autoEncrypt = mkOption {
-        type = nullOr (submodule {
-          options = {
-            allowTls = mkEnableOption "Allow TLS";
-            tls = mkEnableOption "Enable TLS";
-          };
-        });
+      autoEncrypt = lib.mkOption {
+        type = with lib.types;
+          nullOr (submodule {
+            options = {
+              allowTls = lib.mkEnableOption "Allow TLS";
+              tls = lib.mkEnableOption "Enable TLS";
+            };
+          });
         default = null;
       };
 
-      verifyIncoming = mkEnableOption "Verify incoming conns";
+      verifyIncoming = lib.mkEnableOption "Verify incoming conns";
 
-      verifyOutgoing = mkEnableOption "Verify outgoing conns";
+      verifyOutgoing = lib.mkEnableOption "Verify outgoing conns";
 
-      verifyServerHostname = mkEnableOption "Verify server hostname";
+      verifyServerHostname = lib.mkEnableOption "Verify server hostname";
 
-      ports = mkOption {
+      ports = lib.mkOption {
         default = { };
-        type = submodule {
-          options = {
-            grpc = mkOption {
-              type = nullOr port;
-              default = null;
-            };
+        type = with lib.types;
+          submodule {
+            options = {
+              grpc = lib.mkOption {
+                type = with lib.types; nullOr port;
+                default = null;
+              };
 
-            http = mkOption {
-              type = nullOr port;
-              default = 8500;
-            };
+              http = lib.mkOption {
+                type = with lib.types; nullOr port;
+                default = 8500;
+              };
 
-            https = mkOption {
-              type = nullOr port;
-              default = null;
+              https = lib.mkOption {
+                type = with lib.types; nullOr port;
+                default = null;
+              };
             };
           };
-        };
       };
 
-      tlsMinVersion = mkOption {
-        type = enum [ "tls10" "tls11" "tls12" "tls13" ];
+      tlsMinVersion = lib.mkOption {
+        type = with lib.types; enum [ "tls10" "tls11" "tls12" "tls13" ];
         default = "tls12";
       };
 
-      nodeMeta = mkOption {
-        type = attrsOf str;
+      nodeMeta = lib.mkOption {
+        type = with lib.types; attrsOf str;
         default = { };
       };
 
-      telemetry = mkOption {
+      telemetry = lib.mkOption {
         default = { };
-        type = submodule {
-          options = {
-            dogstatsdAddr = mkOption {
-              type = nullOr str;
-              default = null;
-            };
+        type = with lib.types;
+          submodule {
+            options = {
+              dogstatsdAddr = lib.mkOption {
+                type = with lib.types; nullOr str;
+                default = null;
+              };
 
-            disableHostname = mkOption {
-              type = nullOr bool;
-              default = null;
+              disableHostname = lib.mkOption {
+                type = with lib.types; nullOr bool;
+                default = null;
+              };
             };
           };
-        };
       };
 
-      nodeId = mkOption {
-        type = nullOr str;
+      nodeId = lib.mkOption {
+        type = with lib.types; nullOr str;
         default = null;
       };
 
-      enableDebug = mkOption {
-        type = bool;
+      enableDebug = lib.mkOption {
+        type = with lib.types; bool;
         default = false;
       };
     };
   };
 
-  config = mkIf cfg.enable {
+  config = lib.mkIf cfg.enable {
     environment.systemPackages = [ cfg.package ];
 
     environment.variables = { CONSUL_HTTP_ADDR = "http://127.0.0.1:8500"; };
@@ -412,8 +415,8 @@ in {
       wantedBy = [ "multi-user.target" ];
       after = [ "network.target" ];
 
-      restartTriggers = mapAttrsToList (_: d: d.source)
-        (filterAttrs (n: _: hasPrefix "${cfg.configDir}/" n)
+      restartTriggers = lib.mapAttrsToList (_: d: d.source)
+        (lib.filterAttrs (n: _: lib.hasPrefix "${cfg.configDir}/" n)
           config.environment.etc);
 
       path = with pkgs; [ envoy ];
@@ -421,7 +424,7 @@ in {
       serviceConfig = let
         preScript = let
           start-pre = pkgs.writeShellScriptBin "consul-start-pre" ''
-            PATH="${makeBinPath [ pkgs.coreutils ]}"
+            PATH="${lib.makeBinPath [ pkgs.coreutils ]}"
             set -exuo pipefail
             cp /etc/ssl/certs/cert-key.pem .
             chown --reference . --recursive .
@@ -431,7 +434,7 @@ in {
         postScript = let
           start-post = pkgs.writeShellScriptBin "consul-start-post" ''
             set -exuo pipefail
-            PATH="${makeBinPath [ pkgs.jq cfg.package pkgs.coreutils ]}"
+            PATH="${lib.makeBinPath [ pkgs.jq cfg.package pkgs.coreutils ]}"
             set +x
 
             # During bootstrap the vault generated token are not yet available
@@ -460,7 +463,7 @@ in {
         reloadScript = let
           reload = pkgs.writeShellScriptBin "consul-reload" ''
             set -exuo pipefail
-            PATH="${makeBinPath [ pkgs.jq cfg.package pkgs.coreutils ]}"
+            PATH="${lib.makeBinPath [ pkgs.jq cfg.package pkgs.coreutils ]}"
             set +x
 
             # During bootstrap the vault generated token are not yet available

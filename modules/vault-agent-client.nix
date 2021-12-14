@@ -1,6 +1,5 @@
 { config, lib, pkgs, pkiFiles, ... }:
 let
-  inherit (lib) mkIf mkEnableOption flip mapAttrsToList concatStringsSep;
   inherit (pkgs) writeShellScript;
   inherit (config.cluster) region domain;
 
@@ -27,9 +26,9 @@ let
     ttl = "700h";
   };
 
-  pkiArgs = flip mapAttrsToList pkiAttrs (name: value:
+  pkiArgs = lib.flip lib.mapAttrsToList pkiAttrs (name: value:
     if builtins.isList value then
-      ''"${name}=${concatStringsSep "," value}"''
+      ''"${name}=${lib.concatStringsSep "," value}"''
     else
       ''"${name}=${toString value}"'');
 
@@ -37,10 +36,10 @@ let
 in {
   options = {
     services.vault-agent-client = {
-      enable = mkEnableOption "Start vault-agent for clients";
+      enable = lib.mkEnableOption "Start vault-agent for clients";
       disableTokenRotation = lib.mkOption {
         default = { };
-        type = lib.types.submodule {
+        type = with lib.types; submodule {
           options = {
             consulAgent = lib.mkEnableOption
               "Disable consul agent token rotation on vault-agent-client nodes";
@@ -52,7 +51,7 @@ in {
     };
   };
 
-  config = mkIf config.services.vault-agent-client.enable {
+  config = lib.mkIf config.services.vault-agent-client.enable {
     environment.variables.VAULT_ADDR = "http://127.0.0.1:8200";
     services.vault-agent = {
       enable = true;
@@ -126,7 +125,7 @@ in {
             "${pkgs.systemd}/bin/systemctl try-restart certs-updated.service";
         };
 
-        "/etc/consul.d/tokens.json" = mkIf config.services.consul.enable {
+        "/etc/consul.d/tokens.json" = lib.mkIf config.services.consul.enable {
           contents = ''
             {
               "encrypt": "{{ with secret "kv/bootstrap/clients/consul" }}{{ .Data.data.encrypt }}{{ end }}",
@@ -142,15 +141,17 @@ in {
           command = "${pkgs.systemd}/bin/systemctl try-restart consul";
         };
 
-        "/run/keys/consul-default-token" = mkIf config.services.consul.enable {
-          contents = ''
-            ${consulDefaultToken}
-          '';
+        "/run/keys/consul-default-token" =
+          lib.mkIf config.services.consul.enable {
+            contents = ''
+              ${consulDefaultToken}
+            '';
 
-          command = "${pkgs.systemd}/bin/systemctl try-restart consul.service";
-        };
+            command =
+              "${pkgs.systemd}/bin/systemctl try-restart consul.service";
+          };
 
-        "/run/keys/nomad-consul-token" = mkIf config.services.nomad.enable {
+        "/run/keys/nomad-consul-token" = lib.mkIf config.services.nomad.enable {
           contents = ''
             ${consulDefaultToken}
           '';
@@ -158,32 +159,33 @@ in {
           command = "${pkgs.systemd}/bin/systemctl try-restart nomad.service";
         };
 
-        "/etc/vault.d/consul-token.json" = mkIf config.services.vault.enable {
-          contents = ''
-            {{ with secret "consul/creds/vault-client" }}
-            {
-              "storage": {
-                "consul": {
-                  "token": "{{ .Data.token }}",
-                  "address": "127.0.0.1:8500",
-                  "tlsCaFile": pkiFiles.caCertFile,
-                  "tlsCertFile": pkiFiles.certChainFile,
-                  "tlsKeyFile": "/var/lib/vault/cert-key.pem"
-                }
-              },
-              "service_registration": {
-                "consul": {
-                  "token": "{{ .Data.token }}",
-                  "address": "127.0.0.1:8500",
+        "/etc/vault.d/consul-token.json" =
+          lib.mkIf config.services.vault.enable {
+            contents = ''
+              {{ with secret "consul/creds/vault-client" }}
+              {
+                "storage": {
+                  "consul": {
+                    "token": "{{ .Data.token }}",
+                    "address": "127.0.0.1:8500",
+                    "tlsCaFile": pkiFiles.caCertFile,
+                    "tlsCertFile": pkiFiles.certChainFile,
+                    "tlsKeyFile": "/var/lib/vault/cert-key.pem"
+                  }
+                },
+                "service_registration": {
+                  "consul": {
+                    "token": "{{ .Data.token }}",
+                    "address": "127.0.0.1:8500",
+                  }
                 }
               }
-            }
-            {{ end }}
-          '';
+              {{ end }}
+            '';
 
-          command =
-            "${pkgs.systemd}/bin/systemctl try-reload-or-restart vault.service";
-        };
+            command =
+              "${pkgs.systemd}/bin/systemctl try-reload-or-restart vault.service";
+          };
       };
     };
 

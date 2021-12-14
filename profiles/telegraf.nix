@@ -1,7 +1,5 @@
 { pkgs, config, lib, pkiFiles, ... }:
-let
-  inherit (config.cluster) region instances;
-  inherit (lib) optional optionalAttrs;
+let inherit (config.cluster) region instances;
 in {
   systemd.services.telegraf.path = with pkgs; [ procps ];
 
@@ -80,10 +78,10 @@ in {
               toString config.services.traefik.prometheusPort
             }/metrics";
         in {
-          urls = optional config.services.promtail.enable promtail
-            ++ optional config.services.loki.enable loki
-            ++ optional config.services.nomad-autoscaler.enable autoscaling
-            ++ optional config.services.traefik.enable traefik;
+          urls = lib.optional config.services.promtail.enable promtail
+            ++ lib.optional config.services.loki.enable loki
+            ++ lib.optional config.services.nomad-autoscaler.enable autoscaling
+            ++ lib.optional config.services.traefik.enable traefik;
           metric_version = 2;
         };
 
@@ -118,9 +116,9 @@ in {
           address = "localhost:8500";
           scheme = "http";
         };
-      } // (optionalAttrs config.services.ingress.enable {
+      } // (lib.optionalAttrs config.services.ingress.enable {
         haproxy = { servers = [ "http://127.0.0.1:1936/haproxy?stats" ]; };
-      }) // (optionalAttrs config.services.vulnix.enable {
+      }) // (lib.optionalAttrs config.services.vulnix.enable {
         http_listener_v2 = {
           service_address = ":8008";
           path = "/vulnix";

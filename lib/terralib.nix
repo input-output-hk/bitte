@@ -1,7 +1,5 @@
 { nixpkgs, lib }:
 let
-  inherit (builtins) attrValues fromJSON toJSON trace mapAttrs genList foldl';
-
   nullRoute' = {
     egress_only_gateway_id = null;
     instance_id = null;
@@ -18,9 +16,9 @@ in rec {
 
   var = v: "\${${v}}";
   id = v: var "${v}.id";
-  pp = v: trace (toJSON v) v;
+  pp = v: builtins.trace (builtins.toJSON v) v;
 
-  readJSON = file: fromJSON (lib.fileContents file);
+  readJSON = file: builtins.fromJSON (lib.fileContents file);
   sops2kms = file: (lib.elemAt (readJSON file).sops.kms 0).arn;
   sops2region = file: lib.elemAt (lib.splitString ":" (sops2kms file)) 3;
 

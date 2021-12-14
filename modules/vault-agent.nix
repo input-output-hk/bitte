@@ -2,25 +2,25 @@
 let
   cfg = config.services.vault-agent;
 
-  templateType = lib.types.submodule ({ name, ... }: {
+  templateType = with lib.types; submodule ({ name, ... }: {
     options = {
       destination = lib.mkOption {
-        type = lib.types.str;
+        type = with lib.types; str;
         default = name;
       };
-      contents = lib.mkOption { type = lib.types.str; };
+      contents = lib.mkOption { type = with lib.types; str; };
       command = lib.mkOption {
-        type = lib.types.nullOr lib.types.str;
+        type = with lib.types; nullOr str;
         default = null;
       };
     };
   });
 
-  listenerType = lib.types.submodule {
+  listenerType = with lib.types; submodule {
     options = {
-      type = lib.mkOption { type = lib.types.str; };
-      address = lib.mkOption { type = lib.types.str; };
-      tlsDisable = lib.mkOption { type = lib.types.bool; };
+      type = lib.mkOption { type = with lib.types; str; };
+      address = lib.mkOption { type = with lib.types; str; };
+      tlsDisable = lib.mkOption { type = with lib.types; bool; };
     };
   };
 
@@ -28,29 +28,29 @@ in {
   options.services.vault-agent = {
     enable = lib.mkEnableOption "Enable the vault-agent";
 
-    role = lib.mkOption { type = lib.types.enum [ "client" "core" ]; };
+    role = lib.mkOption { type = with lib.types; enum [ "client" "core" ]; };
 
     vaultAddress = lib.mkOption {
-      type = lib.types.str;
+      type = with lib.types; str;
       default = "https://active.vault.service.consul:8200";
     };
 
     autoAuthMethod = lib.mkOption {
-      type = lib.types.enum [ "aws" "cert" ];
+      type = with lib.types; enum [ "aws" "cert" ];
       default = "aws";
     };
 
     autoAuthConfig = lib.mkOption {
-      type = lib.types.attrsOf lib.types.str;
+      type = with lib.types; attrsOf str;
       default = { };
     };
 
     cache = lib.mkOption {
       default = { };
-      type = lib.types.submodule {
+      type = with lib.types; submodule {
         options = {
           useAutoAuthToken = lib.mkOption {
-            type = lib.types.bool;
+            type = with lib.types; bool;
             default = true;
           };
         };
@@ -58,11 +58,11 @@ in {
     };
 
     listener = lib.mkOption {
-      type = lib.types.listOf listenerType;
+      type = with lib.types; listOf listenerType;
       default = [ ];
     };
 
-    templates = lib.mkOption { type = lib.types.attrsOf templateType; };
+    templates = lib.mkOption { type = with lib.types; attrsOf templateType; };
   };
 
   config = lib.mkIf cfg.enable {

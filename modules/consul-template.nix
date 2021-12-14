@@ -1,36 +1,34 @@
 { lib, pkgs, config, ... }:
 let
-  inherit (lib) mkOption mkIf mkMerge mapAttrsToList mkEnableOption;
-  inherit (lib.types) submodule str package attrsOf bool enum attrs;
-
   cfg = config.services.consul-templates;
 
-  templateType = submodule {
+  templateType = with lib.types; submodule {
     options = {
-      enable = mkOption {
-        type = bool;
+      enable = lib.mkOption {
+        type = with lib.types; bool;
         default = true;
       };
 
-      logLevel = mkOption {
-        type = enum [ "debug" "info" "warn" "err" ];
+      logLevel = lib.mkOption {
+        type = with lib.types; enum [ "debug" "info" "warn" "err" ];
         default = "info";
       };
 
-      policies = mkOption {
-        type = attrs;
+      policies = lib.mkOption {
+        type = with lib.types; attrs;
         default = { };
       };
 
-      source = mkOption {
-        type = str;
+      source = lib.mkOption {
+        type = with lib.types; str;
         description = ''
           The template in https://golang.org/pkg/text/template/ syntax.
         '';
       };
 
-      target = mkOption {
-        type = str; # doesn't make much sense to have path type here i think.
+      target = lib.mkOption {
+        type = with lib.types;
+          str; # doesn't make much sense to have path type here i think.
         description = ''
           Path where the output of template application will end up.
         '';
@@ -41,32 +39,33 @@ let
 in {
 
   options.services.consul-templates = {
-    enable = mkEnableOption "Enable consul-template services";
+    enable = lib.mkEnableOption "Enable consul-template services";
 
-    package = mkOption {
-      type = package;
+    package = lib.mkOption {
+      type = with lib.types; package;
       default = pkgs.consul-template;
     };
 
-    templates = mkOption {
-      type = attrsOf templateType;
+    templates = lib.mkOption {
+      type = with lib.types; attrsOf templateType;
       default = { };
     };
   };
 
-  config.services.consul.policies = mkMerge (mapAttrsToList (name: value:
-    let
-      sourceFile = pkgs.writeText "${name}.tpl" value.source;
-      ctName = "ct-${name}";
-    in { ${ctName} = mkIf (cfg.enable && value.enable) value.policies; })
+  config.services.consul.policies = lib.mkMerge (lib.mapAttrsToList
+    (name: value:
+      let
+        sourceFile = pkgs.writeText "${name}.tpl" value.source;
+        ctName = "ct-${name}";
+      in { ${ctName} = lib.mkIf (cfg.enable && value.enable) value.policies; })
     cfg.templates);
 
-  config.systemd.services = mkMerge (mapAttrsToList (name: value:
+  config.systemd.services = lib.mkMerge (lib.mapAttrsToList (name: value:
     let
       sourceFile = pkgs.writeText "${name}.tpl" value.source;
       ctName = "ct-${name}";
     in {
-      ${ctName} = mkIf (cfg.enable && value.enable) {
+      ${ctName} = lib.mkIf (cfg.enable && value.enable) {
         after =
           [ "consul.service" "consul-acl.service" "network-online.target" ];
         wantedBy = [ "multi-user.target" ];
