@@ -6,10 +6,13 @@
     nixpkgs-terraform.url =
       "github:input-output-hk/nixpkgs/iohk-terraform-2021-06";
     utils.url = "github:kreisys/flake-utils";
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     bitte-cli.url = "github:input-output-hk/bitte-cli";
     hydra.url = "github:kreisys/hydra/hydra-server-includes";
     hydra-provisioner.url = "github:input-output-hk/hydra-provisioner";
     deploy.url = "github:serokell/deploy-rs";
+    agenix.url = "github:ryantm/agenix";
+    agenix-cli.url = "github:cole-h/agenix-cli";
     ops-lib = {
       url = "github:input-output-hk/ops-lib";
       flake = false;

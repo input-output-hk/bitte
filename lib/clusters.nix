@@ -1,4 +1,4 @@
-{ self, pkgs, system, lib, root, ... }:
+{ self, pkgs, system ? pkgs.system, lib, root, ... }:
 
 let
   inherit (builtins) attrNames readDir mapAttrs;
@@ -47,9 +47,8 @@ in listToAttrs (forEach clusterFiles (file:
 
     inherit (proto.config) tf;
 
-    nodes = mapAttrs (name: instance:
-      mkSystem name
-      ([ { networking.hostName = mkForce name; } file ] ++ instance.modules))
+    nodes =
+      mapAttrs (name: instance: mkSystem name ([ file ] ++ instance.modules))
       proto.config.cluster.instances;
 
     groups =
@@ -59,7 +58,7 @@ in listToAttrs (forEach clusterFiles (file:
     # All data used by the CLI should be exported here.
     topology = {
       nodes = flip mapAttrs proto.config.cluster.instances (name: node: {
-        inherit (proto.config.cluster) kms region;
+        inherit (proto.config.cluster) region;
         inherit (node) name privateIP instanceType;
       });
       groups = attrNames groups;

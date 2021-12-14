@@ -25,6 +25,20 @@ in final: prev: {
     ];
   });
 
+  bitte-tests = final.callPackage ./tests { inherit inputs; };
+
+  fetch-ssh-keys = final.callPackage ./pkgs/fetch-ssh-keys.nix { };
+
+  inherit (inputs.agenix.packages.${final.system}) agenix;
+
+  agenix-cli = inputs.agenix-cli.packages.${final.system}.agenix;
+
+  bitte-ruby = prev.bundlerEnv {
+    inherit (prev) ruby;
+    name = "bitte-gems";
+    gemdir = ./.;
+  };
+
   consul = prev.callPackage ./pkgs/consul { };
 
   cue = prev.callPackage ./pkgs/cue.nix { };

@@ -239,20 +239,27 @@ in {
 
     seal = lib.mkOption {
       type = with lib.types;
-        submodule {
+        nullOr (submodule {
           options = {
             awskms = lib.mkOption {
+              default = { };
               type = with lib.types;
                 submodule {
                   options = {
-                    kmsKeyId = lib.mkOption { type = with lib.types; str; };
-                    region = lib.mkOption { type = with lib.types; str; };
+                    kmsKeyId = lib.mkOption {
+                      type = with lib.types; nullOr str;
+                      default = null;
+                    };
+                    region = lib.mkOption {
+                      type = with lib.types; nullOr str;
+                      default = null;
+                    };
                   };
                 };
             };
           };
-        };
-      default = { };
+        });
+      default = null;
     };
 
     serviceRegistration = lib.mkOption {
@@ -301,6 +308,11 @@ in {
         submodule {
           options = {
             dogstatsdAddr = lib.mkOption {
+              disableHostname = lib.mkOption {
+                type = with lib.types; nullOr bool;
+                default = null;
+              };
+
               type = with lib.types; nullOr str;
               default = null;
             };
@@ -332,7 +344,7 @@ in {
 
     systemd.services.vault = {
       wantedBy = [ "multi-user.target" ];
-      after = [ "network.target" "consul.service" ];
+      after = [ "network.target" ];
 
       restartTriggers = lib.mapAttrsToList (_: d: d.source)
         (lib.filterAttrs (n: _: lib.hasPrefix "${cfg.configDir}" n)
@@ -348,7 +360,6 @@ in {
         preScript = pkgs.writeShellScriptBin "vault-start-pre" ''
           export PATH="${lib.makeBinPath [ pkgs.coreutils ]}"
           set -exuo pipefail
-          cp /etc/ssl/certs/cert-key.pem .
           chown --reference . --recursive .
         '';
 
@@ -383,82 +394,6 @@ in {
         RestartSec = "10s";
         Restart = "on-failure";
       };
-    };
-
-    systemd.services.vault-consul-token =
-      lib.mkIf config.services.vault-consul-token.enable {
-        after = [ "consul.service" ];
-        wantedBy = [ "vault.service" ];
-        before = [ "vault.service" ];
-        description = "provide a consul token for bootstrapping";
-
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = true;
-          Restart = "on-failure";
-          RestartSec = "20s";
-          ExecStartPre = pkgs.ensureDependencies [ "consul" ];
-        };
-
-        path = with pkgs; [ consul curl jq ];
-
-        script = ''
-          set -exuo pipefail
-
-          [ -s /etc/vault.d/consul-token.json ] && exit
-          [ -s /etc/consul.d/secrets.json ]
-          jq -e .acl.tokens.master /etc/consul.d/secrets.json || exit
-
-          CONSUL_HTTP_TOKEN="$(jq -e -r .acl.tokens.master /etc/consul.d/secrets.json)"
-          export CONSUL_HTTP_TOKEN
-
-          vaultToken="$(
-            consul acl token create \
-              -policy-name=vault-server \
-              -description "vault-server ${nodeName} $(date +%Y-%m-%d-%H-%M-%S)" \
-              -format json \
-            | jq -e -r .SecretID
-          )"
-
-          ${if ((lib.hasAttrByPath [ "storage" "raft" "retryJoin" ] cfg)
-            && (cfg.storage.raft.retryJoin != [ ])) then ''
-              echo '{}' \
-              | jq --arg token "$vaultToken" '.service_registration.consul.token = $token' \
-              > /etc/vault.d/consul-token.json.new
-            '' else ''
-              echo '{}' \
-              | jq --arg token "$vaultToken" '.storage.consul.token = $token' \
-              | jq --arg token "$vaultToken" '.service_registration.consul.token = $token' \
-              > /etc/vault.d/consul-token.json.new
-            ''}
-
-          mv /etc/vault.d/consul-token.json.new /etc/vault.d/consul-token.json
-        '';
-      };
-
-    systemd.services.vault-aws-addr = {
-      wantedBy = [ "vault.service" ];
-      before = [ "vault.service" ];
-
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        Restart = "on-failure";
-        RestartSec = "20s";
-        ExecStartPre = pkgs.ensureDependencies [ "consul" ];
-      };
-
-      path = with pkgs; [ curl jq ];
-
-      script = ''
-        set -exuo pipefail
-
-        ip="$(curl -f -s http://169.254.169.254/latest/meta-data/local-ipv4)"
-        addr="https://$ip"
-        echo '{"cluster_addr": "'"$addr:8201"'", "api_addr": "'"$addr:8200"'"}' \
-        | jq -S . \
-        > /etc/vault.d/address.json
-      '';
     };
   };
 }

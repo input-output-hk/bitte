@@ -50,6 +50,10 @@ let
 
   createNomadRoles = lib.flip lib.mapAttrsToList config.services.nomad.policies
     (name: policy: ''vault write "nomad/role/${name}" "policies=${name}"'');
+
+  createConsulRoles =
+    map (name: ''vault write "consul/roles/${name}" "policies=${name}"'')
+    (builtins.attrNames config.services.consul.policies);
 in {
   options = {
     services.vault.policies = lib.mkOption {
@@ -63,7 +67,7 @@ in {
   # TODO: also remove them again.
   config.systemd.services.vault-acl =
     lib.mkIf config.services.vault-acl.enable {
-      after = [ "vault.service" "vault-bootstrap.service" ];
+      after = [ "vault.service" ];
       wantedBy = [ "multi-user.target" ];
       description = "Service that creates all Vault policies.";
 
@@ -73,12 +77,16 @@ in {
         Restart = "on-failure";
         RestartSec = "20s";
         WorkingDirectory = "/var/lib/vault";
-        ExecStartPre = pkgs.ensureDependencies [ "vault-bootstrap" "vault" ];
+        ExecStartPre = pkgs.ensureDependencies [ "vault" ];
       };
 
       environment = {
         inherit (config.environment.variables)
-          AWS_DEFAULT_REGION VAULT_CACERT VAULT_ADDR VAULT_FORMAT NOMAD_ADDR;
+          AWS_DEFAULT_REGION VAULT_FORMAT NOMAD_ADDR;
+        VAULT_ADDR = "https://127.0.0.1:8200";
+        VAULT_CACERT = config.age.secrets.vault-full.path;
+        VAULT_CLIENT_KEY = config.age.secrets.vault-client-key.path;
+        VAULT_CLIENT_CERT = config.age.secrets.vault-client.path;
       };
 
       path = with pkgs; [ vault-bin sops jq nomad curl cacert ];
@@ -86,9 +94,10 @@ in {
       script = ''
         set -euo pipefail
 
-        VAULT_TOKEN="$(sops -d --extract '["root_token"]' vault.enc.json)"
+        res="$(vault login -method cert -no-store)"
+        echo "Our vault token uses $(echo "$res" | jq .auth.policies)"
+        VAULT_TOKEN="$(echo "$res" | jq -e -r .auth.client_token)"
         export VAULT_TOKEN
-        export VAULT_ADDR=https://127.0.0.1:8200
 
         # Vault Policies
 
@@ -110,13 +119,28 @@ in {
           done
 
           if [ -z "$keep" ]; then
+            echo "Delete policy $name"
             vault policy delete "$name"
           fi
         done
 
+        # Consul Policies
+
+        res="$(vault login -method cert -no-store)"
+        echo "Our vault token uses $(echo "$res" | jq .auth.policies)"
+        VAULT_TOKEN="$(echo "$res" | jq -e -r .auth.client_token)"
+        export VAULT_TOKEN
+
+        echo "linking Consul roles into Vault..."
+        set -x
+        ${builtins.concatStringsSep "\n" createConsulRoles}
+        set +x
+
         # Nomad Policies
 
-        ${lib.concatStringsSep "\n" createNomadRoles}
+        set -x
+        ${builtins.concatStringsSep "\n" createNomadRoles}
+        set +x
 
         keepNames=(${
           toString (builtins.attrNames config.services.nomad.policies)
@@ -132,6 +156,7 @@ in {
           done
 
           if [ -z "$keep" ]; then
+            echo "Delete vault nomad role $role"
             vault delete "nomad/role/$role"
           fi
         done

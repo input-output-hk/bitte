@@ -273,7 +273,7 @@ in {
         set -euo pipefail
 
         CONSUL_HTTP_TOKEN="$(
-          jq -e -r '.acl.tokens.master' < /etc/consul.d/secrets.json
+          jq -e -r '.acl.tokens.master' < /etc/consul.d/token-master.json
         )"
         export CONSUL_HTTP_TOKEN
 

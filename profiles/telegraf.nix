@@ -4,7 +4,7 @@ in {
   systemd.services.telegraf.path = with pkgs; [ procps ];
 
   services.telegraf = {
-    enable = true;
+    enable = lib.mkDefault true;
 
     extraConfig = {
       agent = {

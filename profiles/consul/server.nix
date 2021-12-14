@@ -7,7 +7,7 @@ in {
 
   services.consul = {
     bootstrapExpect = 3;
-    addresses = { http = "${instance.privateIP} 127.0.0.1"; };
+    addresses.http = lib.mkDefault "${instance.privateIP} 127.0.0.1";
     # autoEncrypt = {
     #   allowTls = true;
     #   tls = true;

@@ -15,9 +15,12 @@
     file
     gitMinimal
     htop
+    inetutils
+    iptables
     jq
     lsof
     ncdu
+    nettools
     openssl
     ripgrep
     tcpdump

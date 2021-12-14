@@ -424,7 +424,6 @@ in {
           start-pre = pkgs.writeShellScriptBin "consul-start-pre" ''
             PATH="${lib.makeBinPath [ pkgs.coreutils ]}"
             set -exuo pipefail
-            cp /etc/ssl/certs/cert-key.pem .
             chown --reference . --recursive .
           '';
         in "!${start-pre}/bin/consul-start-pre";
@@ -450,7 +449,6 @@ in {
             export CONSUL_HTTP_TOKEN
             set -x
             cd /var/lib/consul/
-            cp /etc/ssl/certs/cert-key.pem .
             chown --reference . --recursive .
             consul reload
           '';

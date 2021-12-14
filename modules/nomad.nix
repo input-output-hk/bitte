@@ -1119,7 +1119,6 @@ in {
         start-pre = pkgs.writeShellScript "nomad-start-pre" ''
           PATH="${lib.makeBinPath [ pkgs.coreutils pkgs.busybox ]}"
           set -exuo pipefail
-          # ${pkgs.ensureDependencies [ "consul" "vault" ]}
           cp /etc/ssl/certs/cert-key.pem .
           cp /run/keys/vault-token .
           ${lib.optionalString config.services.vault-agent-core.enable ''

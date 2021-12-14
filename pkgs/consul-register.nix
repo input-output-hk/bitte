@@ -50,9 +50,9 @@ in rec {
 
     environment = {
       VAULT_ADDR = "https://127.0.0.1:8200";
-      VAULT_CACERT = "/etc/ssl/certs/full.pem";
+      VAULT_CACERT = config.age.secrets.vault-ca.path;
       CONSUL_HTTP_ADDR = "127.0.0.1:8500";
-      CONSUL_CACERT = "/etc/ssl/certs/full.pem";
+      CONSUL_CACERT = config.age.secrets.consul-ca.path;
     };
 
     serviceConfig = {

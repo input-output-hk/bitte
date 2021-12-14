@@ -1,11 +1,5 @@
 { lib, pkgs, config, nodeName, ... }:
-let
-  inherit (config.cluster) name region domain kms instances;
-
-  full = "/etc/ssl/certs/full.pem";
-  ca = "/etc/ssl/certs/ca.pem";
-  cert = "/etc/ssl/certs/cert.pem";
-  key = "/var/lib/nomad/cert-key.pem";
+let inherit (config.cluster) name region domain kms instances;
 in {
   environment.variables = {
     NOMAD_ADDR =
@@ -31,17 +25,17 @@ in {
     tls = {
       http = true;
       rpc = true;
-      ca_file = full;
-      cert_file = cert;
-      key_file = key;
+      ca_file = config.age.secrets.nomad-ca.path;
+      cert_file = config.age.secrets.nomad-server.path;
+      key_file = config.age.secrets.nomad-server-key.path;
       tls_min_version = "tls12";
     };
 
     vault = {
       enabled = true;
-      # ca_file = full;
-      # cert_file = cert;
-      # key_file = key;
+      ca_file = config.age.secrets.nomad-ca.path;
+      cert_file = config.age.secrets.nomad-client.path;
+      key_file = config.age.secrets.nomad-client-key.path;
       create_from_role = "nomad-cluster";
     };
 

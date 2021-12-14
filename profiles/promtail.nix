@@ -1,1 +1,1 @@
-_: { services.promtail.enable = true; }
+{ lib, ... }: { services.promtail.enable = lib.mkDefault true; }
