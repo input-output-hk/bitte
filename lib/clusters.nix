@@ -45,7 +45,7 @@ in listToAttrs (forEach clusterFiles (file:
       specialArgs = { inherit self; };
     };
 
-    tf = proto.config.tf;
+    inherit (proto.config) tf;
 
     nodes = mapAttrs (name: instance:
       mkSystem name

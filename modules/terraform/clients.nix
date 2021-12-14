@@ -20,10 +20,10 @@ in {
     output.cluster = {
       value = {
         flake = toString config.cluster.flakePath;
-        kms = config.cluster.kms;
-        name = config.cluster.name;
+        inherit (config.cluster) kms;
+        inherit (config.cluster) name;
         nix = pkgs.nixFlakes;
-        region = config.cluster.region;
+        inherit (config.cluster) region;
         s3-bucket = config.cluster.s3Bucket;
         s3-cache = config.cluster.s3Cache;
 
@@ -36,11 +36,11 @@ in {
               "nixosConfigurations.${server.uid}.config.system.build.toplevel";
             instance-type =
               var "data.aws_instance.${server.name}.instance_type";
-            name = server.name;
+            inherit (server) name;
             private-ip = var "data.aws_instance.${server.name}.private_ip";
             public-ip = var "data.aws_instance.${server.name}.public_ip";
-            tags = server.tags;
-            uid = server.uid;
+            inherit (server) tags;
+            inherit (server) uid;
           });
 
         asgs = lib.flip lib.mapAttrs config.cluster.autoscalingGroups
@@ -49,9 +49,9 @@ in {
               "nixosConfigurations.${group.uid}.config.system.build.toplevel";
             instance-type =
               var "aws_launch_configuration.${group.uid}.instance_type";
-            uid = group.uid;
+            inherit (group) uid;
             arn = var "aws_autoscaling_group.${group.uid}.arn";
-            region = group.region;
+            inherit (group) region;
             count = group.desiredCapacity;
           });
       };
@@ -65,8 +65,8 @@ in {
         }];
       });
 
-    provider.aws = [{ region = config.cluster.region; }] ++ (lib.forEach regions
-      (region: {
+    provider.aws = [{ inherit (config.cluster) region; }]
+      ++ (lib.forEach regions (region: {
         inherit region;
         alias = awsProviderNameFor region;
       }));
@@ -148,7 +148,7 @@ in {
       lib.flip lib.mapAttrs' config.cluster.autoscalingGroups (name: group:
         lib.nameValuePair group.uid {
           name = group.uid;
-          path = group.iam.instanceProfile.path;
+          inherit (group.iam.instanceProfile) path;
           role = group.iam.instanceProfile.role.tfDataName;
           lifecycle = [{ create_before_destroy = true; }];
         });
@@ -156,8 +156,8 @@ in {
     data.aws_iam_role = lib.flip lib.mapAttrs' config.cluster.iam.roles
       (roleName: role: lib.nameValuePair role.uid { name = role.uid; });
 
-    resource.aws_key_pair = lib.mkIf (config.cluster.generateSSHKey)
-      (lib.listToAttrs ((let
+    resource.aws_key_pair = lib.mkIf config.cluster.generateSSHKey
+      (lib.listToAttrs (let
         usedRegions = lib.unique
           ((lib.forEach (builtins.attrValues config.cluster.autoscalingGroups)
             (group: group.region)) ++ [ config.cluster.region ]);
@@ -166,7 +166,7 @@ in {
           provider = awsProviderFor region;
           key_name = "${config.cluster.name}-${region}";
           public_key = var ''file("secrets/ssh-${config.cluster.name}.pub")'';
-        }))));
+        })));
 
     resource.aws_security_group =
       lib.flip lib.mapAttrsToList config.cluster.autoscalingGroups

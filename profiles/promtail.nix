@@ -1,1 +1,1 @@
-{ ... }: { services.promtail.enable = true; }
+_: { services.promtail.enable = true; }

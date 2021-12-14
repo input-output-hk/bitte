@@ -73,7 +73,8 @@ let
             {{ end }}{{ end }}
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart certs-updated.service";
+          command =
+            "${pkgs.systemd}/bin/systemctl try-reload-or-restart certs-updated.service";
         };
       }
 
@@ -87,7 +88,8 @@ let
             {{ end }}{{ end }}
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart certs-updated.service";
+          command =
+            "${pkgs.systemd}/bin/systemctl try-reload-or-restart certs-updated.service";
         };
       }
 
@@ -99,7 +101,8 @@ let
             {{ with secret ${pkiSecret} }}{{ .Data.private_key }}{{ end }}
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart certs-updated.service";
+          command =
+            "${pkgs.systemd}/bin/systemctl try-reload-or-restart certs-updated.service";
         };
       }
 
@@ -123,7 +126,8 @@ let
             }
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart consul";
+          command =
+            "${pkgs.systemd}/bin/systemctl try-reload-or-restart consul";
         };
       })
 
@@ -135,7 +139,8 @@ let
             {{ with secret "consul/creds/consul-default" }}{{ .Data.token }}{{ end }}
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart consul.service";
+          command =
+            "${pkgs.systemd}/bin/systemctl try-reload-or-restart consul.service";
         };
       })
 
@@ -165,7 +170,8 @@ let
             {{ end }}
           '';
 
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart vault.service";
+          command =
+            "${pkgs.systemd}/bin/systemctl try-reload-or-restart vault.service";
         };
       })
 

@@ -2,7 +2,7 @@
 
 with lib;
 
-let poolName = config.zfs.poolName;
+let inherit (config.zfs) poolName;
 in {
   options = {
     zfs.poolName = mkOption {

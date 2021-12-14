@@ -47,7 +47,7 @@ let
 
   cfg = config.cluster;
 
-  clusterType = submodule ({ ... }: {
+  clusterType = submodule (_: {
     options = {
       name = mkOption { type = str; };
 
@@ -146,7 +146,7 @@ let
       vpc = mkOption {
         type = vpcType cfg.name;
         default = {
-          region = cfg.region;
+          inherit (cfg) region;
 
           cidr = "172.16.0.0/16";
 
@@ -247,7 +247,7 @@ let
       };
     }));
 
-  iamRoleAssumePolicyType = submodule ({ ... }@this: {
+  iamRoleAssumePolicyType = submodule (this: {
     options = {
       tfJson = mkOption {
         type = str;
@@ -277,7 +277,7 @@ let
   iamRolePrincipalsType =
     submodule { options = { service = mkOption { type = str; }; }; };
 
-  initialVaultSecretsType = submodule ({ ... }@this: {
+  initialVaultSecretsType = submodule (this: {
     options = {
       consul = mkOption {
         type = str;
@@ -290,7 +290,7 @@ let
     };
   });
 
-  certificateType = submodule ({ ... }@this: {
+  certificateType = submodule (this: {
     options = {
       organization = mkOption {
         type = str;
@@ -365,7 +365,7 @@ let
     });
 
   vpcType = prefix:
-    (submodule ({ ... }@this: {
+    (submodule (this: {
       options = {
         name = mkOption {
           type = str;
@@ -667,7 +667,7 @@ let
         type = vpcType this.config.uid;
         default = let base = toString (vpcMap.${this.config.region} * 4);
         in {
-          region = this.config.region;
+          inherit (this.config) region;
 
           cidr = "10.${base}.0.0/16";
 

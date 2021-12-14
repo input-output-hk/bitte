@@ -27,7 +27,7 @@ let
       json2hcl < "$src" > "$out"
     '';
 
-  vaultPolicyOptionsType = submodule ({ ... }: {
+  vaultPolicyOptionsType = submodule (_: {
     options = {
       capabilities = mkOption {
         type =
@@ -36,7 +36,7 @@ let
     };
   });
 
-  vaultApproleType = submodule ({ ... }: {
+  vaultApproleType = submodule (_: {
     options = {
       token_ttl = mkOption { type = str; };
       token_max_ttl = mkOption { type = str; };
@@ -44,7 +44,7 @@ let
     };
   });
 
-  vaultPoliciesType = submodule ({ ... }: {
+  vaultPoliciesType = submodule (_: {
     options = { path = mkOption { type = attrsOf vaultPolicyOptionsType; }; };
   });
 

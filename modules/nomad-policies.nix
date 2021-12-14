@@ -116,12 +116,12 @@ let
   policyJson = policy:
     sanitize {
       host_volume = flip mapAttrs policy.hostVolume (name: value: {
-        policy = value.policy;
-        capabilities = value.capabilities;
+        inherit (value) policy;
+        inherit (value) capabilities;
       });
       namespace = flip mapAttrs policy.namespace (name: value: {
-        policy = value.policy;
-        capabilities = value.capabilities;
+        inherit (value) policy;
+        inherit (value) capabilities;
       });
       inherit (policy) agent node operator plugin quota;
     };

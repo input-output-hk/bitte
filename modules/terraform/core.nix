@@ -24,10 +24,10 @@ in {
     output.cluster = {
       value = {
         flake = toString config.cluster.flakePath;
-        kms = config.cluster.kms;
-        name = config.cluster.name;
+        inherit (config.cluster) kms;
+        inherit (config.cluster) name;
         nix = pkgs.nixFlakes;
-        region = config.cluster.region;
+        inherit (config.cluster) region;
         s3-bucket = config.cluster.s3Bucket;
         s3-cache = config.cluster.s3Cache;
 
@@ -39,11 +39,11 @@ in {
             flake-attr =
               "nixosConfigurations.${server.uid}.config.system.build.toplevel";
             instance-type = var "aws_instance.${server.name}.instance_type";
-            name = server.name;
+            inherit (server) name;
             private-ip = var "aws_instance.${server.name}.private_ip";
             public-ip = var "aws_instance.${server.name}.public_ip";
-            tags = server.tags;
-            uid = server.uid;
+            inherit (server) tags;
+            inherit (server) uid;
           });
 
         asgs = { };
@@ -51,7 +51,7 @@ in {
     };
 
     provider = {
-      aws = [{ region = config.cluster.region; }] ++ (lib.forEach regions
+      aws = [{ inherit (config.cluster) region; }] ++ (lib.forEach regions
         (region: {
           inherit region;
           alias = awsProviderNameFor region;
@@ -80,7 +80,7 @@ in {
       lib.flip lib.mapAttrs' config.cluster.instances (name: instance:
         lib.nameValuePair instance.uid {
           name = instance.uid;
-          path = instance.iam.instanceProfile.path;
+          inherit (instance.iam.instanceProfile) path;
           role = instance.iam.instanceProfile.role.tfName;
           lifecycle = [{ create_before_destroy = true; }];
         });
@@ -233,11 +233,11 @@ in {
       }) config.cluster.vpc.subnets;
 
     resource.aws_route53_record = lib.mkIf config.cluster.route53 (let
-      domains = (lib.flatten
+      domains = lib.flatten
         (lib.flip lib.mapAttrsToList config.cluster.instances
           (instanceName: instance:
             lib.forEach instance.route53.domains
-            (domain: { ${domain} = instance.uid; }))));
+            (domain: { ${domain} = instance.uid; })));
     in lib.flip lib.mapAttrs' (lib.zipAttrs domains) (domain: instanceUids:
       lib.nameValuePair "${config.cluster.name}-${
         lib.replaceStrings [ "." "*" ] [ "_" "_" ] domain
@@ -345,7 +345,7 @@ in {
     resource.aws_instance = lib.mapAttrs (name: server:
       lib.mkMerge [
         (lib.mkIf server.enable {
-          ami = server.ami;
+          inherit (server) ami;
           instance_type = server.instanceType;
           monitoring = true;
 

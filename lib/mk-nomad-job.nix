@@ -33,7 +33,7 @@ let
 
   capitalize = parents: name: value: {
     name = capitalizeString parents name;
-    value = value;
+    inherit value;
   };
 
   capitalizeAttrs = parents: set:
@@ -52,7 +52,7 @@ let
           (lib.remove "_module")
           (lib.flip lib.getAttrs value)
           (capitalizeAttrs parents)
-          (builtins.mapAttrs (k: v: sanitize (parents ++ [ k ]) v))
+          (builtins.mapAttrs (k: sanitize (parents ++ [ k ])))
         ]
       else
         value;

@@ -29,8 +29,8 @@ let
 
   regionPeeringPairs = vpcs: connector: index:
     map (accepter: {
-      connector = connector;
-      accepter = accepter;
+      inherit connector;
+      inherit accepter;
     }) (lib.drop (index + 1) vpcs);
   peeringPairs = lib.flatten
     (lib.imap0 (i: connector: regionPeeringPairs vpcRegions connector i)
@@ -51,8 +51,8 @@ in {
 
     terraform.required_providers = pkgs.terraform-provider-versions;
 
-    provider.aws = [{ region = config.cluster.region; }] ++ (lib.forEach regions
-      (region: {
+    provider.aws = [{ inherit (config.cluster) region; }]
+      ++ (lib.forEach regions (region: {
         inherit region;
         alias = awsProviderNameFor region;
       }));

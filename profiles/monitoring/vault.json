@@ -911,20 +911,14 @@
         "conditions": [
           {
             "evaluator": {
-              "params": [
-                0
-              ],
+              "params": [0],
               "type": "gt"
             },
             "operator": {
               "type": "and"
             },
             "query": {
-              "params": [
-                "A",
-                "5m",
-                "now"
-              ]
+              "params": ["A", "5m", "now"]
             },
             "reducer": {
               "params": [],

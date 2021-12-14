@@ -17,7 +17,7 @@ buildGoModule rec {
   doCheck = false;
 
   # Taken from https://github.com/oauth2-proxy/oauth2-proxy/blob/master/Makefile
-  buildFlagsArray = ("-ldflags=-X main.VERSION=${version}");
+  buildFlagsArray = "-ldflags=-X main.VERSION=${version}";
 
   meta = with lib; {
     description =

@@ -38,10 +38,8 @@ in {
       path = with pkgs; [ bitte-secrets-install ];
 
       script = let
-        clientOrServer = if ((instances.${nodeName} or false) == false) then
-          "client"
-        else
-          "server";
+        clientOrServer =
+          if (!(instances.${nodeName} or false)) then "client" else "server";
       in ''
         set -exuo pipefail
 

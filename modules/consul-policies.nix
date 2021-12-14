@@ -96,7 +96,7 @@ let
         mapAttrs (kname: kvalue: { inherit (kvalue) policy intentions; }) set;
 
     computeValues = set:
-      let computed = mapAttrs (k: v: compute v) set;
+      let computed = mapAttrs (k: compute) set;
       in filterAttrs (k: v: v != null && v != { }) computed;
 
     single = mkOption {

@@ -83,7 +83,8 @@ let
       (runIf config.services.consul.enable {
         template = {
           destination = "/etc/consul.d/tokens.json";
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart consul.service";
+          command =
+            "${pkgs.systemd}/bin/systemctl try-reload-or-restart consul.service";
           contents = if nodeName == "monitoring" then ''
             {
               "acl": {
@@ -113,10 +114,11 @@ let
         };
       })
 
-      (runIf (config.services.consul.enable) {
+      (runIf config.services.consul.enable {
         template = {
           destination = "/run/keys/consul-default-token";
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart consul.service";
+          command =
+            "${pkgs.systemd}/bin/systemctl try-reload-or-restart consul.service";
           contents = ''
             {{ with secret "consul/creds/consul-server-default" }}{{ .Data.token }}{{ end }}
           '';
@@ -126,7 +128,8 @@ let
       # TODO: remove duplication
       (runIf config.services.nomad.enable {
         template = {
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart nomad.service";
+          command =
+            "${pkgs.systemd}/bin/systemctl try-reload-or-restart nomad.service";
           destination = "/etc/nomad.d/consul-token.json";
           contents = ''
             {
@@ -140,7 +143,8 @@ let
 
       (runIf config.services.nomad.enable {
         template = {
-          command = "${pkgs.systemd}/bin/systemctl try-reload-or-restart nomad.service";
+          command =
+            "${pkgs.systemd}/bin/systemctl try-reload-or-restart nomad.service";
           destination = "/run/keys/nomad-consul-token";
           contents = ''
             {{- with secret "consul/creds/nomad-server" }}{{ .Data.token }}{{ end -}}

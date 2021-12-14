@@ -24,18 +24,17 @@ let
 
   tree = convert "" dir;
 
-  result = sum: input:
-    foldl' (s: elems:
-      let
-        cat = elemAt elems 0;
-        car = elemAt elems 1;
-      in if typeOf car == "list" then
-        (result s car)
-      else
-        s ++ [{
-          name = substring 0 ((stringLength cat) - 4) cat;
-          value = car;
-        }]) sum input;
+  result = foldl' (s: elems:
+    let
+      cat = elemAt elems 0;
+      car = elemAt elems 1;
+    in if typeOf car == "list" then
+      (result s car)
+    else
+      s ++ [{
+        name = substring 0 ((stringLength cat) - 4) cat;
+        value = car;
+      }]);
 
   folded = result [ ] tree;
 in listToAttrs folded

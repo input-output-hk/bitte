@@ -16,7 +16,7 @@
         "${intention.sourceName}_${intention.destinationName}" {
           source_name = intention.sourceName;
           destination_name = intention.destinationName;
-          action = intention.action;
+          inherit (intention) action;
         }));
   };
 }

@@ -113,7 +113,7 @@ let
         (lib.filter (e: e != null))
         builtins.concatLists
         (map (t: {
-          name = t.name;
+          inherit (t) name;
           path = writeText t.name t.tmpl;
         }))
       ];
