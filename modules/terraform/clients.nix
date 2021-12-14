@@ -17,46 +17,6 @@ in {
 
     terraform.required_providers = pkgs.terraform-provider-versions;
 
-    output.cluster = {
-      value = {
-        flake = toString config.cluster.flakePath;
-        inherit (config.cluster) kms;
-        inherit (config.cluster) name;
-        nix = pkgs.nixFlakes;
-        inherit (config.cluster) region;
-        s3-bucket = config.cluster.s3Bucket;
-        s3-cache = config.cluster.s3Cache;
-
-        roles = lib.flip lib.mapAttrs config.cluster.iam.roles
-          (name: role: { arn = var "data.aws_iam_role.${role.uid}.arn"; });
-
-        instances = lib.flip lib.mapAttrs config.cluster.instances
-          (name: server: {
-            flake-attr =
-              "nixosConfigurations.${server.uid}.config.system.build.toplevel";
-            instance-type =
-              var "data.aws_instance.${server.name}.instance_type";
-            inherit (server) name;
-            private-ip = var "data.aws_instance.${server.name}.private_ip";
-            public-ip = var "data.aws_instance.${server.name}.public_ip";
-            inherit (server) tags;
-            inherit (server) uid;
-          });
-
-        asgs = lib.flip lib.mapAttrs config.cluster.autoscalingGroups
-          (name: group: {
-            flake-attr =
-              "nixosConfigurations.${group.uid}.config.system.build.toplevel";
-            instance-type =
-              var "aws_launch_configuration.${group.uid}.instance_type";
-            inherit (group) uid;
-            arn = var "aws_autoscaling_group.${group.uid}.arn";
-            inherit (group) region;
-            count = group.desiredCapacity;
-          });
-      };
-    };
-
     data.aws_instance = lib.flip lib.mapAttrs config.cluster.instances
       (name: server: {
         filter = [{

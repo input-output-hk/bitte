@@ -21,35 +21,6 @@ in {
 
     terraform.required_providers = pkgs.terraform-provider-versions;
 
-    output.cluster = {
-      value = {
-        flake = toString config.cluster.flakePath;
-        inherit (config.cluster) kms;
-        inherit (config.cluster) name;
-        nix = pkgs.nixFlakes;
-        inherit (config.cluster) region;
-        s3-bucket = config.cluster.s3Bucket;
-        s3-cache = config.cluster.s3Cache;
-
-        roles = lib.flip lib.mapAttrs config.cluster.iam.roles
-          (name: role: { arn = var "aws_iam_role.${role.uid}.arn"; });
-
-        instances = lib.flip lib.mapAttrs config.cluster.instances
-          (name: server: {
-            flake-attr =
-              "nixosConfigurations.${server.uid}.config.system.build.toplevel";
-            instance-type = var "aws_instance.${server.name}.instance_type";
-            inherit (server) name;
-            private-ip = var "aws_instance.${server.name}.private_ip";
-            public-ip = var "aws_instance.${server.name}.public_ip";
-            inherit (server) tags;
-            inherit (server) uid;
-          });
-
-        asgs = { };
-      };
-    };
-
     provider = {
       aws = [{ inherit (config.cluster) region; }] ++ (lib.forEach regions
         (region: {
