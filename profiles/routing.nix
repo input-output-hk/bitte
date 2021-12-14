@@ -19,8 +19,6 @@ in {
   };
 
   config = {
-
-    services.amazon-ssm-agent.enable = true;
     services.vault-agent-monitoring.enable = true;
 
     systemd.services.copy-acme-certs = {

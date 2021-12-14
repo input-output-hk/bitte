@@ -18,7 +18,6 @@ in final: prev:
     inherit (keys) allKeysFrom devOps;
   in { devOps = allKeysFrom devOps; };
 
-  ssm-agent = prev.callPackage ./pkgs/ssm-agent { };
   consul = prev.callPackage ./pkgs/consul { };
   cue = prev.callPackage ./pkgs/cue.nix { };
   vault-bin = prev.callPackage ./pkgs/vault-bin.nix { };
