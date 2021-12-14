@@ -95,8 +95,8 @@
           inherit (legacyPackages)
             asgAMIClients asgAMICores bitte cfssl ci-env consul cue glusterfs
             grafana-loki haproxy haproxy-auth-request haproxy-cors nixFlakes
-            nomad nomad-autoscaler oauth2-proxy sops
-            terraform-with-plugins vault-backend vault-bin;
+            nomad nomad-autoscaler oauth2-proxy sops terraform-with-plugins
+            vault-backend vault-bin;
         };
       in {
         inherit constituents;

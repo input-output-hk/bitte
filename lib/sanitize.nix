@@ -12,7 +12,7 @@ let
       string = obj;
       path = toString obj;
       list = map sanitize obj;
-      null = null;
+      inherit null;
       set = if (length (attrNames obj) == 0) then
         null
       else

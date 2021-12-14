@@ -26,7 +26,7 @@ in final: prev: {
     buildWithGoModule = data:
       buildGoModule {
         pname = data.repo;
-        version = data.version;
+        inherit (data) version;
         subPackages = [ "." ];
         src = prev.fetchFromGitHub { inherit (data) owner repo rev sha256; };
         vendorSha256 = data.vendorSha256 or null;
@@ -75,5 +75,5 @@ in final: prev: {
   });
 
   terraform-with-plugins = final.terraform_0_13.withPlugins
-    (plugins: lib.attrVals final.terraform-provider-names plugins);
+    (lib.attrVals final.terraform-provider-names);
 }

@@ -30,8 +30,8 @@ let
 
     regionPeeringPairs = vpcs: connector: index:
       map (accepter: {
-        connector = connector;
-        accepter = accepter;
+        inherit connector;
+        inherit accepter;
       }) (lib.drop (index + 1) vpcs);
     peeringPairs = lib.flatten
       (lib.imap0 (i: connector: regionPeeringPairs vpcRegions connector i)
@@ -50,8 +50,8 @@ in {
 
     terraform.required_providers = pkgs.terraform-provider-versions;
 
-    provider.aws = [{ region = config.cluster.region; }] ++ (lib.forEach regions
-      (region: {
+    provider.aws = [{ inherit (config.cluster) region; }]
+      ++ (lib.forEach regions (region: {
         inherit region;
         alias = awsProviderNameFor region;
       }));
@@ -283,8 +283,8 @@ in {
     # SSL/TLS - root ssh
     # ---------------------------------------------------------------
 
-    resource.aws_key_pair = lib.mkIf (config.cluster.generateSSHKey)
-      (lib.listToAttrs ((let
+    resource.aws_key_pair = lib.mkIf config.cluster.generateSSHKey
+      (lib.listToAttrs (let
         usedRegions = lib.unique
           ((lib.forEach (builtins.attrValues config.cluster.autoscalingGroups)
             (group: group.region)) ++ [ config.cluster.region ]);
@@ -293,7 +293,7 @@ in {
           provider = awsProviderFor region;
           key_name = "${config.cluster.name}-${region}";
           public_key = var ''file("secrets/ssh-${config.cluster.name}.pub")'';
-        }))));
+        })));
 
     # ---------------------------------------------------------------
     # Instance IAM + Security Group
@@ -303,7 +303,7 @@ in {
       lib.flip lib.mapAttrs' config.cluster.autoscalingGroups (name: group:
         lib.nameValuePair group.uid {
           name = group.uid;
-          path = group.iam.instanceProfile.path;
+          inherit (group.iam.instanceProfile) path;
           role = group.iam.instanceProfile.role.tfName;
           lifecycle = [{ create_before_destroy = true; }];
         });

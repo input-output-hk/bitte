@@ -7,7 +7,7 @@ lib.listToAttrs (lib.forEach clusterFiles (file:
   let
 
     mkJob = mkJob proto;
-    tf = proto.config.tf;
+    inherit (proto.config) tf;
 
     proto = (mkSystem {
       inherit pkgs self inputs;

@@ -97,7 +97,7 @@ let
         mapAttrs (kname: kvalue: { inherit (kvalue) policy intentions; }) set;
 
     computeValues = set:
-      let computed = mapAttrs (k: v: compute v) set;
+      let computed = mapAttrs (k: compute) set;
       in filterAttrs (k: v: v != null && v != { }) computed;
 
     single = mkOption {
@@ -120,8 +120,7 @@ let
         type = str;
         default = "";
         apply = _:
-          let
-            json = toJSON this.config._computed;
+          let json = toJSON this.config._computed;
           in pkgs.runCommandNoCCLocal "consul-policy.json" { } ''
             echo ${json} | ${pkgs.jq}/bin/jq -S > $out
           '';
@@ -300,7 +299,10 @@ in {
         done
 
         # Remove Consul Policies
-        keepNames=(${toString (__attrNames config.tf.hydrate.configuration.locals.policies.consul)})
+        keepNames=(${
+          toString
+          (__attrNames config.tf.hydrate.configuration.locals.policies.consul)
+        })
 
         for policy in $(consul acl policy list -format json | jq -r '.[].Name'); do
           name="$(basename "$policy")"

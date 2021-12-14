@@ -46,7 +46,7 @@ in {
     services.vault-agent = {
       enable = true;
       role = "core";
-      vaultAddress = config.services.vault-agent-core.vaultAddress;
+      inherit (config.services.vault-agent-core) vaultAddress;
       autoAuthMethod = "aws";
 
       autoAuthConfig = {

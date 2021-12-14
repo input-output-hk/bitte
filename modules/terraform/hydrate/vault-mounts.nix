@@ -17,12 +17,14 @@ in {
     resource.vault_mount.${runtimeSecretsPath} = {
       path = "${runtimeSecretsPath}";
       type = "kv-v2";
-      description = "Applications can (temporarily) access runtime secrets if they have access credentials for them";
+      description =
+        "Applications can (temporarily) access runtime secrets if they have access credentials for them";
     };
     resource.vault_mount.${starttimeSecretsPath} = {
       path = "${starttimeSecretsPath}";
       type = "kv-v2";
-      description = "Nomad can access starttime secrets via its nomad-cluster role and pass these secrets via env variables";
+      description =
+        "Nomad can access starttime secrets via its nomad-cluster role and pass these secrets via env variables";
     };
 
   };

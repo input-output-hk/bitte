@@ -1,5 +1,5 @@
 { lib, pkgs, config, ... }:
-let kms = config.cluster.kms;
+let inherit (config.cluster) kms;
 in {
   systemd.services.docker-registry.serviceConfig.Environment = [
     "REGISTRY_AUTH=htpasswd"

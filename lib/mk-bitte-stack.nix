@@ -88,8 +88,7 @@ let
   mkNixosConfigurations = clusters:
     lib.pipe clusters [
       (lib.mapAttrsToList (clusterName: cluster:
-        lib.mapAttrsToList
-        (name: value: lib.nameValuePair "${clusterName}-${name}" value)
+        lib.mapAttrsToList (name: lib.nameValuePair "${clusterName}-${name}")
         (cluster.nodes // cluster.groups)))
       lib.flatten
       lib.listToAttrs
@@ -119,7 +118,7 @@ let
         (lib.filter (e: e != null))
         builtins.concatLists
         (map (t: {
-          name = t.name;
+          inherit (t) name;
           path = writeText t.name t.tmpl;
         }))
       ];
@@ -170,12 +169,12 @@ in rec {
 
 } // (mkDeploy { inherit self deploySshKey; })
 // lib.optionalAttrs (jobs != null) rec {
-  nomadJobs = recursiveCallPackage (jobs) extended-pkgs.callPackage;
+  nomadJobs = recursiveCallPackage jobs extended-pkgs.callPackage;
   consulTemplates =
     pkgs.callPackage buildConsulTemplates { inherit nomadJobs; };
 } // lib.optionalAttrs (docker != null) rec {
   dockerImages =
-    let images = recursiveCallPackage (docker) extended-pkgs.callPackages;
+    let images = recursiveCallPackage docker extended-pkgs.callPackages;
     in lib.mapAttrs imageAttrToCommands images;
   push-docker-images =
     pkgs.callPackage push-docker-images' { inherit dockerImages; };

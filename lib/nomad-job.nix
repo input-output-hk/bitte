@@ -43,7 +43,7 @@ let
 
   mapVolumeMounts = nullMap (value: {
     Volume = value.volume;
-    destination = value.destination;
+    inherit (value) destination;
     ReadOnly = value.readOnly;
     PropagationMode = value.propagationMode;
   });

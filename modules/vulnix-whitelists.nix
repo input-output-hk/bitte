@@ -100,7 +100,7 @@ in {
 
       whitelist = resultOption // {
         default = let inherit (cfg.systemDependent) nixosConfig;
-        in (lib.optionalAttrs (!nixosConfig.services.xserver.enable) {
+        in lib.optionalAttrs (!nixosConfig.services.xserver.enable) {
           "libX11-1.7.0" = {
             cve = [ "CVE-2021-31535" ];
             # XXX nomad jobs might, though very unlikely
@@ -134,7 +134,7 @@ in {
                 "https://httpd.apache.org/security/vulnerabilities_24.html"
               ];
             };
-          }));
+          });
       };
     };
   };

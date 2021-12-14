@@ -44,8 +44,8 @@ in {
     };
     terraform.required_providers = pkgs.terraform-provider-versions;
     provider.vault = { };
-    provider.aws = [{ region = config.cluster.region; }] ++ (lib.forEach regions
-      (region: {
+    provider.aws = [{ inherit (config.cluster) region; }]
+      ++ (lib.forEach regions (region: {
         inherit region;
         alias = awsProviderNameFor region;
       }));
