@@ -4,14 +4,10 @@ dir:
 let
   join = a: b: if a == "" then b else "${a}-${b}";
 
-  inherit (builtins)
-    readDir mapAttrs attrValues foldl' elemAt typeOf substring stringLength
-    listToAttrs filter;
-
   convert = prefix: d:
     let
-      entries = readDir d;
-      expanded = mapAttrs (name: type:
+      entries = builtins.readDir d;
+      expanded = builtins.mapAttrs (name: type:
         if (type == "regular") && (lib.strings.hasSuffix ".nix" name) then [
           (join prefix name)
           (d + "/${name}")
@@ -20,21 +16,22 @@ let
           (convert (join prefix name) (d + "/${name}"))
         ] else
           null) entries;
-    in filter (a: a != null) (attrValues expanded);
+    in builtins.filter (a: a != null) (builtins.attrValues expanded);
 
   tree = convert "" dir;
 
-  result = foldl' (s: elems:
+  result = builtins.foldl' (s: elems:
     let
-      cat = elemAt elems 0;
-      car = elemAt elems 1;
-    in if typeOf car == "list" then
+      cat = builtins.elemAt elems 0;
+      car = builtins.elemAt elems 1;
+    in if builtins.typeOf car == "list" then
       (result s car)
     else
       s ++ [{
-        name = substring 0 ((stringLength cat) - 4) cat;
+        name = builtins.substring 0 ((builtins.stringLength cat) - 4) cat;
         value = car;
       }]);
 
   folded = result [ ] tree;
-in listToAttrs folded
+in builtins.listToAttrs folded
+

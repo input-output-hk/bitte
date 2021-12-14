@@ -1,7 +1,5 @@
 { config, lib, pkgs, nodeName, ... }:
 let
-  inherit (builtins) isList;
-  inherit (lib) mkIf filter mkEnableOption concatStringsSep flip mapAttrsToList;
   inherit (config.cluster) domain region;
   inherit (config.cluster.instances.${nodeName}) privateIP;
 
@@ -23,7 +21,7 @@ let
 in {
   options = {
     services.vault-agent-core = {
-      enable = mkEnableOption "Start vault-agent for cores";
+      enable = lib.mkEnableOption "Start vault-agent for cores";
       vaultAddress = lib.mkOption {
         type = lib.types.str;
         default = "https://127.0.0.1:8200";
@@ -42,7 +40,7 @@ in {
     };
   };
 
-  config = mkIf config.services.vault-agent-core.enable {
+  config = lib.mkIf config.services.vault-agent-core.enable {
     services.vault-agent = {
       enable = true;
       role = "core";
@@ -64,7 +62,7 @@ in {
           ${pkgs.systemd}/bin/systemctl --no-block try-restart $1 || true
         '';
       in {
-        "/etc/consul.d/tokens.json" = mkIf config.services.consul.enable {
+        "/etc/consul.d/tokens.json" = lib.mkIf config.services.consul.enable {
           command = "${reload} consul.service";
           contents = ''
             {
@@ -78,26 +76,28 @@ in {
           '';
         };
 
-        "/run/keys/consul-default-token" = mkIf config.services.consul.enable {
-          command = "${reload} consul.service";
-          contents = ''
-            ${consulDefaultToken}
-          '';
-        };
+        "/run/keys/consul-default-token" =
+          lib.mkIf config.services.consul.enable {
+            command = "${reload} consul.service";
+            contents = ''
+              ${consulDefaultToken}
+            '';
+          };
 
         # TODO: remove duplication
-        "/etc/nomad.d/consul-token.json" = mkIf config.services.nomad.enable {
-          command = "${restart} nomad.service";
-          contents = ''
-            {
-              "consul": {
-                "token": "{{ with secret "consul/creds/nomad-server" }}{{ .Data.token }}{{ end }}"
+        "/etc/nomad.d/consul-token.json" =
+          lib.mkIf config.services.nomad.enable {
+            command = "${restart} nomad.service";
+            contents = ''
+              {
+                "consul": {
+                  "token": "{{ with secret "consul/creds/nomad-server" }}{{ .Data.token }}{{ end }}"
+                }
               }
-            }
-          '';
-        };
+            '';
+          };
 
-        "/run/keys/nomad-consul-token" = mkIf config.services.nomad.enable {
+        "/run/keys/nomad-consul-token" = lib.mkIf config.services.nomad.enable {
           command = "${restart} nomad.service";
           contents = ''
             {{- with secret "consul/creds/nomad-server" }}{{ .Data.token }}{{ end -}}
@@ -105,7 +105,7 @@ in {
         };
 
         "/run/keys/nomad-autoscaler-token" =
-          mkIf config.services.nomad-autoscaler.enable {
+          lib.mkIf config.services.nomad-autoscaler.enable {
             command = "${reload} nomad-autoscaler.service";
             contents = ''
               {{- with secret "nomad/creds/nomad-autoscaler" }}{{ .Data.secret_id }}{{ end -}}
@@ -113,7 +113,7 @@ in {
           };
 
         "/run/keys/nomad-snapshot-token" =
-          mkIf config.services.nomad-snapshots.enable {
+          lib.mkIf config.services.nomad-snapshots.enable {
             contents = ''
               {{- with secret "nomad/creds/management" }}{{ .Data.secret_id }}{{ end -}}
             '';

@@ -1,6 +1,5 @@
 { pkgs, config, lib, pkiFiles, ... }:
 let
-  inherit (lib) mkIf makeBinPath concatStringsSep mapAttrsToList;
   inherit (config.cluster) domain instances;
   acme-full = "/etc/ssl/certs/${domain}-full.pem";
 in {
@@ -69,7 +68,7 @@ in {
     };
   };
 
-  config = mkIf config.services.ingress-config.enable (let
+  config = lib.mkIf config.services.ingress-config.enable (let
     haproxyTemplate = pkgs.writeText "haproxy.conf.tmpl" ''
       global
         stats socket /run/ingress/haproxy.sock mode 600 expose-fd listeners level user

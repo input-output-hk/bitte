@@ -1,10 +1,4 @@
-{ config, lib, ... }:
-let
-  inherit (builtins) attrNames;
-  inherit (lib) listToAttrs imap1 nameValuePair;
-  inherit (config) cluster;
-  inherit (cluster) instances domain;
-in {
+{ config, lib, ... }: {
   imports = [ ./bootstrap.nix ];
 
   services = {

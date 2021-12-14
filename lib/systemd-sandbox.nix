@@ -5,21 +5,19 @@
 , restartPolicy ? null, services ? { }, extraEnvironmentVariables ? [ ]
 , volumeMounts ? { }, mountPaths ? { } }:
 let
-  inherit (builtins) foldl' typeOf attrNames attrValues;
-
   standardEnvironmentVariables = [ "INVOCATION_ID" ];
 
   onlyStringsWithContext = sum: input:
-    let type = typeOf input;
+    let type = builtins.typeOf input;
     in sum ++ {
       string = if lib.pathHasContext input then [ input ] else [ ];
-      list = foldl' (s: v: s ++ (onlyStringsWithContext [ ] v)) [ ] input;
+      list = lib.foldl' (s: v: s ++ (onlyStringsWithContext [ ] v)) [ ] input;
       set = if lib.isDerivation input then
         [ input ]
       else
-        (onlyStringsWithContext [ ] (attrNames input))
-        ++ (onlyStringsWithContext [ ] (attrValues input));
-    }.${typeOf input} or [ ];
+        (onlyStringsWithContext [ ] (builtins.attrNames input))
+        ++ (onlyStringsWithContext [ ] (builtins.attrValues input));
+    }.${builtins.typeOf input} or [ ];
 
   closure = writeText "${name}-closure" (lib.concatStringsSep "\n"
     (onlyStringsWithContext [ ] [ command args env bash ]));

@@ -1,23 +1,20 @@
 { config, pkgs, lib, ... }:
 
 let
-  inherit (lib) mkIf mkEnableOption mkOption types;
-  inherit (types) addCheck bool int str submodule;
-
   cfg = config.services.nomad-snapshots;
 
   snapshotJobConfig = submodule {
     options = {
-      enable = mkOption {
-        type = bool;
+      enable = lib.mkOption {
+        type = with lib.types; bool;
         default = true;
         description = ''
           Creates a systemd service and timer to automatically save Nomad snapshots.
         '';
       };
 
-      backupCount = mkOption {
-        type = addCheck int (x: x >= 0);
+      backupCount = lib.mkOption {
+        type = with lib.types; addCheck int (x: x >= 0);
         default = null;
         description = ''
           The number of snapshots to keep.  A sensible value matched to the onCalendar
@@ -28,8 +25,8 @@ let
         '';
       };
 
-      backupDirPrefix = mkOption {
-        type = str;
+      backupDirPrefix = lib.mkOption {
+        type = with lib.types; str;
         default = "/var/lib/private/nomad/snapshots";
         description = ''
           The top level location to store the snapshots.  The actual storage location
@@ -42,8 +39,8 @@ let
         '';
       };
 
-      backupSuffix = mkOption {
-        type = addCheck str (x: x != "");
+      backupSuffix = lib.mkOption {
+        type = with lib.types; addCheck str (x: x != "");
         default = null;
         description = ''
           Sets the saved snapshot filename with a descriptive suffix prior to the file
@@ -53,8 +50,8 @@ let
         '';
       };
 
-      fixedRandomDelay = mkOption {
-        type = bool;
+      fixedRandomDelay = lib.mkOption {
+        type = with lib.types; bool;
         default = true;
         description = ''
           Makes randomizedDelaySec fixed between service restarts if true.
@@ -63,8 +60,8 @@ let
         '';
       };
 
-      includeLeader = mkOption {
-        type = bool;
+      includeLeader = lib.mkOption {
+        type = with lib.types; bool;
         default = true;
         description = ''
           Whether to include the leader in the servers which will save snapshots.
@@ -76,8 +73,8 @@ let
         '';
       };
 
-      interval = mkOption {
-        type = addCheck str (x: x != "");
+      interval = lib.mkOption {
+        type = with lib.types; addCheck str (x: x != "");
         default = null;
         description = ''
           The default onCalendar systemd timer string to trigger snapshot backups.
@@ -90,8 +87,8 @@ let
         '';
       };
 
-      randomizedDelaySec = mkOption {
-        type = addCheck int (x: x >= 0);
+      randomizedDelaySec = lib.mkOption {
+        type = with lib.types; addCheck int (x: x >= 0);
         default = 0;
         description = ''
           A randomization period to be added to each systemd timer to avoid
@@ -105,16 +102,16 @@ let
         '';
       };
 
-      owner = mkOption {
-        type = str;
+      owner = lib.mkOption {
+        type = with lib.types; str;
         default = "root:root";
         description = ''
           The user and group to own the snapshot storage directory and snapshot files.
         '';
       };
 
-      nomadAddress = mkOption {
-        type = str;
+      nomadAddress = lib.mkOption {
+        type = with lib.types; str;
         default = "https://127.0.0.1:4646";
         description = ''
           The local nomad server address, including protocol and port.
@@ -215,7 +212,7 @@ let
 in {
   options = {
     services.nomad-snapshots = {
-      enable = mkEnableOption ''
+      enable = lib.mkEnableOption ''
         Enable Nomad snapshots.
 
         By default hourly snapshots will be taken and stored for 2 days on each nomad server.
@@ -228,8 +225,8 @@ in {
         Modify services.nomad-snapshots.custom options to enable and customize.
       '';
 
-      hourly = mkOption {
-        type = snapshotJobConfig;
+      hourly = lib.mkOption {
+        type = with lib.types; snapshotJobConfig;
         default = {
           enable = true;
           backupCount = 48;
@@ -239,8 +236,8 @@ in {
         };
       };
 
-      daily = mkOption {
-        type = snapshotJobConfig;
+      daily = lib.mkOption {
+        type = with lib.types; snapshotJobConfig;
         default = {
           enable = true;
           backupCount = 30;
@@ -250,8 +247,8 @@ in {
         };
       };
 
-      custom = mkOption {
-        type = snapshotJobConfig;
+      custom = lib.mkOption {
+        type = with lib.types; snapshotJobConfig;
         default = {
           enable = false;
           backupSuffix = "custom";
@@ -260,23 +257,23 @@ in {
     };
   };
 
-  config = mkIf cfg.enable {
+  config = lib.mkIf cfg.enable {
     # Hourly snapshot configuration
     systemd.timers.nomad-snapshots-hourly =
-      mkIf cfg.hourly.enable (snapshotTimer "hourly");
+      lib.mkIf cfg.hourly.enable (snapshotTimer "hourly");
     systemd.services.nomad-snapshots-hourly =
-      mkIf cfg.hourly.enable (snapshotService "hourly");
+      lib.mkIf cfg.hourly.enable (snapshotService "hourly");
 
     # Daily snapshot configuration
     systemd.timers.nomad-snapshots-daily =
-      mkIf cfg.daily.enable (snapshotTimer "daily");
+      lib.mkIf cfg.daily.enable (snapshotTimer "daily");
     systemd.services.nomad-snapshots-daily =
-      mkIf cfg.daily.enable (snapshotService "daily");
+      lib.mkIf cfg.daily.enable (snapshotService "daily");
 
     # Custom snapshot configuration
     systemd.timers.nomad-snapshots-custom =
-      mkIf cfg.custom.enable (snapshotTimer "custom");
+      lib.mkIf cfg.custom.enable (snapshotTimer "custom");
     systemd.services.nomad-snapshots-custom =
-      mkIf cfg.custom.enable (snapshotService "custom");
+      lib.mkIf cfg.custom.enable (snapshotService "custom");
   };
 }
