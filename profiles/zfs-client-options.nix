@@ -1,18 +1,14 @@
 { lib, pkgs, config, ... }:
 
-let
-  inherit (lib) mkIf mkEnableOption mkOption types;
-  inherit (types) addCheck bool int;
-
-  cfg = config.services.zfs-client-options;
+let cfg = config.services.zfs-client-options;
 
 in {
   options = {
     services.zfs-client-options = {
-      enable = mkEnableOption "Client ZFS options";
+      enable = lib.mkEnableOption "Client ZFS options";
 
-      arcMaxMiB = mkOption {
-        type = addCheck int (x: x >= 0);
+      arcMaxMiB = lib.mkOption {
+        type = with lib.types; addCheck int (x: x >= 0);
         default = 1024;
         description = ''
           The maximum ZFS ARC max size based on absolute MiB.
@@ -24,8 +20,8 @@ in {
         '';
       };
 
-      arcMaxPercent = mkOption {
-        type = addCheck int (x: x >= 0 && x <= 100);
+      arcMaxPercent = lib.mkOption {
+        type = with lib.types; addCheck int (x: x >= 0 && x <= 100);
         default = 10;
         description = ''
           The maximum ZFS ARC max size based on total RAM percentage.
@@ -33,8 +29,8 @@ in {
         '';
       };
 
-      enableZfsArcMaxControl = mkOption {
-        type = bool;
+      enableZfsArcMaxControl = lib.mkOption {
+        type = with lib.types; bool;
         default = true;
         description = ''
           Enable client ZFS ARC max control.
@@ -54,26 +50,26 @@ in {
         '';
       };
 
-      enableZfsScrub = mkOption {
-        type = bool;
+      enableZfsScrub = lib.mkOption {
+        type = with lib.types; bool;
         default = true;
         description = "Enable client ZFS scrubbing";
       };
 
-      enableZfsSnapshots = mkOption {
-        type = bool;
+      enableZfsSnapshots = lib.mkOption {
+        type = with lib.types; bool;
         default = true;
         description = "Enable client ZFS snapshots";
       };
 
-      enableZfsTrim = mkOption {
-        type = bool;
+      enableZfsTrim = lib.mkOption {
+        type = with lib.types; bool;
         default = true;
         description = "Enable client ZFS trimming";
       };
 
-      useArcMaxPercent = mkOption {
-        type = bool;
+      useArcMaxPercent = lib.mkOption {
+        type = with lib.types; bool;
         default = true;
         description = ''
           Utilize the arcMaxPercent option in preference over the
@@ -84,25 +80,25 @@ in {
     };
   };
 
-  config = mkIf cfg.enable {
+  config = lib.mkIf cfg.enable {
     services.zfs = {
-      autoSnapshot = mkIf cfg.enableZfsSnapshots {
+      autoSnapshot = lib.mkIf cfg.enableZfsSnapshots {
         enable = true;
         monthly = 1;
       };
-      autoScrub.enable = mkIf cfg.enableZfsScrub true;
-      trim.enable = mkIf cfg.enableZfsTrim true;
+      autoScrub.enable = lib.mkIf cfg.enableZfsScrub true;
+      trim.enable = lib.mkIf cfg.enableZfsTrim true;
     };
 
     systemd = {
       timers = {
-        zfs-arc-max-control-enable = mkIf cfg.enableZfsArcMaxControl {
+        zfs-arc-max-control-enable = lib.mkIf cfg.enableZfsArcMaxControl {
           wantedBy = [ "timers.target" ];
           partOf = [ "zfs-arc-max-control-enable.service" ];
           timerConfig.OnCalendar = "hourly";
         };
 
-        zfs-snapshot-enable = mkIf cfg.enableZfsSnapshots {
+        zfs-snapshot-enable = lib.mkIf cfg.enableZfsSnapshots {
           wantedBy = [ "timers.target" ];
           partOf = [ "zfs-snapshot-enable.service" ];
           timerConfig.OnCalendar = "daily";
@@ -110,7 +106,7 @@ in {
       };
 
       services = {
-        zfs-arc-max-control-enable = mkIf cfg.enableZfsArcMaxControl {
+        zfs-arc-max-control-enable = lib.mkIf cfg.enableZfsArcMaxControl {
           serviceConfig.Type = "oneshot";
           path = with pkgs; [ gawk gnugrep zfs ];
           script = ''
@@ -182,7 +178,7 @@ in {
           '';
         };
 
-        zfs-snapshot-enable = mkIf cfg.enableZfsSnapshots {
+        zfs-snapshot-enable = lib.mkIf cfg.enableZfsSnapshots {
           serviceConfig.Type = "oneshot";
           path = [ pkgs.zfs ];
           script = ''

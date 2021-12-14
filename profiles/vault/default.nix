@@ -1,11 +1,10 @@
 { lib, pkgs, config, pkiFiles, ... }:
 let
-  inherit (lib) mapAttrsToList mkIf;
   inherit (config.cluster) region instances kms;
   cfg = config.services.vault;
   ownedKey = "/var/lib/vault/cert-key.pem";
 in {
-  config = mkIf cfg.enable {
+  config = lib.mkIf cfg.enable {
     environment.variables = {
       VAULT_FORMAT = "json";
       VAULT_ADDR = lib.mkDefault "https://127.0.0.1:8200";

@@ -1,8 +1,6 @@
 { lib, pkgs, config, nodeName, pkiFiles, ... }:
 let
   inherit (config.cluster) name region domain kms instances;
-  inherit (lib) mkIf mapAttrsToList;
-
   ownedKey = "/var/lib/nomad/cert-key.pem";
 in {
   environment.variables = {

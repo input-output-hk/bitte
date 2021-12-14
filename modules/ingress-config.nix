@@ -1,6 +1,5 @@
 { pkgs, config, lib, pkiFiles, ... }:
 let
-  inherit (lib) mkIf makeBinPath concatStringsSep mapAttrsToList;
   inherit (config.cluster) domain instances;
   acme-full = "/etc/ssl/certs/${domain}-full.pem";
 in {
@@ -9,7 +8,7 @@ in {
       enable = lib.mkEnableOption "Enable Ingress configuration generation";
 
       extraConfig = lib.mkOption {
-        type = lib.types.lines;
+        type = with lib.types; lines;
         default = ''
           {{- range services -}}
             {{- if .Tags | contains "ingress" -}}
@@ -38,17 +37,17 @@ in {
       };
 
       extraGlobalConfig = lib.mkOption {
-        type = lib.types.lines;
+        type = with lib.types; lines;
         default = "";
       };
 
       extraHttpsFrontendConfig = lib.mkOption {
-        type = lib.types.lines;
+        type = with lib.types; lines;
         default = "";
       };
 
       extraHttpsBackends = lib.mkOption {
-        type = lib.types.lines;
+        type = with lib.types; lines;
         default = ''
           {{- range services -}}
             {{- if .Tags | contains "ingress" -}}
@@ -63,13 +62,13 @@ in {
       };
 
       extraHttpsAcls = lib.mkOption {
-        type = lib.types.lines;
+        type = with lib.types; lines;
         default = "";
       };
     };
   };
 
-  config = mkIf config.services.ingress-config.enable (let
+  config = lib.mkIf config.services.ingress-config.enable (let
     haproxyTemplate = pkgs.writeText "haproxy.conf.tmpl" ''
       global
         stats socket /run/ingress/haproxy.sock mode 600 expose-fd listeners level user
