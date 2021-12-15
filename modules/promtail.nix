@@ -101,19 +101,20 @@ in {
 
       server = lib.mkOption {
         default = { };
-        type = with lib.types; submodule {
-          options = {
-            http_listen_port = lib.mkOption {
-              type = with lib.types; port;
-              default = 3101;
-            };
+        type = with lib.types;
+          submodule {
+            options = {
+              http_listen_port = lib.mkOption {
+                type = with lib.types; port;
+                default = 3101;
+              };
 
-            grpc_listen_port = lib.mkOption {
-              type = with lib.types; port;
-              default = 0;
+              grpc_listen_port = lib.mkOption {
+                type = with lib.types; port;
+                default = 0;
+              };
             };
           };
-        };
       };
     };
   };

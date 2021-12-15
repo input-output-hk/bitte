@@ -21,87 +21,89 @@ let
         ];
     };
 
-  storageRaftType = with lib.types; submodule {
-    options = {
-      path = lib.mkOption {
-        type = with lib.types; str;
-        default = cfg.storagePath;
-      };
+  storageRaftType = with lib.types;
+    submodule {
+      options = {
+        path = lib.mkOption {
+          type = with lib.types; str;
+          default = cfg.storagePath;
+        };
 
-      nodeId = lib.mkOption {
-        type = with lib.types; nullOr str;
-        default = null;
-      };
+        nodeId = lib.mkOption {
+          type = with lib.types; nullOr str;
+          default = null;
+        };
 
-      retryJoin = lib.mkOption {
-        type = with lib.types; listOf (submodule {
-          options = {
-            leaderApiAddr = lib.mkOption {
-              type = with lib.types; str;
-              description = ''
-                Address of a possible leader node.
-              '';
-            };
+        retryJoin = lib.mkOption {
+          type = with lib.types;
+            listOf (submodule {
+              options = {
+                leaderApiAddr = lib.mkOption {
+                  type = with lib.types; str;
+                  description = ''
+                    Address of a possible leader node.
+                  '';
+                };
 
-            leaderCaCertFile = lib.mkOption {
-              type = with lib.types; nullOr str;
-              default = null;
-              description = ''
-                File path to the CA cert of the possible leader node.
-              '';
-            };
+                leaderCaCertFile = lib.mkOption {
+                  type = with lib.types; nullOr str;
+                  default = null;
+                  description = ''
+                    File path to the CA cert of the possible leader node.
+                  '';
+                };
 
-            leaderCaCert = lib.mkOption {
-              type = with lib.types; nullOr str;
-              default = null;
-              description = ''
-                CA cert of the possible leader node.
-              '';
-            };
+                leaderCaCert = lib.mkOption {
+                  type = with lib.types; nullOr str;
+                  default = null;
+                  description = ''
+                    CA cert of the possible leader node.
+                  '';
+                };
 
-            leaderClientCertFile = lib.mkOption {
-              type = with lib.types; nullOr str;
-              default = null;
-              description = ''
-                File path to the client certificate for the follower
-                node to establish client authentication with the
-                possible leader node.
-              '';
-            };
+                leaderClientCertFile = lib.mkOption {
+                  type = with lib.types; nullOr str;
+                  default = null;
+                  description = ''
+                    File path to the client certificate for the follower
+                    node to establish client authentication with the
+                    possible leader node.
+                  '';
+                };
 
-            leaderClientCert = lib.mkOption {
-              type = with lib.types; nullOr str;
-              default = null;
-              description = ''
-                Client certificate for the follower node to establish
-                client authentication with the possible leader node.
-              '';
-            };
+                leaderClientCert = lib.mkOption {
+                  type = with lib.types; nullOr str;
+                  default = null;
+                  description = ''
+                    Client certificate for the follower node to establish
+                    client authentication with the possible leader node.
+                  '';
+                };
 
-            leaderClientKeyFile = lib.mkOption {
-              type = with lib.types; nullOr str;
-              default = null;
-              description = ''
-                File path to the client key for the follower node to
-                establish client authentication with the possible
-                leader node.
-              '';
-            };
+                leaderClientKeyFile = lib.mkOption {
+                  type = with lib.types; nullOr str;
+                  default = null;
+                  description = ''
+                    File path to the client key for the follower node to
+                    establish client authentication with the possible
+                    leader node.
+                  '';
+                };
 
-            leaderClientKey = lib.mkOption {
-              type = with lib.types; nullOr str;
-              default = null;
-              description = ''
-                Client key for the follower node to establish client
-                authentication with the possible leader node.
-              '';
-            };
-          };
-        });
-        default = [ ];
+                leaderClientKey = lib.mkOption {
+                  type = with lib.types; nullOr str;
+                  default = null;
+                  description = ''
+                    Client key for the follower node to establish client
+                    authentication with the possible leader node.
+                  '';
+                };
+              };
+            });
+          default = [ ];
+        };
       };
     };
-  };
 
   storageConsulType = submodule {
     options = {
@@ -174,134 +176,143 @@ in {
 
     storage = lib.mkOption {
       default = null;
-      type = with lib.types; nullOr (submodule {
-        options = {
-          raft = lib.mkOption {
-            type = with lib.types; nullOr storageRaftType;
-            default = null;
-          };
+      type = with lib.types;
+        nullOr (submodule {
+          options = {
+            raft = lib.mkOption {
+              type = with lib.types; nullOr storageRaftType;
+              default = null;
+            };
 
-          consul = lib.mkOption {
-            type = with lib.types; nullOr storageConsulType;
-            default = null;
+            consul = lib.mkOption {
+              type = with lib.types; nullOr storageConsulType;
+              default = null;
+            };
           };
-        };
-      });
+        });
     };
 
     listener = lib.mkOption {
-      type = with lib.types; submodule {
-        options = {
-          tcp = lib.mkOption {
-            type = with lib.types; submodule {
-              options = {
-                address = lib.mkOption {
-                  type = with lib.types; str;
-                  default = "";
-                };
+      type = with lib.types;
+        submodule {
+          options = {
+            tcp = lib.mkOption {
+              type = with lib.types;
+                submodule {
+                  options = {
+                    address = lib.mkOption {
+                      type = with lib.types; str;
+                      default = "";
+                    };
 
-                clusterAddress = lib.mkOption {
-                  type = with lib.types; str;
-                  default = "";
-                };
+                    clusterAddress = lib.mkOption {
+                      type = with lib.types; str;
+                      default = "";
+                    };
 
-                tlsClientCaFile = lib.mkOption {
-                  type = with lib.types; str;
-                  default = "";
-                };
+                    tlsClientCaFile = lib.mkOption {
+                      type = with lib.types; str;
+                      default = "";
+                    };
 
-                tlsCertFile = lib.mkOption {
-                  type = with lib.types; str;
-                  default = "";
-                };
+                    tlsCertFile = lib.mkOption {
+                      type = with lib.types; str;
+                      default = "";
+                    };
 
-                tlsKeyFile = lib.mkOption {
-                  type = with lib.types; str;
-                  default = "";
-                };
+                    tlsKeyFile = lib.mkOption {
+                      type = with lib.types; str;
+                      default = "";
+                    };
 
-                tlsMinVersion = lib.mkOption {
-                  type = with lib.types; enum [ "tls10" "tls11" "tls12" "tls13" ];
-                  default = "tls12";
+                    tlsMinVersion = lib.mkOption {
+                      type = with lib.types;
+                        enum [ "tls10" "tls11" "tls12" "tls13" ];
+                      default = "tls12";
+                    };
+                  };
                 };
-              };
+              default = { };
             };
-            default = { };
           };
         };
-      };
       default = { };
     };
 
     seal = lib.mkOption {
-      type = with lib.types; submodule {
-        options = {
-          awskms = lib.mkOption {
-            type = with lib.types; submodule {
-              options = {
-                kmsKeyId = lib.mkOption { type = with lib.types; str; };
-                region = lib.mkOption { type = with lib.types; str; };
-              };
+      type = with lib.types;
+        submodule {
+          options = {
+            awskms = lib.mkOption {
+              type = with lib.types;
+                submodule {
+                  options = {
+                    kmsKeyId = lib.mkOption { type = with lib.types; str; };
+                    region = lib.mkOption { type = with lib.types; str; };
+                  };
+                };
             };
           };
         };
-      };
       default = { };
     };
 
     serviceRegistration = lib.mkOption {
-      type = with lib.types; nullOr (submodule {
-        options = {
-          consul = lib.mkOption {
-            type = with lib.types; nullOr (submodule {
-              options = {
-                address = lib.mkOption {
-                  type = with lib.types; nullOr str;
-                  default = null;
-                };
+      type = with lib.types;
+        nullOr (submodule {
+          options = {
+            consul = lib.mkOption {
+              type = with lib.types;
+                nullOr (submodule {
+                  options = {
+                    address = lib.mkOption {
+                      type = with lib.types; nullOr str;
+                      default = null;
+                    };
 
-                scheme = lib.mkOption {
-                  type = with lib.types; nullOr (enum [ "http" "https" ]);
-                  default = null;
-                };
+                    scheme = lib.mkOption {
+                      type = with lib.types; nullOr (enum [ "http" "https" ]);
+                      default = null;
+                    };
 
-                tlsClientCaFile = lib.mkOption {
-                  type = with lib.types; nullOr str;
-                  default = null;
-                };
+                    tlsClientCaFile = lib.mkOption {
+                      type = with lib.types; nullOr str;
+                      default = null;
+                    };
 
-                tlsCertFile = lib.mkOption {
-                  type = with lib.types; nullOr str;
-                  default = null;
-                };
+                    tlsCertFile = lib.mkOption {
+                      type = with lib.types; nullOr str;
+                      default = null;
+                    };
 
-                tlsKeyFile = lib.mkOption {
-                  type = with lib.types; nullOr str;
-                  default = null;
-                };
-              };
-            });
-            default = null;
+                    tlsKeyFile = lib.mkOption {
+                      type = with lib.types; nullOr str;
+                      default = null;
+                    };
+                  };
+                });
+              default = null;
+            };
           };
-        };
-      });
+        });
       default = null;
     };
 
     telemetry = lib.mkOption {
-      type = with lib.types; submodule {
-        options = {
-          dogstatsdAddr = lib.mkOption {
-            type = with lib.types; nullOr str;
-            default = null;
-          };
+      type = with lib.types;
+        submodule {
+          options = {
+            dogstatsdAddr = lib.mkOption {
+              type = with lib.types; nullOr str;
+              default = null;
+            };
 
-          dogstatsdTags = lib.mkOption {
-            type = with lib.types; nullOr (listOf str);
-            default = null;
+            dogstatsdTags = lib.mkOption {
+              type = with lib.types; nullOr (listOf str);
+              default = null;
+            };
           };
         };
-      };
     };
   };
 

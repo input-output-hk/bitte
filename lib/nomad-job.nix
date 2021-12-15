@@ -157,120 +157,135 @@ let
 
       checks = lib.mkOption {
         default = null;
-        type = with lib.types; nullOr (listOf (submodule {
-          options = {
-            name = lib.mkOption {
-              type = with lib.types; str;
-              default = "alive";
+        type = with lib.types;
+          nullOr (listOf (submodule {
+            options = {
+              name = lib.mkOption {
+                type = with lib.types; str;
+                default = "alive";
+              };
+
+              portLabel = lib.mkOption {
+                type = with lib.types; nullOr str;
+                default = null;
+              };
+
+              path = lib.mkOption {
+                type = with lib.types; nullOr str;
+                default = null;
+              };
+
+              type = lib.mkOption {
+                type = with lib.types; enum [ "script" "tcp" "http" ];
+                default = "tcp";
+              };
+
+              interval = lib.mkOption {
+                type = with lib.types; nanoseconds;
+                default = "10s";
+              };
+
+              timeout = lib.mkOption {
+                type = with lib.types; nanoseconds;
+                default = "2s";
+              };
+
+              task = lib.mkOption {
+                type = with lib.types; str;
+                default = name;
+              };
+
+              command = lib.mkOption {
+                type = with lib.types; nullOr str;
+                default = null;
+              };
+
+              args = lib.mkOption {
+                type = with lib.types; nullOr (listOf str);
+                default = null;
+              };
+
+              checkRestart = lib.mkOption {
+                default = null;
+                type = with lib.types;
+                  nullOr (submodule {
+                    options = {
+                      limit = lib.mkOption {
+                        type = with lib.types; nullOr ints.positive;
+                        default = null;
+                      };
+
+                      grace = lib.mkOption {
+                        type = with lib.types; nullOr nanoseconds;
+                        default = null;
+                      };
+
+                      ignoreWarnings = lib.mkOption {
+                        type = with lib.types; nullOr bool;
+                        default = null;
+                      };
+                    };
+                  });
+              };
             };
-
-            portLabel = lib.mkOption {
-              type = with lib.types; nullOr str;
-              default = null;
-            };
-
-            path = lib.mkOption {
-              type = with lib.types; nullOr str;
-              default = null;
-            };
-
-            type = lib.mkOption {
-              type = with lib.types; enum [ "script" "tcp" "http" ];
-              default = "tcp";
-            };
-
-            interval = lib.mkOption {
-              type = with lib.types; nanoseconds;
-              default = "10s";
-            };
-
-            timeout = lib.mkOption {
-              type = with lib.types; nanoseconds;
-              default = "2s";
-            };
-
-            task = lib.mkOption {
-              type = with lib.types; str;
-              default = name;
-            };
-
-            command = lib.mkOption {
-              type = with lib.types; nullOr str;
-              default = null;
-            };
-
-            args = lib.mkOption {
-              type = with lib.types; nullOr (listOf str);
-              default = null;
-            };
-
-            checkRestart = lib.mkOption {
-              default = null;
-              type = with lib.types; nullOr (submodule {
-                options = {
-                  limit = lib.mkOption {
-                    type = with lib.types; nullOr ints.positive;
-                    default = null;
-                  };
-
-                  grace = lib.mkOption {
-                    type = with lib.types; nullOr nanoseconds;
-                    default = null;
-                  };
-
-                  ignoreWarnings = lib.mkOption {
-                    type = with lib.types; nullOr bool;
-                    default = null;
-                  };
-                };
-              });
-            };
-          };
-        }));
+          }));
       };
 
       connect = lib.mkOption {
         default = null;
-        type = with lib.types; nullOr (submodule {
-          options = {
-            sidecarService = lib.mkOption {
-              default = null;
-              type = with lib.types; nullOr (submodule {
-                options = {
-                  proxy = lib.mkOption {
-                    default = null;
-                    type = with lib.types; nullOr (submodule {
-                      options = {
-                        config = lib.mkOption {
-                          default = null;
-                          type = with lib.types; nullOr (submodule {
+        type = with lib.types;
+          nullOr (submodule {
+            options = {
+              sidecarService = lib.mkOption {
+                default = null;
+                type = with lib.types;
+                  nullOr (submodule {
+                    options = {
+                      proxy = lib.mkOption {
+                        default = null;
+                        type = with lib.types;
+                          nullOr (submodule {
                             options = {
-                              protocol = lib.mkOption {
-                                type =
-                                  nullOr (enum [ "tcp" "http" "http2" "grpc" ]);
+                              config = lib.mkOption {
                                 default = null;
+                                type = with lib.types;
+                                  nullOr (submodule {
+                                    options = {
+                                      protocol = lib.mkOption {
+                                        type = nullOr (enum [
+                                          "tcp"
+                                          "http"
+                                          "http2"
+                                          "grpc"
+                                        ]);
+                                        default = null;
+                                      };
+                                    };
+                                  });
+                              };
+
+                              upstreams = lib.mkOption {
+                                type = with lib.types;
+                                  listOf (submodule {
+                                    options = {
+                                      destinationName = lib.mkOption {
+                                        type = with lib.types; str;
+                                      };
+
+                                      localBindPort = lib.mkOption {
+                                        type = with lib.types; port;
+                                      };
+                                    };
+                                  });
                               };
                             };
                           });
-                        };
-
-                        upstreams = lib.mkOption {
-                          type = with lib.types; listOf (submodule {
-                            options = {
-                              destinationName = lib.mkOption { type = with lib.types; str; };
-
-                              localBindPort = lib.mkOption { type = with lib.types; port; };
-                            };
-                          });
-                        };
                       };
-                    });
-                  };
-                };
-              });
+                    };
+                  });
+              };
             };
-          };
-        });
+          });
       };
     };
   }));
@@ -290,7 +305,8 @@ let
       };
 
       propagationMode = lib.mkOption {
-        type = with lib.types; enum [ "host-to-task" "private" "bidirectional" ];
+        type = with lib.types;
+          enum [ "host-to-task" "private" "bidirectional" ];
         default = "private";
       };
     };
@@ -341,20 +357,21 @@ let
           CSI plugin as to whether these options are required or necessary.
         '';
 
-        type = with lib.types; nullOr (submodule {
-          options = {
-            fsType = lib.mkOption {
-              type = with lib.types; nullOr str;
-              default = null;
-              description = ''file system type (ex. "ext4")'';
+        type = with lib.types;
+          nullOr (submodule {
+            options = {
+              fsType = lib.mkOption {
+                type = with lib.types; nullOr str;
+                default = null;
+                description = ''file system type (ex. "ext4")'';
+              };
+              mountFlags = lib.mkOption {
+                type = with lib.types; nullOr str;
+                default = null;
+                description = ''the flags passed to mount (ex. "ro,noatime")'';
+              };
             };
-            mountFlags = lib.mkOption {
-              type = with lib.types; nullOr str;
-              default = null;
-              description = ''the flags passed to mount (ex. "ro,noatime")'';
-            };
-          };
-        });
+          });
       };
     };
   });
@@ -461,14 +478,15 @@ let
 
       update = lib.mkOption {
         default = null;
-        type = with lib.types; nullOr (submodule {
-          options = {
-            maxParallel = lib.mkOption {
-              type = with lib.types; ints.positive;
-              default = 1;
+        type = with lib.types;
+          nullOr (submodule {
+            options = {
+              maxParallel = lib.mkOption {
+                type = with lib.types; ints.positive;
+                default = 1;
+              };
             };
-          };
-        });
+          });
       };
 
       vault = lib.mkOption {
@@ -534,48 +552,49 @@ let
 
       ports = lib.mkOption {
         default = { };
-        type = with lib.types; attrsOf (submodule ({ name, ... }: {
-          options = {
-            label = lib.mkOption {
-              type = with lib.types; str;
-              description = ''
-                Label is the key for HCL port stanzas: port "foo" {}
-              '';
-            };
+        type = with lib.types;
+          attrsOf (submodule ({ name, ... }: {
+            options = {
+              label = lib.mkOption {
+                type = with lib.types; str;
+                description = ''
+                  Label is the key for HCL port stanzas: port "foo" {}
+                '';
+              };
 
-            static = lib.mkOption {
-              type = with lib.types; nullOr port;
-              default = null;
-              description = ''
-                Specifies the static TCP/UDP port to allocate. If omitted, a
-                dynamic port is chosen. We do not recommend using static ports,
-                except for system or specialized jobs like load balancers.
-              '';
-            };
+              static = lib.mkOption {
+                type = with lib.types; nullOr port;
+                default = null;
+                description = ''
+                  Specifies the static TCP/UDP port to allocate. If omitted, a
+                  dynamic port is chosen. We do not recommend using static ports,
+                  except for system or specialized jobs like load balancers.
+                '';
+              };
 
-            to = lib.mkOption {
-              type = with lib.types; nullOr int;
-              default = null;
-              description = ''
-                Applicable when using "bridge" mode to configure port to map to
-                inside the task's network namespace. -1 sets the mapped port
-                equal to the dynamic port allocated by the scheduler.  The
-                NOMAD_PORT_<label> environment variable will contain the to
-                value.
-              '';
-            };
+              to = lib.mkOption {
+                type = with lib.types; nullOr int;
+                default = null;
+                description = ''
+                  Applicable when using "bridge" mode to configure port to map to
+                  inside the task's network namespace. -1 sets the mapped port
+                  equal to the dynamic port allocated by the scheduler.  The
+                  NOMAD_PORT_<label> environment variable will contain the to
+                  value.
+                '';
+              };
 
-            hostNetwork = lib.mkOption {
-              type = with lib.types; nullOr str;
-              default = null;
-              description = ''
-                Designates the host network name to use when allocating the
-                port.  When port mapping the host port will only forward
-                traffic to the matched host network address.
-              '';
+              hostNetwork = lib.mkOption {
+                type = with lib.types; nullOr str;
+                default = null;
+                description = ''
+                  Designates the host network name to use when allocating the
+                  port.  When port mapping the host port will only forward
+                  traffic to the matched host network address.
+                '';
+              };
             };
-          };
-        }));
+          }));
       };
 
       dns = {
@@ -878,7 +897,8 @@ let
   lifecycleType = submodule {
     options = {
       hook = lib.mkOption {
-        type = with lib.types; nullOr (enum [ "prestart" "poststart" "poststop" ]);
+        type = with lib.types;
+          nullOr (enum [ "prestart" "poststart" "poststop" ]);
         default = null;
       };
 
@@ -998,25 +1018,26 @@ let
 
       resources = lib.mkOption {
         default = null;
-        type = with lib.types; nullOr (submodule {
-          options = {
-            cpu = lib.mkOption {
-              type = with lib.types; ints.positive;
-              default = 100;
-            };
+        type = with lib.types;
+          nullOr (submodule {
+            options = {
+              cpu = lib.mkOption {
+                type = with lib.types; ints.positive;
+                default = 100;
+              };
 
-            memoryMB = lib.mkOption {
-              type = with lib.types; ints.positive;
-              default = 300;
-            };
+              memoryMB = lib.mkOption {
+                type = with lib.types; ints.positive;
+                default = 300;
+              };
 
-            networks = lib.mkOption {
-              type = with lib.types; nullOr (listOf networkType);
-              default = null;
-              apply = mapNetworks;
+              networks = lib.mkOption {
+                type = with lib.types; nullOr (listOf networkType);
+                default = null;
+                apply = mapNetworks;
+              };
             };
-          };
-        });
+          });
       };
 
       user = lib.mkOption {
@@ -1095,25 +1116,26 @@ let
       };
 
       operator = lib.mkOption {
-        type = with lib.types; enum [
-          "regexp"
-          "set_contains"
-          "distinct_hosts"
-          "distinct_property"
-          "="
-          "=="
-          "is"
-          "!="
-          "not"
-          ">"
-          ">="
-          "<"
-          "<="
-          "version"
-          "semver"
-          "is_set"
-          "is_not_set"
-        ];
+        type = with lib.types;
+          enum [
+            "regexp"
+            "set_contains"
+            "distinct_hosts"
+            "distinct_property"
+            "="
+            "=="
+            "is"
+            "!="
+            "not"
+            ">"
+            ">="
+            "<"
+            "<="
+            "version"
+            "semver"
+            "is_set"
+            "is_not_set"
+          ];
         default = "=";
       };
 

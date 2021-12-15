@@ -3,21 +3,22 @@ let cfg = config.services.nomad.namespaces;
 in {
   options = {
     services.nomad.namespaces = lib.mkOption {
-      type = with lib.types; attrsOf (submodule ({ name, ... }: {
-        options = {
-          name = lib.mkOption {
-            type = with lib.types; str;
-            default = name;
-          };
+      type = with lib.types;
+        attrsOf (submodule ({ name, ... }: {
+          options = {
+            name = lib.mkOption {
+              type = with lib.types; str;
+              default = name;
+            };
 
-          quota = lib.mkOption {
-            type = with lib.types; nullOr str;
-            default = null;
-          };
+            quota = lib.mkOption {
+              type = with lib.types; nullOr str;
+              default = null;
+            };
 
-          description = lib.mkOption { type = with lib.types; str; };
-        };
-      }));
+            description = lib.mkOption { type = with lib.types; str; };
+          };
+        }));
 
       default = { };
     };

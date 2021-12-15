@@ -2,38 +2,40 @@
 let
   cfg = config.services.consul-templates;
 
-  templateType = with lib.types; submodule {
-    options = {
-      enable = lib.mkOption {
-        type = with lib.types; bool;
-        default = true;
-      };
+  templateType = with lib.types;
+    submodule {
+      options = {
+        enable = lib.mkOption {
+          type = with lib.types; bool;
+          default = true;
+        };
 
-      logLevel = lib.mkOption {
-        type = with lib.types; enum [ "debug" "info" "warn" "err" ];
-        default = "info";
-      };
+        logLevel = lib.mkOption {
+          type = with lib.types; enum [ "debug" "info" "warn" "err" ];
+          default = "info";
+        };
 
-      policies = lib.mkOption {
-        type = with lib.types; attrs;
-        default = { };
-      };
+        policies = lib.mkOption {
+          type = with lib.types; attrs;
+          default = { };
+        };
 
-      source = lib.mkOption {
-        type = with lib.types; str;
-        description = ''
-          The template in https://golang.org/pkg/text/template/ syntax.
-        '';
-      };
+        source = lib.mkOption {
+          type = with lib.types; str;
+          description = ''
+            The template in https://golang.org/pkg/text/template/ syntax.
+          '';
+        };
 
-      target = lib.mkOption {
-        type = with lib.types; str; # doesn't make much sense to have path type here i think.
-        description = ''
-          Path where the output of template application will end up.
-        '';
+        target = lib.mkOption {
+          type = with lib.types;
+            str; # doesn't make much sense to have path type here i think.
+          description = ''
+            Path where the output of template application will end up.
+          '';
+        };
       };
     };
-  };
 
 in {
 
@@ -51,11 +53,12 @@ in {
     };
   };
 
-  config.services.consul.policies = lib.mkMerge (lib.mapAttrsToList (name: value:
-    let
-      sourceFile = pkgs.writeText "${name}.tpl" value.source;
-      ctName = "ct-${name}";
-    in { ${ctName} = lib.mkIf (cfg.enable && value.enable) value.policies; })
+  config.services.consul.policies = lib.mkMerge (lib.mapAttrsToList
+    (name: value:
+      let
+        sourceFile = pkgs.writeText "${name}.tpl" value.source;
+        ctName = "ct-${name}";
+      in { ${ctName} = lib.mkIf (cfg.enable && value.enable) value.policies; })
     cfg.templates);
 
   config.systemd.services = lib.mkMerge (lib.mapAttrsToList (name: value:

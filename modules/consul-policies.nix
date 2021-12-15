@@ -2,86 +2,90 @@
 let
   inherit (config.instance) bootstrapper;
 
-  consulIntentionsType = with lib.types; submodule {
-    options = {
-      sourceName = lib.mkOption { type = with lib.types; str; };
-
-      destinationName = lib.mkOption { type = with lib.types; str; };
-
-      action = lib.mkOption {
-        type = with lib.types; enum [ "allow" "deny" ];
-        default = "allow";
-      };
-    };
-  };
-
-  consulRolesType = with lib.types; submodule ({ name, ... }@this: {
-    options = {
-      name = lib.mkOption {
-        type = with lib.types; str;
-        default = name;
-      };
-
-      description = lib.mkOption {
-        type = with lib.types; nullOr str;
-        default = null;
-        description = ''
-          A description of the role.
-        '';
-      };
-
-      policyIds = lib.mkOption {
-        type = with lib.types; listOf str;
-        default = [ ];
-        description = ''
-          IDs of policies to use for this role.
-        '';
-      };
-
-      policyNames = lib.mkOption {
-        type = with lib.types; listOf str;
-        default = [ ];
-        description = ''
-          Names of policies to use for this role.
-        '';
-      };
-
-      serviceIdentities = lib.mkOption {
-        type = with lib.types; listOf str;
-        default = [ ];
-        description = ''
-          Name of a service identity to use for this role.
-          May be specified multiple times.
-          Format is the SERVICENAME or SERVICENAME:DATACENTER1,DATACENTER2,...
-        '';
-      };
-    };
-  });
-
-  consulPoliciesType = let
-    policyValueType = with lib.types; enum [ "read" "write" "deny" "list" ];
-
-    consulSinglePolicyType = with lib.types; submodule ({ name, ... }: {
+  consulIntentionsType = with lib.types;
+    submodule {
       options = {
-        policy = lib.mkOption { type = with lib.types; policyValueType; };
+        sourceName = lib.mkOption { type = with lib.types; str; };
 
-        intentions = lib.mkOption {
-          type = with lib.types; policyValueType;
-          default = "deny";
+        destinationName = lib.mkOption { type = with lib.types; str; };
+
+        action = lib.mkOption {
+          type = with lib.types; enum [ "allow" "deny" ];
+          default = "allow";
+        };
+      };
+    };
+
+  consulRolesType = with lib.types;
+    submodule ({ name, ... }@this: {
+      options = {
+        name = lib.mkOption {
+          type = with lib.types; str;
+          default = name;
+        };
+
+        description = lib.mkOption {
+          type = with lib.types; nullOr str;
+          default = null;
+          description = ''
+            A description of the role.
+          '';
+        };
+
+        policyIds = lib.mkOption {
+          type = with lib.types; listOf str;
+          default = [ ];
+          description = ''
+            IDs of policies to use for this role.
+          '';
+        };
+
+        policyNames = lib.mkOption {
+          type = with lib.types; listOf str;
+          default = [ ];
+          description = ''
+            Names of policies to use for this role.
+          '';
+        };
+
+        serviceIdentities = lib.mkOption {
+          type = with lib.types; listOf str;
+          default = [ ];
+          description = ''
+            Name of a service identity to use for this role.
+            May be specified multiple times.
+            Format is the SERVICENAME or SERVICENAME:DATACENTER1,DATACENTER2,...
+          '';
         };
       };
     });
 
-    consulMultiPolicyType = with lib.types; attrsOf (submodule ({ name, ... }: {
-      options = {
-        policy = lib.mkOption { type = with lib.types; policyValueType; };
+  consulPoliciesType = let
+    policyValueType = with lib.types; enum [ "read" "write" "deny" "list" ];
 
-        intentions = lib.mkOption {
-          type = with lib.types; policyValueType;
-          default = "deny";
+    consulSinglePolicyType = with lib.types;
+      submodule ({ name, ... }: {
+        options = {
+          policy = lib.mkOption { type = with lib.types; policyValueType; };
+
+          intentions = lib.mkOption {
+            type = with lib.types; policyValueType;
+            default = "deny";
+          };
         };
-      };
-    }));
+      });
+
+    consulMultiPolicyType = with lib.types;
+      attrsOf (submodule ({ name, ... }: {
+        options = {
+          policy = lib.mkOption { type = with lib.types; policyValueType; };
+
+          intentions = lib.mkOption {
+            type = with lib.types; policyValueType;
+            default = "deny";
+          };
+        };
+      }));
 
     compute = set:
       if builtins.isString set then
@@ -89,7 +93,8 @@ let
       else if set == null then
         set
       else
-        builtins.mapAttrs (kname: kvalue: { inherit (kvalue) policy intentions; }) set;
+        builtins.mapAttrs
+        (kname: kvalue: { inherit (kvalue) policy intentions; }) set;
 
     computeValues = set:
       let computed = builtins.mapAttrs (k: compute) set;
@@ -104,7 +109,8 @@ let
       type = with lib.types; nullOr consulMultiPolicyType;
       default = null;
     };
-  in with lib.types; submodule ({ name, ... }@this: {
+  in with lib.types;
+  submodule ({ name, ... }@this: {
     options = {
       name = lib.mkOption {
         type = with lib.types; str;
@@ -202,60 +208,62 @@ in {
 
       script = let
         policies = lib.flip builtins.mapAttrs config.services.consul.policies
-          (polName: policy: pkgs.writeTextDir polName (builtins.readFile policy._json));
+          (polName: policy:
+            pkgs.writeTextDir polName (builtins.readFile policy._json));
 
         policyDir = pkgs.symlinkJoin {
           name = "consul-acl";
           paths = builtins.attrValues policies;
         };
 
-        roles = lib.flip builtins.mapAttrs config.services.consul.roles (ruleName: rule:
-          let
-            policyIds = builtins.concatStringsSep " "
-              (map (id: "-policy-id ${id}") rule.policyIds);
+        roles = lib.flip builtins.mapAttrs config.services.consul.roles
+          (ruleName: rule:
+            let
+              policyIds = builtins.concatStringsSep " "
+                (map (id: "-policy-id ${id}") rule.policyIds);
 
-            policyNames = builtins.concatStringsSep " "
-              (map (name: "-policy-name ${name}") rule.policyNames);
+              policyNames = builtins.concatStringsSep " "
+                (map (name: "-policy-name ${name}") rule.policyNames);
 
-            serviceIdentities = builtins.concatStringsSep " "
-              (map (name: "service-identities ${name}") rule.serviceIdentities);
+              serviceIdentities = builtins.concatStringsSep " "
+                (map (name: "service-identities ${name}")
+                  rule.serviceIdentities);
 
-            description = toString rule.description;
+              description = toString rule.description;
 
-            cmdify = list: toString (lib.filter (e: e != null) list);
+              cmdify = list: toString (lib.filter (e: e != null) list);
 
-            actions = {
-              "${ruleName}/create" = [
-                "consul acl role create"
-                "-name"
-                rule.name
-                policyIds
-                policyNames
-                serviceIdentities
-                description
-              ];
+              actions = {
+                "${ruleName}/create" = [
+                  "consul acl role create"
+                  "-name"
+                  rule.name
+                  policyIds
+                  policyNames
+                  serviceIdentities
+                  description
+                ];
 
-              "${ruleName}/update" = [
-                "consul acl role update"
-                "-no-merge"
-                "-name"
-                rule.name
-                policyIds
-                policyNames
-                serviceIdentities
-                description
-                "$@"
-              ];
-            };
+                "${ruleName}/update" = [
+                  "consul acl role update"
+                  "-no-merge"
+                  "-name"
+                  rule.name
+                  policyIds
+                  policyNames
+                  serviceIdentities
+                  description
+                  "$@"
+                ];
+              };
 
-            roleActions =
-              builtins.mapAttrs (name: value: pkgs.writeTextDir name (cmdify value))
-              actions;
+              roleActions = builtins.mapAttrs
+                (name: value: pkgs.writeTextDir name (cmdify value)) actions;
 
-          in pkgs.symlinkJoin {
-            name = "consul-role-actions";
-            paths = builtins.attrValues roleActions;
-          });
+            in pkgs.symlinkJoin {
+              name = "consul-role-actions";
+              paths = builtins.attrValues roleActions;
+            });
 
         rolesDir = pkgs.symlinkJoin {
           name = "consul-roles";

@@ -180,7 +180,10 @@ in {
       };
 
       addresses = lib.mkOption {
-        type = with lib.types; submodule { options = { http = lib.mkOption { type = with lib.types; str; }; }; };
+        type = with lib.types;
+          submodule {
+            options = { http = lib.mkOption { type = with lib.types; str; }; };
+          };
         default = { };
       };
 
@@ -196,95 +199,99 @@ in {
 
       acl = lib.mkOption {
         default = null;
-        type = with lib.types; nullOr (submodule {
-          options = {
-            enabled = lib.mkOption {
-              type = with lib.types; nullOr bool;
-              default = null;
-            };
+        type = with lib.types;
+          nullOr (submodule {
+            options = {
+              enabled = lib.mkOption {
+                type = with lib.types; nullOr bool;
+                default = null;
+              };
 
-            defaultPolicy = lib.mkOption {
-              type = with lib.types; nullOr (enum [ "deny" "allow" ]);
-              default = null;
-            };
+              defaultPolicy = lib.mkOption {
+                type = with lib.types; nullOr (enum [ "deny" "allow" ]);
+                default = null;
+              };
 
-            enableTokenPersistence = lib.mkOption {
-              type = with lib.types; nullOr bool;
-              default = null;
-              description = ''
-                Enable token persistence for `consul acl set-agent-token`
-              '';
-            };
+              enableTokenPersistence = lib.mkOption {
+                type = with lib.types; nullOr bool;
+                default = null;
+                description = ''
+                  Enable token persistence for `consul acl set-agent-token`
+                '';
+              };
 
-            downPolicy = lib.mkOption {
-              type = with lib.types; nullOr (enum [
-                "allow"
-                "deny"
-                "extend-cache"
-                "async-cache"
-                "extend-cache"
-              ]);
-              default = null;
-              description = ''
-                In the case that a policy or token cannot be read from the
-                primary_datacenter or leader node, the down policy is applied.
-                In "allow" mode, all actions are permitted, "deny" restricts
-                all operations, and "extend-cache" allows any cached objects
-                to be used, ignoring their TTL values. If a non-cached ACL is
-                used, "extend-cache" acts like "deny". The value "async-cache"
-                acts the same way as "extend-cache" but performs updates
-                asynchronously when ACL is present but its TTL is expired,
-                thus, if latency is bad between the primary and secondary
-                datacenters, latency of operations is not impacted.
-              '';
+              downPolicy = lib.mkOption {
+                type = with lib.types;
+                  nullOr (enum [
+                    "allow"
+                    "deny"
+                    "extend-cache"
+                    "async-cache"
+                    "extend-cache"
+                  ]);
+                default = null;
+                description = ''
+                  In the case that a policy or token cannot be read from the
+                  primary_datacenter or leader node, the down policy is applied.
+                  In "allow" mode, all actions are permitted, "deny" restricts
+                  all operations, and "extend-cache" allows any cached objects
+                  to be used, ignoring their TTL values. If a non-cached ACL is
+                  used, "extend-cache" acts like "deny". The value "async-cache"
+                  acts the same way as "extend-cache" but performs updates
+                  asynchronously when ACL is present but its TTL is expired,
+                  thus, if latency is bad between the primary and secondary
+                  datacenters, latency of operations is not impacted.
+                '';
+              };
             };
-          };
-        });
+          });
       };
 
       connect = lib.mkOption {
-        type = with lib.types; submodule {
-          options = {
-            enabled = lib.mkEnableOption "Enable Consul Connect";
+        type = with lib.types;
+          submodule {
+            options = {
+              enabled = lib.mkEnableOption "Enable Consul Connect";
 
-            caProvider = lib.mkOption {
-              type = with lib.types; str;
-              default = "consul";
-            };
+              caProvider = lib.mkOption {
+                type = with lib.types; str;
+                default = "consul";
+              };
 
-            caConfig = lib.mkOption {
-              default = null;
-              type = with lib.types; nullOr (submodule {
-                options = {
-                  address = lib.mkOption {
-                    default = null;
-                    type = with lib.types; nullOr str;
-                  };
+              caConfig = lib.mkOption {
+                default = null;
+                type = with lib.types;
+                  nullOr (submodule {
+                    options = {
+                      address = lib.mkOption {
+                        default = null;
+                        type = with lib.types; nullOr str;
+                      };
 
-                  rootPkiPath = lib.mkOption {
-                    default = null;
-                    type = with lib.types; nullOr str;
-                  };
+                      rootPkiPath = lib.mkOption {
+                        default = null;
+                        type = with lib.types; nullOr str;
+                      };
 
-                  intermediatePkiPath = lib.mkOption {
-                    default = null;
-                    type = with lib.types; nullOr str;
-                  };
+                      intermediatePkiPath = lib.mkOption {
+                        default = null;
+                        type = with lib.types; nullOr str;
+                      };
 
-                  privateKey = lib.mkOption {
-                    default = null;
-                    type = with lib.types; nullOr str;
-                  };
+                      privateKey = lib.mkOption {
+                        default = null;
+                        type = with lib.types; nullOr str;
+                      };
 
-                  rootCert = lib.mkOption {
-                    default = null;
-                    type = with lib.types; nullOr str;
-                  };
-                };
-              });
+                      rootCert = lib.mkOption {
+                        default = null;
+                        type = with lib.types; nullOr str;
+                      };
+                    };
+                  });
+              };
             };
           };
-        };
         default = { };
       };
 
@@ -304,12 +311,13 @@ in {
       };
 
       autoEncrypt = lib.mkOption {
-        type = with lib.types; nullOr (submodule {
-          options = {
-            allowTls = lib.mkEnableOption "Allow TLS";
-            tls = lib.mkEnableOption "Enable TLS";
-          };
-        });
+        type = with lib.types;
+          nullOr (submodule {
+            options = {
+              allowTls = lib.mkEnableOption "Allow TLS";
+              tls = lib.mkEnableOption "Enable TLS";
+            };
+          });
         default = null;
       };
 
@@ -321,24 +329,25 @@ in {
 
       ports = lib.mkOption {
         default = { };
-        type = with lib.types; submodule {
-          options = {
-            grpc = lib.mkOption {
-              type = with lib.types; nullOr port;
-              default = null;
-            };
+        type = with lib.types;
+          submodule {
+            options = {
+              grpc = lib.mkOption {
+                type = with lib.types; nullOr port;
+                default = null;
+              };
 
-            http = lib.mkOption {
-              type = with lib.types; nullOr port;
-              default = 8500;
-            };
+              http = lib.mkOption {
+                type = with lib.types; nullOr port;
+                default = 8500;
+              };
 
-            https = lib.mkOption {
-              type = with lib.types; nullOr port;
-              default = null;
+              https = lib.mkOption {
+                type = with lib.types; nullOr port;
+                default = null;
+              };
             };
           };
-        };
       };
 
       tlsMinVersion = lib.mkOption {
@@ -353,19 +362,20 @@ in {
 
       telemetry = lib.mkOption {
         default = { };
-        type = with lib.types; submodule {
-          options = {
-            dogstatsdAddr = lib.mkOption {
-              type = with lib.types; nullOr str;
-              default = null;
-            };
+        type = with lib.types;
+          submodule {
+            options = {
+              dogstatsdAddr = lib.mkOption {
+                type = with lib.types; nullOr str;
+                default = null;
+              };
 
-            disableHostname = lib.mkOption {
-              type = with lib.types; nullOr bool;
-              default = null;
+              disableHostname = lib.mkOption {
+                type = with lib.types; nullOr bool;
+                default = null;
+              };
             };
           };
-        };
       };
 
       nodeId = lib.mkOption {

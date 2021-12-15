@@ -2,88 +2,90 @@
 let
   inherit (config.cluster) kms;
 
-  installType = with lib.types; submodule {
-    options = {
-      script = lib.mkOption {
-        type = with lib.types; str;
-        default = "";
-      };
+  installType = with lib.types;
+    submodule {
+      options = {
+        script = lib.mkOption {
+          type = with lib.types; str;
+          default = "";
+        };
 
-      source = lib.mkOption {
-        type = with lib.types; nullOr path;
-        default = null;
-      };
+        source = lib.mkOption {
+          type = with lib.types; nullOr path;
+          default = null;
+        };
 
-      target = lib.mkOption {
-        type = with lib.types; nullOr path;
-        default = null;
-      };
+        target = lib.mkOption {
+          type = with lib.types; nullOr path;
+          default = null;
+        };
 
-      inputType = lib.mkOption {
-        type = with lib.types; enum [ "json" "yaml" "dotenv" "binary" ];
-        default = "json";
-      };
+        inputType = lib.mkOption {
+          type = with lib.types; enum [ "json" "yaml" "dotenv" "binary" ];
+          default = "json";
+        };
 
-      outputType = lib.mkOption {
-        type = with lib.types; enum [ "json" "yaml" "dotenv" "binary" ];
-        default = "json";
-      };
-    };
-  };
-
-  secretType = with lib.types; submodule {
-    options = {
-      encryptedRoot = lib.mkOption { type = with lib.types; path; };
-
-      generate = lib.mkOption {
-        type = with lib.types; attrsOf str;
-        default = { };
-      };
-
-      install = lib.mkOption {
-        type = with lib.types; attrsOf installType;
-        default = { };
-      };
-
-      generateScript = lib.mkOption {
-        type = with lib.types; str;
-        apply = f:
-          let
-            scripts = lib.concatStringsSep "\n" (lib.mapAttrsToList
-              (name: value:
-                let
-                  script = pkgs.writeShellScriptBin name ''
-                    ## ${name}
-
-                    set -euo pipefail
-
-                    ${value}
-                  '';
-                in "${script}/bin/${name}") config.secrets.generate);
-          in pkgs.writeShellScriptBin "generate-secrets" ''
-            set -euo pipefail
-
-            export PATH="$PATH:${
-              lib.makeBinPath (with pkgs; [ utillinux git ])
-            }"
-
-            mkdir -p secrets encrypted
-
-            echo "aquiring secrets/generate.lock ..."
-
-            exec 100>secrets/generate.lock || exit 1
-            flock -n 100 || (
-              echo "secrets/generate.lock exists, not generating secrets!"
-              exit
-            )
-            trap 'rm -f secrets/generate.lock' EXIT
-
-            ${scripts}
-            git add encrypted/
-          '';
+        outputType = lib.mkOption {
+          type = with lib.types; enum [ "json" "yaml" "dotenv" "binary" ];
+          default = "json";
+        };
       };
     };
-  };
+
+  secretType = with lib.types;
+    submodule {
+      options = {
+        encryptedRoot = lib.mkOption { type = with lib.types; path; };
+
+        generate = lib.mkOption {
+          type = with lib.types; attrsOf str;
+          default = { };
+        };
+
+        install = lib.mkOption {
+          type = with lib.types; attrsOf installType;
+          default = { };
+        };
+
+        generateScript = lib.mkOption {
+          type = with lib.types; str;
+          apply = f:
+            let
+              scripts = lib.concatStringsSep "\n" (lib.mapAttrsToList
+                (name: value:
+                  let
+                    script = pkgs.writeShellScriptBin name ''
+                      ## ${name}
+
+                      set -euo pipefail
+
+                      ${value}
+                    '';
+                  in "${script}/bin/${name}") config.secrets.generate);
+            in pkgs.writeShellScriptBin "generate-secrets" ''
+              set -euo pipefail
+
+              export PATH="$PATH:${
+                lib.makeBinPath (with pkgs; [ utillinux git ])
+              }"
+
+              mkdir -p secrets encrypted
+
+              echo "aquiring secrets/generate.lock ..."
+
+              exec 100>secrets/generate.lock || exit 1
+              flock -n 100 || (
+                echo "secrets/generate.lock exists, not generating secrets!"
+                exit
+              )
+              trap 'rm -f secrets/generate.lock' EXIT
+
+              ${scripts}
+              git add encrypted/
+            '';
+        };
+      };
+    };
 in {
   options = {
     secrets = lib.mkOption {

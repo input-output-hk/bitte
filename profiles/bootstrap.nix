@@ -146,8 +146,7 @@ in {
         RemainAfterExit = true;
         Restart = "on-failure";
         RestartSec = "20s";
-        ExecStartPre =
-          ensureDependencies [ "consul-acl" "vault-consul-token" ];
+        ExecStartPre = ensureDependencies [ "consul-acl" "vault-consul-token" ];
       };
 
       environment = {

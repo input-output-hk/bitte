@@ -9,7 +9,8 @@ let
           null
         else {
           inherit name;
-          value = if builtins.typeOf value == "set" then rmModules value else value;
+          value =
+            if builtins.typeOf value == "set" then rmModules value else value;
         }) arg;
     in lib.listToAttrs (lib.remove null sanitized);
 
@@ -21,26 +22,33 @@ let
       json2hcl < "$src" > "$out"
     '';
 
-  vaultPolicyOptionsType = with lib.types; submodule (_: {
-    options = {
-      capabilities = lib.mkOption {
-        type = with lib.types;
-          listOf (enum [ "create" "read" "update" "delete" "list" "sudo" ]);
+  vaultPolicyOptionsType = with lib.types;
+    submodule (_: {
+      options = {
+        capabilities = lib.mkOption {
+          type = with lib.types;
+            listOf (enum [ "create" "read" "update" "delete" "list" "sudo" ]);
+        };
       };
-    };
-  });
+    });
 
-  vaultApproleType = with lib.types; submodule (_: {
-    options = {
-      token_ttl = lib.mkOption { type = with lib.types; str; };
-      token_max_ttl = lib.mkOption { type = with lib.types; str; };
-      token_policies = lib.mkOption { type = with lib.types; listOf str; };
-    };
-  });
+  vaultApproleType = with lib.types;
+    submodule (_: {
+      options = {
+        token_ttl = lib.mkOption { type = with lib.types; str; };
+        token_max_ttl = lib.mkOption { type = with lib.types; str; };
+        token_policies = lib.mkOption { type = with lib.types; listOf str; };
+      };
+    });
 
-  vaultPoliciesType = with lib.types; submodule (_: {
-    options = { path = lib.mkOption { type = with lib.types; attrsOf vaultPolicyOptionsType; }; };
-  });
+  vaultPoliciesType = with lib.types;
+    submodule (_: {
+      options = {
+        path = lib.mkOption {
+          type = with lib.types; attrsOf vaultPolicyOptionsType;
+        };
+      };
+    });
 
   createNomadRoles = lib.flip lib.mapAttrsToList config.services.nomad.policies
     (name: policy: ''vault write "nomad/role/${name}" "policies=${name}"'');
@@ -55,79 +63,82 @@ in {
   };
 
   # TODO: also remove them again.
-  config.systemd.services.vault-acl =  lib.mkIf config.services.vault-acl.enable {
-    after = [ "vault.service" "vault-bootstrap.service" ];
-    wantedBy = [ "multi-user.target" ];
-    description = "Service that creates all Vault policies.";
+  config.systemd.services.vault-acl =
+    lib.mkIf config.services.vault-acl.enable {
+      after = [ "vault.service" "vault-bootstrap.service" ];
+      wantedBy = [ "multi-user.target" ];
+      description = "Service that creates all Vault policies.";
 
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      Restart = "on-failure";
-      RestartSec = "20s";
-      WorkingDirectory = "/var/lib/vault";
-      ExecStartPre = ensureDependencies [ "vault-bootstrap" "vault" ];
-    };
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        Restart = "on-failure";
+        RestartSec = "20s";
+        WorkingDirectory = "/var/lib/vault";
+        ExecStartPre = ensureDependencies [ "vault-bootstrap" "vault" ];
+      };
 
-    environment = {
-      inherit (config.environment.variables)
-        AWS_DEFAULT_REGION VAULT_CACERT VAULT_ADDR VAULT_FORMAT NOMAD_ADDR;
-    };
+      environment = {
+        inherit (config.environment.variables)
+          AWS_DEFAULT_REGION VAULT_CACERT VAULT_ADDR VAULT_FORMAT NOMAD_ADDR;
+      };
 
-    path = with pkgs; [ vault-bin sops jq nomad curl cacert ];
+      path = with pkgs; [ vault-bin sops jq nomad curl cacert ];
 
-    script = ''
-      set -euo pipefail
+      script = ''
+        set -euo pipefail
 
-      VAULT_TOKEN="$(sops -d --extract '["root_token"]' vault.enc.json)"
-      export VAULT_TOKEN
-      export VAULT_ADDR=https://127.0.0.1:8200
+        VAULT_TOKEN="$(sops -d --extract '["root_token"]' vault.enc.json)"
+        export VAULT_TOKEN
+        export VAULT_ADDR=https://127.0.0.1:8200
 
-      set -x
+        set -x
 
-      # Vault Policies
+        # Vault Policies
 
-      ${lib.concatStringsSep "" (lib.mapAttrsToList (name: value: ''
-        vault policy write "${name}" "${policy2hcl name value}"
-      '') config.services.vault.policies)}
+        ${lib.concatStringsSep "" (lib.mapAttrsToList (name: value: ''
+          vault policy write "${name}" "${policy2hcl name value}"
+        '') config.services.vault.policies)}
 
-      keepNames=(default root ${
-        toString (builtins.attrNames config.services.vault.policies)
-      })
-      policyNames=($(vault policy list | jq -e -r '.[]'))
+        keepNames=(default root ${
+          toString (builtins.attrNames config.services.vault.policies)
+        })
+        policyNames=($(vault policy list | jq -e -r '.[]'))
 
-      for name in "''${policyNames[@]}"; do
-        keep=""
-        for kname in "''${keepNames[@]}"; do
-          if [ "$name" = "$kname" ]; then
-            keep="yes"
+        for name in "''${policyNames[@]}"; do
+          keep=""
+          for kname in "''${keepNames[@]}"; do
+            if [ "$name" = "$kname" ]; then
+              keep="yes"
+            fi
+          done
+
+          if [ -z "$keep" ]; then
+            vault policy delete "$name"
           fi
         done
 
-        if [ -z "$keep" ]; then
-          vault policy delete "$name"
-        fi
-      done
+        # Nomad Policies
 
-      # Nomad Policies
+        ${lib.concatStringsSep "\n" createNomadRoles}
 
-      ${lib.concatStringsSep "\n" createNomadRoles}
+        keepNames=(${
+          toString (builtins.attrNames config.services.nomad.policies)
+        })
+        nomadRoles=($(nomad acl policy list -json | jq -r -e '.[].Name'))
 
-      keepNames=(${toString (builtins.attrNames config.services.nomad.policies)})
-      nomadRoles=($(nomad acl policy list -json | jq -r -e '.[].Name'))
+        for role in "''${nomadRoles[@]}"; do
+          keep=""
+          for kname in "''${keepNames[@]}"; do
+            if [ "$role" = "$kname" ]; then
+              keep="yes"
+            fi
+          done
 
-      for role in "''${nomadRoles[@]}"; do
-        keep=""
-        for kname in "''${keepNames[@]}"; do
-          if [ "$role" = "$kname" ]; then
-            keep="yes"
+          if [ -z "$keep" ]; then
+            vault delete "nomad/role/$role"
           fi
         done
-
-        if [ -z "$keep" ]; then
-          vault delete "nomad/role/$role"
-        fi
-      done
-    '';
-  };
+      '';
+    };
 }

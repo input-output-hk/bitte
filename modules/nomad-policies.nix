@@ -10,7 +10,8 @@ let
           null
         else if value == null then
           null
-        else if type == "set" && (builtins.length (builtins.attrNames value)) == 0 then
+        else if type == "set" && (builtins.length (builtins.attrNames value))
+        == 0 then
           null
         else if type == "list" && (builtins.length value) == 0 then
           null
@@ -25,89 +26,95 @@ let
         }) set;
     in builtins.listToAttrs (lib.remove null sanitized);
 
-  policyOption =
-    lib.mkOption { type = with lib.types; enum [ "deny" "read" "write" "scale" "list" ]; };
+  policyOption = lib.mkOption {
+    type = with lib.types; enum [ "deny" "read" "write" "scale" "list" ];
+  };
 
   subPolicyOption = lib.mkOption {
     default = null;
-    type = with lib.types; nullOr (submodule { options = { policy = policyOption; }; });
+    type = with lib.types;
+      nullOr (submodule { options = { policy = policyOption; }; });
   };
 
-  nomadPoliciesType = with lib.types; submodule ({ name, ... }: {
-    options = {
-      name = lib.mkOption {
-        type = str;
-        default = name;
-      };
+  nomadPoliciesType = with lib.types;
+    submodule ({ name, ... }: {
+      options = {
+        name = lib.mkOption {
+          type = str;
+          default = name;
+        };
 
-      description = lib.mkOption {
-        default = null;
-        type = with lib.types; nullOr str;
-      };
+        description = lib.mkOption {
+          default = null;
+          type = with lib.types; nullOr str;
+        };
 
-      namespace = lib.mkOption {
-        default = { };
-        type = with lib.types; attrsOf (submodule ({ name, ... }: {
-          options = {
-            name = lib.mkOption {
-              type = with lib.types; str;
-              default = name;
-            };
-            policy = policyOption;
-            capabilities = lib.mkOption {
-              default = [ ];
-              type = with lib.types; listOf (enum [
-                "alloc-exec"
-                "alloc-lifecycle"
-                "alloc-node-exec"
-                "csi-list-volume"
-                "csi-mount-volume"
-                "csi-read-volume"
-                "csi-register-plugin"
-                "csi-write-volume"
-                "deny"
-                "dispatch-job"
-                "list-jobs"
-                "list-scaling-policies"
-                "read-fs"
-                "read-job"
-                "read-job-scaling"
-                "read-logs"
-                "read-scaling-policy"
-                "scale-job"
-                "sentinel-override"
-                "submit-job"
-              ]);
-            };
-          };
-        }));
-      };
+        namespace = lib.mkOption {
+          default = { };
+          type = with lib.types;
+            attrsOf (submodule ({ name, ... }: {
+              options = {
+                name = lib.mkOption {
+                  type = with lib.types; str;
+                  default = name;
+                };
+                policy = policyOption;
+                capabilities = lib.mkOption {
+                  default = [ ];
+                  type = with lib.types;
+                    listOf (enum [
+                      "alloc-exec"
+                      "alloc-lifecycle"
+                      "alloc-node-exec"
+                      "csi-list-volume"
+                      "csi-mount-volume"
+                      "csi-read-volume"
+                      "csi-register-plugin"
+                      "csi-write-volume"
+                      "deny"
+                      "dispatch-job"
+                      "list-jobs"
+                      "list-scaling-policies"
+                      "read-fs"
+                      "read-job"
+                      "read-job-scaling"
+                      "read-logs"
+                      "read-scaling-policy"
+                      "scale-job"
+                      "sentinel-override"
+                      "submit-job"
+                    ]);
+                };
+              };
+            }));
+        };
 
-      hostVolume = lib.mkOption {
-        default = { };
-        type = with lib.types; attrsOf (submodule ({ name, ... }: {
-          options = {
-            name = lib.mkOption {
-              type = with lib.types; str;
-              default = name;
-            };
-            policy = policyOption;
-            capabilities = lib.mkOption {
-              default = [ ];
-              type =
-                listOf (enum [ "deny" "mount-readonly" "mount-readwrite" ]);
-            };
-          };
-        }));
-      };
+        hostVolume = lib.mkOption {
+          default = { };
+          type = with lib.types;
+            attrsOf (submodule ({ name, ... }: {
+              options = {
+                name = lib.mkOption {
+                  type = with lib.types; str;
+                  default = name;
+                };
+                policy = policyOption;
+                capabilities = lib.mkOption {
+                  default = [ ];
+                  type =
+                    listOf (enum [ "deny" "mount-readonly" "mount-readwrite" ]);
+                };
+              };
+            }));
+        };
 
-      agent = subPolicyOption;
-      node = subPolicyOption;
-      operator = subPolicyOption;
-      plugin = subPolicyOption;
-      quota = subPolicyOption;
-    };
-  });
+        agent = subPolicyOption;
+        node = subPolicyOption;
+        operator = subPolicyOption;
+        plugin = subPolicyOption;
+        quota = subPolicyOption;
+      };
+    });
 
   policyJson = policy:
     sanitize {
@@ -138,47 +145,50 @@ in {
     services.nomad-acl.enable = lib.mkEnableOption "Create Nomad policies";
   };
 
-  config.systemd.services.nomad-acl = lib.mkIf config.services.nomad-acl.enable {
-    after = [ "nomad.service" ];
-    wantedBy = [ "multi-user.target" ];
-    description = "Service that creates all Nomad policies";
+  config.systemd.services.nomad-acl =
+    lib.mkIf config.services.nomad-acl.enable {
+      after = [ "nomad.service" ];
+      wantedBy = [ "multi-user.target" ];
+      description = "Service that creates all Nomad policies";
 
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      Restart = "on-failure";
-      RestartSec = "20s";
-      WorkingDirectory = "/var/lib/nomad";
-      ExecStartPre = ensureDependencies [ "nomad" ];
-    };
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        Restart = "on-failure";
+        RestartSec = "20s";
+        WorkingDirectory = "/var/lib/nomad";
+        ExecStartPre = ensureDependencies [ "nomad" ];
+      };
 
-    path = with pkgs; [ config.services.nomad.package jq ];
+      path = with pkgs; [ config.services.nomad.package jq ];
 
-    environment = { NOMAD_ADDR = "https://127.0.0.1:4646"; };
+      environment = { NOMAD_ADDR = "https://127.0.0.1:4646"; };
 
-    script = ''
-      set -euo pipefail
+      script = ''
+        set -euo pipefail
 
-      NOMAD_TOKEN="$(< bootstrap.token)"
-      export NOMAD_TOKEN
+        NOMAD_TOKEN="$(< bootstrap.token)"
+        export NOMAD_TOKEN
 
-      ${lib.concatStringsSep "" createPolicies}
+        ${lib.concatStringsSep "" createPolicies}
 
-      keepNames=(${toString (builtins.attrNames config.services.nomad.policies)})
-      policyNames=($(nomad acl policy list -json | jq -r -e '.[].Name'))
+        keepNames=(${
+          toString (builtins.attrNames config.services.nomad.policies)
+        })
+        policyNames=($(nomad acl policy list -json | jq -r -e '.[].Name'))
 
-      for name in "''${policyNames[@]}"; do
-        keep=""
-        for kname in "''${keepNames[@]}"; do
-          if [ "$name" = "$kname" ]; then
-            keep="yes"
+        for name in "''${policyNames[@]}"; do
+          keep=""
+          for kname in "''${keepNames[@]}"; do
+            if [ "$name" = "$kname" ]; then
+              keep="yes"
+            fi
+          done
+
+          if [ -z "$keep" ]; then
+            nomad acl policy delete "$name"
           fi
         done
-
-        if [ -z "$keep" ]; then
-          nomad acl policy delete "$name"
-        fi
-      done
-    '';
-  };
+      '';
+    };
 }
