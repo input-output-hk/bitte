@@ -1,7 +1,6 @@
 { config, lib, pkgs, nodeName, ... }:
 let
   inherit (config.cluster) domain region;
-  inherit (config.cluster.instances.${nodeName}) privateIP;
 
   cfg = config.services.vault-agent-core;
 
