@@ -23,10 +23,7 @@ let
   mkSystem = nodeName: modules:
     self.inputs.nixpkgs.lib.nixosSystem {
       inherit pkgs system;
-      modules = [
-        self.inputs.bitte.nixosModule
-        (self.inputs.nixpkgs + "/nixos/modules/virtualisation/amazon-image.nix")
-      ] ++ modules;
+      modules = [ self.inputs.bitte.nixosModule ] ++ modules;
       specialArgs = { inherit nodeName self; };
     };
 

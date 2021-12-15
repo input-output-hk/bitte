@@ -8,6 +8,8 @@
     ./ssh.nix
   ];
 
+  disabledModules = [ "virtualisation/amazon-image.nix" ];
+
   documentation = {
     man.enable = false;
     nixos.enable = false;
