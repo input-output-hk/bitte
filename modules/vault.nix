@@ -1,73 +1,66 @@
 { lib, config, pkgs, nodeName, ... }:
 let
-  inherit (builtins) split typeOf length attrNames;
   inherit (pkgs) ensureDependencies snakeCase;
-  inherit (lib)
-    mkIf mkEnableOption mkOption flip pipe concatMapStrings isList toLower
-    mapAttrs' nameValuePair fileContents filterAttrs hasPrefix mapAttrsToList
-    makeBinPath;
-  inherit (lib.types) attrs str enum submodule listOf ints nullOr;
-  inherit (builtins) toJSON;
 
   sanitize = obj:
-    lib.getAttr (typeOf obj) {
+    lib.getAttr (builtins.typeOf obj) {
       bool = obj;
       int = obj;
       string = obj;
       str = obj;
       list = map sanitize obj;
       inherit null;
-      set = if (length (attrNames obj) == 0) then
+      set = if (builtins.length (builtins.attrNames obj) == 0) then
         null
       else
-        pipe obj [
-          (filterAttrs
+        lib.pipe obj [
+          (lib.filterAttrs
             (name: value: name != "_module" && name != "_ref" && value != null))
-          (mapAttrs'
-            (name: value: nameValuePair (snakeCase name) (sanitize value)))
+          (lib.mapAttrs'
+            (name: value: lib.nameValuePair (snakeCase name) (sanitize value)))
         ];
     };
 
-  storageRaftType = submodule {
+  storageRaftType = with lib.types; submodule {
     options = {
-      path = mkOption {
-        type = str;
+      path = lib.mkOption {
+        type = with lib.types; str;
         default = cfg.storagePath;
       };
 
-      nodeId = mkOption {
-        type = nullOr str;
+      nodeId = lib.mkOption {
+        type = with lib.types; nullOr str;
         default = null;
       };
 
-      retryJoin = mkOption {
-        type = listOf (submodule {
+      retryJoin = lib.mkOption {
+        type = with lib.types; listOf (submodule {
           options = {
-            leaderApiAddr = mkOption {
-              type = str;
+            leaderApiAddr = lib.mkOption {
+              type = with lib.types; str;
               description = ''
                 Address of a possible leader node.
               '';
             };
 
-            leaderCaCertFile = mkOption {
-              type = nullOr str;
+            leaderCaCertFile = lib.mkOption {
+              type = with lib.types; nullOr str;
               default = null;
               description = ''
                 File path to the CA cert of the possible leader node.
               '';
             };
 
-            leaderCaCert = mkOption {
-              type = nullOr str;
+            leaderCaCert = lib.mkOption {
+              type = with lib.types; nullOr str;
               default = null;
               description = ''
                 CA cert of the possible leader node.
               '';
             };
 
-            leaderClientCertFile = mkOption {
-              type = nullOr str;
+            leaderClientCertFile = lib.mkOption {
+              type = with lib.types; nullOr str;
               default = null;
               description = ''
                 File path to the client certificate for the follower
@@ -76,8 +69,8 @@ let
               '';
             };
 
-            leaderClientCert = mkOption {
-              type = nullOr str;
+            leaderClientCert = lib.mkOption {
+              type = with lib.types; nullOr str;
               default = null;
               description = ''
                 Client certificate for the follower node to establish
@@ -85,8 +78,8 @@ let
               '';
             };
 
-            leaderClientKeyFile = mkOption {
-              type = nullOr str;
+            leaderClientKeyFile = lib.mkOption {
+              type = with lib.types; nullOr str;
               default = null;
               description = ''
                 File path to the client key for the follower node to
@@ -95,8 +88,8 @@ let
               '';
             };
 
-            leaderClientKey = mkOption {
-              type = nullOr str;
+            leaderClientKey = lib.mkOption {
+              type = with lib.types; nullOr str;
               default = null;
               description = ''
                 Client key for the follower node to establish client
@@ -143,92 +136,92 @@ let
 in {
   disabledModules = [ "services/security/vault.nix" ];
   options.services.vault = {
-    enable = mkEnableOption "Vault daemon";
+    enable = lib.mkEnableOption "Vault daemon";
 
-    storagePath = mkOption {
-      type = str;
+    storagePath = lib.mkOption {
+      type = with lib.types; str;
       default = "/var/lib/vault";
     };
 
-    configDir = mkOption {
-      type = str;
+    configDir = lib.mkOption {
+      type = with lib.types; str;
       default = "vault.d";
     };
 
-    extraConfig = mkOption {
-      type = attrs;
+    extraConfig = lib.mkOption {
+      type = with lib.types; attrs;
       default = { };
     };
 
-    ui = mkEnableOption "Enable web UI";
+    ui = lib.mkEnableOption "Enable web UI";
 
-    logLevel = mkOption {
-      type = enum [ "trace" "debug" "info" "warn" "err" ];
+    logLevel = lib.mkOption {
+      type = with lib.types; enum [ "trace" "debug" "info" "warn" "err" ];
       default = "info";
     };
 
-    disableMlock = mkEnableOption "Disable mlock";
+    disableMlock = lib.mkEnableOption "Disable mlock";
 
-    apiAddr = mkOption {
-      type = nullOr str;
+    apiAddr = lib.mkOption {
+      type = with lib.types; nullOr str;
       default = null;
     };
 
-    clusterAddr = mkOption {
-      type = nullOr str;
+    clusterAddr = lib.mkOption {
+      type = with lib.types; nullOr str;
       default = null;
     };
 
-    storage = mkOption {
+    storage = lib.mkOption {
       default = null;
-      type = nullOr (submodule {
+      type = with lib.types; nullOr (submodule {
         options = {
-          raft = mkOption {
-            type = nullOr storageRaftType;
+          raft = lib.mkOption {
+            type = with lib.types; nullOr storageRaftType;
             default = null;
           };
 
-          consul = mkOption {
-            type = nullOr storageConsulType;
+          consul = lib.mkOption {
+            type = with lib.types; nullOr storageConsulType;
             default = null;
           };
         };
       });
     };
 
-    listener = mkOption {
-      type = submodule {
+    listener = lib.mkOption {
+      type = with lib.types; submodule {
         options = {
-          tcp = mkOption {
-            type = submodule {
+          tcp = lib.mkOption {
+            type = with lib.types; submodule {
               options = {
-                address = mkOption {
-                  type = str;
+                address = lib.mkOption {
+                  type = with lib.types; str;
                   default = "";
                 };
 
-                clusterAddress = mkOption {
-                  type = str;
+                clusterAddress = lib.mkOption {
+                  type = with lib.types; str;
                   default = "";
                 };
 
-                tlsClientCaFile = mkOption {
-                  type = str;
+                tlsClientCaFile = lib.mkOption {
+                  type = with lib.types; str;
                   default = "";
                 };
 
-                tlsCertFile = mkOption {
-                  type = str;
+                tlsCertFile = lib.mkOption {
+                  type = with lib.types; str;
                   default = "";
                 };
 
-                tlsKeyFile = mkOption {
-                  type = str;
+                tlsKeyFile = lib.mkOption {
+                  type = with lib.types; str;
                   default = "";
                 };
 
-                tlsMinVersion = mkOption {
-                  type = enum [ "tls10" "tls11" "tls12" "tls13" ];
+                tlsMinVersion = lib.mkOption {
+                  type = with lib.types; enum [ "tls10" "tls11" "tls12" "tls13" ];
                   default = "tls12";
                 };
               };
@@ -240,14 +233,14 @@ in {
       default = { };
     };
 
-    seal = mkOption {
-      type = submodule {
+    seal = lib.mkOption {
+      type = with lib.types; submodule {
         options = {
-          awskms = mkOption {
-            type = submodule {
+          awskms = lib.mkOption {
+            type = with lib.types; submodule {
               options = {
-                kmsKeyId = mkOption { type = str; };
-                region = mkOption { type = str; };
+                kmsKeyId = lib.mkOption { type = with lib.types; str; };
+                region = lib.mkOption { type = with lib.types; str; };
               };
             };
           };
@@ -256,34 +249,34 @@ in {
       default = { };
     };
 
-    serviceRegistration = mkOption {
-      type = nullOr (submodule {
+    serviceRegistration = lib.mkOption {
+      type = with lib.types; nullOr (submodule {
         options = {
-          consul = mkOption {
-            type = nullOr (submodule {
+          consul = lib.mkOption {
+            type = with lib.types; nullOr (submodule {
               options = {
-                address = mkOption {
-                  type = nullOr str;
+                address = lib.mkOption {
+                  type = with lib.types; nullOr str;
                   default = null;
                 };
 
-                scheme = mkOption {
-                  type = nullOr (enum [ "http" "https" ]);
+                scheme = lib.mkOption {
+                  type = with lib.types; nullOr (enum [ "http" "https" ]);
                   default = null;
                 };
 
-                tlsClientCaFile = mkOption {
-                  type = nullOr str;
+                tlsClientCaFile = lib.mkOption {
+                  type = with lib.types; nullOr str;
                   default = null;
                 };
 
-                tlsCertFile = mkOption {
-                  type = nullOr str;
+                tlsCertFile = lib.mkOption {
+                  type = with lib.types; nullOr str;
                   default = null;
                 };
 
-                tlsKeyFile = mkOption {
-                  type = nullOr str;
+                tlsKeyFile = lib.mkOption {
+                  type = with lib.types; nullOr str;
                   default = null;
                 };
               };
@@ -295,16 +288,16 @@ in {
       default = null;
     };
 
-    telemetry = mkOption {
-      type = submodule {
+    telemetry = lib.mkOption {
+      type = with lib.types; submodule {
         options = {
-          dogstatsdAddr = mkOption {
-            type = nullOr str;
+          dogstatsdAddr = lib.mkOption {
+            type = with lib.types; nullOr str;
             default = null;
           };
 
-          dogstatsdTags = mkOption {
-            type = nullOr (listOf str);
+          dogstatsdTags = lib.mkOption {
+            type = with lib.types; nullOr (listOf str);
             default = null;
           };
         };
@@ -313,9 +306,9 @@ in {
   };
 
   options.services.vault-consul-token.enable =
-    mkEnableOption "Enable Vault Consul Token";
+    lib.mkEnableOption "Enable Vault Consul Token";
 
-  config = mkIf cfg.enable {
+  config = lib.mkIf cfg.enable {
     environment.systemPackages = [ pkgs.vault-bin ];
 
     environment.etc."${cfg.configDir}/config.json".source =
@@ -332,8 +325,8 @@ in {
       wantedBy = [ "multi-user.target" ];
       after = [ "network.target" "consul.service" ];
 
-      restartTriggers = mapAttrsToList (_: d: d.source)
-        (filterAttrs (n: _: hasPrefix "${cfg.configDir}" n)
+      restartTriggers = lib.mapAttrsToList (_: d: d.source)
+        (lib.filterAttrs (n: _: lib.hasPrefix "${cfg.configDir}" n)
           config.environment.etc);
 
       unitConfig = {
@@ -344,14 +337,14 @@ in {
 
       serviceConfig = let
         preScript = pkgs.writeShellScriptBin "vault-start-pre" ''
-          export PATH="${makeBinPath [ pkgs.coreutils ]}"
+          export PATH="${lib.makeBinPath [ pkgs.coreutils ]}"
           set -exuo pipefail
           cp /etc/ssl/certs/cert-key.pem .
           chown --reference . --recursive .
         '';
 
         postScript = pkgs.writeShellScriptBin "vault-start-post" ''
-          export PATH="${makeBinPath [ pkgs.coreutils pkgs.vault-bin ]}"
+          export PATH="${lib.makeBinPath [ pkgs.coreutils pkgs.vault-bin ]}"
           while ! vault status; do sleep 3; done
         '';
       in {
@@ -384,7 +377,7 @@ in {
     };
 
     systemd.services.vault-consul-token =
-      mkIf config.services.vault-consul-token.enable {
+      lib.mkIf config.services.vault-consul-token.enable {
         after = [ "consul.service" ];
         wantedBy = [ "vault.service" ];
         before = [ "vault.service" ];

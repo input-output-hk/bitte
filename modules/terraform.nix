@@ -1,11 +1,6 @@
 { self, config, pkgs, nodeName, ... }:
 let
-  inherit (pkgs) lib terralib;
-  inherit (lib) mkOption reverseList;
-  inherit (lib.types)
-    attrs submodule str attrsOf bool ints path enum port listof nullOr listOf
-    oneOf list package unspecified;
-  inherit (terralib) var id regions awsProviderFor;
+  inherit (pkgs.terralib) var id regions awsProviderFor;
 
   kms2region = kms: builtins.elemAt (lib.splitString ":" kms) 3;
 
@@ -47,76 +42,76 @@ let
 
   cfg = config.cluster;
 
-  clusterType = submodule (_: {
+  clusterType = with lib.types; submodule (_: {
     options = {
-      name = mkOption { type = str; };
+      name = lib.mkOption { type = with lib.types; str; };
 
-      domain = mkOption { type = str; };
+      domain = lib.mkOption { type = with lib.types; str; };
 
-      secrets = mkOption { type = path; };
+      secrets = lib.mkOption { type = with lib.types; path; };
 
-      terraformOrganization = mkOption { type = str; };
+      terraformOrganization = lib.mkOption { type = with lib.types; str; };
 
-      instances = mkOption {
-        type = attrsOf serverType;
+      instances = lib.mkOption {
+        type = with lib.types; attrsOf serverType;
         default = { };
       };
 
-      autoscalingGroups = mkOption {
-        type = attrsOf autoscalingGroupType;
+      autoscalingGroups = lib.mkOption {
+        type = with lib.types; attrsOf autoscalingGroupType;
         default = { };
       };
 
-      route53 = mkOption {
-        type = bool;
+      route53 = lib.mkOption {
+        type = with lib.types; bool;
         default = true;
         description = "Enable route53 registrations";
       };
 
-      ami = mkOption {
-        type = str;
+      ami = lib.mkOption {
+        type = with lib.types; str;
         default = amis.nixos.${cfg.region};
       };
 
-      iam = mkOption {
-        type = clusterIamType;
+      iam = lib.mkOption {
+        type = with lib.types; clusterIamType;
         default = { };
       };
 
-      kms = mkOption { type = str; };
+      kms = lib.mkOption { type = with lib.types; str; };
 
-      s3Bucket = mkOption { type = str; };
+      s3Bucket = lib.mkOption { type = with lib.types; str; };
 
-      s3Cache = mkOption {
-        type = str;
+      s3Cache = lib.mkOption {
+        type = with lib.types; str;
         default =
           "s3://${cfg.s3Bucket}/infra/binary-cache/?region=${cfg.region}";
       };
 
-      s3CachePubKey = mkOption { type = str; };
+      s3CachePubKey = lib.mkOption { type = with lib.types; str; };
 
-      adminNames = mkOption {
-        type = listOf str;
+      adminNames = lib.mkOption {
+        type = with lib.types; listOf str;
         default = [ ];
       };
 
-      adminGithubTeamNames = mkOption {
-        type = listOf str;
+      adminGithubTeamNames = lib.mkOption {
+        type = with lib.types; listOf str;
         default = [ "devops" ];
       };
 
-      developerGithubTeamNames = mkOption {
-        type = listOf str;
+      developerGithubTeamNames = lib.mkOption {
+        type = with lib.types; listOf str;
         default = [ ];
       };
 
-      developerGithubNames = mkOption {
-        type = listOf str;
+      developerGithubNames = lib.mkOption {
+        type = with lib.types; listOf str;
         default = [ ];
       };
 
-      extraAcmeSANs = mkOption {
-        type = listOf str;
+      extraAcmeSANs = lib.mkOption {
+        type = with lib.types; listOf str;
         default = [ ];
         description = ''
           Extra subject alternative names to add to the default certs for the cluster.
@@ -133,18 +128,18 @@ let
         '';
       };
 
-      generateSSHKey = mkOption {
-        type = bool;
+      generateSSHKey = lib.mkOption {
+        type = with lib.types; bool;
         default = true;
       };
 
-      region = mkOption {
-        type = str;
+      region = lib.mkOption {
+        type = with lib.types; str;
         default = kms2region cfg.kms;
       };
 
-      vpc = mkOption {
-        type = vpcType cfg.name;
+      vpc = lib.mkOption {
+        type = with lib.types; vpcType cfg.name;
         default = {
           inherit (cfg) region;
 
@@ -158,99 +153,99 @@ let
         };
       };
 
-      certificate = mkOption {
-        type = certificateType;
+      certificate = lib.mkOption {
+        type = with lib.types; certificateType;
         default = { };
       };
 
-      flakePath = mkOption {
-        type = path;
+      flakePath = lib.mkOption {
+        type = with lib.types; path;
         default = self.outPath;
       };
     };
   });
 
-  clusterIamType = submodule {
+  clusterIamType = with lib.types; submodule {
     options = {
-      roles = mkOption {
-        type = attrsOf iamRoleType;
+      roles = lib.mkOption {
+        type = with lib.types; attrsOf iamRoleType;
         default = { };
       };
     };
   };
 
-  iamRoleType = submodule ({ name, ... }@this: {
+  iamRoleType = with lib.types; submodule ({ name, ... }@this: {
     options = {
-      id = mkOption {
-        type = str;
+      id = lib.mkOption {
+        type = with lib.types; str;
         default = id "aws_iam_role.${this.config.uid}";
       };
 
-      uid = mkOption {
-        type = str;
+      uid = lib.mkOption {
+        type = with lib.types; str;
         default = "${cfg.name}-${this.config.name}";
       };
 
-      name = mkOption {
-        type = str;
+      name = lib.mkOption {
+        type = with lib.types; str;
         default = name;
       };
 
-      tfName = mkOption {
-        type = str;
+      tfName = lib.mkOption {
+        type = with lib.types; str;
         default = var "aws_iam_role.${this.config.uid}.name";
       };
 
-      tfDataName = mkOption {
-        type = str;
+      tfDataName = lib.mkOption {
+        type = with lib.types; str;
         default = var "data.aws_iam_role.${this.config.uid}.name";
       };
 
-      assumePolicy = mkOption {
-        type = iamRoleAssumePolicyType;
+      assumePolicy = lib.mkOption {
+        type = with lib.types; iamRoleAssumePolicyType;
         default = { };
       };
 
-      policies = mkOption {
-        type = attrsOf (iamRolePolicyType this.config.uid);
+      policies = lib.mkOption {
+        type = with lib.types; attrsOf (iamRolePolicyType this.config.uid);
         default = { };
       };
     };
   });
 
   iamRolePolicyType = parentUid:
-    (submodule ({ name, ... }@this: {
+    (with lib.types; submodule ({ name, ... }@this: {
       options = {
-        uid = mkOption {
-          type = str;
+        uid = lib.mkOption {
+          type = with lib.types; str;
           default = "${parentUid}-${this.config.name}";
         };
 
-        name = mkOption {
-          type = str;
+        name = lib.mkOption {
+          type = with lib.types; str;
           default = name;
         };
 
-        effect = mkOption {
-          type = enum [ "Allow" "Deny" ];
+        effect = lib.mkOption {
+          type = with lib.types; enum [ "Allow" "Deny" ];
           default = "Allow";
         };
 
-        actions = mkOption { type = listOf str; };
+        actions = lib.mkOption { type = with lib.types; listOf str; };
 
-        resources = mkOption { type = listOf str; };
+        resources = lib.mkOption { type = with lib.types; listOf str; };
 
-        condition = mkOption {
-          type = nullOr (listOf attrs);
+        condition = lib.mkOption {
+          type = with lib.types; nullOr (listOf attrs);
           default = null;
         };
       };
     }));
 
-  iamRoleAssumePolicyType = submodule (this: {
+  iamRoleAssumePolicyType = with lib.types; submodule (this: {
     options = {
-      tfJson = mkOption {
-        type = str;
+      tfJson = lib.mkOption {
+        type = with lib.types; str;
         apply = _:
           builtins.toJSON {
             Version = "2012-10-17";
@@ -263,236 +258,237 @@ let
           };
       };
 
-      effect = mkOption {
-        type = enum [ "Allow" "Deny" ];
+      effect = lib.mkOption {
+        type = with lib.types; enum [ "Allow" "Deny" ];
         default = "Allow";
       };
 
-      action = mkOption { type = str; };
+      action = lib.mkOption { type = with lib.types; str; };
 
-      principal = mkOption { type = iamRolePrincipalsType; };
+      principal = lib.mkOption { type = with lib.types; iamRolePrincipalsType; };
     };
   });
 
-  iamRolePrincipalsType =
-    submodule { options = { service = mkOption { type = str; }; }; };
+  iamRolePrincipalsType = with lib.types; submodule {
+    options = { service = lib.mkOption { type = with lib.types; str; }; };
+  };
 
-  initialVaultSecretsType = submodule (this: {
+  initialVaultSecretsType = with lib.types; submodule (this: {
     options = {
-      consul = mkOption {
-        type = str;
+      consul = lib.mkOption {
+        type = with lib.types; str;
         default = builtins.trace "initialVaultSecrets is not used anymore!" "";
       };
-      nomad = mkOption {
-        type = str;
+      nomad = lib.mkOption {
+        type = with lib.types; str;
         default = builtins.trace "initialVaultSecrets is not used anymore!" "";
       };
     };
   });
 
-  certificateType = submodule (this: {
+  certificateType = with lib.types; submodule (this: {
     options = {
-      organization = mkOption {
-        type = str;
+      organization = lib.mkOption {
+        type = with lib.types; str;
         default = "IOHK";
       };
 
-      commonName = mkOption {
-        type = str;
+      commonName = lib.mkOption {
+        type = with lib.types; str;
         default = this.config.organization;
       };
 
-      validityPeriodHours = mkOption {
-        type = ints.positive;
+      validityPeriodHours = lib.mkOption {
+        type = with lib.types; ints.positive;
         default = 8760;
       };
     };
   });
 
   securityGroupRuleType = { defaultSecurityGroupId }:
-    submodule ({ name, ... }@this: {
+    with lib.types; submodule ({ name, ... }@this: {
       options = {
-        name = mkOption {
-          type = str;
+        name = lib.mkOption {
+          type = with lib.types; str;
           default = name;
         };
 
-        type = mkOption {
-          type = enum [ "ingress" "egress" ];
+        type = lib.mkOption {
+          type = with lib.types; enum [ "ingress" "egress" ];
           default = "ingress";
         };
 
-        port = mkOption {
-          type = nullOr port;
+        port = lib.mkOption {
+          type = with lib.types; nullOr port;
           default = null;
         };
 
-        from = mkOption {
-          type = port;
+        from = lib.mkOption {
+          type = with lib.types; port;
           default = this.config.port;
         };
 
-        to = mkOption {
-          type = port;
+        to = lib.mkOption {
+          type = with lib.types; port;
           default = this.config.port;
         };
 
-        protocols = mkOption {
-          type = listOf (enum [ "tcp" "udp" "-1" ]);
+        protocols = lib.mkOption {
+          type = with lib.types; listOf (enum [ "tcp" "udp" "-1" ]);
           default = [ "tcp" ];
         };
 
-        cidrs = mkOption {
-          type = listOf str;
+        cidrs = lib.mkOption {
+          type = with lib.types; listOf str;
           default = [ ];
         };
 
-        securityGroupId = mkOption {
-          type = str;
+        securityGroupId = lib.mkOption {
+          type = with lib.types; str;
           default = defaultSecurityGroupId;
         };
 
-        self = mkOption {
-          type = bool;
+        self = lib.mkOption {
+          type = with lib.types; bool;
           default = false;
         };
 
-        sourceSecurityGroupId = mkOption {
-          type = nullOr str;
+        sourceSecurityGroupId = lib.mkOption {
+          type = with lib.types; nullOr str;
           default = null;
         };
       };
     });
 
   vpcType = prefix:
-    (submodule (this: {
+    (with lib.types; submodule (this: {
       options = {
-        name = mkOption {
-          type = str;
+        name = lib.mkOption {
+          type = with lib.types; str;
           default = "${prefix}-${this.config.region}";
         };
 
-        cidr = mkOption { type = str; };
+        cidr = lib.mkOption { type = with lib.types; str; };
 
-        id = mkOption {
-          type = str;
+        id = lib.mkOption {
+          type = with lib.types; str;
           default = id "data.aws_vpc.${this.config.name}";
         };
 
-        region = mkOption { type = enum regions; };
+        region = lib.mkOption { type = with lib.types; enum regions; };
 
-        subnets = mkOption {
-          type = attrsOf subnetType;
+        subnets = lib.mkOption {
+          type = with lib.types; attrsOf subnetType;
           default = { };
         };
       };
     }));
 
-  subnetType = submodule ({ name, ... }@this: {
+  subnetType = with lib.types; submodule ({ name, ... }@this: {
     options = {
-      name = mkOption {
-        type = str;
+      name = lib.mkOption {
+        type = with lib.types; str;
         default = name;
       };
 
-      cidr = mkOption { type = str; };
+      cidr = lib.mkOption { type = with lib.types; str; };
 
-      id = mkOption {
-        type = str;
+      id = lib.mkOption {
+        type = with lib.types; str;
         default = id "aws_subnet.${this.config.name}";
       };
     };
   });
 
   serverIamType = parentName:
-    submodule {
+    with lib.types; submodule {
       options = {
-        role = mkOption { type = iamRoleType; };
+        role = lib.mkOption { type = with lib.types; iamRoleType; };
 
-        instanceProfile = mkOption { type = instanceProfileType parentName; };
+        instanceProfile = lib.mkOption { type = with lib.types; instanceProfileType parentName; };
       };
     };
 
   instanceProfileType = parentName:
-    submodule {
+    with lib.types; submodule {
       options = {
-        tfName = mkOption {
-          type = str;
+        tfName = lib.mkOption {
+          type = with lib.types; str;
           readOnly = true;
           default =
             var "aws_iam_instance_profile.${cfg.name}-${parentName}.name";
         };
 
-        tfArn = mkOption {
-          type = str;
+        tfArn = lib.mkOption {
+          type = with lib.types; str;
           readOnly = true;
           default =
             var "aws_iam_instance_profile.${cfg.name}-${parentName}.arn";
         };
 
-        role = mkOption { type = iamRoleType; };
+        role = lib.mkOption { type = with lib.types; iamRoleType; };
 
-        path = mkOption {
-          type = str;
+        path = lib.mkOption {
+          type = with lib.types; str;
           default = "/";
         };
       };
     };
 
-  serverType = submodule ({ name, ... }@this: {
+  serverType = with lib.types; submodule ({ name, ... }@this: {
     options = {
-      name = mkOption {
-        type = str;
+      name = lib.mkOption {
+        type = with lib.types; str;
         default = name;
       };
 
-      uid = mkOption {
-        type = str;
+      uid = lib.mkOption {
+        type = with lib.types; str;
         default = "${cfg.name}-${name}";
       };
 
-      enable = mkOption {
-        type = bool;
+      enable = lib.mkOption {
+        type = with lib.types; bool;
         default = true;
       };
 
-      domain = mkOption {
-        type = str;
+      domain = lib.mkOption {
+        type = with lib.types; str;
         default = "${this.config.name}.${cfg.domain}";
       };
 
-      modules = mkOption {
-        type = listOf (oneOf [ path attrs ]);
+      modules = lib.mkOption {
+        type = with lib.types; listOf (oneOf [ path attrs ]);
         default = [ ];
       };
 
-      ami = mkOption {
-        type = str;
+      ami = lib.mkOption {
+        type = with lib.types; str;
         default = config.cluster.ami;
       };
 
-      iam = mkOption {
-        type = serverIamType this.config.name;
+      iam = lib.mkOption {
+        type = with lib.types; serverIamType this.config.name;
         default = {
           role = cfg.iam.roles.core;
           instanceProfile.role = cfg.iam.roles.core;
         };
       };
 
-      route53 = mkOption {
+      route53 = lib.mkOption {
         default = { domains = [ ]; };
-        type = submodule {
+        type = with lib.types; submodule {
           options = {
-            domains = mkOption {
-              type = listOf str;
+            domains = lib.mkOption {
+              type = with lib.types; listOf str;
               default = [ ];
             };
           };
         };
       };
 
-      userData = mkOption {
-        type = nullOr str;
+      userData = lib.mkOption {
+        type = with lib.types; nullOr str;
         default = ''
           ### https://nixos.org/channels/nixpkgs-unstable nixos
           { pkgs, config, ... }: {
@@ -520,8 +516,8 @@ let
       };
 
       # Gotta do it this way since TF outputs aren't generated at this point and we need the IP.
-      localProvisioner = mkOption {
-        type = localExecType;
+      localProvisioner = lib.mkOption {
+        type = with lib.types; localExecType;
         default = let
           ip = var "aws_eip.${this.config.uid}.public_ip";
           args = [
@@ -540,8 +536,8 @@ let
         in { inherit command interpreter; };
       };
 
-      postDeploy = mkOption {
-        type = localExecType;
+      postDeploy = lib.mkOption {
+        type = with lib.types; localExecType;
         default = {
           # command = name;
           # interpreter = let
@@ -563,10 +559,10 @@ let
         };
       };
 
-      instanceType = mkOption { type = str; };
+      instanceType = lib.mkOption { type = with lib.types; str; };
 
-      tags = mkOption {
-        type = attrsOf str;
+      tags = lib.mkOption {
+        type = with lib.types; attrsOf str;
         default = {
           Cluster = cfg.name;
           Name = this.config.name;
@@ -577,94 +573,94 @@ let
         };
       };
 
-      privateIP = mkOption { type = str; };
+      privateIP = lib.mkOption { type = with lib.types; str; };
 
-      # flake = mkOption { type = str; };
+      # flake = lib.mkOption { type = with lib.types; str; };
 
-      subnet = mkOption {
-        type = subnetType;
+      subnet = lib.mkOption {
+        type = with lib.types; subnetType;
         default = { };
       };
 
-      volumeSize = mkOption {
-        type = ints.positive;
+      volumeSize = lib.mkOption {
+        type = with lib.types; ints.positive;
         default = 30;
       };
 
-      securityGroupName = mkOption {
-        type = str;
+      securityGroupName = lib.mkOption {
+        type = with lib.types; str;
         default = "aws_security_group.${cfg.name}";
       };
 
-      securityGroupId = mkOption {
-        type = str;
+      securityGroupId = lib.mkOption {
+        type = with lib.types; str;
         default = id this.config.securityGroupName;
       };
 
-      securityGroupRules = mkOption {
-        type = attrsOf (securityGroupRuleType {
+      securityGroupRules = lib.mkOption {
+        type = with lib.types; attrsOf (securityGroupRuleType {
           defaultSecurityGroupId = this.config.securityGroupId;
         });
         default = { };
       };
 
-      initialVaultSecrets = mkOption {
-        type = initialVaultSecretsType;
+      initialVaultSecrets = lib.mkOption {
+        type = with lib.types; initialVaultSecretsType;
         default = { };
       };
     };
   });
 
-  localExecType = submodule {
+  localExecType = with lib.types; submodule {
     options = {
-      command = mkOption { type = str; };
+      command = lib.mkOption { type = with lib.types; str; };
 
-      workingDir = mkOption {
-        type = nullOr path;
+      workingDir = lib.mkOption {
+        type = with lib.types; nullOr path;
         default = null;
       };
 
-      interpreter = mkOption {
-        type = nullOr (listOf str);
+      interpreter = lib.mkOption {
+        type = with lib.types; nullOr (listOf str);
         default = [ "${pkgs.bash}/bin/bash" "-c" ];
       };
 
-      environment = mkOption {
-        type = attrsOf str;
+      environment = lib.mkOption {
+        type = with lib.types; attrsOf str;
         default = { };
       };
     };
   };
 
-  autoscalingGroupType = submodule ({ name, ... }@this: {
+  autoscalingGroupType = with lib.types; submodule ({ name, ... }@this: {
     options = {
-      name = mkOption {
-        type = str;
+      name = lib.mkOption {
+        type = with lib.types; str;
         default = name;
       };
 
-      uid = mkOption {
-        type = str;
+      uid = lib.mkOption {
+        type = with lib.types; str;
         default = "${cfg.name}-${this.config.name}";
       };
 
-      modules = mkOption {
-        type = listOf (oneOf [ path attrs ]);
+      modules = lib.mkOption {
+        type = with lib.types; listOf (oneOf [ path attrs ]);
         default = [ ];
       };
 
-      ami = mkOption {
-        type = str;
+      ami = lib.mkOption {
+        type = with lib.types; str;
         default = autoscalingAMIs.${this.config.region} or (throw
           "Please make sure the NixOS ZFS AMI is copied to ${this.config.region}");
       };
 
-      region = mkOption { type = str; };
+      region = lib.mkOption { type = with lib.types; str; };
 
-      iam = mkOption { type = serverIamType this.config.name; };
+      iam = lib.mkOption { type = with lib.types; serverIamType this.config.name; };
 
-      vpc = mkOption {
-        type = vpcType this.config.uid;
+      vpc = lib.mkOption {
+        type = with lib.types; vpcType this.config.uid;
         default = let base = toString (vpcMap.${this.config.region} * 4);
         in {
           inherit (this.config) region;
@@ -681,8 +677,8 @@ let
         };
       };
 
-      userData = mkOption {
-        type = nullOr str;
+      userData = lib.mkOption {
+        type = with lib.types; nullOr str;
         default = ''
           # amazon-shell-init
           set -exuo pipefail
@@ -706,63 +702,63 @@ let
         '';
       };
 
-      minSize = mkOption {
-        type = ints.unsigned;
+      minSize = lib.mkOption {
+        type = with lib.types; ints.unsigned;
         default = 0;
       };
 
-      maxSize = mkOption {
-        type = ints.unsigned;
+      maxSize = lib.mkOption {
+        type = with lib.types; ints.unsigned;
         default = 10;
       };
 
-      desiredCapacity = mkOption {
-        type = ints.unsigned;
+      desiredCapacity = lib.mkOption {
+        type = with lib.types; ints.unsigned;
         default = 1;
       };
 
-      maxInstanceLifetime = mkOption {
-        type = oneOf [ (enum [ 0 ]) (ints.between 604800 31536000) ];
+      maxInstanceLifetime = lib.mkOption {
+        type = with lib.types; oneOf [ (enum [ 0 ]) (ints.between 604800 31536000) ];
         default = 0;
       };
 
-      instanceType = mkOption {
-        type = str;
+      instanceType = lib.mkOption {
+        type = with lib.types; str;
         default = "t3a.medium";
       };
 
-      volumeSize = mkOption {
-        type = ints.positive;
+      volumeSize = lib.mkOption {
+        type = with lib.types; ints.positive;
         default = 100;
       };
 
-      volumeType = mkOption {
-        type = str;
+      volumeType = lib.mkOption {
+        type = with lib.types; str;
         default = "gp2";
       };
 
-      tags = mkOption {
-        type = attrsOf str;
+      tags = lib.mkOption {
+        type = with lib.types; attrsOf str;
         default = { };
       };
 
-      associatePublicIP = mkOption {
-        type = bool;
+      associatePublicIP = lib.mkOption {
+        type = with lib.types; bool;
         default = true;
       };
 
-      subnets = mkOption {
-        type = listOf subnetType;
+      subnets = lib.mkOption {
+        type = with lib.types; listOf subnetType;
         default = builtins.attrValues this.config.vpc.subnets;
       };
 
-      securityGroupId = mkOption {
-        type = str;
+      securityGroupId = lib.mkOption {
+        type = with lib.types; str;
         default = id "aws_security_group.${this.config.uid}";
       };
 
-      securityGroupRules = mkOption {
-        type = attrsOf (securityGroupRuleType {
+      securityGroupRules = lib.mkOption {
+        type = with lib.types; attrsOf (securityGroupRuleType {
           defaultSecurityGroupId = this.config.securityGroupId;
         });
         default = { };
@@ -771,24 +767,24 @@ let
   });
 in {
   options = {
-    cluster = mkOption {
-      type = clusterType;
+    cluster = lib.mkOption {
+      type = with lib.types; clusterType;
       default = { };
     };
 
-    instance = mkOption {
-      type = nullOr attrs;
+    instance = lib.mkOption {
+      type = with lib.types; nullOr attrs;
       default = cfg.instances.${nodeName} or null;
     };
 
-    asg = mkOption {
-      type = nullOr attrs;
+    asg = lib.mkOption {
+      type = with lib.types; nullOr attrs;
       default = cfg.autoscalingGroups.${nodeName} or null;
     };
 
     tf = lib.mkOption {
       default = { };
-      type = attrsOf (submodule ({ name, ... }@this: {
+      type = with lib.types; attrsOf (submodule ({ name, ... }@this: {
         options = let
           copy = ''
             export PATH="${
@@ -808,7 +804,7 @@ in {
             terraform init 1>&2
           '';
         in {
-          configuration = lib.mkOption { type = attrsOf unspecified; };
+          configuration = lib.mkOption { type = with lib.types; attrsOf unspecified; };
 
           output = lib.mkOption {
             type = lib.mkOptionType { name = "${name}_config.tf.json"; };

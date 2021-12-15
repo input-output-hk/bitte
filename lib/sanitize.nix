@@ -1,10 +1,7 @@
 { lib, snakeCase }:
 let
-  inherit (builtins) typeOf;
-  inherit (lib) length attrNames pipe filterAttrs nameValuePair mapAttrs';
-
   sanitize = obj:
-    lib.getAttr (typeOf obj) {
+    lib.getAttr (builtins.typeOf obj) {
       lambda = throw "Cannot sanitize functions";
       bool = obj;
       int = obj;
@@ -13,13 +10,13 @@ let
       path = toString obj;
       list = map sanitize obj;
       inherit null;
-      set = if (length (attrNames obj) == 0) then
+      set = if (lib.length (lib.attrNames obj) == 0) then
         null
       else
-        pipe obj [
-          (filterAttrs
+        lib.pipe obj [
+          (lib.filterAttrs
             (name: value: name != "_module" && name != "_ref" && value != null))
-          (mapAttrs' (name: value: nameValuePair name (sanitize value)))
+          (lib.mapAttrs' (name: value: lib.nameValuePair name (sanitize value)))
         ];
     };
 in sanitize

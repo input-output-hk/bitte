@@ -1,8 +1,5 @@
 { config, lib, pkgs, ... }:
 let
-  inherit (builtins) toJSON isList;
-  inherit (lib)
-    mkIf filter mkEnableOption optional flip mapAttrsToList concatStringsSep;
   inherit (pkgs) writeShellScript;
   inherit (config.cluster) region domain;
 
@@ -17,9 +14,9 @@ let
     ttl = "322h";
   };
 
-  pkiArgs = flip mapAttrsToList pkiAttrs (name: value:
-    if isList value then
-      ''"${name}=${concatStringsSep "," value}"''
+  pkiArgs = lib.flip lib.mapAttrsToList pkiAttrs (name: value:
+    if builtins.isList value then
+      ''"${name}=${lib.concatStringsSep "," value}"''
     else
       ''"${name}=${toString value}"'');
 
@@ -181,10 +178,10 @@ let
 in {
   options = {
     services.vault-agent-client.enable =
-      mkEnableOption "Start vault-agent for clients";
+      lib.mkEnableOption "Start vault-agent for clients";
   };
 
-  config = mkIf config.services.vault-agent-client.enable {
+  config = lib.mkIf config.services.vault-agent-client.enable {
     systemd.services.certs-updated = {
       path = with pkgs; [ coreutils curl systemd ];
 

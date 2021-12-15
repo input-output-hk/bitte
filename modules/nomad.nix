@@ -2,18 +2,11 @@
 let
   cfg = config.services.nomad;
 
-  inherit (builtins) toJSON typeOf length attrNames split;
-  inherit (lib)
-    mkOption mkEnableOption mkIf mapAttrsToList filterAttrs hasPrefix
-    makeBinPath pipe mapAttrs' nameValuePair flip concatMapStrings isList
-    toLower optionalString;
-  inherit (lib.types)
-    attrs nullOr attrsOf path package str submodule bool listOf enum port ints;
-  inherit (pkgs) snakeCase;
+  inherit (pkgs) snakeCase ensureDependencies;
 
   # TODO: put this in lib
   sanitize = obj:
-    lib.getAttr (typeOf obj) {
+    lib.getAttr (builtins.typeOf obj) {
       lambda = throw "Cannot sanitize functions";
       bool = obj;
       int = obj;
@@ -21,44 +14,44 @@ let
       path = toString obj;
       list = map sanitize obj;
       inherit null;
-      set = if (length (attrNames obj) == 0) then
+      set = if (builtins.length (builtins.attrNames obj) == 0) then
         null
       else
-        pipe obj [
-          (filterAttrs
+        lib.pipe obj [
+          (lib.filterAttrs
             (name: value: name != "_module" && name != "_ref" && value != null))
-          (mapAttrs' (name: value: nameValuePair name (sanitize value)))
+          (lib.mapAttrs' (name: value: lib.nameValuePair name (sanitize value)))
         ];
     };
 
-  serverJoinType = submodule {
+  serverJoinType = with lib.types; submodule {
     options = {
-      retry_join = mkOption {
-        type = listOf str;
+      retry_join = lib.mkOption {
+        type = with lib.types; listOf str;
         default = [ ];
         description = ''
           Specifies a list of server addresses to join. This is similar to start_join, but will continue to be attempted even if the initial join attempt fails, up to retry_max. Further, retry_join is available to both Nomad servers and clients, while start_join is only defined for Nomad servers. This is useful for cases where we know the address will become available eventually. Use retry_join with an array as a replacement for start_join, do not use both options.
         '';
       };
 
-      retry_interval = mkOption {
-        type = str;
+      retry_interval = lib.mkOption {
+        type = with lib.types; str;
         default = "30s";
         description = ''
           Specifies the time to wait between retry join attempts.
         '';
       };
 
-      retry_max = mkOption {
-        type = ints.unsigned;
+      retry_max = lib.mkOption {
+        type = with lib.types; ints.unsigned;
         default = 0;
         description = ''
           Specifies the maximum number of join attempts to be made before exiting with a return code of 1. By default, this is set to 0 which is interpreted as infinite retries.
         '';
       };
 
-      start_join = mkOption {
-        type = listOf str;
+      start_join = lib.mkOption {
+        type = with lib.types; listOf str;
         default = [ ];
         description = ''
           Specifies a list of server addresses to join on startup. If Nomad is unable to join with any of the specified addresses, agent startup will fail. See the server address format section for more information on the format of the string. This field is defined only for Nomad servers and will result in a configuration parse error if included in a client configuration.
@@ -67,10 +60,10 @@ let
     };
   };
 
-  hostVolumeType = listOf (attrsOf (submodule {
+  hostVolumeType = with lib.types; listOf (attrsOf (submodule {
     options = {
-      path = mkOption {
-        type = nullOr path;
+      path = lib.mkOption {
+        type = with lib.types; nullOr path;
         default = null;
         description = ''
           The path on the host that should be used as the source when
@@ -79,8 +72,8 @@ let
         '';
       };
 
-      read_only = mkOption {
-        type = bool;
+      read_only = lib.mkOption {
+        type = with lib.types; bool;
         default = false;
         description = ''
           Whether the volume should only ever be allowed to be
@@ -92,35 +85,35 @@ let
 in {
   disabledModules = [ "services/networking/nomad.nix" ];
   options.services.nomad = {
-    enable = mkEnableOption "Enable the Nomad agent";
+    enable = lib.mkEnableOption "Enable the Nomad agent";
 
-    package = mkOption {
-      type = package;
+    package = lib.mkOption {
+      type = with lib.types; package;
       default = pkgs.nomad;
       defaultText = "pkgs.nomad";
       description = "The nomad package to use.";
     };
 
-    pluginDir = mkOption {
-      type = nullOr path;
+    pluginDir = lib.mkOption {
+      type = with lib.types; nullOr path;
       default = null;
       description = ''
         Path to a directory with plugins to load at runtime.
       '';
     };
 
-    configDir = mkOption {
-      type = nullOr path;
+    configDir = lib.mkOption {
+      type = with lib.types; nullOr path;
       default = /etc/nomad.d;
     };
 
-    tokenPolicy = mkOption {
-      type = str;
+    tokenPolicy = lib.mkOption {
+      type = with lib.types; str;
       default = "nomad-server";
     };
 
-    data_dir = mkOption {
-      type = path;
+    data_dir = lib.mkOption {
+      type = with lib.types; path;
       default = /var/lib/nomad;
       description = ''
         A local directory used to store agent state. Client nodes use this
@@ -134,20 +127,20 @@ in {
       '';
     };
 
-    ports = mkOption {
+    ports = lib.mkOption {
       default = { };
-      type = submodule {
+      type = with lib.types; submodule {
         options = {
-          http = mkOption {
-            type = port;
+          http = lib.mkOption {
+            type = with lib.types; port;
             default = 4646;
             description = ''
               The port used to run the HTTP server.
             '';
           };
 
-          rpc = mkOption {
-            type = port;
+          rpc = lib.mkOption {
+            type = with lib.types; port;
             default = 4647;
             description = ''
               The port used for internal RPC communication between agents and
@@ -156,8 +149,8 @@ in {
             '';
           };
 
-          serf = mkOption {
-            type = port;
+          serf = lib.mkOption {
+            type = with lib.types; port;
             default = 4648;
             description = ''
               The port used for the gossip protocol for cluster membership.
@@ -169,35 +162,35 @@ in {
       };
     };
 
-    datacenter = mkOption {
-      type = str;
+    datacenter = lib.mkOption {
+      type = with lib.types; str;
       default = "dc1";
     };
 
-    log_level = mkOption {
-      type = enum [ "DEBUG" "INFO" "WARN" ];
+    log_level = lib.mkOption {
+      type = with lib.types; enum [ "DEBUG" "INFO" "WARN" ];
       default = "INFO";
     };
 
-    name = mkOption {
-      type = nullOr str;
+    name = lib.mkOption {
+      type = with lib.types; nullOr str;
       default = null;
     };
 
-    client = mkOption {
+    client = lib.mkOption {
       default = { };
-      type = submodule {
+      type = with lib.types; submodule {
         options = {
-          alloc_dir = mkOption {
-            type = path;
+          alloc_dir = lib.mkOption {
+            type = with lib.types; path;
             default = cfg.data_dir + "/alloc";
             description = ''
               The directory to use for allocation data. By default, this is the top-level data_dir suffixed with "alloc", like "/var/lib/nomad/alloc". This must be an absolute path.
             '';
           };
 
-          chroot_env = mkOption {
-            type = nullOr (attrsOf str);
+          chroot_env = lib.mkOption {
+            type = with lib.types; nullOr (attrsOf str);
             default = null;
             example = { "/usr/bin/env" = "/usr/bin/env"; };
             description = ''
@@ -205,40 +198,40 @@ in {
             '';
           };
 
-          enabled = mkOption {
-            type = bool;
+          enabled = lib.mkOption {
+            type = with lib.types; bool;
             default = false;
             description = ''
               Specifies if client mode is enabled. All other client configuration options depend on this value.
             '';
           };
 
-          max_kill_timeout = mkOption {
-            type = str;
+          max_kill_timeout = lib.mkOption {
+            type = with lib.types; str;
             default = "30s";
             description = ''
               Specifies the maximum amount of time a job is allowed to wait to exit. Individual jobs may customize their own kill timeout, but it may not exceed this value.
             '';
           };
 
-          disable_remote_exec = mkOption {
-            type = bool;
+          disable_remote_exec = lib.mkOption {
+            type = with lib.types; bool;
             default = false;
             description = ''
               Specifies if the client should disable remote task execution to tasks running on this client.
             '';
           };
 
-          meta = mkOption {
-            type = nullOr (attrsOf str);
+          meta = lib.mkOption {
+            type = with lib.types; nullOr (attrsOf str);
             default = null;
             description = ''
               Specifies a key-value map that annotates with user-defined metadata.
             '';
           };
 
-          network_interface = mkOption {
-            type = nullOr str;
+          network_interface = lib.mkOption {
+            type = with lib.types; nullOr str;
             default = null;
             description = ''
               The name of the interface to force network fingerprinting on.
@@ -252,8 +245,8 @@ in {
             '';
           };
 
-          network_speed = mkOption {
-            type = nullOr ints.unsigned;
+          network_speed = lib.mkOption {
+            type = with lib.types; nullOr ints.unsigned;
             default = null;
             description = ''
               An override for the network link speed. This value, if set,
@@ -263,8 +256,8 @@ in {
             '';
           };
 
-          cpu_total_compute = mkOption {
-            type = nullOr ints.unsigned;
+          cpu_total_compute = lib.mkOption {
+            type = with lib.types; nullOr ints.unsigned;
             default = null;
             description = ''
               An override for the total CPU compute. This value should be set
@@ -275,8 +268,8 @@ in {
             '';
           };
 
-          memory_total_mb = mkOption {
-            type = nullOr ints.unsigned;
+          memory_total_mb = lib.mkOption {
+            type = with lib.types; nullOr ints.unsigned;
             default = null;
             description = ''
               An override for the total memory. If set, this value overrides
@@ -284,8 +277,8 @@ in {
             '';
           };
 
-          node_class = mkOption {
-            type = nullOr str;
+          node_class = lib.mkOption {
+            type = with lib.types; nullOr str;
             default = null;
             description = ''
               An arbitrary string used to logically group client nodes by
@@ -294,34 +287,34 @@ in {
             '';
           };
 
-          reserved = mkOption {
-            type = submodule {
+          reserved = lib.mkOption {
+            type = with lib.types; submodule {
               options = {
-                cpu = mkOption {
-                  type = nullOr ints.unsigned;
+                cpu = lib.mkOption {
+                  type = with lib.types; nullOr ints.unsigned;
                   default = null;
                   description = ''
                     Specifies the amount of CPU to reserve, in MHz.
                   '';
                 };
 
-                memory = mkOption {
-                  type = nullOr ints.unsigned;
+                memory = lib.mkOption {
+                  type = with lib.types; nullOr ints.unsigned;
                   default = null;
                   description = ''
                     Specifies the amount of memory to reserve, in MB.
                   '';
                 };
 
-                disk = mkOption {
-                  type = nullOr ints.unsigned;
+                disk = lib.mkOption {
+                  type = with lib.types; nullOr ints.unsigned;
                   default = null;
                   description = ''
                     Specifies the amount of disk to reserve, in MB.
                   '';
                 };
-                reserved_ports = mkOption {
-                  type = nullOr str;
+                reserved_ports = lib.mkOption {
+                  type = with lib.types; nullOr str;
                   default = null;
                   description = ''
                     A comma-separated list of ports to reserve on all
@@ -340,8 +333,8 @@ in {
             '';
           };
 
-          servers = mkOption {
-            type = listOf str;
+          servers = lib.mkOption {
+            type = with lib.types; listOf str;
             default = [ ];
             description = ''
               An array of addresses to the Nomad servers this client should
@@ -353,8 +346,8 @@ in {
             '';
           };
 
-          server_join = mkOption {
-            type = serverJoinType;
+          server_join = lib.mkOption {
+            type = with lib.types; serverJoinType;
             default = { };
             description = ''
               How the Nomad client will connect to Nomad servers. The
@@ -364,8 +357,8 @@ in {
             '';
           };
 
-          state_dir = mkOption {
-            type = path;
+          state_dir = lib.mkOption {
+            type = with lib.types; path;
             default = cfg.data_dir + "/client";
             description = ''
               The directory to use to store client state. By default, this is -
@@ -374,8 +367,8 @@ in {
             '';
           };
 
-          gc_interval = mkOption {
-            type = str;
+          gc_interval = lib.mkOption {
+            type = with lib.types; str;
             default = "1m";
             description = ''
               Specifies the interval at which Nomad attempts to garbage collect
@@ -383,8 +376,8 @@ in {
             '';
           };
 
-          gc_disk_usage_threshold = mkOption {
-            type = ints.positive;
+          gc_disk_usage_threshold = lib.mkOption {
+            type = with lib.types; ints.positive;
             default = 80;
             description = ''
               The disk usage percent which Nomad tries to maintain by garbage
@@ -392,8 +385,8 @@ in {
             '';
           };
 
-          gc_inode_usage_threshold = mkOption {
-            type = ints.positive;
+          gc_inode_usage_threshold = lib.mkOption {
+            type = with lib.types; ints.positive;
             default = 70;
             description = ''
               The inode usage percent which Nomad tries to maintain by garbage
@@ -401,8 +394,8 @@ in {
             '';
           };
 
-          gc_max_allocs = mkOption {
-            type = ints.positive;
+          gc_max_allocs = lib.mkOption {
+            type = with lib.types; ints.positive;
             default = 50;
             description = ''
               The maximum number of allocations which a client will track
@@ -413,8 +406,8 @@ in {
             '';
           };
 
-          gc_parallel_destroys = mkOption {
-            type = ints.positive;
+          gc_parallel_destroys = lib.mkOption {
+            type = with lib.types; ints.positive;
             default = 2;
             description = ''
               The maximum number of parallel destroys allowed by the garbage
@@ -423,8 +416,8 @@ in {
             '';
           };
 
-          no_host_uuid = mkOption {
-            type = bool;
+          no_host_uuid = lib.mkOption {
+            type = with lib.types; bool;
             default = false;
             description = ''
               By default a random node UUID will be generated, but setting this
@@ -433,16 +426,16 @@ in {
             '';
           };
 
-          cni_path = mkOption {
-            type = path;
+          cni_path = lib.mkOption {
+            type = with lib.types; path;
             default = "${pkgs.cni-plugins}/bin";
             description = ''
               Sets the search path that is used for CNI plugin discovery.
             '';
           };
 
-          bridge_network_name = mkOption {
-            type = str;
+          bridge_network_name = lib.mkOption {
+            type = with lib.types; str;
             default = "nomad";
             description = ''
               The name of the bridge to be created by nomad for allocations
@@ -450,8 +443,8 @@ in {
             '';
           };
 
-          bridge_network_subnet = mkOption {
-            type = str;
+          bridge_network_subnet = lib.mkOption {
+            type = with lib.types; str;
             default = "172.26.66.0/23";
             description = ''
               The subnet which the client will use to allocate IP addresses
@@ -459,11 +452,11 @@ in {
             '';
           };
 
-          template = mkOption {
-            type = submodule {
+          template = lib.mkOption {
+            type = with lib.types; submodule {
               options = {
-                function_blacklist = mkOption {
-                  type = listOf str;
+                function_blacklist = lib.mkOption {
+                  type = with lib.types; listOf str;
                   default = [ "plugin" ];
                   description = ''
                     A list of template rendering functions that should be
@@ -474,8 +467,8 @@ in {
                   '';
                 };
 
-                disable_file_sandbox = mkOption {
-                  type = bool;
+                disable_file_sandbox = lib.mkOption {
+                  type = with lib.types; bool;
                   default = false;
                   description = ''
                     Allows templates access to arbitrary files on the client
@@ -491,8 +484,8 @@ in {
             '';
           };
 
-          host_volume = mkOption {
-            type = hostVolumeType;
+          host_volume = lib.mkOption {
+            type = with lib.types; hostVolumeType;
             default = [ ];
             description = ''
               Exposes paths from the host as volumes that can be mounted into
@@ -503,12 +496,12 @@ in {
       };
     };
 
-    server = mkOption {
+    server = lib.mkOption {
       default = { };
-      type = submodule {
+      type = with lib.types; submodule {
         options = {
-          data_dir = mkOption {
-            type = path;
+          data_dir = lib.mkOption {
+            type = with lib.types; path;
             default = cfg.data_dir + "/server";
             description = ''
               The directory to use for server-specific data, including the
@@ -518,13 +511,13 @@ in {
             '';
           };
 
-          enabled = mkEnableOption ''
+          enabled = lib.mkEnableOption ''
             If this agent should run in server mode. All other server options
             depend on this value being set.
           '';
 
-          server_join = mkOption {
-            type = serverJoinType;
+          server_join = lib.mkOption {
+            type = with lib.types; serverJoinType;
             default = { };
             description = ''
               How the Nomad client will connect to Nomad servers. The start_join
@@ -534,8 +527,8 @@ in {
             '';
           };
 
-          encrypt = mkOption {
-            type = nullOr str;
+          encrypt = lib.mkOption {
+            type = with lib.types; nullOr str;
             default = null;
             description = ''
               Specifies the secret key to use for encryption of Nomad server's
@@ -554,8 +547,8 @@ in {
             '';
           };
 
-          bootstrap_expect = mkOption {
-            type = ints.positive;
+          bootstrap_expect = lib.mkOption {
+            type = with lib.types; ints.positive;
             default = 1;
             description = ''
               Specifies the number of server nodes to wait for before
@@ -567,25 +560,25 @@ in {
             '';
           };
 
-          default_scheduler_config = mkOption {
+          default_scheduler_config = lib.mkOption {
             default = { };
             type = submodule {
               options = {
-                scheduler_algorithm = mkOption {
+                scheduler_algorithm = lib.mkOption {
                   type = enum [ "binpack" "spread" ];
                   default = "binpack";
                 };
 
-                preemption_config = mkOption {
+                preemption_config = lib.mkOption {
                   default = { };
-                  type = submodule {
+                  type = with lib.types; submodule {
                     options = {
                       batch_scheduler_enabled =
-                        mkEnableOption "Enable preemption for batch tasks";
+                        lib.mkEnableOption "Enable preemption for batch tasks";
                       system_scheduler_enabled =
-                        mkEnableOption "Enable preemption for system tasks";
+                        lib.mkEnableOption "Enable preemption for system tasks";
                       service_scheduler_enabled =
-                        mkEnableOption "Enable preemption for service tasks";
+                        lib.mkEnableOption "Enable preemption for service tasks";
                     };
                   };
                 };
@@ -596,11 +589,11 @@ in {
       };
     };
 
-    tls = mkOption {
-      type = submodule {
+    tls = lib.mkOption {
+      type = with lib.types; submodule {
         options = {
-          ca_file = mkOption {
-            type = nullOr path;
+          ca_file = lib.mkOption {
+            type = with lib.types; nullOr path;
             default = null;
             description = ''
               The path to the CA certificate to use for Nomad's TLS
@@ -608,8 +601,8 @@ in {
             '';
           };
 
-          cert_file = mkOption {
-            type = nullOr path;
+          cert_file = lib.mkOption {
+            type = with lib.types; nullOr path;
             default = null;
             description = ''
               The path to the certificate file used for Nomad's TLS
@@ -617,16 +610,16 @@ in {
             '';
           };
 
-          key_file = mkOption {
-            type = nullOr str;
+          key_file = lib.mkOption {
+            type = with lib.types; nullOr str;
             default = null;
             description = ''
               The path to the key file to use for Nomad's TLS communication.
             '';
           };
 
-          http = mkOption {
-            type = bool;
+          http = lib.mkOption {
+            type = with lib.types; bool;
             default = false;
             description = ''
               If TLS should be enabled on the HTTP endpoints on the Nomad
@@ -634,8 +627,8 @@ in {
             '';
           };
 
-          rpc = mkOption {
-            type = bool;
+          rpc = lib.mkOption {
+            type = with lib.types; bool;
             default = false;
             description = ''
               If TLS should be enabled on the RPC endpoints and Raft traffic
@@ -644,8 +637,8 @@ in {
             '';
           };
 
-          rpc_upgrade_mode = mkOption {
-            type = bool;
+          rpc_upgrade_mode = lib.mkOption {
+            type = with lib.types; bool;
             default = false;
             description = ''
               Should be used only when the cluster is being upgraded to TLS,
@@ -654,8 +647,8 @@ in {
             '';
           };
 
-          tls_cipher_suites = mkOption {
-            type = nullOr str;
+          tls_cipher_suites = lib.mkOption {
+            type = with lib.types; nullOr str;
             default = null;
             description = ''
               The TLS cipher suites that will be used by the agent as a
@@ -674,16 +667,16 @@ in {
             '';
           };
 
-          tls_min_version = mkOption {
-            type = enum [ "tls10" "tls11" "tls12" ];
+          tls_min_version = lib.mkOption {
+            type = with lib.types; enum [ "tls10" "tls11" "tls12" ];
             default = "tls12";
             description = ''
               Specifies the minimum supported version of TLS.
             '';
           };
 
-          tls_prefer_server_cipher_suites = mkOption {
-            type = bool;
+          tls_prefer_server_cipher_suites = lib.mkOption {
+            type = with lib.types; bool;
             default = false;
             description = ''
               Whether TLS connections should prefer the server's ciphersuites
@@ -691,8 +684,8 @@ in {
             '';
           };
 
-          verify_https_client = mkOption {
-            type = bool;
+          verify_https_client = lib.mkOption {
+            type = with lib.types; bool;
             default = false;
             description = ''
               Agents should require client certificates for all incoming HTTPS
@@ -701,8 +694,8 @@ in {
             '';
           };
 
-          verify_server_hostname = mkOption {
-            type = bool;
+          verify_server_hostname = lib.mkOption {
+            type = with lib.types; bool;
             default = false;
             description = ''
               If outgoing TLS connections should verify the server's hostname.
@@ -712,16 +705,16 @@ in {
       };
     };
 
-    acl = mkOption {
-      type = submodule {
+    acl = lib.mkOption {
+      type = with lib.types; submodule {
         options = {
-          enabled = mkEnableOption ''
+          enabled = lib.mkEnableOption ''
             If ACL enforcement is enabled. All other client configuration
             options depend on this value.
           '';
 
-          token_ttl = mkOption {
-            type = nullOr str;
+          token_ttl = lib.mkOption {
+            type = with lib.types; nullOr str;
             default = null;
             description = ''
               The maximum time-to-live (TTL) for cached ACL tokens.
@@ -733,8 +726,8 @@ in {
             '';
           };
 
-          policy_ttl = mkOption {
-            type = nullOr str;
+          policy_ttl = lib.mkOption {
+            type = with lib.types; nullOr str;
             default = null;
             description = ''
               The maximum time-to-live (TTL) for cached ACL policies.
@@ -746,8 +739,8 @@ in {
             '';
           };
 
-          replication_token = mkOption {
-            type = nullOr str;
+          replication_token = lib.mkOption {
+            type = with lib.types; nullOr str;
             default = null;
             description = ''
               The Secret ID of the ACL token to use for replicating policies
@@ -759,11 +752,11 @@ in {
       };
     };
 
-    consul = mkOption {
-      type = submodule {
+    consul = lib.mkOption {
+      type = with lib.types; submodule {
         options = {
-          address = mkOption {
-            type = str;
+          address = lib.mkOption {
+            type = with lib.types; str;
             default = "127.0.0.1:8500";
             description = ''
               Specifies the address to the local Consul agent, given in the format
@@ -773,8 +766,8 @@ in {
             '';
           };
 
-          allow_unauthenticated = mkOption {
-            type = bool;
+          allow_unauthenticated = lib.mkOption {
+            type = with lib.types; bool;
             default = true;
             description = ''
               Specifies if users submitting jobs to the Nomad server should be
@@ -785,8 +778,8 @@ in {
             '';
           };
 
-          auth = mkOption {
-            type = nullOr str;
+          auth = lib.mkOption {
+            type = with lib.types; nullOr str;
             default = null;
             description = ''
               Specifies the HTTP Basic Authentication information to use for access
@@ -794,8 +787,8 @@ in {
             '';
           };
 
-          auto_advertise = mkOption {
-            type = bool;
+          auto_advertise = lib.mkOption {
+            type = with lib.types; bool;
             default = true;
             description = ''
               Specifies if Nomad should advertise its services in Consul. The
@@ -806,8 +799,8 @@ in {
             '';
           };
 
-          ca_file = mkOption {
-            type = nullOr path;
+          ca_file = lib.mkOption {
+            type = with lib.types; nullOr path;
             default = null;
             description = ''
               Specifies an optional path to the CA certificate used for Consul
@@ -816,8 +809,8 @@ in {
             '';
           };
 
-          cert_file = mkOption {
-            type = nullOr path;
+          cert_file = lib.mkOption {
+            type = with lib.types; nullOr path;
             default = null;
             description = ''
               Specifies the path to the certificate used for Consul communication. If
@@ -825,8 +818,8 @@ in {
             '';
           };
 
-          checks_use_advertise = mkOption {
-            type = bool;
+          checks_use_advertise = lib.mkOption {
+            type = with lib.types; bool;
             default = false;
             description = ''
               Specifies if Consul health checks should bind to the advertise
@@ -834,8 +827,8 @@ in {
             '';
           };
 
-          client_auto_join = mkOption {
-            type = bool;
+          client_auto_join = lib.mkOption {
+            type = with lib.types; bool;
             default = true;
             description = ''
               Specifies if the Nomad clients should automatically discover
@@ -847,24 +840,24 @@ in {
             '';
           };
 
-          client_service_name = mkOption {
-            type = str;
+          client_service_name = lib.mkOption {
+            type = with lib.types; str;
             default = "nomad-client";
             description = ''
               Specifies the name of the service in Consul for the Nomad clients.
             '';
           };
 
-          client_http_check_name = mkOption {
-            type = str;
+          client_http_check_name = lib.mkOption {
+            type = with lib.types; str;
             default = "Nomad Client HTTP Check";
             description = ''
               Specifies the HTTP health check name in Consul for the Nomad clients.
             '';
           };
 
-          key_file = mkOption {
-            type = nullOr path;
+          key_file = lib.mkOption {
+            type = with lib.types; nullOr path;
             default = null;
             description = ''
               Specifies the path to the private key used for Consul
@@ -872,72 +865,72 @@ in {
             '';
           };
 
-          server_service_name = mkOption {
-            type = str;
+          server_service_name = lib.mkOption {
+            type = with lib.types; str;
             default = "nomad";
             description = ''
               Specifies the name of the service in Consul for the Nomad servers.
             '';
           };
 
-          server_http_check_name = mkOption {
-            type = str;
+          server_http_check_name = lib.mkOption {
+            type = with lib.types; str;
             default = "Nomad Server HTTP Check";
             description = ''
               Specifies the HTTP health check name in Consul for the Nomad servers.
             '';
           };
 
-          server_serf_check_name = mkOption {
-            type = str;
+          server_serf_check_name = lib.mkOption {
+            type = with lib.types; str;
             default = "Nomad Server Serf Check";
             description = ''
               Specifies the Serf health check name in Consul for the Nomad servers.
             '';
           };
 
-          server_rpc_check_name = mkOption {
-            type = str;
+          server_rpc_check_name = lib.mkOption {
+            type = with lib.types; str;
             default = "Nomad Server RPC Check";
             description = ''
               Specifies the RPC health check name in Consul for the Nomad servers.
             '';
           };
 
-          server_auto_join = mkOption {
-            type = bool;
+          server_auto_join = lib.mkOption {
+            type = with lib.types; bool;
             default = true;
             description = ''
               Specifies if the Nomad servers should automatically discover and join other Nomad servers by searching for the Consul service name defined in the server_service_name option. This search only happens if the server does not have a leader.
             '';
           };
 
-          # share_ssl = mkOption {
-          #   type = bool;
+          # share_ssl = lib.mkOption {
+          #   type = with lib.types; bool;
           #   default = true;
           #   description = ''
           #     Specifies whether the Nomad client should share its Consul SSL configuration with Connect Native applications. Includes values of ca_file, cert_file, key_file, ssl, and verify_ssl. Does not include the values for the ACL token or auth. This option should be disabled in environments where Consul ACLs are not enabled.
           #   '';
           # };
 
-          ssl = mkOption {
-            type = bool;
+          ssl = lib.mkOption {
+            type = with lib.types; bool;
             default = false;
             description = ''
               Specifies if the transport scheme should use HTTPS to communicate with the Consul agent. Will default to the CONSUL_HTTP_SSL environment variable if set.
             '';
           };
 
-          tags = mkOption {
-            type = listOf str;
+          tags = lib.mkOption {
+            type = with lib.types; listOf str;
             default = [ ];
             description = ''
               Specifies optional Consul tags to be registered with the Nomad server and agent services.
             '';
           };
 
-          token = mkOption {
-            type = nullOr str;
+          token = lib.mkOption {
+            type = with lib.types; nullOr str;
             default = null;
             description = ''
               Specifies the token used to provide a per-request ACL token. This
@@ -947,8 +940,8 @@ in {
             '';
           };
 
-          verify_ssl = mkOption {
-            type = bool;
+          verify_ssl = lib.mkOption {
+            type = with lib.types; bool;
             default = true;
             description = ''
               Specifies if SSL peer verification should be used when communicating to the
@@ -960,29 +953,29 @@ in {
       };
     };
 
-    telemetry = mkOption {
-      type = submodule {
+    telemetry = lib.mkOption {
+      type = with lib.types; submodule {
         options = {
-          datadog_address = mkOption {
-            type = nullOr str;
+          datadog_address = lib.mkOption {
+            type = with lib.types; nullOr str;
             default = null;
           };
 
-          datadog_tags = mkOption {
-            type = nullOr (listOf str);
+          datadog_tags = lib.mkOption {
+            type = with lib.types; nullOr (listOf str);
             default = null;
           };
 
-          publish_allocation_metrics = mkOption {
-            type = bool;
+          publish_allocation_metrics = lib.mkOption {
+            type = with lib.types; bool;
             default = false;
             description = ''
               Specifies if Nomad should publish runtime metrics of allocations.
             '';
           };
 
-          publish_node_metrics = mkOption {
-            type = bool;
+          publish_node_metrics = lib.mkOption {
+            type = with lib.types; bool;
             default = false;
             description = ''
               Specifies if Nomad should publish runtime metrics of nodes.
@@ -992,18 +985,18 @@ in {
       };
     };
 
-    vault = mkOption {
-      type = submodule {
+    vault = lib.mkOption {
+      type = with lib.types; submodule {
         options = {
-          enabled = mkEnableOption "Enable Vault integration";
+          enabled = lib.mkEnableOption "Enable Vault integration";
 
-          address = mkOption {
-            type = nullOr str;
+          address = lib.mkOption {
+            type = with lib.types; nullOr str;
             default = null;
           };
 
-          ca_file = mkOption {
-            type = nullOr path;
+          ca_file = lib.mkOption {
+            type = with lib.types; nullOr path;
             default = null;
             description = ''
               The path to the CA certificate to use for Nomad's TLS
@@ -1011,8 +1004,8 @@ in {
             '';
           };
 
-          cert_file = mkOption {
-            type = nullOr path;
+          cert_file = lib.mkOption {
+            type = with lib.types; nullOr path;
             default = null;
             description = ''
               The path to the certificate file used for Nomad's TLS
@@ -1020,16 +1013,16 @@ in {
             '';
           };
 
-          key_file = mkOption {
-            type = nullOr str;
+          key_file = lib.mkOption {
+            type = with lib.types; nullOr str;
             default = null;
             description = ''
               The path to the key file to use for Nomad's TLS communication.
             '';
           };
 
-          create_from_role = mkOption {
-            type = nullOr str;
+          create_from_role = lib.mkOption {
+            type = with lib.types; nullOr str;
             default = null;
             description = ''
               Specifies the role to create tokens from. The token given to
@@ -1045,26 +1038,26 @@ in {
         };
       };
 
-      apply = filterAttrs (_: v: v != null);
+      apply = lib.filterAttrs (_: v: v != null);
     };
 
-    plugin = mkOption {
+    plugin = lib.mkOption {
       default = null;
-      type = nullOr attrs;
+      type = with lib.types; nullOr attrs;
       apply = top:
         if top == null then
           null
         else
-          lib.filter (elem: elem != null) (flip mapAttrsToList top (name: value:
+          lib.filter (elem: elem != null) (lib.flip lib.mapAttrsToList top (name: value:
             if value == null then
               null
             else {
-              ${name} = [{ config = [ value ]; }];
+              "${name}" = [{ config = [ value ]; }];
             }));
     };
   };
 
-  config = mkIf cfg.enable {
+  config = lib.mkIf cfg.enable {
     environment.etc."nomad.d/config.json".source = pkgs.toPrettyJSON "config"
       (sanitize {
         inherit (cfg)
@@ -1085,8 +1078,8 @@ in {
       after = [ "network-online.target" "vault-agent.service" ];
       wantedBy = [ "multi-user.target" ];
 
-      restartTriggers = mapAttrsToList (_: d: d.source)
-        (filterAttrs (n: _: hasPrefix "${baseNameOf cfg.configDir}/" n)
+      restartTriggers = lib.mapAttrsToList (_: d: d.source)
+        (lib.filterAttrs (n: _: lib.hasPrefix "${baseNameOf cfg.configDir}/" n)
           config.environment.etc);
 
       path = with pkgs; [
@@ -1112,7 +1105,7 @@ in {
 
       serviceConfig = let
         start-pre = pkgs.writeShellScript "nomad-start-pre" ''
-          PATH="${makeBinPath [ pkgs.coreutils pkgs.busybox ]}"
+          PATH="${lib.makeBinPath [ pkgs.coreutils pkgs.busybox ]}"
           set -exuo pipefail
           # ${pkgs.ensureDependencies [ "consul" "vault" ]}
           cp /etc/ssl/certs/cert-key.pem .
@@ -1137,7 +1130,7 @@ in {
           # TODO: caching this
           set -euo pipefail
 
-          ${optionalString cfg.server.enabled ''
+          ${lib.optionalString cfg.server.enabled ''
             VAULT_TOKEN="$(< vault-token)"
             export VAULT_TOKEN
 

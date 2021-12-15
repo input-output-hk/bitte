@@ -1,53 +1,52 @@
 { lib, config, pkgs, ... }:
 let
-  inherit (lib.types) str enum submodule attrsOf nullOr path;
   inherit (config.cluster) kms;
 
-  installType = submodule {
+  installType = with lib.types; submodule {
     options = {
       script = lib.mkOption {
-        type = str;
+        type = with lib.types; str;
         default = "";
       };
 
       source = lib.mkOption {
-        type = nullOr path;
+        type = with lib.types; nullOr path;
         default = null;
       };
 
       target = lib.mkOption {
-        type = nullOr path;
+        type = with lib.types; nullOr path;
         default = null;
       };
 
       inputType = lib.mkOption {
-        type = enum [ "json" "yaml" "dotenv" "binary" ];
+        type = with lib.types; enum [ "json" "yaml" "dotenv" "binary" ];
         default = "json";
       };
 
       outputType = lib.mkOption {
-        type = enum [ "json" "yaml" "dotenv" "binary" ];
+        type = with lib.types; enum [ "json" "yaml" "dotenv" "binary" ];
         default = "json";
       };
     };
   };
 
-  secretType = submodule {
+  secretType = with lib.types; submodule {
     options = {
-      encryptedRoot = lib.mkOption { type = path; };
+      encryptedRoot = lib.mkOption { type = with lib.types; path; };
 
       generate = lib.mkOption {
-        type = attrsOf str;
+        type = with lib.types; attrsOf str;
         default = { };
       };
 
       install = lib.mkOption {
-        type = attrsOf installType;
+        type = with lib.types; attrsOf installType;
         default = { };
       };
 
       generateScript = lib.mkOption {
-        type = str;
+        type = with lib.types; str;
         apply = f:
           let
             scripts = lib.concatStringsSep "\n" (lib.mapAttrsToList
@@ -89,7 +88,7 @@ in {
   options = {
     secrets = lib.mkOption {
       default = { };
-      type = secretType;
+      type = with lib.types; secretType;
     };
   };
 

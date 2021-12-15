@@ -1,7 +1,6 @@
 { lib, pkgs, config, nodeName, ... }:
 let
   inherit (config.cluster) name region domain kms instances;
-  inherit (lib) mkIf mapAttrsToList;
 
   full = "/etc/ssl/certs/full.pem";
   ca = "/etc/ssl/certs/ca.pem";

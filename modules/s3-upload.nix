@@ -1,14 +1,13 @@
 { self, config, lib, pkgs, ... }:
 let
-  inherit (lib) mkIf mkEnableOption;
   inherit (config) cluster;
   inherit (config.cluster) s3Bucket kms;
 in {
   options = {
-    services.s3-upload.enable = mkEnableOption "Upload flake to S3";
+    services.s3-upload.enable = lib.mkEnableOption "Upload flake to S3";
   };
 
-  config = mkIf config.services.s3-upload.enable {
+  config = lib.mkIf config.services.s3-upload.enable {
 
     systemd.services.s3-upload = {
       wantedBy = [ "multi-user.target" ];

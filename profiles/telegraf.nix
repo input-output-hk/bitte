@@ -1,7 +1,5 @@
 { pkgs, config, lib, ... }:
-let
-  inherit (config.cluster) region instances;
-  inherit (lib) optional optionalAttrs;
+let inherit (config.cluster) region instances;
 in {
   systemd.services.telegraf.path = with pkgs; [ procps ];
 
@@ -54,9 +52,9 @@ in {
               config.services.loki.configuration.server.http_listen_port
             }/metrics";
         in {
-          urls = optional config.services.promtail.enable promtail
-            ++ optional config.services.loki.enable loki
-            ++ optional config.services.nomad-autoscaler.enable autoscaling;
+          urls = lib.optional config.services.promtail.enable promtail
+            ++ lib.optional config.services.loki.enable loki
+            ++ lib.optional config.services.nomad-autoscaler.enable autoscaling;
           metric_version = 2;
         };
 
@@ -91,7 +89,7 @@ in {
           address = "localhost:8500";
           scheme = "http";
         };
-      } // (optionalAttrs config.services.ingress.enable {
+      } // (lib.optionalAttrs config.services.ingress.enable {
         haproxy = { servers = [ "http://127.0.0.1:1936/haproxy?stats" ]; };
       });
 

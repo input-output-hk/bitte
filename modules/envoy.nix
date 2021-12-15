@@ -1,9 +1,7 @@
 { lib, config, ... }:
-let
-  cfg = config.services.envoy;
-  inherit (lib) mkIf mkEnableOption;
+let cfg = config.services.envoy;
 in {
-  options = { services.envoy.enable = mkEnableOption "Enable Envoy"; };
+  options = { services.envoy.enable = lib.mkEnableOption "Enable Envoy"; };
 
-  config = { systemd.services.envoy = mkIf cfg.enable { }; };
+  config = { systemd.services.envoy = lib.mkIf cfg.enable { }; };
 }

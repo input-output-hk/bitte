@@ -1,66 +1,62 @@
 { config, lib, pkgs, ... }:
 let
-  inherit (builtins) mapAttrs typeOf listToAttrs length attrNames;
-  inherit (lib)
-    flip mkOption mkIf mkEnableOption mapAttrsToList remove concatStringsSep;
-  inherit (lib.types) str enum submodule nullOr attrsOf listOf;
   inherit (pkgs) toPrettyJSON ensureDependencies;
 
   sanitize = set:
     let
-      sanitized = mapAttrsToList (name: value:
-        let type = typeOf value;
+      sanitized = lib.mapAttrsToList (name: value:
+        let type = with lib.types; builtins.typeOf value;
         in if name == "_module" then
           null
         else if value == null then
           null
-        else if type == "set" && (length (attrNames value)) == 0 then
+        else if type == "set" && (builtins.length (builtins.attrNames value)) == 0 then
           null
-        else if type == "list" && (length value) == 0 then
+        else if type == "list" && (builtins.length value) == 0 then
           null
         else {
           inherit name;
           value = if type == "set" then
             sanitize value
           else if type == "list" then
-            remove null value
+            lib.remove null value
           else
             value;
         }) set;
-    in listToAttrs (remove null sanitized);
+    in builtins.listToAttrs (lib.remove null sanitized);
 
   policyOption =
-    mkOption { type = enum [ "deny" "read" "write" "scale" "list" ]; };
+    lib.mkOption { type = with lib.types; enum [ "deny" "read" "write" "scale" "list" ]; };
 
-  subPolicyOption = mkOption {
+  subPolicyOption = lib.mkOption {
     default = null;
-    type = nullOr (submodule { options = { policy = policyOption; }; });
+    type = with lib.types; nullOr (submodule { options = { policy = policyOption; }; });
   };
 
-  nomadPoliciesType = submodule ({ name, ... }: {
+  nomadPoliciesType = with lib.types; submodule ({ name, ... }: {
     options = {
-      name = mkOption {
+      name = lib.mkOption {
         type = str;
         default = name;
       };
 
-      description = mkOption {
+      description = lib.mkOption {
         default = null;
-        type = nullOr str;
+        type = with lib.types; nullOr str;
       };
 
-      namespace = mkOption {
+      namespace = lib.mkOption {
         default = { };
-        type = attrsOf (submodule ({ name, ... }: {
+        type = with lib.types; attrsOf (submodule ({ name, ... }: {
           options = {
-            name = mkOption {
-              type = str;
+            name = lib.mkOption {
+              type = with lib.types; str;
               default = name;
             };
             policy = policyOption;
-            capabilities = mkOption {
+            capabilities = lib.mkOption {
               default = [ ];
-              type = listOf (enum [
+              type = with lib.types; listOf (enum [
                 "alloc-exec"
                 "alloc-lifecycle"
                 "alloc-node-exec"
@@ -87,16 +83,16 @@ let
         }));
       };
 
-      hostVolume = mkOption {
+      hostVolume = lib.mkOption {
         default = { };
-        type = attrsOf (submodule ({ name, ... }: {
+        type = with lib.types; attrsOf (submodule ({ name, ... }: {
           options = {
-            name = mkOption {
-              type = str;
+            name = lib.mkOption {
+              type = with lib.types; str;
               default = name;
             };
             policy = policyOption;
-            capabilities = mkOption {
+            capabilities = lib.mkOption {
               default = [ ];
               type =
                 listOf (enum [ "deny" "mount-readonly" "mount-readwrite" ]);
@@ -115,18 +111,18 @@ let
 
   policyJson = policy:
     sanitize {
-      host_volume = flip mapAttrs policy.hostVolume (name: value: {
+      host_volume = lib.flip builtins.mapAttrs policy.hostVolume (name: value: {
         inherit (value) policy;
         inherit (value) capabilities;
       });
-      namespace = flip mapAttrs policy.namespace (name: value: {
+      namespace = lib.flip builtins.mapAttrs policy.namespace (name: value: {
         inherit (value) policy;
         inherit (value) capabilities;
       });
       inherit (policy) agent node operator plugin quota;
     };
 
-  createPolicies = flip mapAttrsToList config.services.nomad.policies
+  createPolicies = lib.flip lib.mapAttrsToList config.services.nomad.policies
     (name: policy: ''
       nomad acl policy apply -description="${policy.description}" "${name}" ${
         toPrettyJSON "nomad-policy-${name}" (policyJson policy)
@@ -134,15 +130,15 @@ let
     '');
 in {
   options = {
-    services.nomad.policies = mkOption {
-      type = attrsOf nomadPoliciesType;
+    services.nomad.policies = lib.mkOption {
+      type = with lib.types; attrsOf nomadPoliciesType;
       default = { };
     };
 
-    services.nomad-acl.enable = mkEnableOption "Create Nomad policies";
+    services.nomad-acl.enable = lib.mkEnableOption "Create Nomad policies";
   };
 
-  config.systemd.services.nomad-acl = mkIf config.services.nomad-acl.enable {
+  config.systemd.services.nomad-acl = lib.mkIf config.services.nomad-acl.enable {
     after = [ "nomad.service" ];
     wantedBy = [ "multi-user.target" ];
     description = "Service that creates all Nomad policies";
@@ -166,9 +162,9 @@ in {
       NOMAD_TOKEN="$(< bootstrap.token)"
       export NOMAD_TOKEN
 
-      ${concatStringsSep "" createPolicies}
+      ${lib.concatStringsSep "" createPolicies}
 
-      keepNames=(${toString (attrNames config.services.nomad.policies)})
+      keepNames=(${toString (builtins.attrNames config.services.nomad.policies)})
       policyNames=($(nomad acl policy list -json | jq -r -e '.[].Name'))
 
       for name in "''${policyNames[@]}"; do

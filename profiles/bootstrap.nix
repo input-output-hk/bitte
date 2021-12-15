@@ -2,9 +2,6 @@
 
 let
   inherit (pkgs) ensureDependencies;
-  inherit (lib)
-    mkOption mkOverride mkIf attrNames concatStringsSep optional forEach types;
-  inherit (types) lines;
   inherit (config.cluster) domain kms region adminNames;
   inherit (config.instance) privateIP;
 
@@ -35,23 +32,23 @@ let
 in {
   options = {
     services.bootstrap = {
-      extraConsulInitialTokensConfig = mkOption {
-        type = lines;
+      extraConsulInitialTokensConfig = lib.mkOption {
+        type = with lib.types; lines;
         default = "";
         description = "Extra Consul initial tokens configuration.";
       };
-      extraNomadBootstrapConfig = mkOption {
-        type = lines;
+      extraNomadBootstrapConfig = lib.mkOption {
+        type = with lib.types; lines;
         default = "";
         description = "Extra Nomad bootstrap configuration.";
       };
-      extraVaultBootstrapConfig = mkOption {
-        type = lines;
+      extraVaultBootstrapConfig = lib.mkOption {
+        type = with lib.types; lines;
         default = "";
         description = "Extra Vault bootstrap configuration.";
       };
-      extraVaultSetupConfig = mkOption {
-        type = lines;
+      extraVaultSetupConfig = lib.mkOption {
+        type = with lib.types; lines;
         default = "";
         description = "Extra Vault setup configuration.";
       };
@@ -60,13 +57,13 @@ in {
 
   config = {
     systemd.services.consul-initial-tokens =
-      mkIf config.services.consul.enable {
+      lib.mkIf config.services.consul.enable {
         after = [ "consul.service" "consul-acl.service" ];
         wantedBy = [ "multi-user.target" ]
-          ++ (optional config.services.vault.enable "vault.service")
-          ++ (optional config.services.nomad.enable "nomad.service");
-        requiredBy = (optional config.services.vault.enable "vault.service")
-          ++ (optional config.services.nomad.enable "nomad.service");
+          ++ (lib.optional config.services.vault.enable "vault.service")
+          ++ (lib.optional config.services.nomad.enable "nomad.service");
+        requiredBy = (lib.optional config.services.vault.enable "vault.service")
+          ++ (lib.optional config.services.nomad.enable "nomad.service");
 
         serviceConfig = {
           Type = "oneshot";
@@ -140,7 +137,7 @@ in {
         '';
       };
 
-    systemd.services.vault-setup = mkIf config.services.vault.enable {
+    systemd.services.vault-setup = lib.mkIf config.services.vault.enable {
       after = [ "consul-acl.service" "vault-consul-token.service" ];
       wantedBy = [ "multi-user.target" ];
 
@@ -164,7 +161,7 @@ in {
       script = let
         consulPolicies =
           map (name: ''vault write "consul/roles/${name}" "policies=${name}"'')
-          (attrNames config.services.consul.policies);
+          (lib.attrNames config.services.consul.policies);
 
         nomadClusterRole = pkgs.toPrettyJSON "nomad-cluster-role" {
           disallowed_policies = "nomad-server,admin,core,client";
@@ -184,7 +181,7 @@ in {
         export VAULT_TOKEN
         set -x
 
-        ${concatStringsSep "\n" consulPolicies}
+        ${lib.concatStringsSep "\n" consulPolicies}
 
         vault write /auth/token/roles/nomad-cluster @${nomadClusterRole}
 
@@ -212,7 +209,7 @@ in {
           policies=default,client,nomad-server \
           period=24h
 
-        ${concatStringsSep "\n" (forEach adminNames (name: ''
+        ${lib.concatStringsSep "\n" (lib.forEach adminNames (name: ''
           vault write "auth/aws/role/${name}" \
             auth_type=iam \
             bound_iam_principal_arn="$arn:user/${name}" \
@@ -230,7 +227,7 @@ in {
       '';
     };
 
-    systemd.services.nomad-bootstrap = mkIf config.services.nomad.enable {
+    systemd.services.nomad-bootstrap = lib.mkIf config.services.nomad.enable {
       after = [ "vault.service" "nomad.service" "network-online.target" ];
       wants = [ "vault.service" "nomad.service" "network-online.target" ];
       wantedBy = [ "multi-user.target" ];
@@ -301,7 +298,7 @@ in {
       '';
     };
 
-    systemd.services.vault-bootstrap = mkIf config.services.vault.enable {
+    systemd.services.vault-bootstrap = lib.mkIf config.services.vault.enable {
       after = [
         "consul-initial-tokens.service"
         "vault.service"

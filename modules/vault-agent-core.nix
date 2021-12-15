@@ -1,13 +1,11 @@
 { config, lib, pkgs, nodeName, ... }:
 let
-  inherit (builtins) toJSON isList;
   inherit (pkgs) writeShellScriptBin;
-  inherit (lib) mkIf filter mkEnableOption concatStringsSep flip mapAttrsToList;
   inherit (config.cluster) domain region;
   inherit (config.cluster.instances.${nodeName}) privateIP;
 
   runIf = cond: value: if cond then value else null;
-  compact = filter (value: value != null);
+  compact = lib.filter (value: value != null);
 
   vaultAgentConfig = pkgs.toPrettyJSON "vault-agent" {
     pid_file = "./vault-agent.pid";
@@ -50,9 +48,9 @@ let
         ttl = "322h";
       };
 
-      pkiArgs = flip mapAttrsToList pkiAttrs (name: value:
-        if isList value then
-          ''"${name}=${concatStringsSep "," value}"''
+      pkiArgs = lib.flip lib.mapAttrsToList pkiAttrs (name: value:
+        if builtins.isList value then
+          ''"${name}=${lib.concatStringsSep "," value}"''
         else
           ''"${name}=${toString value}"'');
 
@@ -168,7 +166,7 @@ let
 in {
   options = {
     services.vault-agent-core = {
-      enable = mkEnableOption "Start vault-agent for cores";
+      enable = lib.mkEnableOption "Start vault-agent for cores";
       vaultAddress = lib.mkOption {
         type = lib.types.str;
         default = "https://127.0.0.1:8200";
@@ -176,7 +174,7 @@ in {
     };
   };
 
-  config = mkIf config.services.vault-agent-core.enable {
+  config = lib.mkIf config.services.vault-agent-core.enable {
     systemd.services.vault-agent = {
       after = [ "vault.service" "consul.service" ];
       wants = [ "vault.service" "consul.service" ];

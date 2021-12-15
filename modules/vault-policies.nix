@@ -1,67 +1,61 @@
 { pkgs, lib, config, ... }:
 let
-  inherit (builtins) toJSON typeOf toFile attrNames;
-  inherit (lib)
-    mkOption mkIf mkEnableOption mapAttrsToList concatStringsSep remove
-    listToAttrs flip forEach;
-  inherit (lib.types) listOf enum attrsOf str submodule nullOr;
   inherit (pkgs) ensureDependencies;
-  inherit (config.cluster) adminNames;
 
   rmModules = arg:
     let
-      sanitized = mapAttrsToList (name: value:
+      sanitized = lib.mapAttrsToList (name: value:
         if name == "_module" then
           null
         else {
           inherit name;
-          value = if typeOf value == "set" then rmModules value else value;
+          value = if builtins.typeOf value == "set" then rmModules value else value;
         }) arg;
-    in listToAttrs (remove null sanitized);
+    in lib.listToAttrs (lib.remove null sanitized);
 
   policy2hcl = name: value:
     pkgs.runCommandLocal "json2hcl" {
-      src = toFile "${name}.json" (toJSON (rmModules value));
+      src = builtins.toFile "${name}.json" (builtins.toJSON (rmModules value));
       nativeBuildInputs = [ pkgs.json2hcl ];
     } ''
       json2hcl < "$src" > "$out"
     '';
 
-  vaultPolicyOptionsType = submodule (_: {
+  vaultPolicyOptionsType = with lib.types; submodule (_: {
     options = {
-      capabilities = mkOption {
-        type =
+      capabilities = lib.mkOption {
+        type = with lib.types;
           listOf (enum [ "create" "read" "update" "delete" "list" "sudo" ]);
       };
     };
   });
 
-  vaultApproleType = submodule (_: {
+  vaultApproleType = with lib.types; submodule (_: {
     options = {
-      token_ttl = mkOption { type = str; };
-      token_max_ttl = mkOption { type = str; };
-      token_policies = mkOption { type = listOf str; };
+      token_ttl = lib.mkOption { type = with lib.types; str; };
+      token_max_ttl = lib.mkOption { type = with lib.types; str; };
+      token_policies = lib.mkOption { type = with lib.types; listOf str; };
     };
   });
 
-  vaultPoliciesType = submodule (_: {
-    options = { path = mkOption { type = attrsOf vaultPolicyOptionsType; }; };
+  vaultPoliciesType = with lib.types; submodule (_: {
+    options = { path = lib.mkOption { type = with lib.types; attrsOf vaultPolicyOptionsType; }; };
   });
 
-  createNomadRoles = flip mapAttrsToList config.services.nomad.policies
+  createNomadRoles = lib.flip lib.mapAttrsToList config.services.nomad.policies
     (name: policy: ''vault write "nomad/role/${name}" "policies=${name}"'');
 in {
   options = {
-    services.vault.policies = mkOption {
-      type = attrsOf vaultPoliciesType;
+    services.vault.policies = lib.mkOption {
+      type = with lib.types; attrsOf vaultPoliciesType;
       default = { };
     };
 
-    services.vault-acl.enable = mkEnableOption "Create Vault roles";
+    services.vault-acl.enable = lib.mkEnableOption "Create Vault roles";
   };
 
   # TODO: also remove them again.
-  config.systemd.services.vault-acl = mkIf config.services.vault-acl.enable {
+  config.systemd.services.vault-acl =  lib.mkIf config.services.vault-acl.enable {
     after = [ "vault.service" "vault-bootstrap.service" ];
     wantedBy = [ "multi-user.target" ];
     description = "Service that creates all Vault policies.";
@@ -93,12 +87,12 @@ in {
 
       # Vault Policies
 
-      ${concatStringsSep "" (mapAttrsToList (name: value: ''
+      ${lib.concatStringsSep "" (lib.mapAttrsToList (name: value: ''
         vault policy write "${name}" "${policy2hcl name value}"
       '') config.services.vault.policies)}
 
       keepNames=(default root ${
-        toString (attrNames config.services.vault.policies)
+        toString (builtins.attrNames config.services.vault.policies)
       })
       policyNames=($(vault policy list | jq -e -r '.[]'))
 
@@ -117,9 +111,9 @@ in {
 
       # Nomad Policies
 
-      ${concatStringsSep "\n" createNomadRoles}
+      ${lib.concatStringsSep "\n" createNomadRoles}
 
-      keepNames=(${toString (attrNames config.services.nomad.policies)})
+      keepNames=(${toString (builtins.attrNames config.services.nomad.policies)})
       nomadRoles=($(nomad acl policy list -json | jq -r -e '.[].Name'))
 
       for role in "''${nomadRoles[@]}"; do

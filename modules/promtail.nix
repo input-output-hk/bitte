@@ -1,7 +1,5 @@
 { pkgs, lib, config, ... }:
 let
-  inherit (lib) mkIf mkEnableOption mkOption;
-  inherit (lib.types) undefined attrsOf submodule port;
   cfg = config.services.promtail;
 
   configJson = pkgs.toPrettyJSON "promtail" {
@@ -99,19 +97,19 @@ in {
   disabledModules = [ "services/logging/promtail.nix" ];
   options = {
     services.promtail = {
-      enable = mkEnableOption "Enable Promtail";
+      enable = lib.mkEnableOption "Enable Promtail";
 
-      server = mkOption {
+      server = lib.mkOption {
         default = { };
-        type = submodule {
+        type = with lib.types; submodule {
           options = {
-            http_listen_port = mkOption {
-              type = port;
+            http_listen_port = lib.mkOption {
+              type = with lib.types; port;
               default = 3101;
             };
 
-            grpc_listen_port = mkOption {
-              type = port;
+            grpc_listen_port = lib.mkOption {
+              type = with lib.types; port;
               default = 0;
             };
           };
@@ -120,7 +118,7 @@ in {
     };
   };
 
-  config = mkIf cfg.enable {
+  config = lib.mkIf cfg.enable {
     systemd.services.promtail = {
       description = "Promtail service for Loki";
       after = [ "network-online.target" ];
