@@ -2,7 +2,7 @@
 let
   inherit (pkgs) writeShellScriptBin;
   inherit (config.cluster) domain region;
-  inherit (config.cluster.instances.${nodeName}) privateIP;
+  instance = config.cluster.instances.${nodeName};
 
   runIf = cond: value: if cond then value else null;
   compact = lib.filter (value: value != null);
@@ -33,7 +33,7 @@ let
     templates = let
       pkiAttrs = {
         common_name = "server.${region}.consul";
-        ip_sans = [ "127.0.0.1" privateIP ];
+        ip_sans = [ "127.0.0.1" instance.privateIP ];
         alt_names = [
           "vault.service.consul"
           "consul.service.consul"

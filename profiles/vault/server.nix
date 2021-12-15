@@ -1,7 +1,7 @@
 { config, nodeName, lib, ... }:
 let
   inherit (config.cluster) instances;
-  inherit (instances.${nodeName}) privateIP;
+  instance = instances.${nodeName};
 
   full = "/etc/ssl/certs/full.pem";
   cert = "/etc/ssl/certs/cert.pem";
@@ -13,10 +13,10 @@ in {
       enable = true;
       ui = true;
 
-      apiAddr = "https://${privateIP}:8200";
-      clusterAddr = "https://${privateIP}:8201";
+      apiAddr = "https://${instance.privateIP}:8200";
+      clusterAddr = "https://${instance.privateIP}:8201";
 
-      listener.tcp = { clusterAddress = "${privateIP}:8201"; };
+      listener.tcp = { clusterAddress = "${instance.privateIP}:8201"; };
 
       storage.consul = lib.mkDefault {
         address = "127.0.0.1:8500";

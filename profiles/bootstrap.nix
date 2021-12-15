@@ -2,7 +2,6 @@
 
 let
   inherit (config.cluster) domain kms region adminNames;
-  inherit (config.instance) privateIP;
 
   cfg = config.services.bootstrap;
 
