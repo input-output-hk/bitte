@@ -1,7 +1,5 @@
 { config, lib, pkgs, ... }:
 let
-  inherit (pkgs) toPrettyJSON ensureDependencies;
-
   sanitize = set:
     let
       sanitized = lib.mapAttrsToList (name: value:
@@ -132,7 +130,7 @@ let
   createPolicies = lib.flip lib.mapAttrsToList config.services.nomad.policies
     (name: policy: ''
       nomad acl policy apply -description="${policy.description}" "${name}" ${
-        toPrettyJSON "nomad-policy-${name}" (policyJson policy)
+        pkgs.toPrettyJSON "nomad-policy-${name}" (policyJson policy)
       }
     '');
 in {
@@ -157,7 +155,7 @@ in {
         Restart = "on-failure";
         RestartSec = "20s";
         WorkingDirectory = "/var/lib/nomad";
-        ExecStartPre = ensureDependencies [ "nomad" ];
+        ExecStartPre = pkgs.ensureDependencies [ "nomad" ];
       };
 
       path = with pkgs; [ config.services.nomad.package jq ];

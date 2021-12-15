@@ -1,7 +1,6 @@
 { lib, pkgs, config, ... }:
 
 let
-  inherit (pkgs) ensureDependencies;
   inherit (config.cluster) domain kms region adminNames;
   inherit (config.instance) privateIP;
 
@@ -71,7 +70,7 @@ in {
           Restart = "on-failure";
           RestartSec = "20s";
           WorkingDirectory = "/run/keys";
-          ExecStartPre = ensureDependencies [ "consul" "consul-acl" ];
+          ExecStartPre = pkgs.ensureDependencies [ "consul" "consul-acl" ];
         };
 
         path = with pkgs; [ consul jq systemd sops ];
@@ -146,7 +145,8 @@ in {
         RemainAfterExit = true;
         Restart = "on-failure";
         RestartSec = "20s";
-        ExecStartPre = ensureDependencies [ "consul-acl" "vault-consul-token" ];
+        ExecStartPre =
+          pkgs.ensureDependencies [ "consul-acl" "vault-consul-token" ];
       };
 
       environment = {
@@ -236,7 +236,7 @@ in {
         RemainAfterExit = true;
         Restart = "on-failure";
         RestartSec = "20s";
-        ExecStartPre = ensureDependencies [ "vault" "nomad" ];
+        ExecStartPre = pkgs.ensureDependencies [ "vault" "nomad" ];
       };
 
       environment = {
@@ -310,7 +310,7 @@ in {
         RemainAfterExit = true;
         Restart = "on-failure";
         RestartSec = "20s";
-        ExecStartPre = ensureDependencies [
+        ExecStartPre = pkgs.ensureDependencies [
           "consul-initial-tokens"
           "vault"
           "vault-consul-token"

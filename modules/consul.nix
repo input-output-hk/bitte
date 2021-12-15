@@ -1,7 +1,6 @@
 { config, lib, pkgs, ... }:
 let
   cfg = config.services.consul;
-  inherit (pkgs) snakeCase;
 
   sanitize = obj:
     lib.getAttr (builtins.typeOf obj) {
@@ -18,8 +17,8 @@ let
         lib.pipe obj [
           (lib.filterAttrs
             (name: value: name != "_module" && name != "_ref" && value != null))
-          (lib.mapAttrs'
-            (name: value: lib.nameValuePair (snakeCase name) (sanitize value)))
+          (lib.mapAttrs' (name: value:
+            lib.nameValuePair (pkgs.snakeCase name) (sanitize value)))
         ];
     };
 

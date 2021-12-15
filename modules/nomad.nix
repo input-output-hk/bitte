@@ -2,8 +2,6 @@
 let
   cfg = config.services.nomad;
 
-  inherit (pkgs) snakeCase ensureDependencies;
-
   # TODO: put this in lib
   sanitize = obj:
     lib.getAttr (builtins.typeOf obj) {

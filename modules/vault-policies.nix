@@ -1,7 +1,5 @@
 { pkgs, lib, config, ... }:
 let
-  inherit (pkgs) ensureDependencies;
-
   rmModules = arg:
     let
       sanitized = lib.mapAttrsToList (name: value:
@@ -75,7 +73,7 @@ in {
         Restart = "on-failure";
         RestartSec = "20s";
         WorkingDirectory = "/var/lib/vault";
-        ExecStartPre = ensureDependencies [ "vault-bootstrap" "vault" ];
+        ExecStartPre = pkgs.ensureDependencies [ "vault-bootstrap" "vault" ];
       };
 
       environment = {
