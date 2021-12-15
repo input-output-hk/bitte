@@ -2,6 +2,7 @@
 let
   inherit (config.instance) bootstrapper;
   inherit (bittelib) ensureDependencies;
+  inherit (lib.types) submodule enum attrsOf;
 
   consulIntentionsType = submodule {
     options = {

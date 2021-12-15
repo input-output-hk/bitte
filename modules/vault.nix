@@ -21,7 +21,7 @@ let
         ];
     };
 
-  storageRaftType = submodule {
+  storageRaftType = lib.types.submodule {
     options = {
       path = lib.mkOption {
         type = with lib.types; str;

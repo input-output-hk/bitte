@@ -3,7 +3,7 @@ let
   cfg = config.services.nomad-autoscaler;
   inherit (pkgs) sanitize;
 
-  pluginModule = submodule ({ name, ... }: {
+  pluginModule = lib.types.submodule ({ name, ... }: {
     options = {
       args = lib.mkOption {
         type = with lib.types; listOf str;
@@ -35,7 +35,7 @@ let
     };
   });
 
-  scalingModule = submodule ({ name, ... }: {
+  scalingModule = lib.types.submodule ({ name, ... }: {
     options = {
       enabled = lib.mkEnableOption ''
         A boolean flag that allows operators to administratively disable a
@@ -103,7 +103,7 @@ let
     };
   });
 
-  checkModule = submodule ({ name, ... }: {
+  checkModule = lib.types.submodule ({ name, ... }: {
     options = {
       source = lib.mkOption {
         type = with lib.types; nullOr str;
@@ -147,7 +147,7 @@ let
     };
   });
 
-  checkStrategyModule = submodule ({ name, ... }: {
+  checkStrategyModule = lib.types.submodule ({ name, ... }: {
     options = {
       target = lib.mkOption { type = with lib.types; float; };
 
@@ -158,7 +158,7 @@ let
     };
   });
 
-  targetAwsAsgModule = submodule ({ name, ... }: {
+  targetAwsAsgModule = lib.types.submodule ({ name, ... }: {
     options = {
       dry-run = lib.mkEnableOption "Whether to deploy in dry-run mode";
 

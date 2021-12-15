@@ -2,7 +2,7 @@
 let
   inherit (config.cluster) kms;
 
-  installType = submodule {
+  installType = lib.types.submodule {
     options = {
       script = lib.mkOption {
         type = with lib.types; str;
@@ -31,7 +31,7 @@ let
     };
   };
 
-  secretType = submodule {
+  secretType = lib.types.submodule {
     options = {
       encryptedRoot = lib.mkOption { type = with lib.types; path; };
 

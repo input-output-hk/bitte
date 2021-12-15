@@ -24,7 +24,7 @@ let
         ];
     };
 
-  serverJoinType = submodule {
+  serverJoinType = lib.types.submodule {
     options = {
       retry_join = lib.mkOption {
         type = with lib.types; listOf str;
@@ -73,7 +73,7 @@ let
     };
   };
 
-  hostVolumeType = listOf (attrsOf (submodule {
+  hostVolumeType = lib.types.listOf (lib.types.attrsOf (lib.types.submodule {
     options = {
       path = lib.mkOption {
         type = with lib.types; nullOr path;

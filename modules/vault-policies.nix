@@ -22,16 +22,16 @@ let
       json2hcl < "$src" > "$out"
     '';
 
-  vaultPolicyOptionsType = submodule (_: {
+  vaultPolicyOptionsType = lib.types.submodule (_: {
     options = {
       capabilities = lib.mkOption {
         type =
-          listOf (enum [ "create" "read" "update" "delete" "list" "sudo" ]);
+          lib.types.listOf (lib.types.enum [ "create" "read" "update" "delete" "list" "sudo" ]);
       };
     };
   });
 
-  vaultApproleType = submodule (_: {
+  vaultApproleType = lib.types.submodule (_: {
     options = {
       token_ttl = lib.mkOption { type = with lib.types; str; };
       token_max_ttl = lib.mkOption { type = with lib.types; str; };
@@ -39,7 +39,7 @@ let
     };
   });
 
-  vaultPoliciesType = submodule (_: {
+  vaultPoliciesType = lib.types.submodule (_: {
     options = {
       path =
         lib.mkOption { type = with lib.types; attrsOf vaultPolicyOptionsType; };

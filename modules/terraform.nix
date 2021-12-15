@@ -186,7 +186,7 @@ let
 
   cfg = config.cluster;
 
-  clusterType = submodule (_: {
+  clusterType = lib.types.submodule (_: {
     options = {
       name = lib.mkOption { type = with lib.types; str; };
 
@@ -300,7 +300,7 @@ let
     };
   });
 
-  clusterIamType = submodule {
+  clusterIamType = lib.types.submodule {
     options = {
       roles = lib.mkOption {
         type = with lib.types; attrsOf iamRoleType;
@@ -309,7 +309,7 @@ let
     };
   };
 
-  iamRoleType = submodule ({ name, ... }@this: {
+  iamRoleType = lib.types.submodule ({ name, ... }@this: {
     options = {
       id = lib.mkOption {
         type = with lib.types; str;
@@ -344,7 +344,7 @@ let
   });
 
   iamRolePolicyType = parentUid:
-    (submodule ({ name, ... }@this: {
+    (lib.types.submodule ({ name, ... }@this: {
       options = {
         uid = lib.mkOption {
           type = with lib.types; str;
@@ -372,7 +372,7 @@ let
       };
     }));
 
-  iamRoleAssumePolicyType = submodule (this: {
+  iamRoleAssumePolicyType = lib.types.submodule (this: {
     options = {
       tfJson = lib.mkOption {
         type = with lib.types; str;
@@ -400,11 +400,11 @@ let
     };
   });
 
-  iamRolePrincipalsType = submodule {
+  iamRolePrincipalsType = lib.types.submodule {
     options = { service = lib.mkOption { type = with lib.types; str; }; };
   };
 
-  initialVaultSecretsType = submodule (this: {
+  initialVaultSecretsType = lib.types.submodule (this: {
     options = {
       consul = lib.mkOption {
         type = with lib.types; str;
@@ -417,7 +417,7 @@ let
     };
   });
 
-  certificateType = submodule (this: {
+  certificateType = lib.types.submodule (this: {
     options = {
       organization = lib.mkOption {
         type = with lib.types; str;
@@ -437,7 +437,7 @@ let
   });
 
   securityGroupRuleType = { defaultSecurityGroupId }:
-    submodule ({ name, ... }@this: {
+    lib.types.submodule ({ name, ... }@this: {
       options = {
         name = lib.mkOption {
           type = with lib.types; str;
@@ -492,7 +492,7 @@ let
     });
 
   vpcType = prefix:
-    (submodule (this: {
+    (lib.types.submodule (this: {
       options = {
         name = lib.mkOption {
           type = with lib.types; str;
@@ -515,7 +515,7 @@ let
       };
     }));
 
-  subnetType = submodule ({ name, ... }@this: {
+  subnetType = lib.types.submodule ({ name, ... }@this: {
     options = {
       name = lib.mkOption {
         type = with lib.types; str;
@@ -532,7 +532,7 @@ let
   });
 
   serverIamType = parentName:
-    submodule {
+    lib.types.submodule {
       options = {
         role = lib.mkOption { type = with lib.types; iamRoleType; };
 
@@ -543,7 +543,7 @@ let
     };
 
   instanceProfileType = parentName:
-    submodule {
+    lib.types.submodule {
       options = {
         tfName = lib.mkOption {
           type = with lib.types; str;
@@ -568,7 +568,7 @@ let
       };
     };
 
-  serverType = submodule ({ name, ... }@this: {
+  serverType = lib.types.submodule ({ name, ... }@this: {
     options = {
       name = lib.mkOption {
         type = with lib.types; str;
@@ -689,7 +689,7 @@ let
     };
   });
 
-  localExecType = submodule {
+  localExecType = lib.types.submodule {
     options = {
       protoCommand = lib.mkOption { type = with lib.types; functionTo str; };
 
@@ -710,7 +710,7 @@ let
     };
   };
 
-  autoscalingGroupType = submodule ({ name, ... }@this: {
+  autoscalingGroupType = lib.types.submodule ({ name, ... }@this: {
     options = {
       name = lib.mkOption {
         type = with lib.types; str;

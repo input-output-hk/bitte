@@ -28,7 +28,7 @@ let
     in builtins.listToAttrs (lib.remove null sanitized);
 
   policyOption =
-    lib.mkOption { type = enum [ "deny" "read" "write" "scale" "list" ]; };
+    lib.mkOption { type = lib.types.enum [ "deny" "read" "write" "scale" "list" ]; };
 
   subPolicyOption = lib.mkOption {
     default = null;
@@ -36,7 +36,7 @@ let
       nullOr (submodule { options = { policy = policyOption; }; });
   };
 
-  nomadPoliciesType = submodule ({ name, ... }: {
+  nomadPoliciesType = lib.types.submodule ({ name, ... }: {
     options = {
       name = lib.mkOption {
         # Disallow "management" to avoid collision with a

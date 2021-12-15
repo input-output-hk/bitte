@@ -2,6 +2,8 @@
 let
   cfg = config.services.consul-templates;
 
+  inherit (lib.types) submodule;
+
   templateType = submodule {
     options = {
       enable = lib.mkOption {

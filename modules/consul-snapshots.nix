@@ -1,6 +1,8 @@
 { config, pkgs, lib, ... }:
 
 let
+  inherit (lib.types) submodule;
+
   cfg = config.services.consul-snapshots;
 
   snapshotJobConfig = submodule {

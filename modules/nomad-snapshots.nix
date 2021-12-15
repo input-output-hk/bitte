@@ -3,7 +3,7 @@
 let
   cfg = config.services.nomad-snapshots;
 
-  snapshotJobConfig = submodule {
+  snapshotJobConfig = lib.types.submodule {
     options = {
       enable = lib.mkOption {
         type = with lib.types; bool;
