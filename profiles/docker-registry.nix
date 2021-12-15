@@ -16,8 +16,8 @@ in {
       listenAddress = "0.0.0.0";
 
       extraConfig.redis = {
-        addr = "${config.services.dockerRegistry.redisUrl}";
-        password = "${config.services.dockerRegistry.redisPassword}";
+        addr = config.services.dockerRegistry.redisUrl;
+        password = config.services.dockerRegistry.redisPassword;
         db = 0;
         dialtimeout = "10ms";
         readtimeout = "10ms";

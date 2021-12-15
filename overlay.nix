@@ -36,7 +36,7 @@ in final: prev: {
 
   terraform-provider-versions = lib.listToAttrs (map (name:
     let
-      provider = final.terraform-providers.${name};
+      provider = final.terraform-providers."${name}";
       provider-source-address =
         provider.provider-source-address or "registry.terraform.io/nixpkgs/${name}";
       parts = lib.splitString "/" provider-source-address;
@@ -46,7 +46,7 @@ in final: prev: {
       version = "= ${provider.version}";
     }) final.terraform-provider-names);
 
-  nixpkgs-terraform-pkgs = nixpkgs-terraform.legacyPackages.${final.system};
+  nixpkgs-terraform-pkgs = nixpkgs-terraform.legacyPackages."${final.system}";
 
   inherit (final.nixpkgs-terraform-pkgs)
     terraform_0_13 terraform_0_14 terraform-providers;

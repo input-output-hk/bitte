@@ -90,11 +90,9 @@ in {
         export VAULT_TOKEN
         export VAULT_ADDR=https://127.0.0.1:8200
 
-        set -x
-
         # Vault Policies
 
-        ${lib.concatStringsSep "" (lib.mapAttrsToList (name: value: ''
+        ${builtins.concatStringsSep "" (lib.mapAttrsToList (name: value: ''
           vault policy write "${name}" "${policy2hcl name value}"
         '') config.services.vault.policies)}
 

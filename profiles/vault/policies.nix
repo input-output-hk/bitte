@@ -2,7 +2,7 @@
 let
   c = "create";
   r = "read";
-  u = "update";
+  u = "update"; # PUT
   d = "delete";
   l = "list";
   s = "sudo";
