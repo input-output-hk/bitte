@@ -12,7 +12,7 @@ let
   __fromTOML = builtins.fromTOML;
 
 in {
-  tf.hydrate.configuration = {
+  tf.hydrate-cluster.configuration = {
 
     resource.vault_mount.${runtimeSecretsPath} = {
       path = "${runtimeSecretsPath}";

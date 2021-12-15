@@ -2,7 +2,7 @@
 { terralib, ... }:
 let inherit (terralib) var;
 in {
-  tf.hydrate.configuration = {
+  tf.hydrate-cluster.configuration = {
 
     data.sops_file.docker-developer-password.source_file =
       "./encrypted/docker-passwords.json";

@@ -7,7 +7,7 @@ let
     adminGithubTeamNames developerGithubTeamNames developerGithubNames;
 
 in {
-  tf.hydrate.configuration = {
+  tf.hydrate-cluster.configuration = {
 
     resource.vault_github_auth_backend.employee = {
       organization = "input-output-hk";

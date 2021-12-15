@@ -6,7 +6,7 @@
 let
 
   inherit (terralib) var id;
-  tfcfg = config.tf.hydrate.configuration;
+  tfcfg = config.tf.hydrate-cluster.cluster.configuration;
 
   __fromTOML = builtins.fromTOML;
 
@@ -15,7 +15,7 @@ let
   consulPolicies = tfcfg.locals.policies.consul;
 
 in {
-  tf.hydrate.configuration = {
+  tf.hydrate-cluster.cluster.configuration = {
 
     # this is an auxiliary datastructure that can be modified/extended via terranix's magic merge
     locals.policies = __fromTOML (__readFile ./policies.toml);
