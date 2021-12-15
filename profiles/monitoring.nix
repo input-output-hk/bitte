@@ -1,7 +1,5 @@
 { lib, pkgs, config, nodeName, ... }:
-let
-  inherit (config.cluster) domain region instances kms;
-  acme-full = "/etc/ssl/certs/${config.cluster.domain}-full.pem";
+let inherit (config.cluster) domain region instances kms;
 in {
   imports = [
     ./builder.nix
