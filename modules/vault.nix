@@ -21,88 +21,89 @@ let
         ];
     };
 
-  storageRaftType = with lib.types; submodule {
-    options = {
-      path = lib.mkOption {
-        type = with lib.types; str;
-        default = cfg.storagePath;
-      };
+  storageRaftType = with lib.types;
+    submodule {
+      options = {
+        path = lib.mkOption {
+          type = with lib.types; str;
+          default = cfg.storagePath;
+        };
 
-      nodeId = lib.mkOption {
-        type = with lib.types; nullOr str;
-        default = null;
-      };
+        nodeId = lib.mkOption {
+          type = with lib.types; nullOr str;
+          default = null;
+        };
 
-      retryJoin = lib.mkOption {
-        type = with lib.types;
-          listOf (submodule {
-            options = {
-              leaderApiAddr = lib.mkOption {
-                type = with lib.types; str;
-                description = ''
-                  Address of a possible leader node.
-                '';
+        retryJoin = lib.mkOption {
+          type = with lib.types;
+            listOf (submodule {
+              options = {
+                leaderApiAddr = lib.mkOption {
+                  type = with lib.types; str;
+                  description = ''
+                    Address of a possible leader node.
+                  '';
+                };
+
+                leaderCaCertFile = lib.mkOption {
+                  type = with lib.types; nullOr str;
+                  default = null;
+                  description = ''
+                    File path to the CA cert of the possible leader node.
+                  '';
+                };
+
+                leaderCaCert = lib.mkOption {
+                  type = with lib.types; nullOr str;
+                  default = null;
+                  description = ''
+                    CA cert of the possible leader node.
+                  '';
+                };
+
+                leaderClientCertFile = lib.mkOption {
+                  type = with lib.types; nullOr str;
+                  default = null;
+                  description = ''
+                    File path to the client certificate for the follower
+                    node to establish client authentication with the
+                    possible leader node.
+                  '';
+                };
+
+                leaderClientCert = lib.mkOption {
+                  type = with lib.types; nullOr str;
+                  default = null;
+                  description = ''
+                    Client certificate for the follower node to establish
+                    client authentication with the possible leader node.
+                  '';
+                };
+
+                leaderClientKeyFile = lib.mkOption {
+                  type = with lib.types; nullOr str;
+                  default = null;
+                  description = ''
+                    File path to the client key for the follower node to
+                    establish client authentication with the possible
+                    leader node.
+                  '';
+                };
+
+                leaderClientKey = lib.mkOption {
+                  type = with lib.types; nullOr str;
+                  default = null;
+                  description = ''
+                    Client key for the follower node to establish client
+                    authentication with the possible leader node.
+                  '';
+                };
               };
-
-              leaderCaCertFile = lib.mkOption {
-                type = with lib.types; nullOr str;
-                default = null;
-                description = ''
-                  File path to the CA cert of the possible leader node.
-                '';
-              };
-
-              leaderCaCert = lib.mkOption {
-                type = with lib.types; nullOr str;
-                default = null;
-                description = ''
-                  CA cert of the possible leader node.
-                '';
-              };
-
-              leaderClientCertFile = lib.mkOption {
-                type = with lib.types; nullOr str;
-                default = null;
-                description = ''
-                  File path to the client certificate for the follower
-                  node to establish client authentication with the
-                  possible leader node.
-                '';
-              };
-
-              leaderClientCert = lib.mkOption {
-                type = with lib.types; nullOr str;
-                default = null;
-                description = ''
-                  Client certificate for the follower node to establish
-                  client authentication with the possible leader node.
-                '';
-              };
-
-              leaderClientKeyFile = lib.mkOption {
-                type = with lib.types; nullOr str;
-                default = null;
-                description = ''
-                  File path to the client key for the follower node to
-                  establish client authentication with the possible
-                  leader node.
-                '';
-              };
-
-              leaderClientKey = lib.mkOption {
-                type = with lib.types; nullOr str;
-                default = null;
-                description = ''
-                  Client key for the follower node to establish client
-                  authentication with the possible leader node.
-                '';
-              };
-            };
-          });
-        default = [ ];
+            });
+          default = [ ];
+        };
       };
     };
-  };
 
   cfg = config.services.vault;
 in {

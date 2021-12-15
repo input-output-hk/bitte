@@ -3,219 +3,224 @@ let
   cfg = config.services.nomad-autoscaler;
   inherit (pkgs) sanitize;
 
-  pluginModule = with lib.types; submodule ({ name, ... }: {
-    options = {
-      args = lib.mkOption {
-        type = with lib.types; listOf str;
-        default = [ ];
-        description = ''
-          Specifies a set of arguments to pass to the plugin binary when it is
-          executed.
-        '';
+  pluginModule = with lib.types;
+    submodule ({ name, ... }: {
+      options = {
+        args = lib.mkOption {
+          type = with lib.types; listOf str;
+          default = [ ];
+          description = ''
+            Specifies a set of arguments to pass to the plugin binary when it is
+            executed.
+          '';
+        };
+
+        driver = lib.mkOption {
+          type = with lib.types; str;
+          default = "";
+          description = ''
+            The plugin's executable name relative to to the plugin_dir. If the
+            plugin has a suffix, such as .exe, this should be omitted.
+          '';
+        };
+
+        config = lib.mkOption {
+          type = with lib.types; attrsOf str;
+          default = { };
+          description = ''
+            Specifies configuration values for the plugin either as HCL or JSON.
+            The accepted values are plugin specific. Please refer to the
+            individual plugin's documentation.
+          '';
+        };
       };
+    });
 
-      driver = lib.mkOption {
-        type = with lib.types; str;
-        default = "";
-        description = ''
-          The plugin's executable name relative to to the plugin_dir. If the
-          plugin has a suffix, such as .exe, this should be omitted.
+  scalingModule = with lib.types;
+    submodule ({ name, ... }: {
+      options = {
+        enabled = lib.mkEnableOption ''
+          A boolean flag that allows operators to administratively disable a
+          policy from active evaluation.
         '';
+
+        min = lib.mkOption {
+          type = with lib.types; ints.positive;
+          description = ''
+            The minimum running count of the targeted resource. This can be 0 or
+            any positive integer.
+          '';
+        };
+
+        max = lib.mkOption {
+          type = with lib.types; ints.positive;
+          description = ''
+            The maximum running count of the targeted resource. This can be 0 or
+            any positive integer.
+          '';
+        };
+
+        policy = {
+          cooldown = lib.mkOption {
+            type = with lib.types; nullOr str;
+            default = null;
+            description = ''
+              A time interval after a scaling action during which no additional
+              scaling will be performed on the resource. It should be provided
+              as a duration (e.g.: "5s", "1m"). If omitted the configuration
+              value policy_default_cooldown from the agent will be used.
+            '';
+          };
+
+          evaluation_interval = lib.mkOption {
+            type = with lib.types; nullOr str;
+            default = null;
+            description = ''
+              Defines how often the policy is evaluated by the Autoscaler. It
+              should be provided as a duration (e.g.: "5s", "1m"). If omitted
+              the configuration value default_evaluation_interval from the
+              agent will be used.
+            '';
+          };
+
+          target = lib.mkOption {
+            # although there are more types, this is the only one we use.
+            type = with lib.types; attrsOf targetAwsAsgModule;
+            default = { };
+            description = ''
+              Defines where the autoscaling target is running. Detailed information on
+              the configuration options can be found on the Target Plugins page.
+            '';
+          };
+
+          check = lib.mkOption {
+            type = with lib.types; attrsOf checkModule;
+            default = { };
+            description = ''
+              Specifies one or more checks to be executed when determining if a scaling
+              action is required.
+            '';
+          };
+        };
       };
+    });
 
-      config = lib.mkOption {
-        type = with lib.types; attrsOf str;
-        default = { };
-        description = ''
-          Specifies configuration values for the plugin either as HCL or JSON.
-          The accepted values are plugin specific. Please refer to the
-          individual plugin's documentation.
-        '';
-      };
-    };
-  });
-
-  scalingModule = with lib.types; submodule ({ name, ... }: {
-    options = {
-      enabled = lib.mkEnableOption ''
-        A boolean flag that allows operators to administratively disable a
-        policy from active evaluation.
-      '';
-
-      min = lib.mkOption {
-        type = with lib.types; ints.positive;
-        description = ''
-          The minimum running count of the targeted resource. This can be 0 or
-          any positive integer.
-        '';
-      };
-
-      max = lib.mkOption {
-        type = with lib.types; ints.positive;
-        description = ''
-          The maximum running count of the targeted resource. This can be 0 or
-          any positive integer.
-        '';
-      };
-
-      policy = {
-        cooldown = lib.mkOption {
+  checkModule = with lib.types;
+    submodule ({ name, ... }: {
+      options = {
+        source = lib.mkOption {
           type = with lib.types; nullOr str;
           default = null;
           description = ''
-            A time interval after a scaling action during which no additional
-            scaling will be performed on the resource. It should be provided
-            as a duration (e.g.: "5s", "1m"). If omitted the configuration
-            value policy_default_cooldown from the agent will be used.
+            The APM plugin that should handle the metric query. If
+            omitted, this defaults to using the Nomad APM.
           '';
         };
 
-        evaluation_interval = lib.mkOption {
-          type = with lib.types; nullOr str;
-          default = null;
+        query = lib.mkOption {
+          type = with lib.types; str;
           description = ''
-            Defines how often the policy is evaluated by the Autoscaler. It
-            should be provided as a duration (e.g.: "5s", "1m"). If omitted
-            the configuration value default_evaluation_interval from the
-            agent will be used.
+            The query to run against the specified APM. Currently this
+            query should return a single value. Detailed information on
+            the configuration options can be found on the APM Plugins
+            page.
           '';
         };
 
-        target = lib.mkOption {
-          # although there are more types, this is the only one we use.
-          type = with lib.types; attrsOf targetAwsAsgModule;
+        query_window = lib.mkOption {
+          type = with lib.types; str;
+          default = "1m";
+          description = ''
+            Defines how far back to query the APM for metrics. It
+            should be provided as a duration (e.g.: "5s", "1m").
+          '';
+        };
+
+        strategy = lib.mkOption {
+          type = with lib.types; attrsOf checkStrategyModule;
           default = { };
           description = ''
-            Defines where the autoscaling target is running. Detailed information on
-            the configuration options can be found on the Target Plugins page.
+            The strategy to use, and it's configuration when
+            calculating the desired state based on the current count
+            and the metric returned by the APM. Detailed information on
+            the configuration options can be found on the Strategy
+            Plugins page.
           '';
         };
+      };
+    });
 
-        check = lib.mkOption {
-          type = with lib.types; attrsOf checkModule;
-          default = { };
+  checkStrategyModule = with lib.types;
+    submodule ({ name, ... }: {
+      options = {
+        target = lib.mkOption { type = with lib.types; float; };
+
+        threshold = lib.mkOption {
+          type = with lib.types; float;
+          default = 1.0e-2;
+        };
+      };
+    });
+
+  targetAwsAsgModule = with lib.types;
+    submodule ({ name, ... }: {
+      options = {
+        dry-run = lib.mkEnableOption "Whether to deploy in dry-run mode";
+
+        aws_asg_name = lib.mkOption {
+          type = with lib.types; str;
           description = ''
-            Specifies one or more checks to be executed when determining if a scaling
-            action is required.
+            The name of the AWS AutoScaling Group to interact with when performing
+            scaling actions.
+          '';
+        };
+
+        node_class = lib.mkOption {
+          type = with lib.types; str;
+          description = ''
+            The Nomad client node class identifier used to group nodes into a pool
+            of resource.
+          '';
+        };
+
+        node_drain_deadline = lib.mkOption {
+          type = with lib.types; str;
+          default = "15m";
+          description = ''
+            The Nomad drain deadline to use when performing node draining actions.
+            Please note that the default value for this setting differs from
+            Nomad's default of 1h.
+          '';
+        };
+
+        node_drain_ignore_system_jobs = lib.mkOption {
+          type = with lib.types; bool;
+          default = false;
+          description = ''
+            A boolean flag used to control if system jobs should be stopped when
+            performing node draining actions.
+          '';
+        };
+
+        node_purge = lib.mkOption {
+          type = with lib.types; bool;
+          default = false;
+          description = ''
+            A boolean flag to determine whether Nomad clients should be purged when
+            performing scale in actions.
+          '';
+        };
+
+        node_selector_strategy = lib.mkOption {
+          type = with lib.types; str;
+          default = "least_busy";
+          description = ''
+            The strategy to use when selecting nodes for termination. Please see
+            the node selector strategy documentation for more detailed information.
           '';
         };
       };
-    };
-  });
-
-  checkModule = with lib.types; submodule ({ name, ... }: {
-    options = {
-      source = lib.mkOption {
-        type = with lib.types; nullOr str;
-        default = null;
-        description = ''
-          The APM plugin that should handle the metric query. If
-          omitted, this defaults to using the Nomad APM.
-        '';
-      };
-
-      query = lib.mkOption {
-        type = with lib.types; str;
-        description = ''
-          The query to run against the specified APM. Currently this
-          query should return a single value. Detailed information on
-          the configuration options can be found on the APM Plugins
-          page.
-        '';
-      };
-
-      query_window = lib.mkOption {
-        type = with lib.types; str;
-        default = "1m";
-        description = ''
-          Defines how far back to query the APM for metrics. It
-          should be provided as a duration (e.g.: "5s", "1m").
-        '';
-      };
-
-      strategy = lib.mkOption {
-        type = with lib.types; attrsOf checkStrategyModule;
-        default = { };
-        description = ''
-          The strategy to use, and it's configuration when
-          calculating the desired state based on the current count
-          and the metric returned by the APM. Detailed information on
-          the configuration options can be found on the Strategy
-          Plugins page.
-        '';
-      };
-    };
-  });
-
-  checkStrategyModule = with lib.types; submodule ({ name, ... }: {
-    options = {
-      target = lib.mkOption { type = with lib.types; float; };
-
-      threshold = lib.mkOption {
-        type = with lib.types; float;
-        default = 1.0e-2;
-      };
-    };
-  });
-
-  targetAwsAsgModule = with lib.types; submodule ({ name, ... }: {
-    options = {
-      dry-run = lib.mkEnableOption "Whether to deploy in dry-run mode";
-
-      aws_asg_name = lib.mkOption {
-        type = with lib.types; str;
-        description = ''
-          The name of the AWS AutoScaling Group to interact with when performing
-          scaling actions.
-        '';
-      };
-
-      node_class = lib.mkOption {
-        type = with lib.types; str;
-        description = ''
-          The Nomad client node class identifier used to group nodes into a pool
-          of resource.
-        '';
-      };
-
-      node_drain_deadline = lib.mkOption {
-        type = with lib.types; str;
-        default = "15m";
-        description = ''
-          The Nomad drain deadline to use when performing node draining actions.
-          Please note that the default value for this setting differs from
-          Nomad's default of 1h.
-        '';
-      };
-
-      node_drain_ignore_system_jobs = lib.mkOption {
-        type = with lib.types; bool;
-        default = false;
-        description = ''
-          A boolean flag used to control if system jobs should be stopped when
-          performing node draining actions.
-        '';
-      };
-
-      node_purge = lib.mkOption {
-        type = with lib.types; bool;
-        default = false;
-        description = ''
-          A boolean flag to determine whether Nomad clients should be purged when
-          performing scale in actions.
-        '';
-      };
-
-      node_selector_strategy = lib.mkOption {
-        type = with lib.types; str;
-        default = "least_busy";
-        description = ''
-          The strategy to use when selecting nodes for termination. Please see
-          the node selector strategy documentation for more detailed information.
-        '';
-      };
-    };
-  });
+    });
 
 in {
   options.services.nomad-autoscaler = {

@@ -2,39 +2,40 @@
 let
   cfg = config.services.consul-templates;
 
-  templateType = with lib.types; submodule {
-    options = {
-      enable = lib.mkOption {
-        type = with lib.types; bool;
-        default = true;
-      };
+  templateType = with lib.types;
+    submodule {
+      options = {
+        enable = lib.mkOption {
+          type = with lib.types; bool;
+          default = true;
+        };
 
-      logLevel = lib.mkOption {
-        type = with lib.types; enum [ "debug" "info" "warn" "err" ];
-        default = "info";
-      };
+        logLevel = lib.mkOption {
+          type = with lib.types; enum [ "debug" "info" "warn" "err" ];
+          default = "info";
+        };
 
-      policies = lib.mkOption {
-        type = with lib.types; attrs;
-        default = { };
-      };
+        policies = lib.mkOption {
+          type = with lib.types; attrs;
+          default = { };
+        };
 
-      source = lib.mkOption {
-        type = with lib.types; str;
-        description = ''
-          The template in https://golang.org/pkg/text/template/ syntax.
-        '';
-      };
+        source = lib.mkOption {
+          type = with lib.types; str;
+          description = ''
+            The template in https://golang.org/pkg/text/template/ syntax.
+          '';
+        };
 
-      target = lib.mkOption {
-        type = with lib.types;
-          str; # doesn't make much sense to have path type here i think.
-        description = ''
-          Path where the output of template application will end up.
-        '';
+        target = lib.mkOption {
+          type = with lib.types;
+            str; # doesn't make much sense to have path type here i think.
+          description = ''
+            Path where the output of template application will end up.
+          '';
+        };
       };
     };
-  };
 
 in {
 

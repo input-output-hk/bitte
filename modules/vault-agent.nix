@@ -2,27 +2,29 @@
 let
   cfg = config.services.vault-agent;
 
-  templateType = with lib.types; submodule ({ name, ... }: {
-    options = {
-      destination = lib.mkOption {
-        type = with lib.types; str;
-        default = name;
+  templateType = with lib.types;
+    submodule ({ name, ... }: {
+      options = {
+        destination = lib.mkOption {
+          type = with lib.types; str;
+          default = name;
+        };
+        contents = lib.mkOption { type = with lib.types; str; };
+        command = lib.mkOption {
+          type = with lib.types; nullOr str;
+          default = null;
+        };
       };
-      contents = lib.mkOption { type = with lib.types; str; };
-      command = lib.mkOption {
-        type = with lib.types; nullOr str;
-        default = null;
-      };
-    };
-  });
+    });
 
-  listenerType = with lib.types; submodule {
-    options = {
-      type = lib.mkOption { type = with lib.types; str; };
-      address = lib.mkOption { type = with lib.types; str; };
-      tlsDisable = lib.mkOption { type = with lib.types; bool; };
+  listenerType = with lib.types;
+    submodule {
+      options = {
+        type = lib.mkOption { type = with lib.types; str; };
+        address = lib.mkOption { type = with lib.types; str; };
+        tlsDisable = lib.mkOption { type = with lib.types; bool; };
+      };
     };
-  };
 
 in {
   options.services.vault-agent = {
@@ -47,14 +49,15 @@ in {
 
     cache = lib.mkOption {
       default = { };
-      type = with lib.types; submodule {
-        options = {
-          useAutoAuthToken = lib.mkOption {
-            type = with lib.types; bool;
-            default = true;
+      type = with lib.types;
+        submodule {
+          options = {
+            useAutoAuthToken = lib.mkOption {
+              type = with lib.types; bool;
+              default = true;
+            };
           };
         };
-      };
     };
 
     listener = lib.mkOption {
