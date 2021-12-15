@@ -358,7 +358,7 @@ let
   inherit (clusterFile) cluster;
   mkMachine = name: extra:
     let
-      ip = cluster.instances.${name}.privateIP;
+      ip = cluster.instances."${name}".privateIP;
       common = {
         users.users.root.openssh.authorizedKeys.keys =
           [ (builtins.readFile ./age-bootstrap.pub) ];
@@ -369,7 +369,7 @@ let
         in m inputs // (m inputs.utils.inputs);
 
         nix.extraOptions = ''
-          experimental-features = nix-command flakes ca-references
+          experimental-features = nix-command flakes
           show-trace = true
           log-lines = 100
           flake-registry = http://admin:9090/registry.json
@@ -412,7 +412,7 @@ let
       };
     in {
       imports = [ ../clusters/test common ]
-        ++ cluster.instances.${name}.modules;
+        ++ cluster.instances."${name}".modules;
     };
 
   sessionVariables = {
@@ -458,7 +458,7 @@ in {
         in m inputs // (m inputs.utils.inputs);
 
         nix.extraOptions = ''
-          experimental-features = nix-command flakes ca-references
+          experimental-features = nix-command flakes
           show-trace = true
           log-lines = 100
           flake-registry = http://admin:9090/registry.json
