@@ -8,7 +8,6 @@ in {
     ./docker-registry.nix
     ./loki.nix
     ./oauth.nix
-    ./secrets.nix
     ./telegraf.nix
     ./vault/client.nix
   ];

@@ -3,7 +3,6 @@
     ./common.nix
     ./consul/client.nix
     ./oauth.nix
-    ./secrets.nix
     ./telegraf.nix
     ./vault/client.nix
   ];
