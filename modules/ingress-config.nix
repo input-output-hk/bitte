@@ -1,7 +1,5 @@
 { pkgs, config, lib, pkiFiles, ... }:
-let
-  inherit (config.cluster) domain instances;
-  acme-full = "/etc/ssl/certs/${domain}-full.pem";
+let inherit (config.cluster) domain instances;
 in {
   options = {
     services.ingress-config = {
@@ -139,7 +137,7 @@ in {
         http-request redirect scheme https if http
 
       frontend https
-        bind *:443 ssl crt ${acme-full} alpn h2,http/1.1
+        bind *:443 ssl crt /etc/ssl/certs/${domain}-full.pem alpn h2,http/1.1
 
         acl oauth_proxy path_beg /oauth2/
         acl authenticated var(txn.auth_response_successful) -m bool
