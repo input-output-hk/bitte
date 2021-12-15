@@ -28,14 +28,15 @@ in {
       };
       disableTokenRotation = lib.mkOption {
         default = { };
-        type = with lib.types; submodule {
-          options = {
-            consulAgent = lib.mkEnableOption
-              "Disable consul agent token rotation on vault-agent-core nodes";
-            consulDefault = lib.mkEnableOption
-              "Disable consul default token rotation on vault-agent-core nodes";
+        type = with lib.types;
+          submodule {
+            options = {
+              consulAgent = lib.mkEnableOption
+                "Disable consul agent token rotation on vault-agent-core nodes";
+              consulDefault = lib.mkEnableOption
+                "Disable consul default token rotation on vault-agent-core nodes";
+            };
           };
-        };
       };
     };
   };

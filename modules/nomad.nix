@@ -24,77 +24,79 @@ let
         ];
     };
 
-  serverJoinType = with lib.types; submodule {
-    options = {
-      retry_join = lib.mkOption {
-        type = with lib.types; listOf str;
-        default = [ ];
-        description = ''
-          Specifies a list of server addresses to join. This is similar to
-          start_join, but will continue to be attempted even if the initial
-          join attempt fails, up to retry_max. Further, retry_join is available
-          to both Nomad servers and clients, while start_join is only defined
-          for Nomad servers. This is useful for cases where we know the address
-          will become available eventually. Use retry_join with an array as a
-          replacement for start_join, do not use both options.
-        '';
-      };
+  serverJoinType = with lib.types;
+    submodule {
+      options = {
+        retry_join = lib.mkOption {
+          type = with lib.types; listOf str;
+          default = [ ];
+          description = ''
+            Specifies a list of server addresses to join. This is similar to
+            start_join, but will continue to be attempted even if the initial
+            join attempt fails, up to retry_max. Further, retry_join is available
+            to both Nomad servers and clients, while start_join is only defined
+            for Nomad servers. This is useful for cases where we know the address
+            will become available eventually. Use retry_join with an array as a
+            replacement for start_join, do not use both options.
+          '';
+        };
 
-      retry_interval = lib.mkOption {
-        type = with lib.types; str;
-        default = "30s";
-        description = ''
-          Specifies the time to wait between retry join attempts.
-        '';
-      };
+        retry_interval = lib.mkOption {
+          type = with lib.types; str;
+          default = "30s";
+          description = ''
+            Specifies the time to wait between retry join attempts.
+          '';
+        };
 
-      retry_max = lib.mkOption {
-        type = with lib.types; ints.unsigned;
-        default = 0;
-        description = ''
-          Specifies the maximum number of join attempts to be made before
-          exiting with a return code of 1. By default, this is set to 0 which
-          is interpreted as infinite retries.
-        '';
-      };
+        retry_max = lib.mkOption {
+          type = with lib.types; ints.unsigned;
+          default = 0;
+          description = ''
+            Specifies the maximum number of join attempts to be made before
+            exiting with a return code of 1. By default, this is set to 0 which
+            is interpreted as infinite retries.
+          '';
+        };
 
-      start_join = lib.mkOption {
-        type = with lib.types; listOf str;
-        default = [ ];
-        description = ''
-          Specifies a list of server addresses to join on startup. If Nomad is
-          unable to join with any of the specified addresses, agent startup
-          will fail. See the server address format section for more information
-          on the format of the string. This field is defined only for Nomad
-          servers and will result in a configuration parse error if included in
-          a client configuration.
-        '';
+        start_join = lib.mkOption {
+          type = with lib.types; listOf str;
+          default = [ ];
+          description = ''
+            Specifies a list of server addresses to join on startup. If Nomad is
+            unable to join with any of the specified addresses, agent startup
+            will fail. See the server address format section for more information
+            on the format of the string. This field is defined only for Nomad
+            servers and will result in a configuration parse error if included in
+            a client configuration.
+          '';
+        };
       };
     };
-  };
 
-  hostVolumeType = with lib.types; listOf (attrsOf (submodule {
-    options = {
-      path = lib.mkOption {
-        type = with lib.types; nullOr path;
-        default = null;
-        description = ''
-          The path on the host that should be used as the source when
-          this volume is mounted into a task. The path must exist on
-          client startup.
-        '';
-      };
+  hostVolumeType = with lib.types;
+    listOf (attrsOf (submodule {
+      options = {
+        path = lib.mkOption {
+          type = with lib.types; nullOr path;
+          default = null;
+          description = ''
+            The path on the host that should be used as the source when
+            this volume is mounted into a task. The path must exist on
+            client startup.
+          '';
+        };
 
-      read_only = lib.mkOption {
-        type = with lib.types; bool;
-        default = false;
-        description = ''
-          Whether the volume should only ever be allowed to be
-          mounted read_only, or if it should be writeable.
-        '';
+        read_only = lib.mkOption {
+          type = with lib.types; bool;
+          default = false;
+          description = ''
+            Whether the volume should only ever be allowed to be
+            mounted read_only, or if it should be writeable.
+          '';
+        };
       };
-    };
-  }));
+    }));
 in {
   disabledModules = [ "services/networking/nomad.nix" ];
   options.services.nomad = {

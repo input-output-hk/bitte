@@ -22,29 +22,33 @@ let
       json2hcl < "$src" > "$out"
     '';
 
-  vaultPolicyOptionsType = with lib.types; submodule (_: {
-    options = {
-      capabilities = lib.mkOption {
-        type =
-          with lib.types; listOf (enum [ "create" "read" "update" "delete" "list" "sudo" ]);
+  vaultPolicyOptionsType = with lib.types;
+    submodule (_: {
+      options = {
+        capabilities = lib.mkOption {
+          type = with lib.types;
+            listOf (enum [ "create" "read" "update" "delete" "list" "sudo" ]);
+        };
       };
-    };
-  });
+    });
 
-  vaultApproleType = with lib.types; submodule (_: {
-    options = {
-      token_ttl = lib.mkOption { type = with lib.types; str; };
-      token_max_ttl = lib.mkOption { type = with lib.types; str; };
-      token_policies = lib.mkOption { type = with lib.types; listOf str; };
-    };
-  });
+  vaultApproleType = with lib.types;
+    submodule (_: {
+      options = {
+        token_ttl = lib.mkOption { type = with lib.types; str; };
+        token_max_ttl = lib.mkOption { type = with lib.types; str; };
+        token_policies = lib.mkOption { type = with lib.types; listOf str; };
+      };
+    });
 
-  vaultPoliciesType = with lib.types; submodule (_: {
-    options = {
-      path =
-        lib.mkOption { type = with lib.types; attrsOf vaultPolicyOptionsType; };
-    };
-  });
+  vaultPoliciesType = with lib.types;
+    submodule (_: {
+      options = {
+        path = lib.mkOption {
+          type = with lib.types; attrsOf vaultPolicyOptionsType;
+        };
+      };
+    });
 
   createNomadRoles = lib.flip lib.mapAttrsToList config.services.nomad.policies
     (name: policy: ''vault write "nomad/role/${name}" "policies=${name}"'');

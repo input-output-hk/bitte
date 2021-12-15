@@ -3,84 +3,88 @@ let
   inherit (config.instance) bootstrapper;
   inherit (bittelib) ensureDependencies;
 
-  consulIntentionsType = with lib.types; submodule {
-    options = {
-      sourceName = lib.mkOption { type = with lib.types; str; };
-      destinationName = lib.mkOption { type = with lib.types; str; };
-      action = lib.mkOption {
-        type = with lib.types; enum [ "allow" "deny" ];
-        default = "allow";
-      };
-    };
-  };
-
-  consulRolesType = with lib.types; submodule ({ name, ... }@this: {
-    options = {
-      name = lib.mkOption {
-        type = with lib.types; str;
-        default = name;
-      };
-
-      description = lib.mkOption {
-        type = with lib.types; nullOr str;
-        default = null;
-        description = ''
-          A description of the role.
-        '';
-      };
-
-      policyIds = lib.mkOption {
-        type = with lib.types; listOf str;
-        default = [ ];
-        description = ''
-          IDs of policies to use for this role.
-        '';
-      };
-
-      policyNames = lib.mkOption {
-        type = with lib.types; listOf str;
-        default = [ ];
-        description = ''
-          Names of policies to use for this role.
-        '';
-      };
-
-      serviceIdentities = lib.mkOption {
-        type = with lib.types; listOf str;
-        default = [ ];
-        description = ''
-          Name of a service identity to use for this role.
-          May be specified multiple times.
-          Format is the SERVICENAME or SERVICENAME:DATACENTER1,DATACENTER2,...
-        '';
-      };
-    };
-  });
-
-  consulPoliciesType = let
-    policyValueType = with lib.types; enum [ "read" "write" "deny" "list" ];
-
-    consulSinglePolicyType = with lib.types; submodule ({ name, ... }: {
+  consulIntentionsType = with lib.types;
+    submodule {
       options = {
-        policy = lib.mkOption { type = with lib.types; policyValueType; };
+        sourceName = lib.mkOption { type = with lib.types; str; };
+        destinationName = lib.mkOption { type = with lib.types; str; };
+        action = lib.mkOption {
+          type = with lib.types; enum [ "allow" "deny" ];
+          default = "allow";
+        };
+      };
+    };
 
-        intentions = lib.mkOption {
-          type = with lib.types; policyValueType;
-          default = "deny";
+  consulRolesType = with lib.types;
+    submodule ({ name, ... }@this: {
+      options = {
+        name = lib.mkOption {
+          type = with lib.types; str;
+          default = name;
+        };
+
+        description = lib.mkOption {
+          type = with lib.types; nullOr str;
+          default = null;
+          description = ''
+            A description of the role.
+          '';
+        };
+
+        policyIds = lib.mkOption {
+          type = with lib.types; listOf str;
+          default = [ ];
+          description = ''
+            IDs of policies to use for this role.
+          '';
+        };
+
+        policyNames = lib.mkOption {
+          type = with lib.types; listOf str;
+          default = [ ];
+          description = ''
+            Names of policies to use for this role.
+          '';
+        };
+
+        serviceIdentities = lib.mkOption {
+          type = with lib.types; listOf str;
+          default = [ ];
+          description = ''
+            Name of a service identity to use for this role.
+            May be specified multiple times.
+            Format is the SERVICENAME or SERVICENAME:DATACENTER1,DATACENTER2,...
+          '';
         };
       };
     });
 
-    consulMultiPolicyType = with lib.types; attrsOf (submodule ({ name, ... }: {
-      options = {
-        policy = lib.mkOption { type = with lib.types; policyValueType; };
+  consulPoliciesType = let
+    policyValueType = with lib.types; enum [ "read" "write" "deny" "list" ];
 
-        intentions = lib.mkOption {
-          type = with lib.types; policyValueType;
-          default = "deny";
+    consulSinglePolicyType = with lib.types;
+      submodule ({ name, ... }: {
+        options = {
+          policy = lib.mkOption { type = with lib.types; policyValueType; };
+
+          intentions = lib.mkOption {
+            type = with lib.types; policyValueType;
+            default = "deny";
+          };
         };
-      };
-    }));
+      });
+
+    consulMultiPolicyType = with lib.types;
+      attrsOf (submodule ({ name, ... }: {
+        options = {
+          policy = lib.mkOption { type = with lib.types; policyValueType; };
+
+          intentions = lib.mkOption {
+            type = with lib.types; policyValueType;
+            default = "deny";
+          };
+        };
+      }));
 
     compute = set:
       if builtins.isString set then
@@ -104,7 +108,8 @@ let
       type = with lib.types; nullOr consulMultiPolicyType;
       default = null;
     };
-  in with lib.types; submodule ({ name, ... }@this: {
+  in with lib.types;
+  submodule ({ name, ... }@this: {
     options = {
       name = lib.mkOption {
         type = with lib.types; str;

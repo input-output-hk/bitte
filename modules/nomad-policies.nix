@@ -27,8 +27,9 @@ let
         }) set;
     in builtins.listToAttrs (lib.remove null sanitized);
 
-  policyOption =
-    lib.mkOption { type = with lib.types; enum [ "deny" "read" "write" "scale" "list" ]; };
+  policyOption = lib.mkOption {
+    type = with lib.types; enum [ "deny" "read" "write" "scale" "list" ];
+  };
 
   subPolicyOption = lib.mkOption {
     default = null;
@@ -36,91 +37,92 @@ let
       nullOr (submodule { options = { policy = policyOption; }; });
   };
 
-  nomadPoliciesType = with lib.types; submodule ({ name, ... }: {
-    options = {
-      name = lib.mkOption {
-        # Disallow "management" to avoid collision with a
-        # default Vault nomad/creds/management role
-        type = with lib.types;
-          addCheck str (x:
-            assert lib.assertMsg (x != "management") ''
-              The "management" Nomad policy name is reserved, please change it.
-            '';
-            x != "management");
-        default = name;
-      };
+  nomadPoliciesType = with lib.types;
+    submodule ({ name, ... }: {
+      options = {
+        name = lib.mkOption {
+          # Disallow "management" to avoid collision with a
+          # default Vault nomad/creds/management role
+          type = with lib.types;
+            addCheck str (x:
+              assert lib.assertMsg (x != "management") ''
+                The "management" Nomad policy name is reserved, please change it.
+              '';
+              x != "management");
+          default = name;
+        };
 
-      description = lib.mkOption {
-        default = null;
-        type = with lib.types; nullOr str;
-      };
+        description = lib.mkOption {
+          default = null;
+          type = with lib.types; nullOr str;
+        };
 
-      namespace = lib.mkOption {
-        default = { };
-        type = with lib.types;
-          attrsOf (submodule ({ name, ... }: {
-            options = {
-              name = lib.mkOption {
-                type = with lib.types; str;
-                default = name;
+        namespace = lib.mkOption {
+          default = { };
+          type = with lib.types;
+            attrsOf (submodule ({ name, ... }: {
+              options = {
+                name = lib.mkOption {
+                  type = with lib.types; str;
+                  default = name;
+                };
+                policy = policyOption;
+                capabilities = lib.mkOption {
+                  default = [ ];
+                  type = with lib.types;
+                    listOf (enum [
+                      "alloc-exec"
+                      "alloc-lifecycle"
+                      "alloc-node-exec"
+                      "csi-list-volume"
+                      "csi-mount-volume"
+                      "csi-read-volume"
+                      "csi-register-plugin"
+                      "csi-write-volume"
+                      "deny"
+                      "dispatch-job"
+                      "list-jobs"
+                      "list-scaling-policies"
+                      "read-fs"
+                      "read-job"
+                      "read-job-scaling"
+                      "read-logs"
+                      "read-scaling-policy"
+                      "scale-job"
+                      "sentinel-override"
+                      "submit-job"
+                    ]);
+                };
               };
-              policy = policyOption;
-              capabilities = lib.mkOption {
-                default = [ ];
-                type = with lib.types;
-                  listOf (enum [
-                    "alloc-exec"
-                    "alloc-lifecycle"
-                    "alloc-node-exec"
-                    "csi-list-volume"
-                    "csi-mount-volume"
-                    "csi-read-volume"
-                    "csi-register-plugin"
-                    "csi-write-volume"
-                    "deny"
-                    "dispatch-job"
-                    "list-jobs"
-                    "list-scaling-policies"
-                    "read-fs"
-                    "read-job"
-                    "read-job-scaling"
-                    "read-logs"
-                    "read-scaling-policy"
-                    "scale-job"
-                    "sentinel-override"
-                    "submit-job"
-                  ]);
-              };
-            };
-          }));
-      };
+            }));
+        };
 
-      hostVolume = lib.mkOption {
-        default = { };
-        type = with lib.types;
-          attrsOf (submodule ({ name, ... }: {
-            options = {
-              name = lib.mkOption {
-                type = with lib.types; str;
-                default = name;
+        hostVolume = lib.mkOption {
+          default = { };
+          type = with lib.types;
+            attrsOf (submodule ({ name, ... }: {
+              options = {
+                name = lib.mkOption {
+                  type = with lib.types; str;
+                  default = name;
+                };
+                policy = policyOption;
+                capabilities = lib.mkOption {
+                  default = [ ];
+                  type =
+                    listOf (enum [ "deny" "mount-readonly" "mount-readwrite" ]);
+                };
               };
-              policy = policyOption;
-              capabilities = lib.mkOption {
-                default = [ ];
-                type =
-                  listOf (enum [ "deny" "mount-readonly" "mount-readwrite" ]);
-              };
-            };
-          }));
-      };
+            }));
+        };
 
-      agent = subPolicyOption;
-      node = subPolicyOption;
-      operator = subPolicyOption;
-      plugin = subPolicyOption;
-      quota = subPolicyOption;
-    };
-  });
+        agent = subPolicyOption;
+        node = subPolicyOption;
+        operator = subPolicyOption;
+        plugin = subPolicyOption;
+        quota = subPolicyOption;
+      };
+    });
 
   policyJson = policy:
     sanitize {
