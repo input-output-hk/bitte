@@ -2,8 +2,6 @@
 let
   cfg = config.services.nomad;
 
-  inherit (bittelib) snakeCase ensureDependencies;
-
   # TODO: put this in lib
   sanitize = obj:
     lib.getAttr (builtins.typeOf obj) {
@@ -1161,7 +1159,7 @@ in {
         start-pre = pkgs.writeShellScript "nomad-start-pre" ''
           PATH="${lib.makeBinPath [ pkgs.coreutils pkgs.busybox ]}"
           set -exuo pipefail
-          # ${ensureDependencies pkgs [ "consul" "vault" ]}
+          # ${bittelib.ensureDependencies pkgs [ "consul" "vault" ]}
           cp /etc/ssl/certs/cert-key.pem .
           cp /run/keys/vault-token .
           chown --reference . *.pem

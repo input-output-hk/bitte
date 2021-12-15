@@ -1,7 +1,6 @@
 { config, lib, pkgs, bittelib, ... }:
 let
   inherit (pkgs) toPrettyJSON;
-  inherit (bittelib) ensureDependencies;
 
   sanitize = set:
     let
@@ -165,7 +164,7 @@ in {
         Restart = "on-failure";
         RestartSec = "20s";
         WorkingDirectory = "/var/lib/nomad";
-        ExecStartPre = ensureDependencies pkgs [ "nomad" ];
+        ExecStartPre = bittelib.ensureDependencies pkgs [ "nomad" ];
       };
 
       path = with pkgs; [ config.services.nomad.package jq ];

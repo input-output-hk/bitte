@@ -1,7 +1,5 @@
 { pkgs, lib, config, bittelib, ... }:
 let
-  inherit (bittelib) ensureDependencies;
-
   rmModules = arg:
     let
       sanitized = lib.mapAttrsToList (name: value:
@@ -75,7 +73,8 @@ in {
         Restart = "on-failure";
         RestartSec = "20s";
         WorkingDirectory = "/var/lib/vault";
-        ExecStartPre = ensureDependencies pkgs [ "vault-bootstrap" "vault" ];
+        ExecStartPre =
+          bittelib.ensureDependencies pkgs [ "vault-bootstrap" "vault" ];
       };
 
       environment = {

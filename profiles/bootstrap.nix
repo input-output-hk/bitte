@@ -1,7 +1,6 @@
 { lib, pkgs, config, bittelib, pkiFiles, ... }:
 
 let
-  inherit (bittelib) ensureDependencies;
   inherit (config.cluster) domain kms region adminNames;
   inherit (config.instance) privateIP;
 
@@ -99,7 +98,8 @@ in {
           Restart = "on-failure";
           RestartSec = "20s";
           WorkingDirectory = "/run/keys";
-          ExecStartPre = ensureDependencies pkgs [ "consul" "consul-acl" ];
+          ExecStartPre =
+            bittelib.ensureDependencies pkgs [ "consul" "consul-acl" ];
         };
 
         path = with pkgs; [ consul jq systemd sops ];
@@ -174,8 +174,10 @@ in {
         RemainAfterExit = true;
         Restart = "on-failure";
         RestartSec = "20s";
-        ExecStartPre =
-          ensureDependencies pkgs [ "consul-acl" "vault-consul-token" ];
+        ExecStartPre = bittelib.ensureDependencies pkgs [
+          "consul-acl"
+          "vault-consul-token"
+        ];
       };
 
       environment = {
@@ -267,7 +269,7 @@ in {
         RemainAfterExit = true;
         Restart = "on-failure";
         RestartSec = "20s";
-        ExecStartPre = ensureDependencies pkgs [ "vault" "nomad" ];
+        ExecStartPre = bittelib.ensureDependencies pkgs [ "vault" "nomad" ];
       };
 
       environment = {
@@ -341,7 +343,7 @@ in {
         RemainAfterExit = true;
         Restart = "on-failure";
         RestartSec = "20s";
-        ExecStartPre = ensureDependencies pkgs [
+        ExecStartPre = bittelib.ensureDependencies pkgs [
           "consul-initial-tokens"
           "vault-consul-token"
         ];

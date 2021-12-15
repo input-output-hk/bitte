@@ -1,7 +1,5 @@
 { lib, config, pkgs, nodeName, bittelib, ... }:
 let
-  inherit (bittelib) ensureDependencies snakeCase;
-
   sanitize = obj:
     lib.getAttr (builtins.typeOf obj) {
       bool = obj;
@@ -16,8 +14,8 @@ let
         lib.pipe obj [
           (lib.filterAttrs
             (name: value: name != "_module" && name != "_ref" && value != null))
-          (lib.mapAttrs'
-            (name: value: lib.nameValuePair (snakeCase name) (sanitize value)))
+          (lib.mapAttrs' (name: value:
+            lib.nameValuePair (bittelib.snakeCase name) (sanitize value)))
         ];
     };
 
@@ -363,7 +361,7 @@ in {
           RemainAfterExit = true;
           Restart = "on-failure";
           RestartSec = "20s";
-          ExecStartPre = ensureDependencies pkgs [ "consul" ];
+          ExecStartPre = bittelib.ensureDependencies pkgs [ "consul" ];
         };
 
         path = with pkgs; [ consul curl jq ];
