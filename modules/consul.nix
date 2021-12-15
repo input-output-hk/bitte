@@ -1,7 +1,6 @@
 { config, lib, pkgs, bittelib, ... }:
 let
   cfg = config.services.consul;
-  inherit (bittelib) snakeCase;
 
   sanitize = obj:
     lib.getAttr (builtins.typeOf obj) {
@@ -27,7 +26,7 @@ let
   # Example: consul service router, resolver and splitter configuration.
   excluded = [ "failover" "splits" "subsets" ];
   sanitizeName = name:
-    if builtins.elem name excluded then name else snakeCase name;
+    if builtins.elem name excluded then name else bittelib.snakeCase name;
   sanitizeValue = name: value:
     if builtins.elem name excluded then value else sanitize value;
 

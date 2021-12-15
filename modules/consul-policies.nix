@@ -1,7 +1,6 @@
 { lib, pkgs, config, bittelib, ... }:
 let
   inherit (config.instance) bootstrapper;
-  inherit (bittelib) ensureDependencies;
 
   consulIntentionsType = with lib.types;
     submodule {
@@ -200,7 +199,7 @@ in {
         RemainAfterExit = true;
         Restart = "on-failure";
         RestartSec = "30s";
-        ExecStartPre = ensureDependencies pkgs [ "consul" ];
+        ExecStartPre = bittelib.ensureDependencies pkgs [ "consul" ];
       };
 
       path = with pkgs; [ consul coreutils jq ];

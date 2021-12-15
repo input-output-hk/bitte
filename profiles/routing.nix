@@ -1,6 +1,4 @@
-{ self, lib, pkgs, config, nodeName, bittelib, ... }:
-let inherit (bittelib) ensureDependencies;
-in {
+{ self, lib, pkgs, config, nodeName, bittelib, ... }: {
 
   imports = [
     ./common.nix
@@ -44,7 +42,7 @@ in {
     };
 
     systemd.services."acme-${nodeName}".serviceConfig = {
-      ExecStartPre = ensureDependencies pkgs [ "vault-agent" ];
+      ExecStartPre = bittelib.ensureDependencies pkgs [ "vault-agent" ];
       RestrictAddressFamilies = [ "AF_UNIX" "AF_INET" "AF_INET6" ];
     };
 
