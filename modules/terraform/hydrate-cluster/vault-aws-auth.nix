@@ -1,8 +1,8 @@
-# hydrate aws groups & policies
+# hydrate-cluster.aws groups & policies
 { terralib, ... }:
 let inherit (terralib) var;
 in {
-  tf.hydrate.configuration = {
+  tf.hydrate-cluster.configuration = {
 
     resource.aws_iam_group = {
       developers = {

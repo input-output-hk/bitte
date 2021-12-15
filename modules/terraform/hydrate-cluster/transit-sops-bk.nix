@@ -8,7 +8,7 @@ let
 
   inherit (terralib) var;
 in {
-  tf.hydrate.configuration = {
+  tf.hydrate-cluster.configuration = {
 
     resource.vault_mount.sops = {
       path = "sops";

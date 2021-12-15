@@ -9,7 +9,7 @@ let
   inherit (config.cluster) domain;
 
 in {
-  tf.hydrate.configuration = {
+  tf.hydrate-cluster.configuration = {
 
     data.sops_file.ca = { source_file = "./encrypted/ca.json"; };
     # TODO: commented parts are currently accomplished by a systemd one-shot
