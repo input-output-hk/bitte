@@ -1,5 +1,5 @@
 { lib, pkgs, config, nodeName, ... }:
-let inherit (config.cluster) domain region instances kms;
+let inherit (config.cluster) domain region kms;
 in {
   imports = [
     ./builder.nix

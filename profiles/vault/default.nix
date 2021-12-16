@@ -1,6 +1,6 @@
 { lib, pkgs, config, pkiFiles, ... }:
 let
-  inherit (config.cluster) region instances kms;
+  inherit (config.cluster) region kms;
   cfg = config.services.vault;
   ownedKey = "/var/lib/vault/cert-key.pem";
 in {

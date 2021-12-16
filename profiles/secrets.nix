@@ -1,6 +1,6 @@
 { self, lib, pkgs, config, ... }:
 let
-  inherit (config.cluster) instances domain region kms;
+  inherit (config.cluster) domain region kms;
 
   sopsEncrypt =
     "${pkgs.sops}/bin/sops --encrypt --input-type json --kms '${kms}' /dev/stdin";
@@ -8,7 +8,7 @@ let
   sopsDecrypt = path:
     "${pkgs.sops}/bin/sops --decrypt --input-type json ${path}";
 
-  isInstance = config.instance != null;
+  isInstance = config.currentCoreNode != null;
 
   names = [{
     O = "IOHK";
@@ -66,7 +66,7 @@ let
       "nomad.${domain}"
       "monitoring.${domain}"
       "127.0.0.1"
-    ] ++ (lib.mapAttrsToList (_: i: i.privateIP) instances);
+    ] ++ (lib.mapAttrsToList (_: i: i.privateIP) config.cluster.coreNodes);
   };
 
 in {

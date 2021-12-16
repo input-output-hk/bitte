@@ -1,5 +1,5 @@
 { pkgs, config, lib, pkiFiles, ... }:
-let inherit (config.cluster) domain instances;
+let inherit (config.cluster) domain;
 in {
   options = {
     services.ingress-config = {
@@ -89,7 +89,7 @@ in {
         balance roundrobin
 
       resolvers consul
-        nameserver dnsmasq ${instances.core-1.privateIP}:53
+        nameserver dnsmasq ${config.cluster.coreNodes.core-1.privateIP}:53
         accepted_payload_size 8192
         hold valid 5s
 

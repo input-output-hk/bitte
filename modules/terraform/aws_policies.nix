@@ -161,9 +161,9 @@ in {
           assumeRole = {
             effect = "Allow";
             resources = [
-              config.cluster.instances.core-1.iam.instanceProfile.tfArn
-              config.cluster.instances.core-2.iam.instanceProfile.tfArn
-              config.cluster.instances.core-3.iam.instanceProfile.tfArn
+              config.cluster.coreNodes.core-1.iam.instanceProfile.tfArn
+              config.cluster.coreNodes.core-2.iam.instanceProfile.tfArn
+              config.cluster.coreNodes.core-3.iam.instanceProfile.tfArn
             ];
             actions = [ "sts:AssumeRole" ];
           };

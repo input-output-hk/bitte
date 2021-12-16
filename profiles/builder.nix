@@ -1,6 +1,6 @@
 { lib, pkgs, config, nodeName, ... }:
 let
-  isInstance = config.instance != null;
+  isInstance = config.currentCoreNode != null;
   isAsg = !isInstance;
   isMonitoring = nodeName == "monitoring";
 in {
@@ -62,7 +62,7 @@ in {
         -o NumberOfPasswordPrompts=0 \
         -o StrictHostKeyChecking=accept-new \
         -i /etc/nix/builder-key \
-        builder@${config.cluster.instances.monitoring.privateIP} echo 'trust established'
+        builder@${config.cluster.coreNodes.monitoring.privateIP} echo 'trust established'
     '';
   };
 
@@ -74,7 +74,7 @@ in {
     '';
     trustedUsers = lib.mkIf isMonitoring [ "root" "builder" ];
     buildMachines = lib.optionals isAsg [{
-      hostName = config.cluster.instances.monitoring.privateIP;
+      hostName = config.cluster.coreNodes.monitoring.privateIP;
       maxJobs = 5;
       speedFactor = 1;
       sshKey = "/etc/nix/builder-key";
