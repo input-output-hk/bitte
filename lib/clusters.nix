@@ -5,26 +5,26 @@
 
 lib.listToAttrs (lib.forEach clusterFiles (file:
   let
-    inherit (proto.config) tf;
+    inherit (_proto.config) tf;
 
-    proto = (mkSystem {
+    _proto = (mkSystem {
       inherit pkgs self inputs;
       modules = [ file hydrateModule ];
     }).bitteProtoSystem;
 
-    nodes = lib.mapAttrs (nodeName: coreNode:
+    coreNodes = lib.mapAttrs (nodeName: coreNode:
       (mkSystem {
         inherit pkgs self inputs nodeName;
         modules = [ { networking.hostName = lib.mkForce nodeName; } file ]
           ++ coreNode.modules;
-      }).bitteAmazonSystem) proto.config.cluster.coreNodes;
+      }).bitteAmazonSystem) _proto.config.cluster.coreNodes;
 
-    groups = lib.mapAttrs (nodeName: awsAutoScalingGroup:
+    awsAutoScalingGroups = lib.mapAttrs (nodeName: awsAutoScalingGroup:
       (mkSystem {
         inherit pkgs self inputs nodeName;
         modules = [ file ] ++ awsAutoScalingGroup.modules;
-      }).bitteAmazonZfsSystem) proto.config.cluster.awsAutoScalingGroups;
+      }).bitteAmazonZfsSystem) _proto.config.cluster.awsAutoScalingGroups;
 
-  in lib.nameValuePair proto.config.cluster.name {
-    inherit proto tf nodes groups;
+  in lib.nameValuePair _proto.config.cluster.name {
+    inherit _proto tf coreNodes awsAutoScalingGroups;
   }))
