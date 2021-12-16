@@ -22,16 +22,8 @@ in rec {
   id = v: var "${v}.id";
   pp = v: builtins.trace (builtins.toJSON v) v;
 
-  readJSON = file: builtins.fromJSON (lib.fileContents file);
-  sops2kms = file: (lib.elemAt (readJSON file).sops.kms 0).arn;
-  sops2region = file: lib.elemAt (lib.splitString ":" (sops2kms file)) 3;
-
-  cidrsOf = lib.mapAttrsToList (_: subnet: subnet.cidr);
-
   awsProviderNameFor = lib.replaceStrings [ "-" ] [ "_" ];
   awsProviderFor = region: "aws.${awsProviderNameFor region}";
-
-  merge = lib.foldl' lib.recursiveUpdate { };
 
   nullRouteInline = nullRoute' // { ipv6_cidr_block = null; };
 
