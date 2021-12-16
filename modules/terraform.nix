@@ -1,4 +1,4 @@
-{ self, config, pkgs, lib, nodeName, terralib, terranix, ... }:
+{ self, config, pkgs, lib, nodeName, terralib, terranix, bittelib, ... }:
 let
   inherit (terralib) var id regions awsProviderFor;
 
@@ -188,6 +188,10 @@ let
 
   clusterType = with lib.types;
     submodule (_: {
+      imports = [
+        bittelib.warningsModule
+        (lib.mkRenamedOptionModule  [ "autoscalingGroups" ] [ "awsAutoScalingGroups" ])
+      ];
       options = {
         name = lib.mkOption { type = with lib.types; str; };
 
@@ -202,8 +206,8 @@ let
           default = { };
         };
 
-        autoscalingGroups = lib.mkOption {
-          type = with lib.types; attrsOf autoscalingGroupType;
+        awsAutoScalingGroups = lib.mkOption {
+          type = with lib.types; attrsOf awsAutoScalingGroupType;
           default = { };
         };
 
@@ -727,7 +731,7 @@ let
       };
     };
 
-  autoscalingGroupType = with lib.types;
+  awsAutoScalingGroupType = with lib.types;
     submodule ({ name, ... }@this: {
       options = {
         name = lib.mkOption {
@@ -854,6 +858,8 @@ let
       };
     });
 in {
+  # propagate warnings so that they are exposed
+  config.warnings = config.cluster.warnings;
   options = {
     cluster = lib.mkOption {
       type = with lib.types; clusterType;
@@ -867,7 +873,7 @@ in {
 
     asg = lib.mkOption {
       type = with lib.types; nullOr attrs;
-      default = cfg.autoscalingGroups."${nodeName}" or null;
+      default = cfg.awsAutoScalingGroups."${nodeName}" or null;
     };
 
     tf = lib.mkOption {

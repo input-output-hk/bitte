@@ -34,7 +34,7 @@ in rec {
   nullRoute = nullRoute' // { destination_ipv6_cidr_block = null; };
 
   asgVpcs = cluster:
-    lib.forEach (builtins.attrValues cluster.autoscalingGroups) (asg: asg.vpc);
+    lib.forEach (builtins.attrValues cluster.awsAutoScalingGroups) (asg: asg.vpc);
 
   mapAsgVpcs = cluster: f:
     lib.listToAttrs (lib.flatten (lib.forEach (asgVpcs cluster) f));

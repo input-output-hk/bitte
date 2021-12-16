@@ -23,7 +23,7 @@ lib.listToAttrs (lib.forEach clusterFiles (file:
       (mkSystem {
         inherit pkgs self inputs nodeName;
         modules = [ file ] ++ instance.modules;
-      }).bitteAmazonZfsSystem) proto.config.cluster.autoscalingGroups;
+      }).bitteAmazonZfsSystem) proto.config.cluster.awsAutoScalingGroups;
 
   in lib.nameValuePair proto.config.cluster.name {
     inherit proto tf nodes groups;
