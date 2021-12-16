@@ -6,16 +6,16 @@ let
 
   tags = { Cluster = config.cluster.name; };
 
-  mapAsgVpcs = terralib.mapAsgVpcs config.cluster;
-  mapAsgVpcsToList = terralib.mapAsgVpcsToList config.cluster;
+  mapAwsAsgVpcs = terralib.aws.mapAsgVpcs config.cluster;
+  mapAwsAsgVpcsToList = terralib.aws.mapAsgVpcsToList config.cluster;
   # As long as we have 1 vpc per region for autoscaling groups,
   # the following approach should work for mesh vpc peering and routing
   # between them since we cannot route through a star vpc peered topology:
   # https://docs.aws.amazon.com/vpc/latest/peering/peering-configurations-full-access.html#one-to-many-vpcs-full-access
-  mapAsgVpcPeers = let
+  mapAwsAsgVpcPeers = let
     # Generate a region sorted list with the assumption of only 1 vpc per region
     vpcRegions =
-      lib.unique (lib.sort (a: b: a < b) (mapAsgVpcsToList (vpc: vpc.region)));
+      lib.unique (lib.sort (a: b: a < b) (mapAwsAsgVpcsToList (vpc: vpc.region)));
 
     # The following definitions prepare a mesh of unique peeringPairs,
     # each with a connector and accepter.  The following is an example of
@@ -60,7 +60,7 @@ in {
     # Networking
     # ---------------------------------------------------------------
 
-    resource.aws_vpc = mapAsgVpcs (vpc:
+    resource.aws_vpc = mapAwsAsgVpcs (vpc:
       lib.nameValuePair vpc.region {
         provider = awsProviderFor vpc.region;
         lifecycle = [{ create_before_destroy = true; }];
@@ -73,7 +73,7 @@ in {
         };
       });
 
-    resource.aws_internet_gateway = mapAsgVpcs (vpc:
+    resource.aws_internet_gateway = mapAwsAsgVpcs (vpc:
       lib.nameValuePair vpc.region {
         provider = awsProviderFor vpc.region;
         lifecycle = [{ create_before_destroy = true; }];
@@ -85,7 +85,7 @@ in {
         };
       });
 
-    resource.aws_route_table = mapAsgVpcs (vpc:
+    resource.aws_route_table = mapAwsAsgVpcs (vpc:
       lib.nameValuePair vpc.region {
         provider = awsProviderFor vpc.region;
         vpc_id = id "aws_vpc.${vpc.region}";
@@ -100,7 +100,7 @@ in {
             vpc_peering_connection_id =
               id "aws_vpc_peering_connection.${vpc.region}";
           })
-        ] ++ (lib.forEach (lib.flip lib.filter (terralib.asgVpcs config.cluster)
+        ] ++ (lib.forEach (lib.flip lib.filter (terralib.aws.asgVpcs config.cluster)
           (innerVpc: innerVpc.region != vpc.region)) (innerVpc:
             # Derive the proper peerPairing connection name using a comparison
             let
@@ -132,7 +132,7 @@ in {
       };
     };
 
-    resource.aws_route = mapAsgVpcs (vpc:
+    resource.aws_route = mapAwsAsgVpcs (vpc:
       lib.nameValuePair vpc.region (nullRoute // {
         route_table_id = id "data.aws_route_table.${config.cluster.name}";
         destination_cidr_block = vpc.cidr;
@@ -140,7 +140,7 @@ in {
           id "aws_vpc_peering_connection.${vpc.region}";
       }));
 
-    resource.aws_subnet = mapAsgVpcs (vpc:
+    resource.aws_subnet = mapAwsAsgVpcs (vpc:
       lib.flip lib.mapAttrsToList vpc.subnets (suffix: subnet:
         lib.nameValuePair "${vpc.region}-${suffix}" {
           provider = awsProviderFor vpc.region;
@@ -154,7 +154,7 @@ in {
             Name = "${vpc.region}-${suffix}";
           };
         }));
-    resource.aws_route_table_association = mapAsgVpcs (vpc:
+    resource.aws_route_table_association = mapAwsAsgVpcs (vpc:
       lib.flip lib.mapAttrsToList vpc.subnets (suffix: subnet:
         lib.nameValuePair "${vpc.region}-${suffix}" {
           provider = awsProviderFor vpc.region;
@@ -176,7 +176,7 @@ in {
 
     # Set up vpc pairing from each autoscaling region to the core region (1st block)
     # Then add on the mesh vpc pairing connections (2nd block)
-    resource.aws_vpc_peering_connection = mapAsgVpcs (vpc:
+    resource.aws_vpc_peering_connection = mapAwsAsgVpcs (vpc:
       lib.nameValuePair vpc.region {
         provider = awsProviderFor vpc.region;
         vpc_id = id "aws_vpc.${vpc.region}";
@@ -190,7 +190,7 @@ in {
           Name = vpc.name;
           Region = vpc.region;
         };
-      }) // (mapAsgVpcPeers (link:
+      }) // (mapAwsAsgVpcPeers (link:
         lib.nameValuePair "${link.connector}-connect-${link.accepter}" {
           provider = awsProviderFor link.connector;
           vpc_id = id "aws_vpc.${link.connector}";
@@ -208,7 +208,7 @@ in {
 
     # Accept vpc pairing from each autoscaling region to the core region (1st block)
     # Then accept the mesh vpc pairing connections (2nd block)
-    resource.aws_vpc_peering_connection_accepter = mapAsgVpcs (vpc:
+    resource.aws_vpc_peering_connection_accepter = mapAwsAsgVpcs (vpc:
       lib.nameValuePair vpc.region {
         provider = awsProviderFor config.cluster.region;
         vpc_peering_connection_id =
@@ -219,7 +219,7 @@ in {
           Name = vpc.name;
           Region = vpc.region;
         };
-      }) // (mapAsgVpcPeers (link:
+      }) // (mapAwsAsgVpcPeers (link:
         lib.nameValuePair "${link.accepter}-accept-${link.connector}" {
           provider = awsProviderFor link.accepter;
           vpc_peering_connection_id = id
@@ -235,7 +235,7 @@ in {
     # Set up cross vpc DNS resolution from each autoscaling region to the core region (1st and 2nd let block defns)
     # Then add on the mesh cross vpc DNS resolution (3rd and 4th let block defns)
     resource.aws_vpc_peering_connection_options = let
-      accepterCorePeeringOptions = mapAsgVpcs (vpc:
+      accepterCorePeeringOptions = mapAwsAsgVpcs (vpc:
         lib.nameValuePair "${vpc.region}-accepter" {
           provider = awsProviderFor config.cluster.region;
           vpc_peering_connection_id =
@@ -244,7 +244,7 @@ in {
           accepter = { allow_remote_vpc_dns_resolution = true; };
         });
 
-      requesterCorePeeringOptions = mapAsgVpcs (vpc:
+      requesterCorePeeringOptions = mapAwsAsgVpcs (vpc:
         lib.nameValuePair vpc.region {
           provider = awsProviderFor vpc.region;
           vpc_peering_connection_id =
@@ -253,7 +253,7 @@ in {
           requester = { allow_remote_vpc_dns_resolution = true; };
         });
 
-      accepterMeshPeeringOptions = mapAsgVpcPeers (link:
+      accepterMeshPeeringOptions = mapAwsAsgVpcPeers (link:
         lib.nameValuePair "${link.accepter}-accept-${link.connector}" {
           provider = awsProviderFor link.accepter;
           vpc_peering_connection_id = id
@@ -262,7 +262,7 @@ in {
           accepter = { allow_remote_vpc_dns_resolution = true; };
         });
 
-      requesterMeshPeeringOptions = mapAsgVpcPeers (link:
+      requesterMeshPeeringOptions = mapAwsAsgVpcPeers (link:
         lib.nameValuePair "${link.connector}-connect-${link.accepter}" {
           provider = awsProviderFor link.connector;
           vpc_peering_connection_id = id
@@ -356,7 +356,7 @@ in {
       });
 
     resource.aws_security_group_rule = let
-      mapASG = _: group:
+      mapAwsAsg' = _: group:
         merge (lib.flip lib.mapAttrsToList group.securityGroupRules (_: rule:
           lib.listToAttrs (lib.flatten (lib.flip map rule.protocols (protocol:
             mkSecurityGroupRule {
@@ -365,8 +365,8 @@ in {
               inherit rule protocol;
             })))));
 
-      asgs = lib.mapAttrsToList mapASG config.cluster.awsAutoScalingGroups;
-    in merge asgs;
+      awsAsgs = lib.mapAttrsToList mapAwsAsg' config.cluster.awsAutoScalingGroups;
+    in merge awsAsgs;
 
     # ---------------------------------------------------------------
     # Auto Scaling Groups

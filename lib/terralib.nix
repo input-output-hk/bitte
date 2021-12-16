@@ -1,5 +1,9 @@
 { nixpkgs, lib }:
 let
+  renamed = old: new: lib.warn ''
+    RENAMED:
+      terralib.${old} -> terralib.${new}
+  '';
   nullRoute' = {
     egress_only_gateway_id = null;
     instance_id = null;
@@ -33,13 +37,19 @@ in rec {
 
   nullRoute = nullRoute' // { destination_ipv6_cidr_block = null; };
 
-  asgVpcs = cluster:
-    lib.forEach (builtins.attrValues cluster.awsAutoScalingGroups) (asg: asg.vpc);
+  aws = {
+    asgVpcs = cluster:
+      lib.forEach (builtins.attrValues cluster.awsAutoScalingGroups) (asg: asg.vpc);
 
-  mapAsgVpcs = cluster: f:
-    lib.listToAttrs (lib.flatten (lib.forEach (asgVpcs cluster) f));
+    mapAsgVpcs = cluster: f:
+      lib.listToAttrs (lib.flatten (lib.forEach (aws.asgVpcs cluster) f));
 
-  mapAsgVpcsToList = cluster: lib.forEach (asgVpcs cluster);
+    mapAsgVpcsToList = cluster: lib.forEach (aws.asgVpcs cluster);
+  };
+  asgVpcs = renamed "asgVpcs" "aws.asgVpcs" aws.asgVpcs;
+  mapAsgVpcs = renamed "mapAsgVpcs" "aws.mapAsgVpcs" aws.mapAsgVpcs;
+  mapAsgVpcsToList = renamed "mapAsgVpcsToList" "aws.mapAsgVpcsToList" aws.mapAsgVpcsToList;
+
 
   # "a/b/c/d" => [ "" "/a" "/a/b" "/a/b/c" "/a/b/c/d" ]
   pathPrefix = rootDir: dir:
