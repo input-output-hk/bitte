@@ -27,6 +27,11 @@
     cli.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
     cli.inputs.nix.follows = "nix-auxiliary";
 
+    agenix.url = "github:ryantm/agenix";
+    agenix.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
+    ragenix.url = "github:yaxitech/ragenix";
+    ragenix.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
+
     deploy.url = "github:input-output-hk/deploy-rs";
     deploy.inputs.fenix.follows = "fenix";
     deploy.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
@@ -56,7 +61,7 @@
     hydra.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, hydra, nixpkgs, utils, cli, deploy, ... }@inputs:
+  outputs = { self, hydra, nixpkgs, utils, cli, deploy, agenix, ... }@inputs:
     let
 
       overlays = [
@@ -108,7 +113,9 @@
       # eta reduce not possibe since flake check validates for "final" / "prev"
       overlay = nixpkgs.lib.composeManyExtensions overlays;
       profiles = lib.mkModules ./profiles;
-      nixosModules = lib.mkModules ./modules;
+      nixosModules = (lib.mkModules ./modules) // {
+        agenix = agenix.nixosModules.age;
+      };
       nixosModule.imports = builtins.attrValues self.nixosModules;
     };
 }

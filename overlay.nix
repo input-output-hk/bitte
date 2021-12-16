@@ -14,6 +14,7 @@ in final: prev:
   nixUnstable = final.nix;
 
   nomad = inputs.nomad.defaultPackage."${final.system}";
+  ragenix = inputs.ragenix.defaultPackage."${final.system}";
 
   ssh-keys = let
     keys = import (ops-lib + "/overlays/ssh-keys.nix") lib;
