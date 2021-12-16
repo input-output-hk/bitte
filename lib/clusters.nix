@@ -1,12 +1,10 @@
-{ mkSystem, mkJob, lib }:
+{ mkSystem, lib }:
 
 { self # target flake's 'self'
 , inputs, pkgs, clusterFiles, hydrateModule }:
 
 lib.listToAttrs (lib.forEach clusterFiles (file:
   let
-
-    mkJob = mkJob proto;
     inherit (proto.config) tf;
 
     proto = (mkSystem {
@@ -28,5 +26,5 @@ lib.listToAttrs (lib.forEach clusterFiles (file:
       }).bitteAmazonZfsSystem) proto.config.cluster.autoscalingGroups;
 
   in lib.nameValuePair proto.config.cluster.name {
-    inherit proto tf nodes groups mkJob;
+    inherit proto tf nodes groups;
   }))
