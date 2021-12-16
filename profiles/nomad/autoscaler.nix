@@ -1,6 +1,6 @@
 { pkgs, config, lib, pkiFiles, ... }:
 let
-  asgs = config.cluster.autoscalingGroups;
+  asgs = config.cluster.awsAutoScalingGroups;
 
   mkQuery = type:
     { region, ... }:

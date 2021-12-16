@@ -286,7 +286,7 @@ in {
     resource.aws_key_pair = lib.mkIf config.cluster.generateSSHKey
       (lib.listToAttrs (let
         usedRegions = lib.unique
-          ((lib.forEach (builtins.attrValues config.cluster.autoscalingGroups)
+          ((lib.forEach (builtins.attrValues config.cluster.awsAutoScalingGroups)
             (group: group.region)) ++ [ config.cluster.region ]);
       in lib.forEach usedRegions (region:
         lib.nameValuePair region {
@@ -300,7 +300,7 @@ in {
     # ---------------------------------------------------------------
 
     resource.aws_iam_instance_profile =
-      lib.flip lib.mapAttrs' config.cluster.autoscalingGroups (name: group:
+      lib.flip lib.mapAttrs' config.cluster.awsAutoScalingGroups (name: group:
         lib.nameValuePair group.uid {
           name = group.uid;
           inherit (group.iam.instanceProfile) path;
@@ -344,7 +344,7 @@ in {
     in lib.listToAttrs (lib.mapAttrsToList op role.policies);
 
     resource.aws_security_group =
-      lib.flip lib.mapAttrsToList config.cluster.autoscalingGroups
+      lib.flip lib.mapAttrsToList config.cluster.awsAutoScalingGroups
       (name: group: {
         "${group.uid}" = {
           provider = awsProviderFor group.region;
@@ -365,7 +365,7 @@ in {
               inherit rule protocol;
             })))));
 
-      asgs = lib.mapAttrsToList mapASG config.cluster.autoscalingGroups;
+      asgs = lib.mapAttrsToList mapASG config.cluster.awsAutoScalingGroups;
     in merge asgs;
 
     # ---------------------------------------------------------------
@@ -373,7 +373,7 @@ in {
     # ---------------------------------------------------------------
 
     resource.aws_autoscaling_group =
-      lib.flip lib.mapAttrs' config.cluster.autoscalingGroups (name: group:
+      lib.flip lib.mapAttrs' config.cluster.awsAutoScalingGroups (name: group:
         lib.nameValuePair group.uid {
           provider = awsProviderFor group.region;
           launch_configuration =
@@ -412,7 +412,7 @@ in {
         });
 
     resource.aws_launch_configuration =
-      lib.flip lib.mapAttrs' config.cluster.autoscalingGroups (name: group:
+      lib.flip lib.mapAttrs' config.cluster.awsAutoScalingGroups (name: group:
         lib.nameValuePair group.uid (lib.mkMerge [
           {
             provider = awsProviderFor group.region;
