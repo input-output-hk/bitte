@@ -75,7 +75,7 @@ let
   # ${asg}-source.tar.xz is produced by s3-upload-flake.service
   # of one of the latest successfully provisioned member of this
   # auto scaling group
-  userDataDefaultNixosConfigAsg = asg:
+  userDataDefaultNixosConfigAsg = awsAsg:
     let
       nixConf = ''
         extra-substituters = ${cfg.s3Cache}
@@ -93,14 +93,14 @@ let
       pushd /run/keys
       err_code=0
       aws s3 cp \
-        "s3://${cfg.s3Bucket}/infra/secrets/${cfg.name}/${cfg.kms}/source/${asg}-source.tar.xz" \
+        "s3://${cfg.s3Bucket}/infra/secrets/${cfg.name}/${cfg.kms}/source/${awsAsg}-source.tar.xz" \
         source.tar.xz || err_code=$?
       if test $err_code -eq 0
       then # automated provisioning
         mkdir -p source
         tar xvf source.tar.xz -C source
-        nix build ./source#nixosConfigurations.${cfg.name}-${asg}.config.system.build.toplevel
-        nixos-rebuild --flake ./source#${cfg.name}-${asg} switch
+        nix build ./source#nixosConfigurations.${cfg.name}-${awsAsg}.config.system.build.toplevel
+        nixos-rebuild --flake ./source#${cfg.name}-${awsAsg} switch
       fi # manual provisioning
     '';
 
@@ -858,8 +858,11 @@ let
       };
     });
 in {
+  imports = [
+    (lib.mkRenamedOptionModule  [ "asg" ] [ "currentAwsAutoScalingGroup" ])
+  ];
   # propagate warnings so that they are exposed
-  config.warnings = config.cluster.warnings;
+  # config.warnings = config.cluster.warnings;
   options = {
     cluster = lib.mkOption {
       type = with lib.types; clusterType;
@@ -871,7 +874,8 @@ in {
       default = cfg.instances."${nodeName}" or null;
     };
 
-    asg = lib.mkOption {
+    currentAwsAutoScalingGroup = lib.mkOption {
+      internal = true;
       type = with lib.types; nullOr attrs;
       default = cfg.awsAutoScalingGroups."${nodeName}" or null;
     };

@@ -2,6 +2,7 @@
   _file = ./warnings.nix;
   options = {
     warnings = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
       internal = true;
       default = [];
       example = [ "The `foo' service is deprecated and will go away soon!" ];

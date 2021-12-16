@@ -29,7 +29,7 @@ in {
         tar cvf source.tar.xz -C ${config.cluster.flakePath} .
         aws s3 cp \
           source.tar.xz \
-          "s3://${s3Bucket}/infra/secrets/${cluster.name}/${kms}/source/${config.asg.name}-source.tar.xz"
+          "s3://${s3Bucket}/infra/secrets/${cluster.name}/${kms}/source/${config.currentAwsAutoScalingGroup.name}-source.tar.xz"
       '';
     };
   };
