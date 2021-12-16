@@ -5,6 +5,8 @@ let
 in rec {
   terralib = import ./terralib.nix { inherit lib nixpkgs; };
 
+  warningsModule = import ./warnings.nix;
+
   recImport = import ./rec-import.nix { inherit lib; };
   sanitize = import ./sanitize.nix { inherit lib snakeCase; };
   snakeCase = import ./snake-case.nix { inherit lib; };
