@@ -1,9 +1,7 @@
 { self, lib, pkgs, config, ... }:
 let
-  inherit (config.cluster) domain region kms;
-
   sopsEncrypt =
-    "${pkgs.sops}/bin/sops --encrypt --input-type json --kms '${kms}' /dev/stdin";
+    "${pkgs.sops}/bin/sops --encrypt --input-type json --kms '${config.cluster.kms}' /dev/stdin";
 
   sopsDecrypt = path:
     "${pkgs.sops}/bin/sops --decrypt --input-type json ${path}";
@@ -54,17 +52,17 @@ let
   };
 
   certConfig = pkgs.toPrettyJSON "core" {
-    CN = "${domain}";
+    CN = "${config.cluster.domain}";
     inherit names key;
     hosts = [
       "consul.service.consul"
       "vault.service.consul"
       "nomad.service.consul"
-      "server.${region}.consul"
-      "vault.${domain}"
-      "consul.${domain}"
-      "nomad.${domain}"
-      "monitoring.${domain}"
+      "server.${config.cluster.region}.consul"
+      "vault.${config.cluster.domain}"
+      "consul.${config.cluster.domain}"
+      "nomad.${config.cluster.domain}"
+      "monitoring.${config.cluster.domain}"
       "127.0.0.1"
     ] ++ (lib.mapAttrsToList (_: i: i.privateIP) config.cluster.coreNodes);
   };

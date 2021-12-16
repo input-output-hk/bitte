@@ -6,7 +6,6 @@
 let
 
   inherit (terralib) var;
-  inherit (config.cluster) domain;
 
 in {
   tf.hydrate-cluster.configuration = {
@@ -20,10 +19,10 @@ in {
     # resource.vault_pki_secret_backend_config_urls.config_urls = {
     #   backend = var "vault_pki_secret_backend.pki.path";
     #   issuing_certificates = [
-    #     "https://vault.${domain}:8200/v1/pki/ca"
+    #     "https://vault.${config.cluster.domain}:8200/v1/pki/ca"
     #   ];
     #   crl_distribution_points = [
-    #     "https://vault.${domain}:8200/v1/pki/crl"
+    #     "https://vault.${config.cluster.domain}:8200/v1/pki/crl"
     #   ];
     # };
     # resource.vault_pki_secret_backend_role.server = {
@@ -61,7 +60,7 @@ in {
       # backend = var "vault_pki_secret_backend.pki.path";
       backend = "pki";
       type = "internal";
-      common_name = "vault.${domain}";
+      common_name = "vault.${config.cluster.domain}";
     };
     resource.tls_locally_signed_cert.issuing_ca = {
       cert_request_pem =

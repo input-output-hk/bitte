@@ -1,8 +1,4 @@
-{ self, config, lib, pkgs, ... }:
-let
-  inherit (config) cluster;
-  inherit (config.cluster) s3Bucket kms;
-in {
+{ self, config, lib, pkgs, ... }: {
   options = {
     services.s3-upload-flake.enable = lib.mkEnableOption ''
       Upload latest flake of this auto scaling group to S3
@@ -29,7 +25,7 @@ in {
         tar cvf source.tar.xz -C ${config.cluster.flakePath} .
         aws s3 cp \
           source.tar.xz \
-          "s3://${s3Bucket}/infra/secrets/${cluster.name}/${kms}/source/${config.currentAwsAutoScalingGroup.name}-source.tar.xz"
+          "s3://${config.cluster.s3Bucket}/infra/secrets/${config.cluster.name}/${config.cluster.kms}/source/${config.currentAwsAutoScalingGroup.name}-source.tar.xz"
       '';
     };
   };

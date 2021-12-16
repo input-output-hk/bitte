@@ -1,6 +1,4 @@
-{ lib, pkgs, config, nodeName, ... }:
-let inherit (config.cluster) domain region kms;
-in {
+{ lib, pkgs, config, nodeName, ... }: {
   imports = [
     ./builder.nix
     ./common.nix
@@ -38,14 +36,14 @@ in {
       auth.anonymous.enable = false;
       analytics.reporting.enable = false;
       addr = "";
-      domain = "monitoring.${domain}";
+      domain = "monitoring.${config.cluster.domain}";
       extraOptions = {
         AUTH_PROXY_ENABLED = "true";
         AUTH_PROXY_HEADER_NAME = "X-Authenticated-User";
         AUTH_SIGNOUT_REDIRECT_URL = "/oauth2/sign_out";
         USERS_AUTO_ASSIGN_ORG_ROLE = "Editor";
       };
-      rootUrl = "https://monitoring.${domain}/";
+      rootUrl = "https://monitoring.${config.cluster.domain}/";
       provision = {
         enable = true;
 
@@ -95,7 +93,7 @@ in {
 
     if [ ! -s encrypted/grafana-password.json ]; then
       xkcdpass \
-      | sops --encrypt --kms '${kms}' /dev/stdin \
+      | sops --encrypt --kms '${config.cluster.kms}' /dev/stdin \
       > encrypted/grafana-password.json
     fi
   '';

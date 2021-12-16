@@ -1,8 +1,6 @@
 { lib, pkgs, config, bittelib, pkiFiles, ... }:
 
 let
-  inherit (config.cluster) domain kms region adminNames;
-
   cfg = config.services.bootstrap;
 
   exportConsulMaster = ''
@@ -238,7 +236,7 @@ in {
           policies=default,client,nomad-server \
           period=24h
 
-        ${lib.concatStringsSep "\n" (lib.forEach adminNames (name: ''
+        ${lib.concatStringsSep "\n" (lib.forEach config.cluster.adminNames (name: ''
           vault write "auth/aws/role/${name}" \
             auth_type=iam \
             bound_iam_principal_arn="$arn:user/${name}" \
@@ -393,7 +391,7 @@ in {
               sops \
               --input-type json \
               --output-type json \
-              --kms "${kms}" \
+              --kms "${config.cluster.kms}" \
               --encrypt \
               /dev/stdin > vault.enc.json.tmp
 
@@ -445,8 +443,8 @@ in {
 
         vault write \
           pki/config/urls \
-          issuing_certificates="https://vault.${domain}:8200/v1/pki/ca" \
-          crl_distribution_points="https://vault.${domain}:8200/v1/pki/crl"
+          issuing_certificates="https://vault.${config.cluster.domain}:8200/v1/pki/ca" \
+          crl_distribution_points="https://vault.${config.cluster.domain}:8200/v1/pki/crl"
 
         vault write \
           pki/roles/server \
@@ -461,7 +459,7 @@ in {
           pki/roles/client \
           key_type=ec \
           key_bits=256 \
-          allowed_domains=service.consul,${region}.consul \
+          allowed_domains=service.consul,${config.cluster.region}.consul \
           allow_subdomains=true \
           generate_lease=true \
           max_ttl=223h

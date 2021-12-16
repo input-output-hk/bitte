@@ -1,6 +1,5 @@
 { lib, pkgs, config, nodeName, pkiFiles, ... }:
 let
-  inherit (config.cluster) name region domain kms;
   ownedKey = "/var/lib/nomad/cert-key.pem";
 in {
   environment.variables = {
@@ -54,7 +53,7 @@ in {
       publish_allocation_metrics = true;
       publish_node_metrics = true;
       datadog_address = "localhost:8125";
-      datadog_tags = [ "region:${region}" "role:nomad" ];
+      datadog_tags = [ "region:${config.cluster.region}" "role:nomad" ];
     };
   };
 

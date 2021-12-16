@@ -1,6 +1,4 @@
-{ pkgs, config, lib, pkiFiles, ... }:
-let inherit (config.cluster) domain;
-in {
+{ pkgs, config, lib, pkiFiles, ... }: {
   options = {
     services.ingress-config = {
       enable = lib.mkEnableOption "Enable Ingress configuration generation";
@@ -137,15 +135,15 @@ in {
         http-request redirect scheme https if http
 
       frontend https
-        bind *:443 ssl crt /etc/ssl/certs/${domain}-full.pem alpn h2,http/1.1
+        bind *:443 ssl crt /etc/ssl/certs/${config.cluster.domain}-full.pem alpn h2,http/1.1
 
         acl oauth_proxy path_beg /oauth2/
         acl authenticated var(txn.auth_response_successful) -m bool
-        acl is_monitoring hdr(host) -i monitoring.${domain}
-        acl is_vault     hdr(host) -i vault.${domain}
-        acl is_nomad     hdr(host) -i nomad.${domain}
-        acl is_consul    hdr(host) -i consul.${domain}
-        acl is_docker    hdr(host) -i docker.${domain}
+        acl is_monitoring hdr(host) -i monitoring.${config.cluster.domain}
+        acl is_vault     hdr(host) -i vault.${config.cluster.domain}
+        acl is_nomad     hdr(host) -i nomad.${config.cluster.domain}
+        acl is_consul    hdr(host) -i consul.${config.cluster.domain}
+        acl is_docker    hdr(host) -i docker.${config.cluster.domain}
         acl is_ui path_beg /ui
         ${config.services.ingress-config.extraHttpsAcls}
 

@@ -1,6 +1,4 @@
-{ pkgs, config, lib, pkiFiles, ... }:
-let inherit (config.cluster) region;
-in {
+{ pkgs, config, lib, pkiFiles, ... }: {
   systemd.services.telegraf.path = with pkgs; [ procps ];
 
   services.vulnix.sink = let
@@ -46,7 +44,7 @@ in {
         metric_buffer_limit = 50000;
       };
 
-      global_tags = { datacenter = region; };
+      global_tags = { datacenter = config.cluster.region; };
 
       inputs = {
         statsd = {

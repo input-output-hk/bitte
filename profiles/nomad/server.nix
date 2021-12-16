@@ -1,6 +1,4 @@
-{ lib, pkgs, config, ... }:
-let inherit (config.cluster) region;
-in {
+{ lib, pkgs, config, ... }: {
   imports = [ ./default.nix ./policies.nix ];
 
   services.nomad = {
@@ -15,7 +13,7 @@ in {
 
       server_join = {
         retry_join = (lib.mapAttrsToList (_: v: v.privateIP) config.cluster.coreNodes)
-          ++ [ "provider=aws region=${region} tag_key=Nomad tag_value=server" ];
+          ++ [ "provider=aws region=${config.cluster.region} tag_key=Nomad tag_value=server" ];
       };
 
       default_scheduler_config = {

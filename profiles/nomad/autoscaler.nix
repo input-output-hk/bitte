@@ -1,7 +1,5 @@
 { pkgs, config, lib, pkiFiles, ... }:
 let
-  inherit (config.cluster) awsAutoScalingGroups;
-
   mkQuery = type:
     { region, ... }:
     lib.replaceStrings [ "\n" " " ] [ "" "" ] ''
@@ -16,7 +14,7 @@ let
   memoryQuery = mkQuery "memory";
   cpuQuery = mkQuery "cpu";
 
-  policies = lib.flip lib.mapAttrs awsAutoScalingGroups (name: asg: {
+  policies = lib.flip lib.mapAttrs config.cluster.awsAutoScalingGroups (name: asg: {
     enabled = true;
     min = lib.mkDefault 1;
     max = lib.mkDefault 5;
@@ -73,7 +71,7 @@ in {
         "http://${config.cluster.coreNodes.monitoring.privateIP}:8428";
     };
 
-    target = lib.flip lib.mapAttrs awsAutoScalingGroups (name: asg: {
+    target = lib.flip lib.mapAttrs config.cluster.awsAutoScalingGroups (name: asg: {
       driver = "aws-asg";
       config.aws_region = asg.region;
     });

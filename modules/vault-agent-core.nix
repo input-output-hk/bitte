@@ -1,7 +1,5 @@
 { config, lib, pkgs, nodeName, ... }:
 let
-  inherit (config.cluster) domain region;
-
   cfg = config.services.vault-agent-core;
 
   consulAgentToken = if cfg.disableTokenRotation.consulAgent then
@@ -50,7 +48,7 @@ in {
       autoAuthConfig = {
         type = "iam";
         role = "${config.cluster.name}-core";
-        header_value = domain;
+        header_value = config.cluster.domain;
       };
 
       templates = let

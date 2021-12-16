@@ -1,8 +1,5 @@
 { config, lib, pkgs, pkiFiles, ... }:
 let
-  inherit (pkgs) writeShellScript;
-  inherit (config.cluster) region domain;
-
   cfg = config.services.vault-agent-client;
 
   consulAgentToken = if cfg.disableTokenRotation.consulAgent then
@@ -19,7 +16,7 @@ let
       {{ with secret "consul/creds/consul-default" }}{{ .Data.token }}{{ end }}'';
 
   pkiAttrs = {
-    common_name = "server.${region}.consul";
+    common_name = "server.${config.cluster.region}.consul";
     ip_sans = [ "127.0.0.1" ];
     alt_names =
       [ "vault.service.consul" "consul.service.consul" "nomad.service.consul" ];
@@ -57,7 +54,7 @@ in {
     services.vault-agent = {
       enable = true;
       role = "client";
-      vaultAddress = "https://vault.${domain}";
+      vaultAddress = "https://vault.${config.cluster.domain}";
 
       cache.useAutoAuthToken = true;
 
@@ -66,7 +63,7 @@ in {
       autoAuthConfig = {
         type = "iam";
         role = "${config.cluster.name}-client";
-        header_value = domain;
+        header_value = config.cluster.domain;
       };
 
       listener = [

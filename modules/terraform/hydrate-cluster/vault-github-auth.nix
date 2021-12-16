@@ -3,8 +3,6 @@
 let
 
   inherit (terralib) var;
-  inherit (config.cluster)
-    adminGithubTeamNames developerGithubTeamNames developerGithubNames;
 
 in {
   tf.hydrate-cluster.configuration = {
@@ -15,14 +13,14 @@ in {
     };
 
     resource.vault_github_team = let
-      admins = lib.listToAttrs (lib.forEach adminGithubTeamNames (name:
+      admins = lib.listToAttrs (lib.forEach config.cluster.adminGithubTeamNames (name:
         lib.nameValuePair name {
           backend = var "vault_github_auth_backend.employee.path";
           team = name;
           policies = [ "admin" "default" ];
         }));
 
-      developers = lib.listToAttrs (lib.forEach developerGithubTeamNames (name:
+      developers = lib.listToAttrs (lib.forEach config.cluster.developerGithubTeamNames (name:
         lib.nameValuePair name {
           backend = var "vault_github_auth_backend.employee.path";
           team = name;
@@ -31,8 +29,8 @@ in {
     in admins // developers;
 
     resource.vault_github_user =
-      lib.mkIf (builtins.length developerGithubNames > 0) (lib.listToAttrs
-        (lib.forEach developerGithubNames (name:
+      lib.mkIf (builtins.length config.cluster.developerGithubNames > 0) (lib.listToAttrs
+        (lib.forEach config.cluster.developerGithubNames (name:
           lib.nameValuePair name {
             backend = var "vault_github_auth_backend.employee.path";
             user = name;
