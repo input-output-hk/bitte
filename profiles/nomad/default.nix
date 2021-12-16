@@ -1,6 +1,6 @@
 { lib, pkgs, config, nodeName, pkiFiles, ... }:
 let
-  inherit (config.cluster) name region domain kms instances;
+  inherit (config.cluster) name region domain kms;
   ownedKey = "/var/lib/nomad/cert-key.pem";
 in {
   environment.variables = {
@@ -11,7 +11,7 @@ in {
   services.nomad = {
     data_dir = /var/lib/nomad;
     log_level = "DEBUG";
-    name = if (instances.${nodeName} or null) != null then
+    name = if (config.currentCoreNode or null) != null then
       "nomad-${nodeName}"
     else
       null;

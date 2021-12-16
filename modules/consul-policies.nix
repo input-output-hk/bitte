@@ -1,6 +1,5 @@
 { lib, pkgs, config, bittelib, ... }:
 let
-  inherit (config.instance) bootstrapper;
 
   consulIntentionsType = with lib.types;
     submodule {

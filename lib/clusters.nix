@@ -12,17 +12,17 @@ lib.listToAttrs (lib.forEach clusterFiles (file:
       modules = [ file hydrateModule ];
     }).bitteProtoSystem;
 
-    nodes = lib.mapAttrs (nodeName: instance:
+    nodes = lib.mapAttrs (nodeName: coreNode:
       (mkSystem {
         inherit pkgs self inputs nodeName;
         modules = [ { networking.hostName = lib.mkForce nodeName; } file ]
-          ++ instance.modules;
-      }).bitteAmazonSystem) proto.config.cluster.instances;
+          ++ coreNode.modules;
+      }).bitteAmazonSystem) proto.config.cluster.coreNodes;
 
-    groups = lib.mapAttrs (nodeName: instance:
+    groups = lib.mapAttrs (nodeName: awsAutoScalingGroup:
       (mkSystem {
         inherit pkgs self inputs nodeName;
-        modules = [ file ] ++ instance.modules;
+        modules = [ file ] ++ awsAutoScalingGroup.modules;
       }).bitteAmazonZfsSystem) proto.config.cluster.awsAutoScalingGroups;
 
   in lib.nameValuePair proto.config.cluster.name {

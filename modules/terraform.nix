@@ -191,6 +191,7 @@ let
       imports = [
         bittelib.warningsModule
         (lib.mkRenamedOptionModule  [ "autoscalingGroups" ] [ "awsAutoScalingGroups" ])
+        (lib.mkRenamedOptionModule  [ "instances" ] [ "coreNodes" ])
       ];
       options = {
         name = lib.mkOption { type = with lib.types; str; };
@@ -201,8 +202,8 @@ let
 
         terraformOrganization = lib.mkOption { type = with lib.types; str; };
 
-        instances = lib.mkOption {
-          type = with lib.types; attrsOf serverType;
+        coreNodes = lib.mkOption {
+          type = with lib.types; attrsOf coreNodeType;
           default = { };
         };
 
@@ -548,7 +549,7 @@ let
       };
     });
 
-  serverIamType = parentName:
+  nodeIamType = parentName:
     with lib.types;
     submodule {
       options = {
@@ -587,7 +588,7 @@ let
       };
     };
 
-  serverType = with lib.types;
+  coreNodeType = with lib.types;
     submodule ({ name, ... }@this: {
       options = {
         name = lib.mkOption {
@@ -621,7 +622,7 @@ let
         };
 
         iam = lib.mkOption {
-          type = with lib.types; serverIamType this.config.name;
+          type = with lib.types; nodeIamType this.config.name;
           default = {
             role = cfg.iam.roles.core;
             instanceProfile.role = cfg.iam.roles.core;
@@ -761,7 +762,7 @@ let
         region = lib.mkOption { type = with lib.types; str; };
 
         iam = lib.mkOption {
-          type = with lib.types; serverIamType this.config.name;
+          type = with lib.types; nodeIamType this.config.name;
         };
 
         vpc = lib.mkOption {
@@ -860,24 +861,27 @@ let
 in {
   imports = [
     (lib.mkRenamedOptionModule  [ "asg" ] [ "currentAwsAutoScalingGroup" ])
+    (lib.mkRenamedOptionModule  [ "instance" ] [ "currentCoreNode" ])
   ];
   # propagate warnings so that they are exposed
   # config.warnings = config.cluster.warnings;
   options = {
-    cluster = lib.mkOption {
-      type = with lib.types; clusterType;
-      default = { };
-    };
 
-    instance = lib.mkOption {
+    currentCoreNode = lib.mkOption {
+      internal = true;
       type = with lib.types; nullOr attrs;
-      default = cfg.instances."${nodeName}" or null;
+      default = cfg.coreNodes."${nodeName}" or null;
     };
 
     currentAwsAutoScalingGroup = lib.mkOption {
       internal = true;
       type = with lib.types; nullOr attrs;
       default = cfg.awsAutoScalingGroups."${nodeName}" or null;
+    };
+
+    cluster = lib.mkOption {
+      type = with lib.types; clusterType;
+      default = { };
     };
 
     tf = lib.mkOption {

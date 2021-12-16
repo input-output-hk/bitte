@@ -70,7 +70,7 @@ in {
     apm.victoriametrics = {
       driver = "prometheus";
       config.address =
-        "http://${config.cluster.instances.monitoring.privateIP}:8428";
+        "http://${config.cluster.coreNodes.monitoring.privateIP}:8428";
     };
 
     target = lib.flip lib.mapAttrs awsAutoScalingGroups (name: asg: {

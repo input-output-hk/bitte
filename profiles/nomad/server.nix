@@ -1,5 +1,5 @@
 { lib, pkgs, config, ... }:
-let inherit (config.cluster) region instances;
+let inherit (config.cluster) region;
 in {
   imports = [ ./default.nix ./policies.nix ];
 
@@ -14,7 +14,7 @@ in {
       bootstrap_expect = 3;
 
       server_join = {
-        retry_join = (lib.mapAttrsToList (_: v: v.privateIP) instances)
+        retry_join = (lib.mapAttrsToList (_: v: v.privateIP) config.cluster.coreNodes)
           ++ [ "provider=aws region=${region} tag_key=Nomad tag_value=server" ];
       };
 

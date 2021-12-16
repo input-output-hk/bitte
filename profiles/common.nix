@@ -51,12 +51,12 @@
   programs.ssh.package = pkgs.opensshNoCoredump;
 
   networking.extraHosts = ''
-    ${config.cluster.instances.core-1.privateIP} core.vault.service.consul
-    ${config.cluster.instances.core-2.privateIP} core.vault.service.consul
-    ${config.cluster.instances.core-3.privateIP} core.vault.service.consul
+    ${config.cluster.coreNodes.core-1.privateIP} core.vault.service.consul
+    ${config.cluster.coreNodes.core-2.privateIP} core.vault.service.consul
+    ${config.cluster.coreNodes.core-3.privateIP} core.vault.service.consul
 
     ${lib.concatStringsSep "\n"
-    (lib.mapAttrsToList (name: instance: "${instance.privateIP} ${name}")
-      config.cluster.instances)}
+    (lib.mapAttrsToList (name: coreNode: "${coreNode.privateIP} ${name}")
+      config.cluster.coreNodes)}
   '';
 }

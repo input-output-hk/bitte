@@ -1,5 +1,5 @@
 { pkgs, config, lib, pkiFiles, ... }:
-let inherit (config.cluster) region instances;
+let inherit (config.cluster) region;
 in {
   systemd.services.telegraf.path = with pkgs; [ procps ];
 
@@ -159,7 +159,7 @@ in {
       outputs = {
         influxdb = {
           database = "telegraf";
-          urls = [ "http://${instances.monitoring.privateIP}:8428" ];
+          urls = [ "http://${config.cluster.coreNodes.monitoring.privateIP}:8428" ];
         };
       };
     };

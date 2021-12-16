@@ -1,6 +1,6 @@
 { lib, pkgs, config, nodeName, pkiFiles, ... }:
 let
-  inherit (config.cluster) instances region;
+  inherit (config.cluster) region;
 
   ownedKey = "/var/lib/consul/cert-key.pem";
 in {
@@ -29,12 +29,12 @@ in {
     nodeMeta = {
       inherit region;
       inherit nodeName;
-    } // (lib.optionalAttrs ((instances.${nodeName} or null) != null) {
-      inherit (instances.${nodeName}) instanceType domain;
+    } // (lib.optionalAttrs ((config.currentCoreNode or null) != null) {
+      inherit (config.currentCoreNode) instanceType domain;
     });
 
     # generate deterministic UUIDs for each node so they can rejoin.
-    nodeId = lib.mkIf (config.instance != null) (lib.fileContents
+    nodeId = lib.mkIf (config.currentCoreNode != null) (lib.fileContents
       (pkgs.runCommand "node-id" { buildInputs = [ pkgs.utillinux ]; }
         "uuidgen -s -n ab8c189c-e764-4103-a1a8-d355b7f2c814 -N ${nodeName} > $out"));
 
@@ -42,7 +42,7 @@ in {
 
     advertiseAddr = ''{{ GetInterfaceIP "ens5" }}'';
 
-    retryJoin = (lib.mapAttrsToList (_: v: v.privateIP) instances)
+    retryJoin = (lib.mapAttrsToList (_: v: v.privateIP) config.cluster.coreNodes)
       ++ [ "provider=aws region=${region} tag_key=Consul tag_value=server" ];
 
     connect = {

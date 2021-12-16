@@ -13,7 +13,7 @@ in {
       after = [ "network.target" ];
 
       environment = {
-        VAULT_URL = "https://${config.cluster.instances.core-1.privateIP}:8200";
+        VAULT_URL = "https://${config.cluster.coreNodes.core-1.privateIP}:8200";
         VAULT_PREFIX = "vbk"; # the prefix used when storing the secrets
         LISTEN_ADDRESS = "127.0.0.1:8080";
       };
