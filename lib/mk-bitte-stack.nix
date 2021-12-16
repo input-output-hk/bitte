@@ -89,7 +89,7 @@ let
     lib.pipe clusters [
       (lib.mapAttrsToList (clusterName: cluster:
         lib.mapAttrsToList (name: lib.nameValuePair "${clusterName}-${name}")
-        (cluster.nodes // cluster.groups)))
+        (cluster.coreNodes // cluster.awsAutoScalingGroups)))
       lib.flatten
       lib.listToAttrs
     ];
