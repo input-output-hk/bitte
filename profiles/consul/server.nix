@@ -1,7 +1,4 @@
-{ lib, pkgs, config, nodeName, ... }:
-let
-  inherit (config.cluster) region;
-in {
+{ lib, pkgs, config, nodeName, ... }: {
   imports = [ ./default.nix ./policies.nix ];
 
   services.consul = {

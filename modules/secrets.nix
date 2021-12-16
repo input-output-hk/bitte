@@ -1,6 +1,5 @@
 { lib, config, pkgs, ... }:
 let
-  inherit (config.cluster) kms;
 
   installType = with lib.types;
     submodule {

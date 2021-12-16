@@ -1,17 +1,15 @@
 { lib, pkgs, config, nodeName, pkiFiles, ... }:
 let
-  inherit (config.cluster) region;
-
   ownedKey = "/var/lib/consul/cert-key.pem";
 in {
   services.consul = lib.mkIf config.services.consul.enable {
     addresses = { http = lib.mkDefault "127.0.0.1"; };
 
     clientAddr = "0.0.0.0";
-    datacenter = region;
+    datacenter = config.cluster.region;
     enableLocalScriptChecks = true;
     logLevel = "info";
-    primaryDatacenter = region;
+    primaryDatacenter = config.cluster.region;
     tlsMinVersion = "tls12";
     verifyIncoming = true;
     verifyOutgoing = true;
@@ -27,7 +25,7 @@ in {
     };
 
     nodeMeta = {
-      inherit region;
+      inherit (config.cluster) region;
       inherit nodeName;
     } // (lib.optionalAttrs ((config.currentCoreNode or null) != null) {
       inherit (config.currentCoreNode) instanceType domain;
@@ -43,7 +41,7 @@ in {
     advertiseAddr = ''{{ GetInterfaceIP "ens5" }}'';
 
     retryJoin = (lib.mapAttrsToList (_: v: v.privateIP) config.cluster.coreNodes)
-      ++ [ "provider=aws region=${region} tag_key=Consul tag_value=server" ];
+      ++ [ "provider=aws region=${config.cluster.region} tag_key=Consul tag_value=server" ];
 
     connect = {
       enabled = true;

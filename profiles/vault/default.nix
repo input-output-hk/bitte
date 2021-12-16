@@ -1,6 +1,5 @@
 { lib, pkgs, config, pkiFiles, ... }:
 let
-  inherit (config.cluster) region kms;
   cfg = config.services.vault;
   ownedKey = "/var/lib/vault/cert-key.pem";
 in {
@@ -15,8 +14,8 @@ in {
       logLevel = "trace";
 
       seal.awskms = {
-        kmsKeyId = kms;
-        inherit region;
+        kmsKeyId = config.cluster.kms;
+        inherit (config.cluster) region;
       };
 
       disableMlock = true;
@@ -31,7 +30,7 @@ in {
 
       telemetry = {
         dogstatsdAddr = "localhost:8125";
-        dogstatsdTags = [ "region:${region}" "role:vault" ];
+        dogstatsdTags = [ "region:${config.cluster.region}" "role:vault" ];
       };
     };
   };

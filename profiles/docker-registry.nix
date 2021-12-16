@@ -1,6 +1,4 @@
-{ lib, pkgs, config, ... }:
-let inherit (config.cluster) kms;
-in {
+{ lib, pkgs, config, ... }: {
   systemd.services.docker-registry.serviceConfig.Environment = [
     "REGISTRY_AUTH=htpasswd"
     "REGISTRY_AUTH_HTPASSWD_REALM=docker-registry"
@@ -38,7 +36,7 @@ in {
 
     if [ ! -s encrypted/redis-password.json ]; then
       xkcdpass \
-      | sops --encrypt --kms '${kms}' /dev/stdin \
+      | sops --encrypt --kms '${config.cluster.kms}' /dev/stdin \
       > encrypted/redis-password.json
     fi
   '';
@@ -62,7 +60,7 @@ in {
       echo '{}' \
         | jq --arg password "$password" '.password = $password' \
         | jq --arg hashed "$hashed" '.hashed = $hashed' \
-        | sops --encrypt --input-type json --output-type json --kms '${kms}' /dev/stdin \
+        | sops --encrypt --input-type json --output-type json --kms '${config.cluster.kms}' /dev/stdin \
         > encrypted/docker-passwords.new.json
       mv encrypted/docker-passwords.new.json encrypted/docker-passwords.json
     fi
