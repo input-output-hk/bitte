@@ -13,6 +13,8 @@ in final: prev:
   nixFlakes = final.nix;
   nixUnstable = final.nix;
 
+  nomad = inputs.nomad.defaultPackage."${final.system}";
+
   ssh-keys = let
     keys = import (ops-lib + "/overlays/ssh-keys.nix") lib;
     inherit (keys) allKeysFrom devOps;
@@ -26,7 +28,6 @@ in final: prev:
   haproxy-cors = prev.callPackage ./pkgs/haproxy-cors.nix { };
   devShell = final.callPackage ./pkgs/dev-shell.nix { };
   consulRegister = prev.callPackage ./pkgs/consul-register.nix { };
-  nomad = prev.callPackage ./pkgs/nomad.nix { inherit (inputs) nomad-source; };
   boundary = prev.callPackage ./pkgs/boundary.nix { };
   grpcdump = prev.callPackage ./pkgs/grpcdump.nix { };
   glusterfs = final.callPackage ./pkgs/glusterfs.nix { };

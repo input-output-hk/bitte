@@ -37,12 +37,12 @@
     utils.url = "github:numtide/flake-utils";
     blank.url = "github:divnix/blank";
 
+    nomad.url = "github:input-output-hk/nomad/release-1.2.2";
+    nomad.inputs.nixpkgs.follows = "nixpkgs-core";
+    nomad.inputs.nix.follows = "nix-core";
+
     ops-lib = {
       url = "github:input-output-hk/ops-lib";
-      flake = false;
-    };
-    nomad-source = {
-      url = "github:input-output-hk/nomad/release-1.1.6";
       flake = false;
     };
     vulnix = {
