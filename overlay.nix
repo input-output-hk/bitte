@@ -105,7 +105,7 @@ in final: prev:
 (lib.mapAttrs deprecated {
 
   # Do use bitte.lib directly, instead
-  inherit (self.lib) recImport sanitize snakeCase mkNomadJob terralib;
+  inherit (self.lib) recImport sanitize snakeCase terralib;
 
   # Do use bitteShell, instead
   bitteShellCompat = lib.warn ''

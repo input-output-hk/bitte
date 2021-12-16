@@ -10,12 +10,11 @@ in rec {
   snakeCase = import ./snake-case.nix { inherit lib; };
   mkModules = import ./make-modules.nix { inherit lib; };
 
-  mkCluster = import ./clusters.nix { inherit mkSystem mkJob lib; };
+  mkCluster = import ./clusters.nix { inherit mkSystem lib; };
   mkBitteStack =
     import ./mk-bitte-stack.nix { inherit mkCluster mkDeploy lib; };
   mkDeploy = import ./mk-deploy.nix { inherit deploy lib; };
   mkSystem = import ./mk-system.nix { inherit nixpkgs bitte; };
-  mkJob = import ./mk-job.nix;
 
   ensureDependencies = import ./ensure-dependencies.nix { inherit lib; };
 
