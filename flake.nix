@@ -27,8 +27,6 @@
     cli.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
     cli.inputs.nix.follows = "nix-auxiliary";
 
-    agenix.url = "github:ryantm/agenix";
-    agenix.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
     ragenix.url = "github:yaxitech/ragenix";
     ragenix.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
 
@@ -61,7 +59,7 @@
     hydra.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, hydra, nixpkgs, utils, cli, deploy, agenix, ... }@inputs:
+  outputs = { self, hydra, nixpkgs, utils, cli, deploy, ragenix, ... }@inputs:
     let
 
       overlays = [
@@ -114,7 +112,7 @@
       overlay = nixpkgs.lib.composeManyExtensions overlays;
       profiles = lib.mkModules ./profiles;
       nixosModules = (lib.mkModules ./modules) // {
-        agenix = agenix.nixosModules.age;
+        agenix = ragenix.nixosModules.age;
       };
       nixosModule.imports = builtins.attrValues self.nixosModules;
     };
