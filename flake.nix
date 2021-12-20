@@ -21,6 +21,9 @@
     nix.follows = "nix-core";
 
     fenix.url = "github:nix-community/fenix";
+    rust-overlay.url = "github:oxalica/rust-overlay";
+    rust-overlay.inputs.nixpkgs.follows = "nixpkgs-core";
+
 
     cli.url = "github:input-output-hk/bitte-cli";
     cli.inputs.fenix.follows = "fenix";
