@@ -8,8 +8,6 @@ let
 in {
   imports = [
     ../common.nix
-    ../telegraf.nix
-    ../secrets.nix
   ];
 
   services.glusterfs.enable = true;

@@ -4,9 +4,7 @@
     ./common.nix
     ./consul/client.nix
 
-    ./oauth.nix
-    ./secrets.nix
-    ./telegraf.nix
+    ./auxiliaries/oauth.nix
   ];
 
   options.services.traefik.prometheusPort = lib.mkOption {

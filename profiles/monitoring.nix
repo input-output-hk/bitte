@@ -3,12 +3,10 @@
     ./common.nix
     ./consul/client.nix
 
-    ./builder.nix
-    ./docker-registry.nix
-    ./loki.nix
-    ./oauth.nix
-    ./secrets.nix
-    ./telegraf.nix
+    ./auxiliaries/builder.nix
+    ./auxiliaries/docker-registry.nix
+    ./auxiliaries/loki.nix
+    ./auxiliaries/oauth.nix
   ];
 
   services.consul.ui = true;

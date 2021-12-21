@@ -5,12 +5,9 @@
     ./consul/client.nix
     ./nomad/client.nix
 
-    ./docker.nix
-    ./telegraf.nix
-    ./secrets.nix
-    ./reaper.nix
-    ./builder.nix
-    ./zfs-client-options.nix
+    ./auxiliaries/docker.nix
+    ./auxiliaries/reaper.nix
+    ./auxiliaries/builder.nix
   ];
 
   services.s3-upload-flake.enable = true;
