@@ -4,8 +4,6 @@
     ./consul/server.nix
     ./nomad/server.nix
     ./vault/server.nix
-    ./telegraf.nix
-    ./secrets.nix
   ];
 
   services = {

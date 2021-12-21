@@ -1,11 +1,13 @@
 { config, lib, pkgs, ... }: {
 
   imports = [
-    ./switches-option.nix
     ./slim.nix
-    ./nix.nix
-    ./promtail.nix
-    ./ssh.nix
+
+    ./auxiliaries/secrets.nix
+    ./auxiliaries/nix.nix
+    ./auxiliaries/ssh.nix
+    ./auxiliaries/promtail.nix
+    ./auxiliaries/telegraf.nix
   ];
 
   services.ssm-agent.enable = true;
