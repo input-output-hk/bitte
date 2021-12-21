@@ -1,30 +1,27 @@
 { self, pkgs, config, lib, ... }: {
+
   imports = [
     ./common.nix
     ./consul/client.nix
-    ./docker.nix
     ./nomad/client.nix
-    ./nomad/bridge-lo-fixup.nix
+
+    ./docker.nix
     ./telegraf.nix
-    ./vault/client.nix
     ./secrets.nix
     ./reaper.nix
     ./builder.nix
     ./zfs-client-options.nix
   ];
 
-  services = {
-    s3-upload-flake.enable = true;
-    vault-agent-client = {
-      enable = true;
-      disableTokenRotation = {
-        consulAgent = true;
-        consulDefault = true;
-      };
+  services.s3-upload-flake.enable = true;
+  services.vault-agent-client.enable = true;
+
+  services.telegraf.extraConfig.global_tags.role = "consul-client";
+  services.vault-agent-client = {
+    disableTokenRotation = {
+      consulAgent = true;
+      consulDefault = true;
     };
-    vault.enable = lib.mkForce false;
-    nomad.enable = true;
-    telegraf.extraConfig.global_tags.role = "consul-client";
   };
 
   boot.cleanTmpDir = true;

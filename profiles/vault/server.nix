@@ -1,10 +1,14 @@
-{ config, nodeName, lib, pkiFiles, ... }: {
-  imports = [ ./default.nix ./policies.nix ];
-  config = {
-    services.vault = {
-      enable = true;
-      ui = true;
+{ config, nodeName, lib, pkiFiles, ... }: let
 
+  Imports = { imports = [ ./common.nix ./policies.nix ]; };
+
+  Switches = {
+    services.vault-snapshots.enable = true;
+    services.vault.ui = true;
+  };
+
+  Config = {
+    services.vault = {
       apiAddr = "https://${config.currentCoreNode.privateIP}:8200";
       clusterAddr = "https://${config.currentCoreNode.privateIP}:8201";
 
@@ -23,7 +27,11 @@
         }) coreNodesWithCorePrefix;
       };
     };
-
-    services.vault-snapshots.enable = true;
   };
-}
+
+in lib.mkMerge [
+  Imports
+  Switches
+  Config
+]
+

@@ -1,6 +1,8 @@
 { config, lib, pkgs, ... }: {
+
+  services.oauth2_proxy.enable = true;
+
   services.oauth2_proxy = {
-    enable = true;
     extraConfig.whitelist-domain = ".${config.cluster.domain}";
     # extraConfig.github-org = "input-output-hk";
     # extraConfig.github-repo = "input-output-hk/mantis-ops";

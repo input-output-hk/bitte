@@ -1,4 +1,13 @@
-_: {
-  imports = [ ./default.nix ];
-  config.services.vault.enable = true;
-}
+{ config, lib, pkgs, ... }: let
+
+  Imports = { imports = [ ./common.nix ]; };
+
+  Switches = {};
+
+  Config = {};
+
+in lib.mkMerge [
+  Imports
+  Switches
+  Config
+]

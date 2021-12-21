@@ -1,17 +1,27 @@
-{ lib, pkgs, config, nodeName, ... }: {
-  imports = [ ./default.nix ./policies.nix ];
+{ lib, pkgs, config, nodeName, ... }: let
 
-  services.consul = {
-    bootstrapExpect = 3;
-    addresses = { http = "${config.currentCoreNode.privateIP} 127.0.0.1"; };
-    # autoEncrypt = {
-    #   allowTls = true;
-    #   tls = true;
-    # };
-    enable = true;
-    server = true;
-    ui = true;
+  Imports = { imports = [ ./common.nix ./policies.nix ]; };
+
+  Switches = {
+    services.consul-snapshots.enable = true;
+    services.consul.server = true;
+    services.consul.ui = true;
   };
 
-  services.consul-snapshots.enable = true;
-}
+  Config = {
+    services.consul = {
+      bootstrapExpect = 3;
+      addresses = { http = "${config.currentCoreNode.privateIP} 127.0.0.1"; };
+      # autoEncrypt = {
+      #   allowTls = true;
+      #   tls = true;
+      # };
+    };
+  };
+
+in lib.mkMerge [
+  Imports
+  Switches
+  Config
+]
+

@@ -82,10 +82,8 @@ in {
 
   config = lib.mkIf cfg.enable {
     services.zfs = {
-      autoSnapshot = lib.mkIf cfg.enableZfsSnapshots {
-        enable = true;
-        monthly = 1;
-      };
+      autoSnapshot.enable = lib.mkIf cfg.enableZfsSnapshots true;
+      autoSnapshot.monthly = 1;
       autoScrub.enable = lib.mkIf cfg.enableZfsScrub true;
       trim.enable = lib.mkIf cfg.enableZfsTrim true;
     };

@@ -1,10 +1,8 @@
 { lib, ... }: {
+  virtualisation.docker.enable = true;
   virtualisation.docker = {
-    enable = true;
-    autoPrune = {
-      enable = true;
-      dates = "daily";
-    };
+    autoPrune.enable = true;
+    autoPrune.dates = "daily";
 
     extraOptions = lib.concatStringsSep " " [
       "--log-driver=journald"

@@ -1,10 +1,9 @@
 { config, lib, ... }: {
+
   imports = [ ./bootstrap.nix ];
 
-  services = {
-    consul-acl.enable = true;
-    nomad-acl.enable = true;
-    vault-acl.enable = true;
-    nomad-namespaces.enable = true;
-  };
+  services.consul-acl.enable = true;
+  services.nomad-acl.enable = true;
+  services.vault-acl.enable = true;
+  services.nomad-namespaces.enable = true;
 }

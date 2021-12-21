@@ -3,10 +3,10 @@
   imports = [
     ./common.nix
     ./consul/client.nix
+
     ./oauth.nix
     ./secrets.nix
     ./telegraf.nix
-    ./vault/client.nix
   ];
 
   options.services.traefik.prometheusPort = lib.mkOption {
@@ -17,7 +17,9 @@
   };
 
   config = {
+
     services.vault-agent-monitoring.enable = true;
+    services.traefik.enable = true;
 
     systemd.services.copy-acme-certs = {
       before = [ "traefik.service" ];
@@ -71,8 +73,6 @@
     };
 
     services.traefik = {
-      enable = true;
-
       dynamicConfigOptions = {
         tls.certificates = [{
           certFile = "/var/lib/traefik/certs/${config.cluster.domain}-full.pem";

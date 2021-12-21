@@ -1,15 +1,13 @@
-{ lib, pkgs, config, pkiFiles, ... }:
-let
-  cfg = config.services.vault;
-  ownedKey = "/var/lib/vault/cert-key.pem";
-in {
-  config = lib.mkIf cfg.enable {
-    environment.variables = {
-      VAULT_FORMAT = "json";
-      VAULT_ADDR = lib.mkDefault "https://127.0.0.1:8200";
-      VAULT_CACERT = pkiFiles.caCertFile;
-    };
+{ lib, pkgs, config, pkiFiles, ... }: let
 
+  Imports = { imports = [ ]; };
+
+  Switches = {
+    services.vault.enable = true;
+  };
+
+  Config = let ownedKey = "/var/lib/vault/cert-key.pem";
+  in {
     services.vault = {
       logLevel = "trace";
 
@@ -33,5 +31,16 @@ in {
         dogstatsdTags = [ "region:${config.cluster.region}" "role:vault" ];
       };
     };
+
+    environment.variables = {
+      VAULT_FORMAT = "json";
+      VAULT_ADDR = lib.mkDefault "https://127.0.0.1:8200";
+      VAULT_CACERT = pkiFiles.caCertFile;
+    };
   };
-}
+
+in lib.mkMerge [
+  Imports
+  Switches
+  Config
+]
