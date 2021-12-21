@@ -12,6 +12,7 @@
 
   services.s3-upload-flake.enable = true;
   services.vault-agent-client.enable = true;
+  services.zfs-client-options.enable = true;
 
   services.telegraf.extraConfig.global_tags.role = "consul-client";
   services.vault-agent-client = {
