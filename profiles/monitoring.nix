@@ -1,86 +1,80 @@
 { lib, pkgs, config, nodeName, ... }: {
   imports = [
-    ./builder.nix
     ./common.nix
     ./consul/client.nix
+
+    ./builder.nix
     ./docker-registry.nix
     ./loki.nix
     ./oauth.nix
     ./secrets.nix
     ./telegraf.nix
-    ./vault/client.nix
   ];
 
-  services = {
-    consul.ui = true;
-    nomad.enable = false;
-    ingress.enable = true;
-    ingress-config.enable = true;
-    minio.enable = true;
-    vulnix = {
-      enable = true;
-      scanClosure = true;
+  services.consul.ui = true;
+  services.nomad.enable = false;
+  services.ingress.enable = true;
+  services.ingress-config.enable = true;
+  services.minio.enable = true;
+  services.vulnix.enable = true;
+  services.vault-agent-monitoring.enable = true;
+  services.victoriametrics.enable = true;
+  services.loki.enable = true;
+  services.grafana.enable = true;
+  services.prometheus.enable = true;
+  services.vulnix.scanClosure = true;
+
+  services.victoriametrics = {
+    retentionPeriod = 12; # months
+  };
+
+  services.grafana = {
+    auth.anonymous.enable = false;
+    analytics.reporting.enable = false;
+    addr = "";
+    domain = "monitoring.${config.cluster.domain}";
+    extraOptions = {
+      AUTH_PROXY_ENABLED = "true";
+      AUTH_PROXY_HEADER_NAME = "X-Authenticated-User";
+      AUTH_SIGNOUT_REDIRECT_URL = "/oauth2/sign_out";
+      USERS_AUTO_ASSIGN_ORG_ROLE = "Editor";
+    };
+    rootUrl = "https://monitoring.${config.cluster.domain}/";
+    provision = {
+      enbale = true;
+      datasources = [
+        {
+          type = "loki";
+          name = "Loki";
+          url = "http://localhost:3100";
+          jsonData.maxLines = 1000;
+        }
+        {
+          type = "prometheus";
+          name = "VictoriaMetrics";
+          url = "http://localhost:8428";
+        }
+      ];
+
+      dashboards = [{
+        name = "provisioned";
+        options.path = ./monitoring;
+      }];
     };
 
-    vault-agent-monitoring.enable = true;
+    security.adminPasswordFile = config.age.secrets.grafana-password.path;
+  };
 
-    victoriametrics = {
-      enable = true;
-      retentionPeriod = 12; # months
-    };
-
-    loki = { enable = true; };
-
-    grafana = {
-      enable = true;
-      auth.anonymous.enable = false;
-      analytics.reporting.enable = false;
-      addr = "";
-      domain = "monitoring.${config.cluster.domain}";
-      extraOptions = {
-        AUTH_PROXY_ENABLED = "true";
-        AUTH_PROXY_HEADER_NAME = "X-Authenticated-User";
-        AUTH_SIGNOUT_REDIRECT_URL = "/oauth2/sign_out";
-        USERS_AUTO_ASSIGN_ORG_ROLE = "Editor";
-      };
-      rootUrl = "https://monitoring.${config.cluster.domain}/";
-      provision = {
+  services.prometheus = {
+    exporters = {
+      blackbox = {
         enable = true;
-
-        datasources = [
-          {
-            type = "loki";
-            name = "Loki";
-            url = "http://localhost:3100";
-            jsonData.maxLines = 1000;
-          }
-          {
-            type = "prometheus";
-            name = "VictoriaMetrics";
-            url = "http://localhost:8428";
-          }
-        ];
-
-        dashboards = [{
-          name = "provisioned";
-          options.path = ./monitoring;
-        }];
-      };
-
-      security = { adminPasswordFile = /var/lib/grafana/password; };
-    };
-
-    prometheus = {
-      exporters = {
-        blackbox = {
-          enable = true;
-          configFile = pkgs.toPrettyJSON "blackbox-exporter" {
-            modules = {
-              https_2xx = {
-                prober = "http";
-                timeout = "5s";
-                http = { fail_if_not_ssl = true; };
-              };
+        configFile = pkgs.toPrettyJSON "blackbox-exporter" {
+          modules = {
+            https_2xx = {
+              prober = "http";
+              timeout = "5s";
+              http = { fail_if_not_ssl = true; };
             };
           };
         };

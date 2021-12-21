@@ -1,4 +1,7 @@
 { pkgs, config, lib, pkiFiles, ... }: {
+
+  services.telegraf.enable = true;
+
   systemd.services.telegraf.path = with pkgs; [ procps ];
 
   services.vulnix.sink = let
@@ -25,8 +28,6 @@
   '';
 
   services.telegraf = {
-    enable = true;
-
     extraConfig = {
       agent = {
         interval = "10s";

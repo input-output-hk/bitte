@@ -1,20 +1,16 @@
 { config, lib, pkgs, ... }: {
+
   imports = [
-    ./consul/default.nix
+    ./switches-option.nix
+    ./slim.nix
     ./nix.nix
     ./promtail.nix
-    ./slim.nix
     ./ssh.nix
-    ./vault/default.nix
   ];
 
-  services = {
-    ssm-agent.enable = true;
-    vault.enable = true;
-    consul.enable = true;
-    openntpd.enable = true;
-    fail2ban.enable = true;
-  };
+  services.ssm-agent.enable = true;
+  services.openntpd.enable = true;
+  services.fail2ban.enable = true;
 
   environment.variables = { AWS_DEFAULT_REGION = config.cluster.region; };
   environment.systemPackages = with pkgs; [ consul nomad vault-bin ];

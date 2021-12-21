@@ -1,5 +1,13 @@
-_: {
-  imports = [ ./default.nix ];
+{ config, lib, pkgs, ... }: let
 
-  services.consul = { enable = true; };
-}
+  Imports = { imports = [ ./common.nix ]; };
+
+  Switches = {};
+
+  Config = {};
+
+in lib.mkMerge [
+  Imports
+  Switches
+  Config
+]

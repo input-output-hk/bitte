@@ -3,8 +3,8 @@
     ./common.nix
     ./consul/server.nix
     ./nomad/server.nix
-    ./telegraf.nix
     ./vault/server.nix
+    ./telegraf.nix
     ./secrets.nix
   ];
 
