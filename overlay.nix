@@ -8,7 +8,7 @@ let
             See bitte/overlay.nix
     '';
 in final: prev:
-{
+rec {
   inherit (inputs.nix.packages.x86_64-linux) nix;
   nixFlakes = final.nix;
   nixUnstable = final.nix;
@@ -37,6 +37,9 @@ in final: prev:
   vault-backend = final.callPackage ./pkgs/vault-backend.nix { };
   oauth2-proxy = final.callPackage ./pkgs/oauth2_proxy.nix { };
   filebeat = final.callPackage ./pkgs/filebeat.nix { };
+  spire = prev.callPackage ./pkgs/spire.nix { };
+  spire-agent = spire.agent;
+  spire-server = spire.server;
 
   # XXX remove (also flake input) after nixpkgs bump that has vulnix 1.10.1
   vulnix = import inputs.vulnix {
