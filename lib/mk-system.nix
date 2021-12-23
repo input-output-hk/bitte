@@ -14,42 +14,52 @@ let
     keyFile = "/etc/ssl/certs/cert-key.pem";
   };
 
-  showWarningsAndAssertions = {lib, config, ...}: let
-    failedAssertions = map (x: x.message) (lib.filter (x: !x.assertion) config.assertions);
-    validateConfig =
-      if failedAssertions != []
-      then throw "\nFailed assertions:\n${builtins.concatStringsSep "\n" (map (x: "- ${x}") failedAssertions)}"
-      else lib.showWarnings config.warnings;
-  in {
-    options.showWarningsAndAssertions = lib.mkOption {
-      type = with lib.types; bool;
-      default = validateConfig true;
-    };
-  };
+  showWarningsAndAssertions = { lib, config, ... }:
+    let
+      failedAssertions =
+        map (x: x.message) (lib.filter (x: !x.assertion) config.assertions);
+      validateConfig = if failedAssertions != [ ] then
+        throw ''
 
-  bitteSystem = specializationModule: let
-    res =  nixpkgs.lib.nixosSystem {
-      inherit pkgs;
-      inherit (pkgs) system;
-      modules = [ showWarningsAndAssertions bitte.nixosModule specializationModule ] ++ modules;
-      specialArgs = {
-        inherit nodeName self inputs pkiFiles;
-        inherit (bitte.inputs) terranix;
-        bittelib = bitte.lib;
-        inherit (bitte.lib) terralib;
+          Failed assertions:
+          ${builtins.concatStringsSep "\n"
+          (map (x: "- ${x}") failedAssertions)}''
+      else
+        lib.showWarnings config.warnings;
+    in {
+      options.showWarningsAndAssertions = lib.mkOption {
+        type = with lib.types; bool;
+        default = validateConfig true;
       };
     };
-  in builtins.seq res.config.showWarningsAndAssertions res;
+
+  bitteSystem = specializationModule:
+    let
+      res = nixpkgs.lib.nixosSystem {
+        inherit pkgs;
+        inherit (pkgs) system;
+        modules =
+          [ showWarningsAndAssertions bitte.nixosModule specializationModule ]
+          ++ modules;
+        specialArgs = {
+          inherit nodeName self inputs pkiFiles;
+          inherit (bitte.inputs) terranix;
+          bittelib = bitte.lib;
+          inherit (bitte.lib) terralib;
+        };
+      };
+    in builtins.seq res.config.showWarningsAndAssertions res;
 
   bitteProtoSystem = bitteSystem {
     imports = [
-      ../profiles/nix.nix
+      ../profiles/auxiliaries/nix.nix
       ../profiles/consul/policies.nix
       # This module purely exists to appease failing assertions on evaluating
       # the proto system. The protosystem is only used to obtaion the tf config.
       ({ lib, ... }: {
         # assertion: The ‘fileSystems’ option does not specify your root file system.
-        fileSystems."/" = lib.mkDefault { device = "/dev/disk/by-label/nixos"; };
+        fileSystems."/" =
+          lib.mkDefault { device = "/dev/disk/by-label/nixos"; };
         # assertion: You must set the option ‘boot.loader.grub.devices’ or 'boot.loader.grub.mirroredBoots' to make the system bootable.
         boot.loader.grub.enable = lib.mkDefault false;
       })
