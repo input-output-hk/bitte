@@ -8,11 +8,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1638837456,
-        "narHash": "sha256-WHLOxthAGx/wXw3QUa/lFE3mr6cQtnXfFYZ0DNyYwt4=",
+        "lastModified": 1640802000,
+        "narHash": "sha256-ZiI94Zv/IgW64fqKrtVaQqfUCkn9STvAjgfFmvtqcQ8=",
         "owner": "ryantm",
         "repo": "agenix",
-        "rev": "57806bf7e340f4cae705c91748d4fdf8519293a9",
+        "rev": "c5558c88b2941bf94886dfdede6926b1ba5f5629",
         "type": "github"
       },
       "original": {
@@ -497,11 +497,11 @@
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "lastModified": 1640022617,
-        "narHash": "sha256-ySet14LOCK0VP2ft/8F1PEyug7XUociOEpHjGBYTGRk=",
+        "lastModified": 1641119695,
+        "narHash": "sha256-fksD2ftdEdFfB4BiB9iQCJt2QJ/CJogqk4mBNy9rY/0=",
         "owner": "yaxitech",
         "repo": "ragenix",
-        "rev": "2df0b92e6f1ea2b1b96257904b1c56c63dc854e5",
+        "rev": "71147db3f221d0a5c86b393d5c60d51b70f39fe3",
         "type": "github"
       },
       "original": {
@@ -566,11 +566,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1639967969,
-        "narHash": "sha256-GdfgMyAgMY196E5PkDRSdC/RLih+b2DDkXXexAjOvmE=",
+        "lastModified": 1641017392,
+        "narHash": "sha256-xpsPFK67HRtlk+39l4I7vko7QKZLBg3AqbXK3MkQoDY=",
         "owner": "oxalica",
         "repo": "rust-overlay",
-        "rev": "c609f104cbc2755b7cb4c0f63e0e86230d360cb5",
+        "rev": "4000e09a515c0f046a1b8b067f7324111187b115",
         "type": "github"
       },
       "original": {
