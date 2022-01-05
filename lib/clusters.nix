@@ -17,7 +17,7 @@ lib.listToAttrs (lib.forEach clusterFiles (file:
     nodes = lib.mapAttrs (nodeName: instance:
       (mkSystem {
         inherit pkgs self inputs nodeName;
-        modules = [ { networking.hostName = lib.mkForce nodeName; } file ]
+        modules = [ { networking.hostName = lib.mkForce nodeName; } file hydrateModule ]
           ++ instance.modules;
       }).bitteAmazonSystem) proto.config.cluster.instances;
 
