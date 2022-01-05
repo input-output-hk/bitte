@@ -309,7 +309,7 @@ in {
 
           [ -s "${policyDir}/$policy" ] && continue
           [ "global-management" = "$name" ] && continue
-          [ " ''${keepNames[*]} " =~ " $name " ] && continue
+          [[ " ''${keepNames[*]} " =~ " $name " ]] && continue
 
           echo "Deleting policy $name"
           consul acl policy delete -name "$name"
@@ -341,7 +341,7 @@ in {
           name="$(basename "$role")"
 
           [ -d "${rolesDir}/$role" ] && continue
-          [ " ''${keepNames[*]} " =~ " $role " ] && continue
+          [[ " ''${keepNames[*]} " =~ " $role " ]] && continue
 
           echo "Deleting role $name"
           consul acl role delete -name "$name"
