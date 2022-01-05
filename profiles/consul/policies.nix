@@ -51,12 +51,15 @@
         servicePrefix = allRead;
       };
 
-      # Shared between Consul and Nomad, due to inability of Nomad to reload
-      # tokens.
+      # Shared between Consul and Nomad, due to inability of Nomad to reload tokens.
+      # Intentions read ACL now required for connect on the default token.
       consul-default = {
         agentPrefix = allWrite;
         nodePrefix = allWrite;
-        servicePrefix = allWrite;
+        servicePrefix."" = {
+          policy = "write";
+          intentions = "read";
+        };
         keyPrefix = allRead;
       };
 
