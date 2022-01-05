@@ -2,10 +2,7 @@
   "nodes": {
     "agenix": {
       "inputs": {
-        "nixpkgs": [
-          "ragenix",
-          "nixpkgs"
-        ]
+        "nixpkgs": "nixpkgs_2"
       },
       "locked": {
         "lastModified": 1640802000,
@@ -209,6 +206,21 @@
     },
     "flake-utils_3": {
       "locked": {
+        "lastModified": 1638122382,
+        "narHash": "sha256-sQzZzAbvKEqN9s0bzWuYmRaA03v40gaJ4+iL1LXjaeI=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "74f7e4319258e287b0f9cb95426c9853b282730b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
+    "flake-utils_4": {
+      "locked": {
         "lastModified": 1637014545,
         "narHash": "sha256-26IZAc5yzlD9FlDT54io1oqG/bBoyka+FJk5guaX4x4=",
         "owner": "numtide",
@@ -222,7 +234,7 @@
         "type": "github"
       }
     },
-    "flake-utils_4": {
+    "flake-utils_5": {
       "locked": {
         "lastModified": 1634851050,
         "narHash": "sha256-N83GlSGPJJdcqhUxSCS/WwW5pksYf3VP1M13cDRTSVA=",
@@ -446,6 +458,36 @@
         "type": "github"
       }
     },
+    "nixpkgs_2": {
+      "locked": {
+        "lastModified": 1627969475,
+        "narHash": "sha256-MhVtkVt1MFfaDY3ObJu54NBcsaPk19vOBZ8ouhjO4qs=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "bd27e2e8316ac6eab11aa35c586e743286f23ecf",
+        "type": "github"
+      },
+      "original": {
+        "id": "nixpkgs",
+        "type": "indirect"
+      }
+    },
+    "nixpkgs_3": {
+      "locked": {
+        "lastModified": 1640418986,
+        "narHash": "sha256-a8GGtxn2iL3WAkY5H+4E0s3Q7XJt6bTOvos9qqxT5OQ=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "5c37ad87222cfc1ec36d6cd1364514a9efc2f7f2",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixpkgs-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "nomad": {
       "inputs": {
         "nix": [
@@ -556,14 +598,8 @@
     },
     "rust-overlay": {
       "inputs": {
-        "flake-utils": [
-          "ragenix",
-          "flake-utils"
-        ],
-        "nixpkgs": [
-          "ragenix",
-          "nixpkgs"
-        ]
+        "flake-utils": "flake-utils_3",
+        "nixpkgs": "nixpkgs_3"
       },
       "locked": {
         "lastModified": 1641017392,
@@ -581,7 +617,7 @@
     },
     "rust-overlay_2": {
       "inputs": {
-        "flake-utils": "flake-utils_3",
+        "flake-utils": "flake-utils_4",
         "nixpkgs": [
           "nixpkgs-core"
         ]
@@ -619,7 +655,7 @@
       "inputs": {
         "bats-assert": "bats-assert",
         "bats-support": "bats-support",
-        "flake-utils": "flake-utils_4",
+        "flake-utils": "flake-utils_5",
         "nixpkgs": [
           "blank"
         ],
