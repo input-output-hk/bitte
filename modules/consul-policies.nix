@@ -118,9 +118,11 @@ let
         type = with lib.types; str;
         default = "";
         apply = _:
-          let json = builtins.toJSON this.config._computed;
+          let
+            json = builtins.toJSON this.config._computed;
+            mini = pkgs.writeText "consul-policy.mini.json" json;
           in pkgs.runCommandNoCCLocal "consul-policy.json" { } ''
-            echo ${json} | ${pkgs.jq}/bin/jq -S > $out
+            ${pkgs.jq}/bin/jq -S < ${mini} > $out
           '';
       };
 
