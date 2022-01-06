@@ -301,7 +301,7 @@ in {
         # Remove Consul Policies
         keepNames=(${
           toString
-          (__attrNames config.tf.hydrate.configuration.locals.policies.consul)
+          (__attrNames config.tf.hydrate-cluster.configuration.locals.policies.consul)
         })
 
         for policy in $(consul acl policy list -format json | jq -r '.[].Name'); do

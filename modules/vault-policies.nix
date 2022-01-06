@@ -102,7 +102,7 @@ in {
         keepNames=(default root ${
           toString ((builtins.attrNames config.services.vault.policies)
             ++ (builtins.attrNames
-              config.tf.hydrate.configuration.locals.policies.vault))
+              config.tf.hydrate-cluster.configuration.locals.policies.vault))
         })
         policyNames=($(vault policy list | jq -e -r '.[]'))
 
