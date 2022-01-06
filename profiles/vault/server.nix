@@ -29,8 +29,7 @@
     };
   };
 
-in lib.mkMerge [
-  Imports
+in Imports // lib.mkMerge [
   Switches
   Config
 ]

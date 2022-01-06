@@ -19,7 +19,7 @@
   services.victoriametrics.enable = true;
   services.loki.enable = true;
   services.grafana.enable = true;
-  services.prometheus.enable = true;
+  services.prometheus.enable = false;
   services.vulnix.scanClosure = true;
 
   services.victoriametrics = {
@@ -39,7 +39,7 @@
     };
     rootUrl = "https://monitoring.${config.cluster.domain}/";
     provision = {
-      enbale = true;
+      enable = true;
       datasources = [
         {
           type = "loki";
@@ -60,7 +60,7 @@
       }];
     };
 
-    security.adminPasswordFile = config.age.secrets.grafana-password.path;
+    security.adminPasswordFile = /var/lib/grafana/password;
   };
 
   services.prometheus = {
