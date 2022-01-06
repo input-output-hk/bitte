@@ -127,7 +127,7 @@ in {
         keepNames=(${
           toString ((builtins.attrNames config.services.nomad.policies
             ++ [ "management" ]) ++ (builtins.attrNames
-              config.tf.hydrate.configuration.locals.policies.nomad))
+              config.tf.hydrate-cluster.configuration.locals.policies.nomad))
         })
         nomadRoles=($(nomad acl policy list -json | jq -r -e '.[].Name'))
 

@@ -14,7 +14,7 @@ let
 in {
 
   # preconfigure hydrate-secrets
-  tf.secrets-hydrate.configuration = lib.warn ''
+  tf.secrets-hydrate.configuration = abort ''
 
     secrets-hydrate had been renamed to hydrate-secrets
     please rename your infra cluster tf vault backend accordingly
@@ -24,19 +24,19 @@ in {
     VAULT_ADDR=https://vault.infra.aws.iohkdev.io
     VAULT_TOKEN=$TF_HTTP_PASSWORD
     vault kv put secret/vbk/$BITTE_CLUSTER/hydrate-secrets @<(vault kv get -format=json secret/vbk/$BITTE_CLUSTER/secrets-hydrate | jq .data.data)
-  '' config.tf.hydrate-secrets.configuration;
+  '';
   tf.hydrate-secrets.configuration = {
     terraform.backend.http = {
-      address = "${vbkStub}/secrets-hydrate";
-      lock_address = "${vbkStub}/secrets-hydrate";
-      unlock_address = "${vbkStub}/secrets-hydrate";
+      address = "${vbkStub}/hydrate-secrets";
+      lock_address = "${vbkStub}/hydrate-secrets";
+      unlock_address = "${vbkStub}/hydrate-secrets";
     };
     terraform.required_providers = pkgs.terraform-provider-versions;
     provider.vault = { };
   };
 
   # preconfigure hydrate-app
-  tf.app-hydrate.configuration = lib.warn ''
+  tf.app-hydrate.configuration = abort ''
 
     app-hydrate had been renamed to hydrate-app
     please rename your infra cluster tf vault backend accordingly
@@ -46,19 +46,19 @@ in {
     VAULT_ADDR=https://vault.infra.aws.iohkdev.io
     VAULT_TOKEN=$TF_HTTP_PASSWORD
     vault kv put secret/vbk/$BITTE_CLUSTER/hydrate-app @<(vault kv get -format=json secret/vbk/$BITTE_CLUSTER/app-hydrate | jq .data.data)
-  '' config.tf.hydrate-app.configuration;
+  '';
   tf.hydrate-app.configuration = {
     terraform.backend.http = {
-      address = "${vbkStub}/app-hydrate";
-      lock_address = "${vbkStub}/app-hydrate";
-      unlock_address = "${vbkStub}/app-hydrate";
+      address = "${vbkStub}/hydrate-app";
+      lock_address = "${vbkStub}/hydrate-app";
+      unlock_address = "${vbkStub}/hydrate-app";
     };
     terraform.required_providers = pkgs.terraform-provider-versions;
     provider.vault = { };
   };
 
   # preconfigure hydrate-cluster
-  tf.hydrate.configuration = lib.warn ''
+  tf.hydrate.configuration = abort ''
 
     hydrate had been renamed to hydrate-cluster
     please rename your infra cluster tf vault backend accordingly
@@ -68,12 +68,12 @@ in {
     VAULT_ADDR=https://vault.infra.aws.iohkdev.io
     VAULT_TOKEN=$TF_HTTP_PASSWORD
     vault kv put secret/vbk/$BITTE_CLUSTER/hydrate-cluster @<(vault kv get -format=json secret/vbk/$BITTE_CLUSTER/hydrate | jq .data.data)
-  '' config.tf.hydrate-cluster.configuration;
+  '';
   tf.hydrate-cluster.configuration = {
     terraform.backend.http = {
-      address = "${vbkStub}/hydrate";
-      lock_address = "${vbkStub}/hydrate";
-      unlock_address = "${vbkStub}/hydrate";
+      address = "${vbkStub}/hydrate-cluster";
+      lock_address = "${vbkStub}/hydrate-cluster";
+      unlock_address = "${vbkStub}/hydrate-cluster";
     };
     terraform.required_providers = pkgs.terraform-provider-versions;
     provider.vault = { };
