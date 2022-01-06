@@ -3,7 +3,7 @@
   Imports = { imports = [ ./common.nix ./policies.nix ]; };
 
   Switches = {
-    services.nomad.server.enable = true;
+    services.nomad.server.enabled = true;
     services.nomad-snapshots.enable = true;
   };
 
@@ -36,8 +36,7 @@
     };
   };
 
-in lib.mkMerge [
-  Imports
+in Imports // lib.mkMerge [
   Switches
   Config
 ]

@@ -1,10 +1,10 @@
 { lib, pkgs, config, nodeName, pkiFiles, ... }: let
 
-  Imports = { imports = [ ./common.nix ]; };
+  Imports = { imports = [ ]; };
 
   Switches = {
     services.consul.enable = true;
-    services.consul.consul.enable = true;
+    services.consul.connect.enabled = true;
     services.dnsmasq.enable = true;
   };
 
@@ -101,8 +101,7 @@
     };
   };
 
-in lib.mkMerge [
-  Imports
+in Imports // lib.mkMerge [
   Switches
   Config
 ]

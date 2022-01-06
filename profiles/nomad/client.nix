@@ -1,9 +1,10 @@
 { config, lib, pkgs, ... }: let
 
-  Imports = { imports = [ ./common.nix ./nomad/bridge-lo-fixup.nix ]; };
+  Imports = { imports = [ ./common.nix ./bridge-lo-fixup.nix ]; };
 
   Switches = {
-    services.nomad.client.enable = true;
+    services.nomad.client.enabled = true;
+    services.nomad.plugin.raw_exec.enabled = false;
   };
 
   Config = {
@@ -22,8 +23,6 @@
 
       datacenter = config.currentAwsAutoScalingGroup.region;
 
-      plugin.raw_exec.enabled = false;
-
       vault.address = "http://127.0.0.1:8200";
     };
 
@@ -37,8 +36,7 @@
     users.groups.nogroup = { };
   };
 
-in lib.mkMerge [
-  Imports
+in Imports // lib.mkMerge [
   Switches
   Config
 ]

@@ -1,6 +1,6 @@
 { config, lib, ... }: {
 
-  imports = [ ./bootrap/default.nix ];
+  imports = [ ./bootstrap/default.nix ];
 
   services.consul-acl.enable = true;
   services.nomad-acl.enable = true;

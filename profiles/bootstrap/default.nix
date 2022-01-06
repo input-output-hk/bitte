@@ -55,6 +55,8 @@ let
   '';
 in {
 
+  imports = [ ./options.nix ];
+
   config = {
     systemd.services.consul-initial-tokens =
       lib.mkIf config.services.consul.enable {
