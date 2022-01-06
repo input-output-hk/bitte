@@ -1,8 +1,10 @@
 { self, config, pkgs, lib, terralib, ... }:
 let
   inherit (terralib)
-    id var regions awsProviderNameFor awsProviderFor merge mkSecurityGroupRule
+    id var regions awsProviderNameFor awsProviderFor mkSecurityGroupRule
     nullRoute nullRouteInline;
+
+  merge = lib.foldl' lib.recursiveUpdate { };
 
   tags = { Cluster = config.cluster.name; };
 
