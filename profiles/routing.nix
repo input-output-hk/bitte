@@ -3,6 +3,7 @@
   imports = [
     ./common.nix
     ./consul/client.nix
+    ./vault/routing.nix
 
     ./auxiliaries/oauth.nix
   ];
@@ -15,8 +16,6 @@
   };
 
   config = {
-
-    services.vault-agent-monitoring.enable = true;
     services.traefik.enable = true;
 
     systemd.services.copy-acme-certs = {
