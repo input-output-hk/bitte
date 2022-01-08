@@ -1,16 +1,19 @@
 { config, nodeName, lib, pkiFiles, ... }: let
 
-  Imports = { imports = [ ./policies.nix ]; };
+  Imports = { imports = [ ./policies.nix ./common.nix ./core-secrets-templating.nix ]; };
 
   Switches = {
     services.vault.enable = true;
-    services.vault-agent-core.enable = true;
     services.vault-snapshots.enable = true;
     services.vault.ui = true;
   };
 
   Config = let ownedKey = "/var/lib/vault/cert-key.pem";
   in {
+    services.vault-agent = {
+      role = "core";
+      vaultAddress = "https://127.0.0.1:8200";
+    };
     services.vault = {
       logLevel = "trace";
 

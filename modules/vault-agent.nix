@@ -27,8 +27,28 @@ let
     };
 
 in {
+  imports = [
+    (lib.mkRenamedOptionModule [ "services" "vault-agent-core" "disableTokenRotation" "consulAgent" ] [ "services" "vault-agent" "disableTokenRotation" "consulAgent" ])
+    (lib.mkRenamedOptionModule [ "services" "vault-agent-core" "disableTokenRotation" "consulDefault" ] [ "services" "vault-agent" "disableTokenRotation" "consulDefault" ])
+    (lib.mkRenamedOptionModule [ "services" "vault-agent-client" "disableTokenRotation" "consulAgent" ] [ "services" "vault-agent" "disableTokenRotation" "consulAgent" ])
+    (lib.mkRenamedOptionModule [ "services" "vault-agent-client" "disableTokenRotation" "consulDefault" ] [ "services" "vault-agent" "disableTokenRotation" "consulDefault" ])
+  ];
   options.services.vault-agent = {
     enable = lib.mkEnableOption "Enable the vault-agent";
+
+    disableTokenRotation = lib.mkOption {
+      default = { };
+      type = with lib.types;
+        submodule {
+          options = {
+            consulAgent = lib.mkEnableOption
+              "Disable consul agent token rotation on vault-agent-core nodes";
+            consulDefault = lib.mkEnableOption
+              "Disable consul default token rotation on vault-agent-core nodes";
+          };
+        };
+    };
+
 
     role = lib.mkOption { type = with lib.types; enum [ "client" "core" ]; };
 
