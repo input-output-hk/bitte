@@ -4,7 +4,6 @@
 
   Switches = {
     services.vault-agent-core.enable = true;
-    services.vault.enable = lib.mkForce false;
   };
 
   Config = {
