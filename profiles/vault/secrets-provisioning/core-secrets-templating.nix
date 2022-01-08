@@ -1,18 +1,12 @@
 { config, lib, pkgs, pkiFiles, ... }: let
 
-  consulAgentToken = if config.services.vault-agent.disableTokenRotation.consulAgent then
-    ''
-      {{ with secret "kv/bootstrap/static-tokens/cores/consul-server-agent" }}{{ .Data.data.token }}{{ end }}''
-  else
-    ''
-      {{ with secret "consul/creds/consul-server-agent" }}{{ .Data.token }}{{ end }}'';
+  consulAgentToken = if config.services.vault-agent.disableTokenRotation.consulAgent
+  then ''{{ with secret "kv/bootstrap/static-tokens/cores/consul-server-agent" }}{{ .Data.data.token }}{{ end }}''
+  else ''{{ with secret "consul/creds/consul-server-agent" }}{{ .Data.token }}{{ end }}'';
 
-  consulDefaultToken = if config.services.vault-agent.disableTokenRotation.consulDefault then
-    ''
-      {{ with secret "kv/bootstrap/static-tokens/cores/consul-server-default" }}{{ .Data.data.token }}{{ end }}''
-  else
-    ''
-      {{ with secret "consul/creds/consul-server-default" }}{{ .Data.token }}{{ end }}'';
+  consulDefaultToken = if config.services.vault-agent.disableTokenRotation.consulDefault
+  then ''{{ with secret "kv/bootstrap/static-tokens/cores/consul-server-default" }}{{ .Data.data.token }}{{ end }}''
+  else ''{{ with secret "consul/creds/consul-server-default" }}{{ .Data.token }}{{ end }}'';
 
   reload = service: "${pkgs.systemd}/bin/systemctl --no-block try-reload-or-restart ${service} || true";
   restart = service: "${pkgs.systemd}/bin/systemctl --no-block try-restart ${service} || true";

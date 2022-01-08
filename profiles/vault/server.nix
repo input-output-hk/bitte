@@ -1,6 +1,11 @@
 { config, nodeName, lib, pkiFiles, ... }: let
 
-  Imports = { imports = [ ./policies.nix ./common.nix ./core-secrets-templating.nix ]; };
+  Imports = { imports = [
+    ./common.nix
+    ./policies.nix
+
+    ./secrets-provisioning/core-secrets-templating.nix
+  ]; };
 
   Switches = {
     services.vault.enable = true;

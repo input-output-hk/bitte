@@ -1,6 +1,11 @@
 { config, lib, pkgs, ... }: let
 
-  Imports = { imports = [ ./common.nix ./client-secrets-templating.nix ]; };
+  Imports = { imports = [
+    ./common.nix
+
+    ./secrets-provisioning/client-secrets-templating.nix
+    ./secrets-provisioning/host-identity.nix
+  ]; };
 
   Switches = {
     services.vault-agent.disableTokenRotation.consulAgent = true;

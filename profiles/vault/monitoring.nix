@@ -1,6 +1,11 @@
 { config, lib, pkgs, ... }: let
 
-  Imports = { imports = [ ./common.nix ./core-secrets-templating.nix ./monitoring-secrets-templating.nix ]; };
+  Imports = { imports = [
+    ./common.nix
+
+    ./secrets-provisioning/core-secrets-templating.nix
+    ./secrets-provisioning/letsencrypt-ingress.nix
+  ]; };
 
   Switches = { };
 
