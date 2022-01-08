@@ -12,7 +12,8 @@
   in {
     services.vault-agent = {
       role = "core";
-      vaultAddress = "https://127.0.0.1:8200";
+      vaultAddress = "https://127.0.0.1:8200"; # avoid depending on any network (at least for the agent)
+      listener = lib.mkForce []; # we already have the vault server binding here
     };
     services.vault = {
       logLevel = "trace";
@@ -57,7 +58,7 @@
 
     environment.variables = {
       VAULT_FORMAT = "json";
-      VAULT_ADDR = lib.mkDefault "https://127.0.0.1:8200";
+      VAULT_ADDR = "https://127.0.0.1:8200";
       VAULT_CACERT = pkiFiles.caCertFile;
     };
   };

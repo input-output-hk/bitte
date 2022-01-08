@@ -14,18 +14,13 @@
     ''
       {{ with secret "consul/creds/consul-server-default" }}{{ .Data.token }}{{ end }}'';
 
-  reload = pkgs.writeShellScript "reload.sh" ''
-    ${pkgs.systemd}/bin/systemctl --no-block try-reload-or-restart $1 || true
-  '';
-
-  restart = pkgs.writeShellScript "reload.sh" ''
-    ${pkgs.systemd}/bin/systemctl --no-block try-restart $1 || true
-  '';
+  reload = service: "${pkgs.systemd}/bin/systemctl --no-block try-reload-or-restart ${service} || true";
+  restart = service: "${pkgs.systemd}/bin/systemctl --no-block try-restart ${service} || true";
 
 in {
   services.vault-agent.templates = {
     "/etc/consul.d/tokens.json" = lib.mkIf config.services.consul.enable {
-      command = "${reload} consul.service";
+      command = reload "consul.service";
       contents = ''
         {
           "acl": {
@@ -38,48 +33,44 @@ in {
       '';
     };
 
-    "/run/keys/consul-default-token" =
-      lib.mkIf config.services.consul.enable {
-        command = "${reload} consul.service";
-        contents = ''
-          ${consulDefaultToken}
-        '';
-      };
+    "/run/keys/consul-default-token" = lib.mkIf config.services.consul.enable {
+      command = reload "consul.service";
+      contents = ''
+        ${consulDefaultToken}
+      '';
+    };
 
     # TODO: remove duplication
-    "/etc/nomad.d/consul-token.json" =
-      lib.mkIf config.services.nomad.enable {
-        command = "${restart} nomad.service";
-        contents = ''
-          {
-            "consul": {
-              "token": "{{ with secret "consul/creds/nomad-server" }}{{ .Data.token }}{{ end }}"
-            }
+    "/etc/nomad.d/consul-token.json" = lib.mkIf config.services.nomad.enable {
+      command = restart "nomad.service";
+      contents = ''
+        {
+          "consul": {
+            "token": "{{ with secret "consul/creds/nomad-server" }}{{ .Data.token }}{{ end }}"
           }
-        '';
-      };
+        }
+      '';
+    };
 
     "/run/keys/nomad-consul-token" = lib.mkIf config.services.nomad.enable {
-      command = "${restart} nomad.service";
+      command = restart "nomad.service";
       contents = ''
         {{- with secret "consul/creds/nomad-server" }}{{ .Data.token }}{{ end -}}
       '';
     };
 
-    "/run/keys/nomad-autoscaler-token" =
-      lib.mkIf config.services.nomad-autoscaler.enable {
-        command = "${reload} nomad-autoscaler.service";
-        contents = ''
-          {{- with secret "nomad/creds/nomad-autoscaler" }}{{ .Data.secret_id }}{{ end -}}
-        '';
-      };
+    "/run/keys/nomad-autoscaler-token" = lib.mkIf config.services.nomad-autoscaler.enable {
+      command = reload "nomad-autoscaler.service";
+      contents = ''
+        {{- with secret "nomad/creds/nomad-autoscaler" }}{{ .Data.secret_id }}{{ end -}}
+      '';
+    };
 
-    "/run/keys/nomad-snapshot-token" =
-      lib.mkIf config.services.nomad-snapshots.enable {
-        contents = ''
-          {{- with secret "nomad/creds/management" }}{{ .Data.secret_id }}{{ end -}}
-        '';
-      };
+    "/run/keys/nomad-snapshot-token" = lib.mkIf config.services.nomad-snapshots.enable {
+      contents = ''
+        {{- with secret "nomad/creds/management" }}{{ .Data.secret_id }}{{ end -}}
+      '';
+    };
 
   };
 }

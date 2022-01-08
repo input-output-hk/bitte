@@ -10,20 +10,13 @@
   Config = {
     services.vault-agent = {
       role = "client";
-      vaultAddress = "https://vault.${config.cluster.domain}";
+      vaultAddress = "https://vault.${config.cluster.domain}"; # avoid depending on consul
       cache.useAutoAuthToken = true;
-      listener = [
-        {
-          type = "tcp";
-          address = "127.0.0.1:8200";
-          tlsDisable = true;
-        }
-        {
+      listener = [{
           type = "tcp";
           address = "172.17.0.1:8200";
           tlsDisable = true;
-        }
-      ];
+      }];
     };
 
     systemd.services.certs-updated = {
@@ -58,8 +51,6 @@
         touch /etc/ssl/certs/.last_restart
       '';
     };
-
-    environment.variables.VAULT_ADDR = "http://127.0.0.1:8200";
   };
 
 in Imports // lib.mkMerge [

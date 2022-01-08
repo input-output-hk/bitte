@@ -70,6 +70,7 @@ in {
     };
 
     "/etc/consul.d/tokens.json" = lib.mkIf config.services.consul.enable {
+      command = restart "consul";
       contents = ''
         {
           "encrypt": "{{ with secret "kv/bootstrap/clients/consul" }}{{ .Data.data.encrypt }}{{ end }}",
@@ -81,25 +82,24 @@ in {
           }
         }
       '';
-      command = restart "consul";
     };
 
-    "/run/keys/consul-default-token" =
-      lib.mkIf config.services.consul.enable {
-        contents = ''
-          ${consulDefaultToken}
-        '';
-        command = restart "consul.service";
-      };
-
-    "/run/keys/nomad-consul-token" = lib.mkIf config.services.nomad.enable {
+    "/run/keys/consul-default-token" = lib.mkIf config.services.consul.enable {
+      command = restart "consul.service";
       contents = ''
         ${consulDefaultToken}
       '';
+    };
+
+    "/run/keys/nomad-consul-token" = lib.mkIf config.services.nomad.enable {
       command = restart "nomad.service";
+      contents = ''
+        ${consulDefaultToken}
+      '';
     };
 
     "/etc/vault.d/consul-token.json" =  lib.mkIf config.services.vault.enable {
+      command = reload "vault.service";
       contents = ''
         {{ with secret "consul/creds/vault-client" }}
         {
@@ -121,7 +121,6 @@ in {
         }
         {{ end }}
       '';
-      command = reload "vault.service";
     };
   };
 }

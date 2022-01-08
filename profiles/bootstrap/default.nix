@@ -157,8 +157,7 @@ in {
 
       environment = {
         inherit (config.environment.variables)
-          AWS_DEFAULT_REGION VAULT_CACERT VAULT_FORMAT;
-        VAULT_ADDR = "https://127.0.0.1:8200";
+          AWS_DEFAULT_REGION VAULT_CACERT VAULT_FORMAT VAULT_ADDR;
       };
 
       path = with pkgs; [ sops vault-bin consul nomad coreutils jq curl ];
@@ -326,8 +325,7 @@ in {
 
       environment = {
         inherit (config.environment.variables)
-          AWS_DEFAULT_REGION VAULT_CACERT VAULT_FORMAT;
-        VAULT_ADDR = "https://127.0.0.1:8200/";
+          AWS_DEFAULT_REGION VAULT_CACERT VAULT_FORMAT VAULT_ADDR;
       };
 
       path = with pkgs; [
