@@ -1,10 +1,19 @@
 { config, lib, pkgs, ... }: let
 
-  Imports = { imports = [ ./common.nix ]; };
+  Imports = { imports = [ ]; };
 
-  Switches = {};
+  Switches = {
+    services.vault-agent-client.enable = true;
+  };
 
-  Config = {};
+  Config = {
+    services.vault-agent-client = {
+      disableTokenRotation = {
+        consulAgent = true;
+        consulDefault = true;
+      };
+    };
+  };
 
 in Imports // lib.mkMerge [
   Switches
