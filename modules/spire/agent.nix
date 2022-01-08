@@ -1,5 +1,6 @@
 { config, lib, pkgs, ... }:
 let
+  # assumes: pkgs.spire-systemd-attestor
   srvName = "spire-agent";
   cfg = config.services.${srvName};
   settingsFormat = pkgs.formats.json {};
@@ -82,6 +83,10 @@ in {
     services.spire-agent.settings.WorkloadAttestor.unix.plugin_data = {
       discover_workload_path = true; # use nix store paths as selectors
       workload_size_limit = -1; # never calculate the hash, nix store path are already hashed
+    };
+    services.spire-agent.settings.WorkloadAttestor.systemd = {
+      plugin_cmd = "${pkgs.spire-systemd-attestor}/bin/systemd-attestor";
+      plugin_data = {};
     };
     # TODO: telemetry & health-checks
 
