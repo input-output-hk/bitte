@@ -85,6 +85,11 @@ in {
       default = [ ];
     };
 
+    sinks = lib.mkOption {
+      type = with lib.types; listOf attrs;
+      default = [ ];
+    };
+
     templates = lib.mkOption { type = with lib.types; attrsOf templateType; };
   };
 
@@ -99,14 +104,7 @@ in {
             type = cfg.autoAuthMethod;
             config = cfg.autoAuthConfig;
           }];
-
-          sinks = [{
-            sink = {
-              type = "file";
-              config = { path = "/run/keys/vault-token"; };
-              perms = "0644";
-            };
-          }];
+          inherit (cfg) sinks;
         };
 
         templates = lib.mapAttrs (name: value:
