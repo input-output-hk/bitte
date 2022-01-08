@@ -41,6 +41,7 @@ rec {
   spire-agent = spire.agent;
   spire-server = spire.server;
   spiffe-helper = prev.callPackage ./pkgs/spiffe-helper.nix { };
+  spire-systemd-attestor = prev.callPackage ./pkgs/spire-systemd-attestor.nix { };
 
   # XXX remove (also flake input) after nixpkgs bump that has vulnix 1.10.1
   vulnix = import inputs.vulnix {
