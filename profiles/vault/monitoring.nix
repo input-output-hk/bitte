@@ -3,7 +3,7 @@
   Imports = { imports = [
     ./common.nix
 
-    ./secrets-provisioning/core-secrets-templating.nix
+    ./secrets-provisioning/hashistack.nix
     ./secrets-provisioning/letsencrypt-ingress.nix
   ]; };
 

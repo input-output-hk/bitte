@@ -4,7 +4,7 @@
     ./common.nix
     ./policies.nix
 
-    ./secrets-provisioning/core-secrets-templating.nix
+    ./secrets-provisioning/hashistack.nix
   ]; };
 
   Switches = {

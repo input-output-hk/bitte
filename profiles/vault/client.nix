@@ -3,7 +3,7 @@
   Imports = { imports = [
     ./common.nix
 
-    ./secrets-provisioning/client-secrets-templating.nix
+    ./secrets-provisioning/hashistack.nix
     ./secrets-provisioning/host-identity.nix
   ]; };
 
