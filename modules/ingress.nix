@@ -17,7 +17,7 @@
       };
 
       serviceConfig = let
-        preScript = pkgs.writeShellScript "ingress-start-pre" ''
+        preScript = pkgs.writeBashChecked "ingress-start-pre" ''
           export PATH="${lib.makeBinPath [ pkgs.coreutils ]}"
           set -exuo pipefail
           cp ${pkiFiles.keyFile} consul-key.pem

@@ -422,7 +422,7 @@ in {
 
       serviceConfig = let
         preScript = let
-          start-pre = pkgs.writeShellScriptBin "consul-start-pre" ''
+          start-pre = pkgs.writeBashBinChecked "consul-start-pre" ''
             PATH="${lib.makeBinPath [ pkgs.coreutils ]}"
             set -exuo pipefail
             cp /etc/ssl/certs/cert-key.pem .
@@ -431,7 +431,7 @@ in {
         in "!${start-pre}/bin/consul-start-pre";
 
         postScript = let
-          start-post = pkgs.writeShellScriptBin "consul-start-post" ''
+          start-post = pkgs.writeBashBinChecked "consul-start-post" ''
             set -exuo pipefail
             PATH="${lib.makeBinPath [ pkgs.jq cfg.package pkgs.coreutils ]}"
             set +x
@@ -460,7 +460,7 @@ in {
         in "!${start-post}/bin/consul-start-post";
 
         reloadScript = let
-          reload = pkgs.writeShellScriptBin "consul-reload" ''
+          reload = pkgs.writeBashBinChecked "consul-reload" ''
             set -exuo pipefail
             PATH="${lib.makeBinPath [ pkgs.jq cfg.package pkgs.coreutils ]}"
             set +x

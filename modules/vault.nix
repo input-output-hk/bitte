@@ -309,14 +309,14 @@ in {
       };
 
       serviceConfig = let
-        preScript = pkgs.writeShellScriptBin "vault-start-pre" ''
+        preScript = pkgs.writeBashBinChecked "vault-start-pre" ''
           export PATH="${lib.makeBinPath [ pkgs.coreutils ]}"
           set -exuo pipefail
           cp /etc/ssl/certs/cert-key.pem .
           chown --reference . --recursive .
         '';
 
-        postScript = pkgs.writeShellScriptBin "vault-start-post" ''
+        postScript = pkgs.writeBashBinChecked "vault-start-post" ''
           export PATH="${lib.makeBinPath [ pkgs.coreutils pkgs.vault-bin ]}"
           while ! vault status; do sleep 3; done
         '';

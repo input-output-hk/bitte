@@ -41,7 +41,7 @@ in {
           RemainAfterExit = true;
           Restart = "on-failure";
           RestartSec = "10s";
-          ExecStartPre = pkgs.writeShellScript "check" ''
+          ExecStartPre = pkgs.writeBashChecked "check" ''
             ${pkgs.systemd}/bin/systemctl is-active nomad.service
           '';
         };

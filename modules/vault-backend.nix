@@ -19,7 +19,7 @@ in {
       };
 
       serviceConfig = let
-        execStartPre = pkgs.writeShellScriptBin "vault-backend-pre" ''
+        execStartPre = pkgs.writeBashBinChecked "vault-backend-pre" ''
           set -exuo pipefail
           export PATH="${lib.makeBinPath [ pkgs.coreutils ]}"
 

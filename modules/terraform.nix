@@ -990,13 +990,13 @@ in {
 
             config = lib.mkOption {
               type = lib.mkOptionType { name = "${name}-config"; };
-              apply = v: pkgs.writeShellScriptBin "${name}-config" copy;
+              apply = v: pkgs.writeBashBinChecked "${name}-config" copy;
             };
 
             plan = lib.mkOption {
               type = lib.mkOptionType { name = "${name}-plan"; };
               apply = v:
-                pkgs.writeShellScriptBin "${name}-plan" ''
+                pkgs.writeBashBinChecked "${name}-plan" ''
                   ${prepare}
 
                   terraform plan -out ${name}.plan "$@"
@@ -1006,7 +1006,7 @@ in {
             apply = lib.mkOption {
               type = lib.mkOptionType { name = "${name}-apply"; };
               apply = v:
-                pkgs.writeShellScriptBin "${name}-apply" ''
+                pkgs.writeBashBinChecked "${name}-apply" ''
                   ${prepare}
 
                   terraform apply ${name}.plan "$@"
@@ -1016,7 +1016,7 @@ in {
             terraform = lib.mkOption {
               type = lib.mkOptionType { name = "${name}-apply"; };
               apply = v:
-                pkgs.writeShellScriptBin "${name}-apply" ''
+                pkgs.writeBashBinChecked "${name}-apply" ''
                   ${prepare}
 
                   terraform $@

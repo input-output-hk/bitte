@@ -53,7 +53,7 @@ let
               scripts = lib.concatStringsSep "\n" (lib.mapAttrsToList
                 (name: value:
                   let
-                    script = pkgs.writeShellScriptBin name ''
+                    script = pkgs.writeBashBinChecked name ''
                       ## ${name}
 
                       set -euo pipefail
@@ -61,7 +61,7 @@ let
                       ${value}
                     '';
                   in "${script}/bin/${name}") config.secrets.generate);
-            in pkgs.writeShellScriptBin "generate-secrets" ''
+            in pkgs.writeBashBinChecked "generate-secrets" ''
               export PATH="$PATH:${
                 lib.makeBinPath (with pkgs; [ utillinux git ])
               }"

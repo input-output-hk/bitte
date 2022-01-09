@@ -1156,13 +1156,13 @@ in {
       };
 
       serviceConfig = let
-        start-pre = pkgs.writeShellScript "nomad-start-pre" ''
+        start-pre = pkgs.writeBashChecked "nomad-start-pre" ''
           PATH="${lib.makeBinPath [ pkgs.coreutils pkgs.busybox ]}"
           set -exuo pipefail
           # ${bittelib.ensureDependencies pkgs [ "consul" "vault" ]}
           cp /etc/ssl/certs/cert-key.pem .
           cp ${hashiTokens.vault} .
-          chown --reference . *.pem
+          chown --reference . ./*.pem
         '';
       in {
         ExecStartPre = "!${start-pre}";
@@ -1175,7 +1175,7 @@ in {
               "-plugin-dir"
               (toString cfg.pluginDir)
             ]);
-        in pkgs.writeShellScript "nomad" ''
+        in pkgs.writeBashChecked "nomad" ''
           # TODO: caching this
           set -euo pipefail
 

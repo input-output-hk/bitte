@@ -5,7 +5,7 @@ with lib;
 let
   cfg = config.services.telegraf;
 
-  preScript = pkgs.writeShellScriptBin "telegraf-start-pre" ''
+  preScript = pkgs.writeBashBinChecked "telegraf-start-pre" ''
     mkdir -p /etc/telegraf
 
     ${pkgs.jq}/bin/jq \
