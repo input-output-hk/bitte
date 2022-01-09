@@ -622,7 +622,7 @@ in {
         ExecStart = pkgs.writeBashChecked "nomad-autsocaler" ''
           set -euo pipefail
 
-          NOMAD_TOKEN="$(< ${builtins.basenameOf hashiTokens.nomad-autoscaler})"
+          NOMAD_TOKEN="$(< ${builtins.baseNameOf hashiTokens.nomad-autoscaler})"
           export NOMAD_TOKEN
           unset AWS_DEFAULT_REGION
 

@@ -117,7 +117,7 @@ in {
         LoadCredential = with cfg;
           lib.optional scanNomadJobs.enable
           (assert config.services.vault-agent.enable;
-            "vault-token:${hashiTokens.vault}")
+            "${builtins.baseNameOf hashiTokens.vault}:${hashiTokens.vault}")
           ++ lib.optional (sshKey != null) "ssh:${sshKey}"
           ++ lib.optional (netrcFile != null) "netrc:${netrcFile}";
       } // lib.optionalAttrs cfg.scanNomadJobs.enable {
@@ -217,7 +217,7 @@ in {
           } \
         | ${cfg.sink}
       '' + lib.optionalString cfg.scanNomadJobs.enable ''
-        export VAULT_TOKEN=$(< $CREDENTIALS_DIRECTORY/vault-token)
+        export VAULT_TOKEN=$(< $CREDENTIALS_DIRECTORY/${builtins.baseNameOf hashiTokens.vault})
         NOMAD_TOKEN=$(vault read -field secret_id nomad/creds/admin)
         sleep 5s # let nomad token be propagated to come into effect
 

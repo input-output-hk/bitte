@@ -1,4 +1,4 @@
-{ lib, config, pkgs, nodeName, bittelib, ... }:
+{ lib, config, pkgs, nodeName, bittelib, hashiTokens, ... }:
 let
   sanitize = obj:
     lib.getAttr (builtins.typeOf obj) {
@@ -280,7 +280,7 @@ in {
     };
   };
 
-  options.services.vault-consul-token.enable =
+  options.services.${hashiTokens.consul-vault-srv}.enable =
     lib.mkEnableOption "Enable Vault Consul Token";
 
   config = lib.mkIf cfg.enable {
@@ -349,8 +349,8 @@ in {
       };
     };
 
-    systemd.services.vault-consul-token =
-      lib.mkIf config.services.vault-consul-token.enable {
+    systemd.services.${hashiTokens.consul-vault-srv} =
+      lib.mkIf config.services.${hashiTokens.consul-vault-srv}.enable {
         after = [ "consul.service" ];
         wantedBy = [ "vault.service" ];
         before = [ "vault.service" ];
@@ -369,7 +369,7 @@ in {
         script = ''
           set -exuo pipefail
 
-          [ -s /etc/vault.d/consul-token.json ] && exit
+          [ -s ${hashiTokens.vaultd-consul-json} ] && exit
           [ -s /etc/consul.d/secrets.json ]
           jq -e .acl.tokens.master /etc/consul.d/secrets.json || exit
 
@@ -388,15 +388,15 @@ in {
             && (cfg.storage.raft.retryJoin != [ ])) then ''
               echo '{}' \
               | jq --arg token "$vaultToken" '.service_registration.consul.token = $token' \
-              > /etc/vault.d/consul-token.json.new
+              > ${hashiTokens.vaultd-consul-json}.new
             '' else ''
               echo '{}' \
               | jq --arg token "$vaultToken" '.storage.consul.token = $token' \
               | jq --arg token "$vaultToken" '.service_registration.consul.token = $token' \
-              > /etc/vault.d/consul-token.json.new
+              > ${hashiTokens.vaultd-consul-json}.new
             ''}
 
-          mv /etc/vault.d/consul-token.json.new /etc/vault.d/consul-token.json
+          mv ${hashiTokens.vaultd-consul-json}.new ${hashiTokens.vaultd-consul-json}
         '';
       };
 

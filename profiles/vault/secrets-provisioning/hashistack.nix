@@ -74,7 +74,7 @@ in {
       };
 
 
-      "/etc/consul.d/tokens.json" = lib.mkIf config.services.consul.enable ( if isClient
+      ${hashiTokens.consuld-json} = lib.mkIf config.services.consul.enable ( if isClient
         then {
           command = restart-client "consul";
           contents = ''
@@ -99,7 +99,7 @@ in {
         });
 
       # TODO: remove duplication
-      "/etc/nomad.d/consul-token.json" = lib.mkIf (config.services.nomad.enable && !isClient) {
+      ${hashiTokens.nomadd-consul-json} = lib.mkIf (config.services.nomad.enable && !isClient) {
         command = restart-server "nomad.service";
         contents = ''
           {
@@ -107,22 +107,6 @@ in {
               "token": "{{ with secret "consul/creds/nomad-server" }}{{ .Data.token }}{{ end }}"
             }
           }
-        '';
-      };
-
-      "/etc/vault.d/consul-token.json" =  lib.mkIf (config.services.vault.enable && isClient) {
-        command = reload-client "vault.service";
-        contents = ''
-          {{ with secret "consul/creds/vault-client" }}
-          {
-            "service_registration": {
-              "consul": {
-                "token": "{{ .Data.token }}",
-                "address": "127.0.0.1:8500",
-              }
-            }
-          }
-          {{ end }}
         '';
       };
     };

@@ -15,9 +15,14 @@ let
   };
 
   hashiTokens = {
+    vaultd-consul-json = "/etc/vault.d/consul-token.json";
+    nomadd-consul-json = "/etc/nomad.d/consul-token.json";
+    consuld-json = "/etc/consul.d/tokens.json";
+
     vault = "/run/keys/vault-token";
     consul-default = "/run/keys/consul-default-token";
     consul-nomad = "/run/keys/consul-nomad-token";
+    consul-vault-srv = "vault-consul-token";
     nomad-snapshot = "/run/keys/nomad-snapshot-token";
     nomad-autoscaler = "/run/keys/nomad-autoscaler-token";
   };

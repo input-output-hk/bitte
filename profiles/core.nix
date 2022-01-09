@@ -1,4 +1,4 @@
-{ self, pkgs, config, lib, nodeName, ... }: {
+{ self, pkgs, config, lib, nodeName, hashiTokens, ... }: {
 
   imports = [
     ./common.nix
@@ -10,7 +10,7 @@
   services = {
     nomad.enable = true;
     telegraf.extraConfig.global_tags.role = "consul-server";
-    vault-consul-token.enable = true;
+    ${hashiTokens.consul-vault-srv}.enable = true;
     consul.enableDebug = false;
   };
 

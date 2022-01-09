@@ -1,4 +1,4 @@
-{ lib, pkgs, config, bittelib, pkiFiles, ... }:
+{ lib, pkgs, config, bittelib, pkiFiles, hashiTokens, ... }:
 
 let
   cfg = config.services.bootstrap;
@@ -97,7 +97,7 @@ in {
           # Consul #
           ##########
 
-          if [ ! -s /etc/consul.d/tokens.json ]; then
+          if [ ! -s ${hashiTokens.consuld-json} ]; then
             default="$(${
               mkToken "consul-server-default" "consul-server-default"
             })"
@@ -109,9 +109,9 @@ in {
               --arg default "$default" \
               --arg agent "$agent" \
               '.acl.tokens = { default: $default, agent: $agent }' \
-            > /etc/consul.d/tokens.json.new
+            > ${hashiTokens.consuld-json}.new
 
-            mv /etc/consul.d/tokens.json.new /etc/consul.d/tokens.json
+            mv ${hashiTokens.consuld-json}.new ${hashiTokens.consuld-json}
 
             systemctl restart consul.service
           fi
@@ -120,16 +120,16 @@ in {
           # Nomad #
           # # # # #
 
-          if [ ! -s /etc/nomad.d/consul-token.json ]; then
+          if [ ! -s ${hashiTokens.nomadd-consul-json} ]; then
             nomad="$(${mkToken "nomad-server" "nomad-server"})"
 
             mkdir -p /etc/nomad.d
 
             echo '{}' \
             | jq --arg nomad "$nomad" '.consul.token = $nomad' \
-            > /etc/nomad.d/consul-token.json.new
+            > ${hashiTokens.nomadd-consul-json}.new
 
-            mv /etc/nomad.d/consul-token.json.new /etc/nomad.d/consul-token.json
+            mv ${hashiTokens.nomadd-consul-json}.new ${hashiTokens.nomadd-consul-json}
           fi
 
           ################
@@ -141,7 +141,7 @@ in {
       };
 
     systemd.services.vault-setup = lib.mkIf config.services.vault.enable {
-      after = [ "consul-acl.service" "vault-consul-token.service" ];
+      after = [ "consul-acl.service" "${hashiTokens.consul-vault-srv}.service" ];
       wantedBy = [ "multi-user.target" ];
 
       serviceConfig = {
@@ -151,7 +151,7 @@ in {
         RestartSec = "20s";
         ExecStartPre = bittelib.ensureDependencies pkgs [
           "consul-acl"
-          "vault-consul-token"
+          "${hashiTokens.consul-vault-srv}"
         ];
       };
 
@@ -308,7 +308,7 @@ in {
       after = [
         "consul-initial-tokens.service"
         "vault.service"
-        "vault-consul-token.service"
+        "${hashiTokens.consul-vault-srv}.service"
       ];
       wantedBy = [ "multi-user.target" ];
 
@@ -319,7 +319,7 @@ in {
         RestartSec = "20s";
         ExecStartPre = bittelib.ensureDependencies pkgs [
           "consul-initial-tokens"
-          "vault-consul-token"
+          "${hashiTokens.consul-vault-srv}"
         ];
       };
 
