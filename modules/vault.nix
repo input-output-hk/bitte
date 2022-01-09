@@ -384,17 +384,9 @@ in {
             | jq -e -r .SecretID
           )"
 
-          ${if ((lib.hasAttrByPath [ "storage" "raft" "retryJoin" ] cfg)
-            && (cfg.storage.raft.retryJoin != [ ])) then ''
-              echo '{}' \
-              | jq --arg token "$vaultToken" '.service_registration.consul.token = $token' \
-              > ${hashiTokens.vaultd-consul-json}.new
-            '' else ''
-              echo '{}' \
-              | jq --arg token "$vaultToken" '.storage.consul.token = $token' \
-              | jq --arg token "$vaultToken" '.service_registration.consul.token = $token' \
-              > ${hashiTokens.vaultd-consul-json}.new
-            ''}
+          echo '{}' \
+          | jq --arg token "$vaultToken" '.service_registration.consul.token = $token' \
+          > ${hashiTokens.vaultd-consul-json}.new
 
           mv ${hashiTokens.vaultd-consul-json}.new ${hashiTokens.vaultd-consul-json}
         '';
