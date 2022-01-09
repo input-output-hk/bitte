@@ -8,8 +8,7 @@
     services.dnsmasq.enable = true;
   };
 
-  Config = let ownedKey = "/var/lib/consul/cert-key.pem";
-  in {
+  Config = {
     services.consul = {
       addresses = { http = lib.mkDefault "127.0.0.1"; };
 
@@ -25,7 +24,7 @@
 
       caFile = pkiFiles.caCertFile;
       certFile = pkiFiles.certChainFile;
-      keyFile = ownedKey;
+      keyFile = "./CREDENTIALS_DIRECTORY/${builtins.baseNameOf pkiFiles.keyFile}";
 
       telemetry = {
         dogstatsdAddr = "localhost:8125";

@@ -421,15 +421,6 @@ in {
       path = with pkgs; [ envoy ];
 
       serviceConfig = let
-        preScript = let
-          start-pre = pkgs.writeBashBinChecked "consul-start-pre" ''
-            PATH="${lib.makeBinPath [ pkgs.coreutils ]}"
-            set -exuo pipefail
-            cp /etc/ssl/certs/cert-key.pem .
-            chown --reference . --recursive .
-          '';
-        in "!${start-pre}/bin/consul-start-pre";
-
         postScript = let
           start-post = pkgs.writeBashBinChecked "consul-start-post" ''
             set -exuo pipefail
@@ -482,17 +473,15 @@ in {
               # Unknown state, should never reach this.
               exit 6
             fi
-
-            set -x
-            cd /var/lib/consul/
-            cp /etc/ssl/certs/cert-key.pem .
-            chown --reference . --recursive .
             consul reload
           '';
         in "!${reload}/bin/consul-reload";
       in {
-        ExecStartPre = preScript;
+        LoadCredential = [
+          "${builtins.baseNameOf pkiFiles.keyFile}:${pkiFiles.keyFile}"
+        ];
         ExecReload = reloadScript;
+        ExecStartPre = [ "!${pkgs.start-pre-symlink-credentials-directory}" ];
         ExecStart =
           "@${cfg.package}/bin/consul consul agent -config-dir /etc/${cfg.configDir}";
         ExecStartPost = [ postScript ];

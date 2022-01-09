@@ -1,4 +1,4 @@
-{ lib, config, pkgs, nodeName, bittelib, hashiTokens, ... }:
+{ lib, config, pkgs, nodeName, bittelib, hashiTokens, pkiFiles, ... }:
 let
   sanitize = obj:
     lib.getAttr (builtins.typeOf obj) {
@@ -309,19 +309,15 @@ in {
       };
 
       serviceConfig = let
-        preScript = pkgs.writeBashBinChecked "vault-start-pre" ''
-          export PATH="${lib.makeBinPath [ pkgs.coreutils ]}"
-          set -exuo pipefail
-          cp /etc/ssl/certs/cert-key.pem .
-          chown --reference . --recursive .
-        '';
-
         postScript = pkgs.writeBashBinChecked "vault-start-post" ''
           export PATH="${lib.makeBinPath [ pkgs.coreutils pkgs.vault-bin ]}"
           while ! vault status; do sleep 3; done
         '';
       in {
-        ExecStartPre = "!${preScript}/bin/vault-start-pre";
+        LoadCredential = [
+          "${builtins.baseNameOf pkiFiles.keyFile}:${pkiFiles.keyFile}"
+        ];
+        ExecStartPre = [ "!${pkgs.start-pre-symlink-credentials-directory}" ];
         ExecStart =
           "@${pkgs.vault-bin}/bin/vault vault server -config /etc/${cfg.configDir}";
 

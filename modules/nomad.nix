@@ -1160,15 +1160,14 @@ in {
           PATH="${lib.makeBinPath [ pkgs.coreutils pkgs.busybox ]}"
           set -exuo pipefail
           # ${bittelib.ensureDependencies pkgs [ "consul" "vault" ]}
-          cp /etc/ssl/certs/cert-key.pem .
-          chown --reference . ./*.pem
         '';
       in {
         LoadCredential = [
           "${builtins.baseNameOf hashiTokens.vault}:${hashiTokens.vault}"
           "${builtins.baseNameOf hashiTokens.consul-nomad}:${hashiTokens.consul-nomad}"
+          "${builtins.baseNameOf pkiFiles.keyFile}:${pkiFiles.keyFile}"
         ];
-        ExecStartPre = "!${start-pre}";
+        ExecStartPre = [ "!${start-pre}" "!${pkgs.start-pre-symlink-credentials-directory}" ];
         ExecStart = let
           args = [ "${cfg.package}/bin/nomad" "agent" ]
             ++ (lib.optionals (cfg.configDir != null) [

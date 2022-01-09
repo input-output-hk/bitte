@@ -60,6 +60,18 @@ rec {
     };
   });
 
+  # common pre-start-script to symlink the systemd credentials directory into
+  # the working directory to work around configuration that cannot interpolate
+  # environment variables natively
+  start-pre-symlink-credentials-directory = pkgs.writeShellScript "symlink-credentials-directory" ''
+    PATH="${lib.makeBinPath [ pkgs.coreutils ]}"
+    set -exuo pipefail
+
+    # hashicorp config cannot natively interpolate env variables
+    ln -s $CREDENTIALS_DIRECTORY ./CREDENTIALS_DIRECTORY
+  '';
+
+
   # Little convenience function helping us to containing the bash
   # madness: forcing our bash scripts to be shellChecked.
   writeBashChecked = final.writers.makeScriptWriter {

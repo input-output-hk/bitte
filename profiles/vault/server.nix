@@ -13,8 +13,7 @@
     services.vault.ui = true;
   };
 
-  Config = let ownedKey = "/var/lib/vault/cert-key.pem";
-  in {
+  Config = {
     services.vault-agent = {
       role = "core";
       vaultAddress = "https://127.0.0.1:8200"; # avoid depending on any network (at least for the agent)
@@ -31,7 +30,7 @@
         address = "0.0.0.0:8200";
         tlsClientCaFile = pkiFiles.caCertFile;
         tlsCertFile = pkiFiles.certChainFile;
-        tlsKeyFile = ownedKey;
+        tlsKeyFile = "./CREDENTIALS_DIRECTORY/${builtins.baseNameOf pkiFiles.keyFile}";
         tlsMinVersion = "tls12";
       };
 

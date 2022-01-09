@@ -8,8 +8,7 @@
     services.nomad.vault.enabled = true;
   };
 
-  Config = let ownedKey = "/var/lib/nomad/cert-key.pem";
-  in {
+  Config = {
 
     environment.variables = {
       NOMAD_ADDR =
@@ -35,14 +34,14 @@
         rpc = true;
         ca_file = pkiFiles.caCertFile;
         cert_file = pkiFiles.certChainFile;
-        key_file = ownedKey;
+        key_file = "./CREDENTIALS_DIRECTORY/${builtins.baseNameOf pkiFiles.keyFile}";
         tls_min_version = "tls12";
       };
 
       vault = {
         # ca_file = pkiFiles.caCertFile;
         # cert_file = pkiFiles.certChainFile;
-        # key_file = ownedKey;
+        # key_file = "./CREDENTIALS_DIRECTORY/${builtins.baseNameOf pkiFiles.keyFile}";
         create_from_role = "nomad-cluster";
       };
 
@@ -52,7 +51,7 @@
         allow_unauthenticated = true;
         ca_file = pkiFiles.caCertFile;
         cert_file = pkiFiles.certChainFile;
-        key_file = ownedKey;
+        key_file = "./CREDENTIALS_DIRECTORY/${builtins.baseNameOf pkiFiles.keyFile}";
       };
 
       telemetry = {
