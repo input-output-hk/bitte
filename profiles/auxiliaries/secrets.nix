@@ -1,4 +1,4 @@
-{ self, lib, pkgs, config, ... }:
+{ self, lib, pkgs, config, pkiFiles, ... }:
 let
   sopsEncrypt =
     "${pkgs.sops}/bin/sops --encrypt --input-type json --kms '${config.cluster.kms}' /dev/stdin";
@@ -184,13 +184,11 @@ in {
       export PATH="${lib.makeBinPath (with pkgs; [ cfssl jq coreutils ])}"
       cert="$(${sopsDecrypt (config.secrets.encryptedRoot + "/cert.json")})"
       echo "$cert" | cfssljson -bare cert
-      echo "$cert" | jq -r -e .ca  > "ca.pem"
-      echo "$cert" | jq -r -e .full  > "full.pem"
+      cp ${builtins.baseNameOf pkiFiles.certFile} ${pkiFiles.certFile}
+      cp ${builtins.baseNameOf pkiFiles.keyFile} ${pkiFiles.keyFile}
 
-      for pem in *.pem; do
-      [ -s "$pem" ]
-      cp "$pem" "/etc/ssl/certs/$pem"
-      done
+      echo "$cert" | jq -r -e .ca  > "${pkiFiles.caCertFile}"
+      echo "$cert" | jq -r -e .full  > "${pkiFiles.certChainFile}"
     '';
   };
 }

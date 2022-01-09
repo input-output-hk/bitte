@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }: let
+{ config, lib, pkgs, pkiFiles, ... }: let
 
   Imports = { imports = [
     ./common.nix
@@ -40,10 +40,10 @@
         set -exuo pipefail
 
         test -f /etc/ssl/certs/.last_restart || touch -d '2020-01-01' /etc/ssl/certs/.last_restart
-        [ -f /etc/ssl/certs/ca.pem ]
-        [ /etc/ssl/certs/full.pem -nt /etc/ssl/certs/.last_restart ]
-        [ /etc/ssl/certs/cert.pem -nt /etc/ssl/certs/.last_restart ]
-        [ /etc/ssl/certs/cert-key.pem -nt /etc/ssl/certs/.last_restart ]
+        [ -f ${pkiFiles.caCertFile} ]
+        [ ${pkiFiles.certChainFile} -nt /etc/ssl/certs/.last_restart ]
+        [ ${pkiFiles.certFile} -nt /etc/ssl/certs/.last_restart ]
+        [ ${pkiFiles.keyFile} -nt /etc/ssl/certs/.last_restart ]
 
         systemctl try-reload-or-restart consul.service
 
