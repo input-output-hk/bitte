@@ -1,4 +1,4 @@
-{ lib, config, pkgs, ... }:
+{ lib, config, pkgs, hashiTokens, ... }:
 let
   cfg = config.services.nomad-autoscaler;
   inherit (pkgs) sanitize;
@@ -616,13 +616,13 @@ in {
 
         ExecStartPre = pkgs.writeBashChecked "nomad-autoscaler-pre" ''
           set -exuo pipefail
-          cp /run/keys/nomad-autoscaler-token .
+          cp ${hashiTokens.nomad-autoscaler} .
         '';
 
         ExecStart = pkgs.writeBashChecked "nomad-autsocaler" ''
           set -euo pipefail
 
-          NOMAD_TOKEN="$(< nomad-autoscaler-token)"
+          NOMAD_TOKEN="$(< ${builtins.basenameOf hashiTokens.nomad-autoscaler})"
           export NOMAD_TOKEN
           unset AWS_DEFAULT_REGION
 

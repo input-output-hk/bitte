@@ -1,4 +1,4 @@
-{ config, lib, pkgs, pkiFiles, ... }: let
+{ config, lib, pkgs, hashiTokens, ... }: let
 
   clientsConsulAgentToken = if config.services.vault-agent.disableTokenRotation.consulAgent
   then ''{{ with secret "kv/bootstrap/static-tokens/clients/consul-agent" }}{{ .Data.data.token }}{{ end }}''
@@ -28,11 +28,52 @@ in {
     sinks = [{
       sink = {
         type = "file";
-        config = { path = "/run/keys/vault-token"; };
+        config = { path = hashiTokens.vault; };
         perms = "0644";
       };
     }];
     templates = {
+
+      ${hashiTokens.consul-default} = lib.mkIf config.services.consul.enable ( if isClient
+      then {
+        command = restart-client "consul.service";
+        contents = ''
+          ${clientsConsulDefaultToken}
+        '';
+      } else {
+        command = reload-server "consul.service";
+        contents = ''
+          ${coresConsulDefaultToken}
+        '';
+      });
+
+      ${hashiTokens.consul-nomad} = lib.mkIf config.services.nomad.enable ( if isClient
+      then {
+        command = restart-client "nomad.service";
+        contents = ''
+          ${clientsConsulDefaultToken}
+        '';
+      } else {
+        command = restart-server "nomad.service";
+        contents = ''
+          {{- with secret "consul/creds/nomad-server" }}{{ .Data.token }}{{ end -}}
+        '';
+      });
+
+      ${hashiTokens.nomad-autoscaler} = lib.mkIf (config.services.nomad-autoscaler.enable && !isClient) {
+        command = reload-server "nomad-autoscaler.service";
+        contents = ''
+          {{- with secret "nomad/creds/nomad-autoscaler" }}{{ .Data.secret_id }}{{ end -}}
+        '';
+      };
+
+      ${hashiTokens.nomad-snapshot} = lib.mkIf (config.services.nomad-snapshots.enable && !isClient) {
+        contents = ''
+          {{- with secret "nomad/creds/management" }}{{ .Data.secret_id }}{{ end -}}
+        '';
+      };
+
+
       "/etc/consul.d/tokens.json" = lib.mkIf config.services.consul.enable ( if isClient
         then {
           command = restart-client "consul";
@@ -57,32 +98,6 @@ in {
           '';
         });
 
-      "/run/keys/consul-default-token" = lib.mkIf config.services.consul.enable ( if isClient
-      then {
-        command = restart-client "consul.service";
-        contents = ''
-          ${clientsConsulDefaultToken}
-        '';
-      } else {
-        command = reload-server "consul.service";
-        contents = ''
-          ${coresConsulDefaultToken}
-        '';
-      });
-
-      "/run/keys/nomad-consul-token" = lib.mkIf config.services.nomad.enable ( if isClient
-      then {
-        command = restart-client "nomad.service";
-        contents = ''
-          ${clientsConsulDefaultToken}
-        '';
-      } else {
-        command = restart-server "nomad.service";
-        contents = ''
-          {{- with secret "consul/creds/nomad-server" }}{{ .Data.token }}{{ end -}}
-        '';
-      });
-
       # TODO: remove duplication
       "/etc/nomad.d/consul-token.json" = lib.mkIf (config.services.nomad.enable && !isClient) {
         command = restart-server "nomad.service";
@@ -95,33 +110,11 @@ in {
         '';
       };
 
-      "/run/keys/nomad-autoscaler-token" = lib.mkIf (config.services.nomad-autoscaler.enable && !isClient) {
-        command = reload-server "nomad-autoscaler.service";
-        contents = ''
-          {{- with secret "nomad/creds/nomad-autoscaler" }}{{ .Data.secret_id }}{{ end -}}
-        '';
-      };
-
-      "/run/keys/nomad-snapshot-token" = lib.mkIf (config.services.nomad-snapshots.enable && !isClient) {
-        contents = ''
-          {{- with secret "nomad/creds/management" }}{{ .Data.secret_id }}{{ end -}}
-        '';
-      };
-
       "/etc/vault.d/consul-token.json" =  lib.mkIf (config.services.vault.enable && isClient) {
         command = reload-client "vault.service";
         contents = ''
           {{ with secret "consul/creds/vault-client" }}
           {
-            "storage": {
-              "consul": {
-                "token": "{{ .Data.token }}",
-                "address": "127.0.0.1:8500",
-                "tlsCaFile": pkiFiles.caCertFile,
-                "tlsCertFile": pkiFiles.certChainFile,
-                "tlsKeyFile": "/var/lib/vault/cert-key.pem"
-              }
-            },
             "service_registration": {
               "consul": {
                 "token": "{{ .Data.token }}",

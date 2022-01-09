@@ -1,4 +1,4 @@
-{ config, pkgs, lib, nodeName, ... }:
+{ config, pkgs, lib, nodeName, hashiTokens, ... }:
 
 let
   cfg = config.services.vulnix;
@@ -116,8 +116,8 @@ in {
         StateDirectory = "vulnix";
         LoadCredential = with cfg;
           lib.optional scanNomadJobs.enable
-          (assert config.services.vault-agent-core.enable;
-            "vault-token:/run/keys/vault-token")
+          (assert config.services.vault-agent.enable;
+            "vault-token:${hashiTokens.vault}")
           ++ lib.optional (sshKey != null) "ssh:${sshKey}"
           ++ lib.optional (netrcFile != null) "netrc:${netrcFile}";
       } // lib.optionalAttrs cfg.scanNomadJobs.enable {

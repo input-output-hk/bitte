@@ -1,4 +1,4 @@
-{ self, lib, pkgs, config, nodeName, bittelib, ... }: {
+{ self, lib, pkgs, config, nodeName, bittelib, hashiTokens, ... }: {
 
   imports = [
     ./common.nix
@@ -60,7 +60,7 @@
           cp key.pem /etc/ssl/certs/${config.cluster.domain}-key.pem
           systemctl try-restart --no-block traefik.service
 
-          export VAULT_TOKEN="$(< /run/keys/vault-token)"
+          export VAULT_TOKEN="$(< ${hashiTokens.vault})"
           export VAULT_ADDR="http://127.0.0.1:8200"
           ${pkgs.vault}/bin/vault kv put kv/bootstrap/letsencrypt/key value=@key.pem
           ${pkgs.vault}/bin/vault kv put kv/bootstrap/letsencrypt/fullchain value=@fullchain.pem

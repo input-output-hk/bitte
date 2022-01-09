@@ -1,4 +1,4 @@
-{ pkgs, config, lib, pkiFiles, ... }: {
+{ pkgs, config, lib, pkiFiles, hashiTokens, ... }: {
   options = {
     services.ingress-config = {
       enable = lib.mkEnableOption "Enable Ingress configuration generation";
@@ -199,7 +199,7 @@
       script = ''
         set -euo pipefail
 
-        export VAULT_TOKEN="$(< /run/keys/vault-token)"
+        export VAULT_TOKEN="$(< ${hashiTokens.vault})"
         CONSUL_HTTP_TOKEN="$(vault read -field token consul/creds/ingress)"
         export CONSUL_HTTP_TOKEN
 

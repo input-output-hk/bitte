@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, hashiTokens, ... }:
 
 let
   cfg = config.services.vault-snapshots;
@@ -170,7 +170,7 @@ let
 
         exportToken () {
           set +x
-          VAULT_TOKEN="$(< /run/keys/vault-token)"
+          VAULT_TOKEN="$(< ${hashiTokens.vault})"
           export VAULT_TOKEN
           set -x
         }

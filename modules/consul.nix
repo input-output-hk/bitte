@@ -1,4 +1,4 @@
-{ config, lib, pkgs, bittelib, ... }:
+{ config, lib, pkgs, bittelib, hashiTokens, ... }:
 let
   cfg = config.services.consul;
 
@@ -437,9 +437,9 @@ in {
             set +x
 
             # During bootstrap the vault generated token are not yet available
-            if [ -s /run/keys/consul-default-token ]
+            if [ -s ${hashiTokens.consul-default} ]
             then
-              CONSUL_HTTP_TOKEN="$(< /run/keys/consul-default-token)"
+              CONSUL_HTTP_TOKEN="$(< ${hashiTokens.consul-default})"
               export CONSUL_HTTP_TOKEN
             # Therefore, on core nodes, use the sops out-of-band bootstrapped master token
             elif [ -s /etc/consul.d/secrets.json ]
@@ -466,9 +466,9 @@ in {
             set +x
 
             # During bootstrap the vault generated token are not yet available
-            if [ -s /run/keys/consul-default-token ]
+            if [ -s ${hashiTokens.consul-default} ]
             then
-              CONSUL_HTTP_TOKEN="$(< /run/keys/consul-default-token)"
+              CONSUL_HTTP_TOKEN="$(< ${hashiTokens.consul-default})"
               export CONSUL_HTTP_TOKEN
             # Therefore, on core nodes, use the sops out-of-band bootstrapped master token
             elif [ -s /etc/consul.d/secrets.json ]

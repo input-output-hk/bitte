@@ -1,4 +1,4 @@
-{ self, lib, pkgs, nodeName, config, bittelib, ... }:
+{ self, lib, pkgs, nodeName, config, bittelib, hashiTokens, ... }:
 let
   cfg = config.services.nomad;
 
@@ -1161,7 +1161,7 @@ in {
           set -exuo pipefail
           # ${bittelib.ensureDependencies pkgs [ "consul" "vault" ]}
           cp /etc/ssl/certs/cert-key.pem .
-          cp /run/keys/vault-token .
+          cp ${hashiTokens.vault} .
           chown --reference . *.pem
         '';
       in {
@@ -1180,7 +1180,7 @@ in {
           set -euo pipefail
 
           ${lib.optionalString cfg.server.enabled ''
-            VAULT_TOKEN="$(< vault-token)"
+            VAULT_TOKEN="$(< ${builtins.baseNameOf hashiTokens.vault})"
             export VAULT_TOKEN
 
             token="$(vault token create -policy ${cfg.tokenPolicy} -period 72h -orphan -field token)"
@@ -1189,7 +1189,7 @@ in {
 
           exec ${
             lib.concatStringsSep " " args
-          } -consul-token "$(< /run/keys/nomad-consul-token)"
+          } -consul-token "$(< ${hashiTokens.consul-nomad})"
         '';
 
         KillMode = "process";

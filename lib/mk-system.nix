@@ -14,6 +14,14 @@ let
     keyFile = "/etc/ssl/certs/cert-key.pem";
   };
 
+  hashiTokens = {
+    vault = "/run/keys/vault-token";
+    consul-default = "/run/keys/consul-default-token";
+    consul-nomad = "/run/keys/consul-nomad-token";
+    nomad-snapshot = "/run/keys/nomad-snapshot-token";
+    nomad-autoscaler = "/run/keys/nomad-autoscaler-token";
+  };
+
   showWarningsAndAssertions = { lib, config, ... }:
     let
       failedAssertions =
@@ -42,7 +50,7 @@ let
           [ showWarningsAndAssertions bitte.nixosModule specializationModule ]
           ++ modules;
         specialArgs = {
-          inherit nodeName self inputs pkiFiles;
+          inherit nodeName self inputs pkiFiles hashiTokens;
           inherit (bitte.inputs) terranix;
           bittelib = bitte.lib;
           inherit (bitte.lib) terralib;

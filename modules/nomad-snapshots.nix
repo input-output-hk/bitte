@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, hashiTokens, ... }:
 
 let
   cfg = config.services.nomad-snapshots;
@@ -168,13 +168,13 @@ let
         }
 
         exportToken () {
-          if [ ! -f /run/keys/nomad-snapshot-token ]; then
+          if [ ! -f ${hashiTokens.nomad-snapshot} ]; then
             echo "Suitable nomad token for snapshotting not found."
             echo "Ensure the appropriate token for snapshotting is available.";
             exit 0;
           else
             set +x
-            NOMAD_TOKEN="$(< /run/keys/nomad-snapshot-token)"
+            NOMAD_TOKEN="$(< ${hashiTokens.nomad-snapshot})"
             export NOMAD_TOKEN
             set -x
           fi
