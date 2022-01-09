@@ -1161,10 +1161,13 @@ in {
           set -exuo pipefail
           # ${bittelib.ensureDependencies pkgs [ "consul" "vault" ]}
           cp /etc/ssl/certs/cert-key.pem .
-          cp ${hashiTokens.vault} .
           chown --reference . ./*.pem
         '';
       in {
+        LoadCredential = [
+          "${builtins.baseNameOf hashiTokens.vault}:${hashiTokens.vault}"
+          "${builtins.baseNameOf hashiTokens.consul-nomad}:${hashiTokens.consul-nomad}"
+        ];
         ExecStartPre = "!${start-pre}";
         ExecStart = let
           args = [ "${cfg.package}/bin/nomad" "agent" ]
@@ -1180,7 +1183,7 @@ in {
           set -euo pipefail
 
           ${lib.optionalString cfg.server.enabled ''
-            VAULT_TOKEN="$(< ${builtins.baseNameOf hashiTokens.vault})"
+            VAULT_TOKEN="$(< $CREDENTIALS_DIRECTORY/${builtins.baseNameOf hashiTokens.vault})"
             export VAULT_TOKEN
 
             token="$(vault token create -policy ${cfg.tokenPolicy} -period 72h -orphan -field token)"
@@ -1189,7 +1192,7 @@ in {
 
           exec ${
             lib.concatStringsSep " " args
-          } -consul-token "$(< ${hashiTokens.consul-nomad})"
+          } -consul-token "$(< $CREDENTIALS_DIRECTORY/${builtins.baseNameOf hashiTokens.consul-nomad})"
         '';
 
         KillMode = "process";

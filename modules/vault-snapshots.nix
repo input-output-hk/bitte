@@ -148,6 +148,9 @@ let
       Type = "oneshot";
       Restart = "on-failure";
       RestartSec = "30s";
+      LoadCredential = [
+        "${builtins.baseNameOf hashiTokens.vault}:${hashiTokens.vault}"
+      ];
       ExecStart = pkgs.writeBashChecked "vault-snapshot-${job}-script" ''
         set -exuo pipefail
 
@@ -170,7 +173,7 @@ let
 
         exportToken () {
           set +x
-          VAULT_TOKEN="$(< ${hashiTokens.vault})"
+          VAULT_TOKEN="$(< "$CREDENTIALS_DIRECTORY"/${builtins.baseNameOf hashiTokens.vault})"
           export VAULT_TOKEN
           set -x
         }

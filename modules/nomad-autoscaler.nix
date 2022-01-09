@@ -609,20 +609,18 @@ in {
       serviceConfig = {
         StateDirectory = "nomad-autoscaler";
         RuntimeDirectory = "nomad-autoscaler";
+        LoadCredential = [
+          "${builtins.baseNameOf hashiTokens.nomad-autoscaler}:${hashiTokens.nomad-autoscaler}"
+        ];
+
 
         # DynamicUser = true;
         # User = "nomad-autoscaler";
         # Group = "nomad-autoscaler";
 
-        ExecStartPre = pkgs.writeBashChecked "nomad-autoscaler-pre" ''
-          set -exuo pipefail
-          cp ${hashiTokens.nomad-autoscaler} .
-        '';
-
         ExecStart = pkgs.writeBashChecked "nomad-autsocaler" ''
           set -euo pipefail
-
-          NOMAD_TOKEN="$(< ${builtins.baseNameOf hashiTokens.nomad-autoscaler})"
+          NOMAD_TOKEN="$(< $CREDENTIALS_DIRECTORY/${builtins.baseNameOf hashiTokens.nomad-autoscaler})"
           export NOMAD_TOKEN
           unset AWS_DEFAULT_REGION
 

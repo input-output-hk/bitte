@@ -181,6 +181,9 @@
         TimeoutStopSec = "30s";
         RestartSec = "10s";
         Restart = "on-failure";
+        LoadCredential = [
+          "${builtins.baseNameOf hashiTokens.vault}:${hashiTokens.vault}"
+        ];
       };
 
       unitConfig = {
@@ -199,7 +202,7 @@
       script = ''
         set -euo pipefail
 
-        export VAULT_TOKEN="$(< ${hashiTokens.vault})"
+        export VAULT_TOKEN="$(< $CREDENTIALS_DIRECTORY/${builtins.baseNameOf hashiTokens.vault})"
         CONSUL_HTTP_TOKEN="$(vault read -field token consul/creds/ingress)"
         export CONSUL_HTTP_TOKEN
 

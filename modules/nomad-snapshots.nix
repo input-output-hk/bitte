@@ -147,6 +147,9 @@ let
       Type = "oneshot";
       Restart = "on-failure";
       RestartSec = "30s";
+      LoadCredential = [
+        "${builtins.baseNameOf hashiTokens.nomad-snapshot}:${hashiTokens.nomad-snapshot}"
+      ];
       ExecStart = pkgs.writeBashChecked "nomad-snapshot-${job}-script" ''
         set -exuo pipefail
 
@@ -168,16 +171,10 @@ let
         }
 
         exportToken () {
-          if [ ! -f ${hashiTokens.nomad-snapshot} ]; then
-            echo "Suitable nomad token for snapshotting not found."
-            echo "Ensure the appropriate token for snapshotting is available.";
-            exit 0;
-          else
-            set +x
-            NOMAD_TOKEN="$(< ${hashiTokens.nomad-snapshot})"
-            export NOMAD_TOKEN
-            set -x
-          fi
+          set +x
+          NOMAD_TOKEN=$(< "$CREDENTIALS_DIRECTORY/${builtins.baseNameOf hashiTokens.nomad-snapshot}")
+          export NOMAD_TOKEN
+          set -x
         }
 
         isNotLeader () {
