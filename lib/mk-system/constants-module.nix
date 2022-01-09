@@ -13,6 +13,11 @@
       keyFile = "/etc/ssl/certs/${config.cluster.domain}-key.pem";
     };
 
+    gossipEncryptionMaterial = {
+      nomad = "/etc/nomad.d/secrets.json";
+      consul = "/etc/consul.d/secrets.json";
+    };
+
     hashiTokens = {
       vaultd-consul-json = "/etc/vault.d/consul-token.json";
       nomadd-consul-json = "/etc/nomad.d/consul-token.json";

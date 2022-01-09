@@ -1,4 +1,4 @@
-{ lib, pkgs, config, bittelib, ... }:
+{ lib, pkgs, config, bittelib, gossipEncryptionMaterial, ... }:
 let
 
   consulIntentionsType = with lib.types;
@@ -271,7 +271,7 @@ in {
 
         # set +x
         CONSUL_HTTP_TOKEN="$(
-          jq -e -r '.acl.tokens.master' < /etc/consul.d/secrets.json
+          jq -e -r '.acl.tokens.master' < ${gossipEncryptionMaterial.consul}
         )"
         export CONSUL_HTTP_TOKEN
         # set -x

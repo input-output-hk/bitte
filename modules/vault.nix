@@ -1,4 +1,4 @@
-{ lib, config, pkgs, nodeName, bittelib, hashiTokens, ... }:
+{ lib, config, pkgs, nodeName, bittelib, hashiTokens, gossipEncryptionMaterial, ... }:
 let
   sanitize = obj:
     lib.getAttr (builtins.typeOf obj) {
@@ -370,10 +370,10 @@ in {
           set -exuo pipefail
 
           [ -s ${hashiTokens.vaultd-consul-json} ] && exit
-          [ -s /etc/consul.d/secrets.json ]
-          jq -e .acl.tokens.master /etc/consul.d/secrets.json || exit
+          [ -s ${gossipEncryptionMaterial.consul} ]
+          jq -e .acl.tokens.master ${gossipEncryptionMaterial.consul} || exit
 
-          CONSUL_HTTP_TOKEN="$(jq -e -r .acl.tokens.master /etc/consul.d/secrets.json)"
+          CONSUL_HTTP_TOKEN="$(jq -e -r .acl.tokens.master ${gossipEncryptionMaterial.consul})"
           export CONSUL_HTTP_TOKEN
 
           vaultToken="$(

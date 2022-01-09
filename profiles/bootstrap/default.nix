@@ -1,4 +1,4 @@
-{ lib, pkgs, config, bittelib, pkiFiles, hashiTokens, ... }:
+{ lib, pkgs, config, bittelib, pkiFiles, hashiTokens, gossipEncryptionMaterial, ... }:
 
 let
   cfg = config.services.bootstrap;
@@ -6,7 +6,7 @@ let
   exportConsulMaster = ''
     set +x
     CONSUL_HTTP_TOKEN="$(
-      ${pkgs.jq}/bin/jq -e -r '.acl.tokens.master' < /etc/consul.d/secrets.json
+      ${pkgs.jq}/bin/jq -e -r '.acl.tokens.master' < ${gossipEncryptionMaterial.consul}
     )"
     export CONSUL_HTTP_TOKEN
     set -x

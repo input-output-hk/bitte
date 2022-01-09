@@ -1,4 +1,4 @@
-{ config, lib, pkgs, bittelib, hashiTokens, ... }:
+{ config, lib, pkgs, bittelib, hashiTokens, gossipEncryptionMaterial, ... }:
 let
   cfg = config.services.consul;
 
@@ -442,12 +442,12 @@ in {
               CONSUL_HTTP_TOKEN="$(< ${hashiTokens.consul-default})"
               export CONSUL_HTTP_TOKEN
             # Therefore, on core nodes, use the sops out-of-band bootstrapped master token
-            elif [ -s /etc/consul.d/secrets.json ]
+            elif [ -s ${gossipEncryptionMaterial.consul} ]
             then
               # as of writing: core nodes are observed to posess the master token
               # while clients do not
-              jq -e .acl.tokens.master /etc/consul.d/secrets.json || exit 5
-              CONSUL_HTTP_TOKEN="$(jq -e -r .acl.tokens.master /etc/consul.d/secrets.json)"
+              jq -e .acl.tokens.master ${gossipEncryptionMaterial.consul} || exit 5
+              CONSUL_HTTP_TOKEN="$(jq -e -r .acl.tokens.master ${gossipEncryptionMaterial.consul})"
               export CONSUL_HTTP_TOKEN
             else
               # Unknown state, should never reach this.
@@ -471,12 +471,12 @@ in {
               CONSUL_HTTP_TOKEN="$(< ${hashiTokens.consul-default})"
               export CONSUL_HTTP_TOKEN
             # Therefore, on core nodes, use the sops out-of-band bootstrapped master token
-            elif [ -s /etc/consul.d/secrets.json ]
+            elif [ -s ${gossipEncryptionMaterial.consul} ]
             then
               # as of writing: core nodes are observed to posess the master token
               # while clients do not
-              jq -e .acl.tokens.master /etc/consul.d/secrets.json || exit 5
-              CONSUL_HTTP_TOKEN="$(jq -e -r .acl.tokens.master /etc/consul.d/secrets.json)"
+              jq -e .acl.tokens.master ${gossipEncryptionMaterial.consul} || exit 5
+              CONSUL_HTTP_TOKEN="$(jq -e -r .acl.tokens.master ${gossipEncryptionMaterial.consul})"
               export CONSUL_HTTP_TOKEN
             else
               # Unknown state, should never reach this.

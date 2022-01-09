@@ -1,4 +1,4 @@
-{ self, lib, pkgs, config, pkiFiles, ... }:
+{ self, lib, pkgs, config, pkiFiles, gossipEncryptionMaterial, ... }:
 let
   sopsEncrypt =
     "${pkgs.sops}/bin/sops --encrypt --input-type json --kms '${config.cluster.kms}' /dev/stdin";
@@ -93,17 +93,17 @@ in {
 
   secrets.install.nomad-server = lib.mkIf isInstance {
     source = config.secrets.encryptedRoot + "/nomad.json";
-    target = /etc/nomad.d/secrets.json;
+    target = gossipEncryptionMaterial.nomad;
   };
 
   secrets.install.consul-server = lib.mkIf isInstance {
     source = config.secrets.encryptedRoot + "/consul-core.json";
-    target = /etc/consul.d/secrets.json;
+    target = gossipEncryptionMaterial.consul;
   };
 
   secrets.install.consul-clients = lib.mkIf (!isInstance) {
     source = config.secrets.encryptedRoot + "/consul-clients.json";
-    target = /etc/consul.d/secrets.json;
+    target = gossipEncryptionMaterial.consul;
     script = ''
       ${pkgs.systemd}/bin/systemctl restart consul.service
     '';
