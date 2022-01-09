@@ -7,44 +7,6 @@
 # This is no contradiction.
 , self ? null, inputs ? null, modules ? [ ], nodeName ? null }:
 let
-  pkiFiles = {
-    caCertFile = "/etc/ssl/certs/ca.pem";
-    certChainFile = "/etc/ssl/certs/full.pem";
-    certFile = "/etc/ssl/certs/cert.pem";
-    keyFile = "/etc/ssl/certs/cert-key.pem";
-  };
-
-  hashiTokens = {
-    vaultd-consul-json = "/etc/vault.d/consul-token.json";
-    nomadd-consul-json = "/etc/nomad.d/consul-token.json";
-    consuld-json = "/etc/consul.d/tokens.json";
-
-    vault = "/run/keys/vault-token";
-    consul-default = "/run/keys/consul-default-token";
-    consul-nomad = "/run/keys/consul-nomad-token";
-    consul-vault-srv = "vault-consul-token";
-    nomad-snapshot = "/run/keys/nomad-snapshot-token";
-    nomad-autoscaler = "/run/keys/nomad-autoscaler-token";
-  };
-
-  showWarningsAndAssertions = { lib, config, ... }:
-    let
-      failedAssertions =
-        map (x: x.message) (lib.filter (x: !x.assertion) config.assertions);
-      validateConfig = if failedAssertions != [ ] then
-        throw ''
-
-          Failed assertions:
-          ${builtins.concatStringsSep "\n"
-          (map (x: "- ${x}") failedAssertions)}''
-      else
-        lib.showWarnings config.warnings;
-    in {
-      options.showWarningsAndAssertions = lib.mkOption {
-        type = with lib.types; bool;
-        default = validateConfig true;
-      };
-    };
 
   bitteSystem = specializationModule:
     let
@@ -52,10 +14,15 @@ let
         inherit pkgs;
         inherit (pkgs) system;
         modules =
-          [ showWarningsAndAssertions bitte.nixosModule specializationModule ]
+          [
+            ./mk-system/constants-module.nix
+            ./mk-system/show-warnings-and-assertions-module.nix
+            bitte.nixosModule
+            specializationModule
+          ]
           ++ modules;
         specialArgs = {
-          inherit nodeName self inputs pkiFiles hashiTokens;
+          inherit nodeName self inputs;
           inherit (bitte.inputs) terranix;
           bittelib = bitte.lib;
           inherit (bitte.lib) terralib;

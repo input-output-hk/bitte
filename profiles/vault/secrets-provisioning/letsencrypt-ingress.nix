@@ -1,32 +1,27 @@
-{ config, lib, pkgs, pkiFiles, ... }: let
+{ config, lib, pkgs, letsencryptCertMaterial, ... }: let
+
+  # assumes: routing has uploaded letsencrypt cert material
 
   reload = service: "${pkgs.systemd}/bin/systemctl --no-block try-reload-or-restart ${service}";
   restart = service: "${pkgs.systemd}/bin/systemctl --no-block try-restart ${service}";
 
 in {
   services.vault-agent.templates = {
-    "/etc/ssl/certs/${config.cluster.domain}-cert.pem" = {
+    ${letsencryptCertMaterial.certFile} = {
       command = restart "ingress.service";
       contents = ''
         {{ with secret "kv/bootstrap/letsencrypt/cert" }}{{ .Data.data.value }}{{ end }}
       '';
     };
 
-    "/etc/ssl/certs/${config.cluster.domain}-full.pem" = {
+    ${letsencryptCertMaterial.certChainFile} = {
       command = restart "ingress.service";
       contents = ''
         {{ with secret "kv/bootstrap/letsencrypt/fullchain" }}{{ .Data.data.value }}{{ end }}
       '';
     };
 
-    "/etc/ssl/certs/${config.cluster.domain}-key.pem" = {
-      command = restart "ingress.service";
-      contents = ''
-        {{ with secret "kv/bootstrap/letsencrypt/key" }}{{ .Data.data.value }}{{ end }}
-      '';
-    };
-
-    "/etc/ssl/certs/${config.cluster.domain}-full.pem.key" = {
+    ${letsencryptCertMaterial.keyFile} = {
       command = restart "ingress.service";
       contents = ''
         {{ with secret "kv/bootstrap/letsencrypt/key" }}{{ .Data.data.value }}{{ end }}

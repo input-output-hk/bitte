@@ -1,4 +1,4 @@
-{ pkgs, config, lib, pkiFiles, hashiTokens, ... }: {
+{ pkgs, config, lib, pkiFiles, hashiTokens, letsencryptCertMaterial, ... }: {
   options = {
     services.ingress-config = {
       enable = lib.mkEnableOption "Enable Ingress configuration generation";
@@ -135,7 +135,7 @@
         http-request redirect scheme https if http
 
       frontend https
-        bind *:443 ssl crt /etc/ssl/certs/${config.cluster.domain}-full.pem alpn h2,http/1.1
+        bind *:443 ssl crt ${letsencryptCertMaterial.certChainFile} alpn h2,http/1.1
 
         acl oauth_proxy path_beg /oauth2/
         acl authenticated var(txn.auth_response_successful) -m bool

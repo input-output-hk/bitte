@@ -1,4 +1,4 @@
-{ config, pkgs, lib, nodeName, hashiTokens, ... }:
+{ config, pkgs, lib, nodeName, hashiTokens, letsencryptCertMaterial, ... }:
 
 let
   cfg = config.services.vulnix;
@@ -130,7 +130,7 @@ in {
       environment = lib.mkIf cfg.scanNomadJobs.enable {
         VAULT_ADDR = "https://vault.${config.cluster.domain}";
         NOMAD_ADDR = "https://nomad.${config.cluster.domain}";
-        VAULT_CACERT = "/etc/ssl/certs/$-full.pem";
+        VAULT_CACERT = letsencryptCertMaterial.certChainFile;
       };
 
       path = with pkgs; [ cfg.package vault-bin curl jq nixFlakes gitMinimal ];

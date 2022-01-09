@@ -1,4 +1,4 @@
-{ config, pkgs, lib, pkiFiles, ... }:
+{ config, pkgs, lib, pkiFiles, letsencryptCertMaterial, ... }:
 
 {
   options = {
@@ -24,7 +24,9 @@
           cp ${pkiFiles.caCertFile} consul-ca.pem
           cat ${pkiFiles.certChainFile} ${pkiFiles.keyFile} > consul-crt.pem
 
-          cat /etc/ssl/certs/${config.cluster.domain}-{cert,key}.pem \
+          cat \
+            ${letsencryptCertMaterial.certFile} \
+            ${letsencryptCertMaterial.keyFile} \
             ${../lib/letsencrypt.pem} \
           > acme-full.pem
 

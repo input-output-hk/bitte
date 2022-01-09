@@ -1,4 +1,4 @@
-{ self, lib, pkgs, config, nodeName, bittelib, hashiTokens, ... }: {
+{ self, lib, pkgs, config, nodeName, bittelib, hashiTokens, letsencryptCertMaterial, ... }: {
 
   imports = [
     ./common.nix
@@ -35,7 +35,9 @@
         set -exuo pipefail
 
         mkdir -p /var/lib/traefik/certs
-        cp /etc/ssl/certs/${config.cluster.domain}-*.pem /var/lib/traefik/certs
+        cp ${letsencryptCertMaterial.certChainFile} /var/lib/traefik/certs/${builtins.baseNameOf letsencryptCertMaterial.certChainFile}
+        cp ${letsencryptCertMaterial.keyFile} /var/lib/traefik/certs/${builtins.baseNameOf letsencryptCertMaterial.keyFile}
+
         chown -R traefik:traefik /var/lib/traefik
       '';
     };
@@ -56,8 +58,9 @@
         extraDomainNames = [ "*.${config.cluster.domain}" ]
           ++ config.cluster.extraAcmeSANs;
         postRun = ''
-          cp fullchain.pem /etc/ssl/certs/${config.cluster.domain}-full.pem
-          cp key.pem /etc/ssl/certs/${config.cluster.domain}-key.pem
+          cp fullchain.pem ${letsencryptCertMaterial.certChainFile}
+          cp key.pem ${letsencryptCertMaterial.keyFile}
+          cp cert.pem ${letsencryptCertMaterial.certFile}
           systemctl try-restart --no-block traefik.service
 
           export VAULT_TOKEN="$(< ${hashiTokens.vault})"
@@ -72,8 +75,8 @@
     services.traefik = {
       dynamicConfigOptions = {
         tls.certificates = [{
-          certFile = "/var/lib/traefik/certs/${config.cluster.domain}-full.pem";
-          keyFile = "/var/lib/traefik/certs/${config.cluster.domain}-key.pem";
+          certFile = "/var/lib/traefik/certs/${builtins.baseNameOf letsencryptCertMaterial.certChainFile}";
+          keyFile = "/var/lib/traefik/certs/${builtins.baseNameOf letsencryptCertMaterial.keyFile}";
         }];
 
         http = {
