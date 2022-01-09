@@ -78,8 +78,7 @@ in {
         then {
           command = restart-client "consul";
           contents = ''
-            { "encrypt": "{{ with secret "kv/bootstrap/clients/consul" }}{{ .Data.data.encrypt }}{{ end }}",
-              "acl": {
+            { "acl": {
                 "tokens": {
                   "agent": "${clientsConsulAgentToken}",
                   "default": "${clientsConsulDefaultToken}"
