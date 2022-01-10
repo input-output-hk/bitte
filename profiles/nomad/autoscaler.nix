@@ -4,7 +4,7 @@ let
   Imports = { imports = []; };
 
   Switches = {
-    service.nomad-autoscaler.enable = true;
+    services.nomad-autoscaler.enable = true;
   };
 
   Config = let
