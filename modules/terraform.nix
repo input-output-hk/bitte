@@ -190,8 +190,9 @@ let
     submodule (_: {
       imports = [
         bittelib.warningsModule
-        (lib.mkRenamedOptionModule  [ "autoscalingGroups" ] [ "awsAutoScalingGroups" ])
-        (lib.mkRenamedOptionModule  [ "instances" ] [ "coreNodes" ])
+        (lib.mkRenamedOptionModule [ "autoscalingGroups" ]
+          [ "awsAutoScalingGroups" ])
+        (lib.mkRenamedOptionModule [ "instances" ] [ "coreNodes" ])
       ];
       options = {
         name = lib.mkOption { type = with lib.types; str; };
@@ -761,9 +762,8 @@ let
 
         region = lib.mkOption { type = with lib.types; str; };
 
-        iam = lib.mkOption {
-          type = with lib.types; nodeIamType this.config.name;
-        };
+        iam =
+          lib.mkOption { type = with lib.types; nodeIamType this.config.name; };
 
         vpc = lib.mkOption {
           type = with lib.types; vpcType this.config.uid;
@@ -860,8 +860,8 @@ let
     });
 in {
   imports = [
-    (lib.mkRenamedOptionModule  [ "asg" ] [ "currentAwsAutoScalingGroup" ])
-    (lib.mkRenamedOptionModule  [ "instance" ] [ "currentCoreNode" ])
+    (lib.mkRenamedOptionModule [ "asg" ] [ "currentAwsAutoScalingGroup" ])
+    (lib.mkRenamedOptionModule [ "instance" ] [ "currentCoreNode" ])
   ];
   # propagate warnings so that they are exposed
   # config.warnings = config.cluster.warnings;
@@ -905,7 +905,7 @@ in {
               for arg in "$@"
               do
                 case "$arg" in
-                  *routing*|routing*|*routing)
+                  *routing*)
                     echo
                     echo -----------------------------------------------------
                     echo CAUTION: It appears that you are indulging on a
@@ -1019,7 +1019,7 @@ in {
                 pkgs.writeBashBinChecked "${name}-apply" ''
                   ${prepare}
 
-                  terraform $@
+                  terraform "$@"
                 '';
             };
           };

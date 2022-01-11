@@ -65,13 +65,14 @@ let
               export PATH="$PATH:${
                 lib.makeBinPath (with pkgs; [ utillinux git ])
               }"
-              [ "$FLOCKER" != "$0" ] && exec env FLOCKER="$0" flock -en "$0" "$0" $@ ||
-              set -euo pipefail
 
-              mkdir -p secrets encrypted
+              (flock -w 30 9 || exit 1
+                mkdir -p secrets encrypted
 
-              ${scripts}
-              git add encrypted/
+                ${scripts}
+
+                git add encrypted/
+              ) 9>.secrets-generate.lock
             '';
         };
       };
