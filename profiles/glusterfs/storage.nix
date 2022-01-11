@@ -11,11 +11,8 @@ in {
   ];
 
   services.glusterfs.enable = true;
-  services.vault-agent-core.enable = true;
-
-  services.vault-agent-core = {
-    vaultAddress = "https://${config.cluster.coreNodes.core-2.privateIP}:8200";
-  };
+  services.vault-agent.enable = true;
+  services.vault-agent.vaultAddress = "https://${config.cluster.coreNodes.core-2.privateIP}:8200";
 
   systemd.services.glusterd.path = with pkgs; [ nettools ];
 
