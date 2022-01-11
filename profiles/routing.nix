@@ -64,7 +64,7 @@
           systemctl try-restart --no-block traefik.service
 
           export VAULT_TOKEN="$(< ${hashiTokens.vault})"
-          export VAULT_ADDR="http://127.0.0.1:8200"
+          export VAULT_ADDR="https://core.vault.service.consul:8200"
           ${pkgs.vault}/bin/vault kv put kv/bootstrap/letsencrypt/key value=@key.pem
           ${pkgs.vault}/bin/vault kv put kv/bootstrap/letsencrypt/fullchain value=@fullchain.pem
           ${pkgs.vault}/bin/vault kv put kv/bootstrap/letsencrypt/cert value=@cert.pem
