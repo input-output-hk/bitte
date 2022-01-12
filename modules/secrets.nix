@@ -85,12 +85,6 @@ in {
     };
   };
 
-  config.assertions = lib.flip lib.mapAttrsToList config.secrets.install
-    (name: cfg: {
-      assertion = cfg.source == null || builtins.pathExists cfg.source;
-      message = ''secrets: source path "${cfg.source}" must exist.'';
-    });
-
   config.systemd.services = lib.flip lib.mapAttrs' config.secrets.install
     (name: cfg:
       lib.nameValuePair "secret-${name}" {

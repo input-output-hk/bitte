@@ -95,7 +95,7 @@
 
     mkdir -p /var/lib/grafana
 
-    cat ${config.secrets.encryptedRoot + "/grafana-password.json"} \
+    cat ${(toString config.secrets.encryptedRoot) + "/grafana-password.json"} \
       | sops -d /dev/stdin \
       > /var/lib/grafana/password
   '';

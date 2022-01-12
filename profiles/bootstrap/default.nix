@@ -14,15 +14,15 @@ let
 
   initialVaultSecrets = ''
     sops --decrypt --extract '["encrypt"]' ${
-      config.secrets.encryptedRoot + "/consul-clients.json"
+      (toString config.secrets.encryptedRoot) + "/consul-clients.json"
     } | vault kv put kv/bootstrap/clients/consul encrypt=-
 
     sops --decrypt --extract '["server"]["encrypt"]' ${
-      config.secrets.encryptedRoot + "/nomad.json"
+      (toString config.secrets.encryptedRoot) + "/nomad.json"
     } | vault kv put kv/bootstrap/clients/nomad encrypt=-
 
     sops --decrypt ${
-      config.secrets.encryptedRoot + "/nix-cache.json"
+      (toString config.secrets.encryptedRoot) + "/nix-cache.json"
     } | vault kv put kv/bootstrap/cache/nix-key -
   '';
 

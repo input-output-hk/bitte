@@ -42,7 +42,7 @@
   '';
 
   secrets.install.redis-password = {
-    source = config.secrets.encryptedRoot + "/redis-password.json";
+    source = (toString config.secrets.encryptedRoot) + "/redis-password.json";
     target = /run/keys/redis-password;
     inputType = "binary";
     outputType = "binary";
@@ -67,7 +67,7 @@
   '';
 
   secrets.install.docker-passwords = {
-    source = config.secrets.encryptedRoot + "/docker-passwords.json";
+    source = (toString config.secrets.encryptedRoot) + "/docker-passwords.json";
     target = /run/keys/docker-passwords-decrypted;
     script = ''
       export PATH="${lib.makeBinPath (with pkgs; [ coreutils jq ])}"

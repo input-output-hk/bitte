@@ -22,7 +22,7 @@
   secrets.install.oauth.script = ''
     export PATH="${lib.makeBinPath (with pkgs; [ sops coreutils ])}"
 
-    cat ${config.secrets.encryptedRoot + "/oauth-secrets"} \
+    cat ${(toString config.secrets.encryptedRoot) + "/oauth-secrets"} \
       | sops -d /dev/stdin \
       > /run/keys/oauth-secrets
 
