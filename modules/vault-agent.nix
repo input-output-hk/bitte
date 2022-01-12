@@ -150,6 +150,10 @@ in {
         RestartSec = "30s";
         ExecStart = "${pkgs.vault-bin}/bin/vault agent -config ${configFile}";
         LimitNOFILE = "infinity";
+      } // lib.optionalAttrs (cfg.role == "client" && cfg.autoAuthMethod == "aws") {
+        # generate a ~/.aws/credentials, as vault-agent's aws-sdk-go has a hard
+        # time detecting iam role.
+        ExecStartPre = pkgs.generateAwsEc2Creds;
       };
     };
   };

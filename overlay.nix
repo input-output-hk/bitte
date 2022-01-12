@@ -71,6 +71,8 @@ rec {
   writeBashBinChecked = name: final.writeBashChecked "/bin/${name}";
   toPrettyJSON = final.callPackage ./pkgs/to-pretty-json.nix { };
 
+  generateAwsEc2Creds = final.callPackage ./pkgs/generate-aws-ec2-creds.nix { };
+
   scaler-guard = let deps = with final; [ awscli bash curl jq nomad ];
   in prev.runCommandLocal "scaler-guard" {
     script = ./scripts/scaler-guard.sh;
