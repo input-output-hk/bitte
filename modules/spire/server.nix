@@ -20,7 +20,7 @@ in {
 
     settings = lib.mkOption {
       type = lib.types.submodule {
-        freeFormType = settingsFormat.type;
+        freeformType = settingsFormat.type;
 
         # General options that are likely to be cross-referenced, so we type them:
 
