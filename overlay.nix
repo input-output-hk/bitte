@@ -14,6 +14,11 @@ rec {
   nixUnstable = final.nix;
 
   nomad = inputs.nomad.defaultPackage."${final.system}";
+
+  # Until ops Rakefile is rewritten for ragenix nix secrets vs. toml
+  inherit (inputs.agenix.packages."${final.system}") agenix;
+  inherit (inputs.agenix-cli.packages."${final.system}") agenix-cli;
+
   ragenix = inputs.ragenix.defaultPackage."${final.system}";
 
   # bitte-ruby and bundler for prem, premSim ops repo Rakefile support

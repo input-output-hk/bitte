@@ -30,6 +30,11 @@
     cli.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
     cli.inputs.nix.follows = "nix-auxiliary";
 
+    agenix.url = "github:ryantm/agenix";
+    agenix.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
+    agenix-cli.url = "github:cole-h/agenix-cli";
+    agenix-cli.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
+
     ragenix.url = "github:yaxitech/ragenix";
     ragenix.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
 
