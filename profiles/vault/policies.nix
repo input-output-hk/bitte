@@ -8,6 +8,28 @@ let
   s = "sudo";
 in {
   services.vault.policies = {
+    # Role for prem or premSim
+    vault-agent-core.path = {
+      "auth/token/create".capabilities = [ c r u d l s ];
+      "consul/creds/nomad-server".capabilities = [ r ];
+      "consul/creds/consul-server-default".capabilities = [ r ];
+      "consul/creds/consul-server-agent".capabilities = [ r ];
+      "nomad/creds/*".capabilities = [ r ];
+      "nomad/role/admin".capabilities = [ u ];
+      "sys/policies/acl/admin".capabilities = [ u ];
+      "sys/storage/raft/snapshot".capabilities = [ r ];
+    };
+
+    # Role for prem or premSim
+    vault-agent-client.path = {
+      "auth/token/create".capabilities = [ c r u d l s ];
+      "consul/creds/consul-agent".capabilities = [ r u ];
+      "consul/creds/consul-default".capabilities = [ r u ];
+      "kv/data/bootstrap/clients/*".capabilities = [ r ];
+      "kv/data/bootstrap/static-tokens/clients/*".capabilities = [ r ];
+      "pki/issue/client".capabilities = [ c u ];
+      "pki/roles/client".capabilities = [ r ];
+    };
 
     core.path = {
       "auth/token/create".capabilities = [ c r u d l s ];

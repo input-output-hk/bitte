@@ -2,6 +2,8 @@
 let
   cfg = config.services.vault-agent;
 
+  deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+
   templateType = with lib.types;
     submodule ({ name, ... }: {
       options = {
@@ -59,7 +61,7 @@ in {
 
     autoAuthMethod = lib.mkOption {
       type = with lib.types; enum [ "aws" "cert" ];
-      default = "aws";
+      default = if deployType == "aws" then "aws" else "cert";
     };
 
     autoAuthConfig = lib.mkOption {

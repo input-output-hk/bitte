@@ -1,5 +1,7 @@
 { config, lib, pkgs, pkiFiles, ... }: let
 
+  deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+
   reload = service: "${pkgs.systemd}/bin/systemctl try-reload-or-restart ${service}";
   restart = service: "${pkgs.systemd}/bin/systemctl try-restart ${service}";
 
@@ -20,7 +22,7 @@
   pkiSecret = ''"pki/issue/client" ${toString pkiArgs}'';
 
 in {
-  services.vault-agent.templates = {
+  services.vault-agent.templates = lib.mkIf (deployType == "aws") {
     "${pkiFiles.certChainFile}" = {
       command = restart "certs-updated.service";
       contents = ''

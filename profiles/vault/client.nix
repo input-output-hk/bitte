@@ -12,10 +12,13 @@
     services.vault-agent.disableTokenRotation.consulDefault = true;
   };
 
-  Config = {
+  Config = let
+    deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+    domain = config.${if deployType == "aws" then "cluster" else "currentCoreNode"}.domain;
+  in {
     services.vault-agent = {
       role = "client";
-      vaultAddress = "https://vault.${config.cluster.domain}"; # avoid depending on consul
+      vaultAddress = "https://vault.${domain}"; # avoid depending on consul
       cache.useAutoAuthToken = true;
       listener = [{
           type = "tcp";
@@ -24,7 +27,7 @@
       }];
     };
 
-    systemd.services.certs-updated = {
+    systemd.services.certs-updated = lib.mkIf (deployType == "aws") {
       wantedBy = [ "multi-user.target" ];
       after = [ "vault-agent.service" ];
       path = with pkgs; [ coreutils curl systemd ];
