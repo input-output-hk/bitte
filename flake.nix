@@ -120,7 +120,8 @@
       overlay = nixpkgs.lib.composeManyExtensions overlays;
       profiles = lib.mkModules ./profiles;
       nixosModules = (lib.mkModules ./modules) // {
-        agenix = ragenix.nixosModules.age;
+        # Until ready to update to the new age module options
+        # agenix = ragenix.nixosModules.age;
       };
       nixosModule.imports = builtins.attrValues self.nixosModules;
     };
