@@ -7,7 +7,7 @@ in final: prev: {
   inherit (prev) terraform_0_13 terraform_0_14;
 
   terraform-provider-names =
-    [ "acme" "aws" "consul" "local" "nomad" "null" "sops" "tls" "vault" ];
+    [ "acme" "aws" "consul" "local" "nomad" "null" "sops" "tls" "vault" "rabbitmq" "postgresql" ];
 
   terraform-provider-versions = lib.listToAttrs (map (name:
     let
@@ -71,6 +71,24 @@ in final: prev: {
       repo = "terraform-provider-sops";
       rev = "v0.6.3";
       sha256 = "sha256-yfHO/vGk7M5CbA7VkrxLVldAMexhuk0wTEe8+5g8ZrU=";
+    };
+    rabbitmq = buildWithGoModule {
+      provider-source-address = "registry.terraform.io/cyrilgdn/rabbitmq";
+      version = "1.6.0";
+      vendorSha256 = "sha256-wbnjAM2PYocAtRuY4fjLPGFPJfzsKih6Q0YCvFyMulQ=";
+      owner = "cyrilgdn";
+      repo = "terraform-provider-rabbitmq";
+      rev = "v1.6.0";
+      sha256 = "sha256-gtqH+/Yg5dCovdDlg/JrDqOKfxTKPwfCvnV8MUAjLGs=";
+    };
+    postgresql = buildWithGoModule {
+      provider-source-address = "registry.terraform.io/cyrilgdn/postgresql";
+      version = "1.14.0";
+      vendorSha256 = null;
+      owner = "cyrilgdn";
+      repo = "terraform-provider-postgresql";
+      rev = "v1.14.0";
+      sha256 = "sha256-2VDPKpBedX0Q6xWwUL/2afGvtvlRSQhK+wdXTLyI6CM=";
     };
   });
 
