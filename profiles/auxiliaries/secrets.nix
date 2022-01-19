@@ -1,5 +1,12 @@
 { self, lib, pkgs, config, pkiFiles, gossipEncryptionMaterial, ... }:
 let
+  # Note: Cert definitions in this file are applicable to AWS deployType clusters.
+  # For premSim and prem deploType clusters, see the Rakefilefor cert genertaion details.
+  # TODO: Unify the AWS vs. prem/premSim approaches.
+
+  deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+  isSops = deployType == "aws";
+
   sopsEncrypt =
     "${pkgs.sops}/bin/sops --encrypt --input-type json --kms '${config.cluster.kms}' /dev/stdin";
 
@@ -72,7 +79,7 @@ let
   };
 
 in {
-  secrets.generate.consul = lib.mkIf isInstance ''
+  secrets.generate.consul = lib.mkIf (isInstance && isSops) ''
     export PATH="${lib.makeBinPath (with pkgs; [ consul toybox jq coreutils ])}"
 
     encrypt="$(consul keygen)"
@@ -95,17 +102,17 @@ in {
     fi
   '';
 
-  secrets.install.nomad-server = lib.mkIf isInstance {
+  secrets.install.nomad-server = lib.mkIf (isInstance && isSops) {
     source = (toString config.secrets.encryptedRoot) + "/nomad.json";
     target = gossipEncryptionMaterial.nomad;
   };
 
-  secrets.install.consul-server = lib.mkIf isInstance {
+  secrets.install.consul-server = lib.mkIf (isInstance && isSops) {
     source = (toString config.secrets.encryptedRoot) + "/consul-core.json";
     target = gossipEncryptionMaterial.consul;
   };
 
-  secrets.install.consul-clients = lib.mkIf (!isInstance) {
+  secrets.install.consul-clients = lib.mkIf (!isInstance && isSops) {
     source = (toString config.secrets.encryptedRoot) + "/consul-clients.json";
     target = gossipEncryptionMaterial.consul;
     script = ''
@@ -113,7 +120,7 @@ in {
     '';
   };
 
-  secrets.generate.nomad = lib.mkIf isInstance ''
+  secrets.generate.nomad = lib.mkIf (isInstance && isSops) ''
     export PATH="${lib.makeBinPath (with pkgs; [ nomad jq ])}"
 
     if [ ! -s encrypted/nomad.json ]; then
@@ -127,7 +134,7 @@ in {
     fi
   '';
 
-  secrets.generate.cache = lib.mkIf isInstance ''
+  secrets.generate.cache = lib.mkIf (isInstance && isSops) ''
     export PATH="${lib.makeBinPath (with pkgs; [ coreutils nixFlakes jq ])}"
 
     mkdir -p secrets encrypted
@@ -155,7 +162,7 @@ in {
     fi
   '';
 
-  secrets.generate.ca = lib.mkIf isInstance ''
+  secrets.generate.ca = lib.mkIf (isInstance && isSops) ''
     export PATH="${
       lib.makeBinPath (with pkgs; [ cfssl jq coreutils terraform-with-plugins ])
     }"
@@ -183,7 +190,7 @@ in {
     fi
   '';
 
-  secrets.install.certs = lib.mkIf isInstance {
+  secrets.install.certs = lib.mkIf (isInstance && isSops) {
     script = ''
       export PATH="${lib.makeBinPath (with pkgs; [ cfssl jq coreutils ])}"
       cert="$(${sopsDecrypt ((toString config.secrets.encryptedRoot) + "/cert.json")})"
@@ -193,6 +200,32 @@ in {
 
       echo "$cert" | jq -r -e .ca  > "${pkiFiles.caCertFile}"
       echo "$cert" | jq -r -e .full  > "${pkiFiles.certChainFile}"
+    '';
+  };
+
+  age.secrets.consul-token-master = lib.mkIf (isInstance && !isSops) {
+    file = config.age.encryptedRoot + "/consul/token-master.age";
+    path = "/etc/consul.d/secrets.json";
+    mode = "0444";
+    script = ''
+      echo '{}' \
+        | ${pkgs.jq}/bin/jq \
+          --arg token "$(< "$src")" \
+          '.acl.tokens.master = $token' \
+        > $out
+    '';
+  };
+
+  age.secrets.consul-encrypt = lib.mkIf (!isSops) {
+    file = config.age.encryptedRoot + /consul/encrypt.age;
+    path = "/etc/consul.d/encrypt.json";
+    mode = "0444";
+    script = ''
+      echo '{}' \
+        | ${pkgs.jq}/bin/jq \
+          --arg encrypt "$(< "$src")" \
+          '.encrypt = $encrypt' \
+        > $out
     '';
   };
 }
