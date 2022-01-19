@@ -59,6 +59,8 @@ let
     hosts = [
       "consul.service.consul"
       "vault.service.consul"
+      "core.vault.service.consul"
+      "active.vault.service.consul"
       "nomad.service.consul"
       "server.${config.cluster.region}.consul"
       "vault.${config.cluster.domain}"
