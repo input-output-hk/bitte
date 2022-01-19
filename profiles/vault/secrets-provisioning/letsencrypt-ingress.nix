@@ -27,5 +27,16 @@ in {
         {{ with secret "kv/bootstrap/letsencrypt/key" }}{{ .Data.data.value }}{{ end }}
       '';
     };
+
+    # This is a tacit expansion from haproxy during runtime nd only identifiable via
+    # ${letsencryptCertMaterial.keyFile} in the haproxy config.
+    # Usually, haproxy tutorials recommend concatenating the key into the cert file,
+    # but this is not a representation that we prefer
+    "${letsencryptCertMaterial.certChainFile}.key" = {
+      command = restart "ingress.service";
+      contents = ''
+        {{ with secret "kv/bootstrap/letsencrypt/key" }}{{ .Data.data.value }}{{ end }}
+      '';
+    };
   };
 }
