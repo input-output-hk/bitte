@@ -1,6 +1,7 @@
 { config, pkgs, lib, pkiFiles, letsencryptCertMaterial, ... }:
-
-{
+let
+  deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+in {
   options = {
     services.ingress = { enable = lib.mkEnableOption "Enable Ingress"; };
   };
@@ -17,12 +18,16 @@
       };
 
       serviceConfig = let
+        certChainFile = if deployType == "aws" then pkiFiles.certChainFile
+                        else pkiFiles.serverCertChainFile;
+        certKeyFile = if deployType == "aws" then pkiFiles.keyFile
+                      else pkiFiles.serverKeyFile;
         preScript = pkgs.writeBashChecked "ingress-start-pre" ''
           export PATH="${lib.makeBinPath [ pkgs.coreutils ]}"
           set -exuo pipefail
-          cp ${pkiFiles.keyFile} consul-key.pem
           cp ${pkiFiles.caCertFile} consul-ca.pem
-          cat ${pkiFiles.certChainFile} ${pkiFiles.keyFile} > consul-crt.pem
+          cp ${certKeyFile} consul-key.pem
+          cat ${certChainFile} ${certKeyFile} > consul-crt.pem
 
           cat \
             ${letsencryptCertMaterial.certFile} \

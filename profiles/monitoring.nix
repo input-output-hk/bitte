@@ -1,4 +1,10 @@
-{ lib, pkgs, config, nodeName, ... }: {
+{ lib, pkgs, config, nodeName, ... }:
+let
+  deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+  domain =
+    config.${if deployType == "aws" then "cluster" else "currentCoreNode"}.domain;
+  isSops = deployType == "aws";
+in {
   imports = [
     ./common.nix
     ./consul/client.nix
@@ -12,8 +18,6 @@
 
   services.consul.ui = true;
   services.nomad.enable = false;
-  services.ingress.enable = true;
-  services.ingress-config.enable = true;
   services.minio.enable = true;
   services.vulnix.enable = true;
   services.victoriametrics.enable = true;
@@ -30,14 +34,14 @@
     auth.anonymous.enable = false;
     analytics.reporting.enable = false;
     addr = "";
-    domain = "monitoring.${config.cluster.domain}";
+    domain = "monitoring.${domain}";
     extraOptions = {
       AUTH_PROXY_ENABLED = "true";
       AUTH_PROXY_HEADER_NAME = "X-Authenticated-User";
       AUTH_SIGNOUT_REDIRECT_URL = "/oauth2/sign_out";
       USERS_AUTO_ASSIGN_ORG_ROLE = "Editor";
     };
-    rootUrl = "https://monitoring.${config.cluster.domain}/";
+    rootUrl = "https://monitoring.${domain}/";
     provision = {
       enable = true;
       datasources = [
@@ -60,7 +64,8 @@
       }];
     };
 
-    security.adminPasswordFile = /var/lib/grafana/password;
+    security.adminPasswordFile = if isSops then "/var/lib/grafana/password"
+                                 else config.age.secrets.grafana-password.path;
   };
 
   services.prometheus = {
@@ -80,7 +85,7 @@
     };
   };
 
-  secrets.generate.grafana-password = ''
+  secrets.generate.grafana-password = lib.mkIf isSops ''
     export PATH="${lib.makeBinPath (with pkgs; [ coreutils sops xkcdpass ])}"
 
     if [ ! -s encrypted/grafana-password.json ]; then
@@ -90,7 +95,7 @@
     fi
   '';
 
-  secrets.install.grafana-password.script = ''
+  secrets.install.grafana-password.script = lib.mkIf isSops ''
     export PATH="${lib.makeBinPath (with pkgs; [ sops coreutils ])}"
 
     mkdir -p /var/lib/grafana
@@ -100,4 +105,11 @@
       > /var/lib/grafana/password
   '';
 
+  age.secrets = lib.mkIf (deployType != "aws") {
+    grafana-password = {
+      file = config.age.encryptedRoot + "/grafana/password.age";
+      path = "/var/lib/grafana/grafana-password";
+      mode = "0600";
+    };
+  };
 }

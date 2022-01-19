@@ -7,12 +7,14 @@
     services.nomad.plugin.raw_exec.enabled = false;
   };
 
-  Config = {
+  Config = let
+    deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+    datacenter = config.currentCoreNode.datacenter or config.currentAwsAutoScalingGroup.datacenter;
+  in {
     services.nomad = {
       client = {
         gc_interval = "12h";
-        node_class =
-          if config.currentAwsAutoScalingGroup.node_class != null then config.currentAwsAutoScalingGroup.node_class else "core";
+        node_class = config.${if deployType == "aws" then "currentAwsAutoScalingGroup"}.node_class or "core";
         chroot_env = {
           # "/usr/bin/env" = "/usr/bin/env";
           "${builtins.unsafeDiscardStringContext pkgs.pkgsStatic.busybox}" =
@@ -21,7 +23,7 @@
         };
       };
 
-      datacenter = config.currentAwsAutoScalingGroup.region;
+      datacenter = if deployType == "aws" then config.currentAwsAutoScalingGroup.region else datacenter;
 
       vault.address = "http://127.0.0.1:8200";
     };

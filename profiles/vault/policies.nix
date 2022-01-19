@@ -27,6 +27,7 @@ in {
       "consul/creds/consul-default".capabilities = [ r u ];
       "kv/data/bootstrap/clients/*".capabilities = [ r ];
       "kv/data/bootstrap/static-tokens/clients/*".capabilities = [ r ];
+      # "pki/issue/client".capabilities = [ u ];
       "pki/issue/client".capabilities = [ c u ];
       "pki/roles/client".capabilities = [ r ];
     };

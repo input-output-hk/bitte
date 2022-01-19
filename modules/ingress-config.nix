@@ -1,4 +1,8 @@
-{ pkgs, config, lib, pkiFiles, hashiTokens, letsencryptCertMaterial, ... }: {
+{ pkgs, config, lib, pkiFiles, hashiTokens, letsencryptCertMaterial, ... }:
+let
+  deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+  consulCoreNode = builtins.head config.services.consul.serverNodeNames;
+in {
   options = {
     services.ingress-config = {
       enable = lib.mkEnableOption "Enable Ingress configuration generation";
@@ -87,7 +91,7 @@
         balance roundrobin
 
       resolvers consul
-        nameserver dnsmasq ${config.cluster.coreNodes.core-1.privateIP}:53
+        nameserver dnsmasq ${config.cluster.coreNodes.${consulCoreNode}.privateIP}:53
         accepted_payload_size 8192
         hold valid 5s
 
