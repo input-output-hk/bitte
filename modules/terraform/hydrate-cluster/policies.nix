@@ -48,6 +48,11 @@ in {
       inherit name;
       policies = [ (id "consul_acl_policy.${name}") ];
     }) consulPolicies;
-
+    # ... also create associated vault consul roles
+    resource.vault_consul_secret_backend_role = __mapAttrs (name: v: {
+     inherit name;
+     backend = "consul";
+     policies = [ name ];
+    }) consulPolicies;
   };
 }
