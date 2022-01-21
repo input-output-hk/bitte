@@ -902,6 +902,22 @@ in {
             '';
 
             prepare = ''
+              # shellcheck disable=SC2050
+              if [ "${name}" == "hydrate-cluster" ]; then
+                echo
+                echo -----------------------------------------------------
+                echo Fetching nomad bootstrap token for hydrate-cluster.
+                echo This is a standard requirement since nomad does not
+                echo implement fine-grained ACL. Hence, for hydrate-cluster
+                echo a management token is required. The boostrap token is
+                echo such a management token.
+                echo Fetching from 'core-1', the presumed bootstrapper ...
+                echo -----------------------------------------------------
+                declare NOMAD_TOKEN
+                NOMAD_TOKEN="$(${pkgs.bitte}/bin/bitte ssh core-1 cat /var/lib/nomad/bootstrap.token)"
+                export NOMAD_TOKEN
+              fi
+
               for arg in "$@"
               do
                 case "$arg" in
