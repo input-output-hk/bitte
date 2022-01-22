@@ -83,7 +83,7 @@
         # Redirect consul and ec2 internal specific queries to their respective upstream DNS servers
         server=/consul/127.0.0.1#8600
         ${lib.optionalString (deployType != "prem") ''
-          server=/internal/169.254.169.253#53"
+          server=/internal/169.254.169.253#53
         ''}
 
         # Configure reverse in-addr.arpa DNS lookups to consul for ASGs and core datacenter default address ranges

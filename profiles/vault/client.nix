@@ -18,7 +18,8 @@
   in {
     services.vault-agent = {
       role = "client";
-      vaultAddress = "https://vault.${domain}"; # avoid depending on consul
+      vaultAddress = if deployType == "aws" then "https://vault.${domain}"
+                     else "https://core.vault.service.consul:8200";
       cache.useAutoAuthToken = true;
       listener = [{
           type = "tcp";
