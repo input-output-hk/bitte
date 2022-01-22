@@ -44,15 +44,15 @@ let
       (toString config.secrets.encryptedRoot) + "/nix-cache.json"
     } | vault kv put kv/bootstrap/cache/nix-key -
   '' else ''
-    rage -i /etc/ssh/ssh_host_ed25519_key -d ${(toString config.age.encryptedRoot) + "/consul/encrypt.age"} \
+    rage -i /etc/ssh/ssh_host_ed25519_key -d ${config.age.encryptedRoot + "/consul/encrypt.age"} \
       | tr -d '\n' | vault kv put kv/bootstrap/clients/consul encrypt=-
-    rage -i /etc/ssh/ssh_host_ed25519_key -d ${(toString config.age.encryptedRoot) + "/nomad/encrypt.age"} \
+    rage -i /etc/ssh/ssh_host_ed25519_key -d ${config.age.encryptedRoot + "/nomad/encrypt.age"} \
       | tr -d '\n' | vault kv put kv/bootstrap/clients/nomad encrypt=-
     set +x
     NIX_KEY_SECRET="$(
-      rage -i /etc/ssh/ssh_host_ed25519_key -d ${(toString config.age.encryptedRoot) + "/nix/key.age"}
+      rage -i /etc/ssh/ssh_host_ed25519_key -d ${config.age.encryptedRoot + "/nix/key.age"}
     )"
-    NIX_KEY_PUBLIC="$(cat ${(toString config.age.encryptedRoot) + "/nix/key.pub"})"
+    NIX_KEY_PUBLIC="$(cat ${config.age.encryptedRoot + "/nix/key.pub"})"
     echo '{}' \
     | jq \
       -S \
@@ -285,7 +285,8 @@ in {
 
       environment = {
         inherit (config.environment.variables) AWS_DEFAULT_REGION NOMAD_ADDR;
-        CURL_CA_BUNDLE = pkiFiles.certChainFile;
+        CURL_CA_BUNDLE = if deployType == "aws" then pkiFiles.certChainFile
+                         else pkiFiles.serverCertChainFile;
       };
 
       path = with pkgs; [ curl sops rage coreutils jq nomad vault-bin gawk ];
@@ -417,6 +418,9 @@ in {
               exit 1
             fi
           '' else ''
+            vault operator init > /var/lib/vault/vault-bootstrap.json
+            readarray -t unseal_keys < <(jq < /var/lib/vault/vault-bootstrap.json -e -r '.unseal_keys_b64[0,1,2]')
+
             for vault in ${lib.concatStringsSep " " config.services.vault.serverNodeNames}; do
               echo "Unsealing $vault"
               for key in "''${unseal_keys[@]}"; do
