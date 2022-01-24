@@ -92,10 +92,10 @@ in {
         set -euo pipefail
 
         ${if (deployType == "aws") then ''
-          VAULT_TOKEN="$(sops -d --extract '["root_token"]' vault.enc.json)"
-        '' else ''
-          VAULT_TOKEN="$(rage -i /etc/ssh/ssh_host_ed25519_key -d /var/lib/vault/vault-bootstrap.json.age | jq -r '.root_token')"
-        ''}
+          VAULT_TOKEN="$(sops -d --extract '["root_token"]' vault.enc.json)"''
+        else ''
+          VAULT_TOKEN="$(rage -i /etc/ssh/ssh_host_ed25519_key -d /var/lib/vault/vault-bootstrap.json.age | jq -r '.root_token')"''
+        }
 
         export VAULT_TOKEN
         export VAULT_ADDR=https://127.0.0.1:8200

@@ -1,4 +1,4 @@
-{ config, ... }:
+{ config, lib, ... }:
 let
   c = "create";
   r = "read";
@@ -6,10 +6,12 @@ let
   d = "delete";
   l = "list";
   s = "sudo";
+
+  deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
 in {
   services.vault.policies = {
     # Role for prem or premSim
-    vault-agent-core.path = {
+    vault-agent-core.path = lib.mkIf (deployType != "aws") {
       "auth/token/create".capabilities = [ c r u d l s ];
       "consul/creds/nomad-server".capabilities = [ r ];
       "consul/creds/consul-server-default".capabilities = [ r ];
@@ -21,7 +23,7 @@ in {
     };
 
     # Role for prem or premSim
-    vault-agent-client.path = {
+    vault-agent-client.path = lib.mkIf (deployType != "aws") {
       "auth/token/create".capabilities = [ c r u d l s ];
       "consul/creds/consul-agent".capabilities = [ r u ];
       "consul/creds/consul-default".capabilities = [ r u ];

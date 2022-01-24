@@ -9,7 +9,7 @@ let
   exportVaultRoot = if (deployType == "aws") then ''
     set +x
     VAULT_TOKEN="$(
-      sops -d --extract '["root_token"]' /var/lib/vault.enc.json
+      sops -d --extract '["root_token"]' /var/lib/vault/vault.enc.json
     )"
     export VAULT_TOKEN
     set -x
@@ -416,8 +416,8 @@ in {
             else
               echo "Couldnt't bootstrap, something went fatally wrong!"
               exit 1
-            fi
-          '' else ''
+            fi''
+          else ''
             vault operator init > /var/lib/vault/vault-bootstrap.json
             readarray -t unseal_keys < <(jq < /var/lib/vault/vault-bootstrap.json -e -r '.unseal_keys_b64[0,1,2]')
 
@@ -450,8 +450,8 @@ in {
               echo "Couldnt't bootstrap, something went fatally wrong!"
               exit 1
             fi
-            set -x
-          ''}
+            set -x''
+          }
         fi
 
         ${exportVaultRoot}
@@ -463,8 +463,8 @@ in {
         secrets="$(vault secrets list)"
 
         ${lib.optionalString (deployType == "aws") ''
-          echo "$secrets" | jq -e '."aws/"'       || vault secrets enable aws
-        ''}
+          echo "$secrets" | jq -e '."aws/"'       || vault secrets enable aws''
+        }
 
         echo "$secrets" | jq -e '."consul/"'      || vault secrets enable consul
         echo "$secrets" | jq -e '."kv/"'          || vault secrets enable -version=2 kv
@@ -475,8 +475,8 @@ in {
         auth="$(vault auth list)"
 
         ${lib.optionalString (deployType == "aws") ''
-          echo "$auth" | jq -e '."aws/"'          || vault auth enable aws
-        ''}
+          echo "$auth" | jq -e '."aws/"'          || vault auth enable aws''
+        }
 
         ${lib.optionalString (deployType != "aws") ''
           echo "$auth" | jq -e '."cert/"'         || vault auth enable cert
@@ -491,8 +491,8 @@ in {
             display_name=vault-agent-client \
             policies=vault-agent-client \
             certificate=@"/etc/ssl/certs/client.pem" \
-            ttl=3600
-        ''}
+            ttl=3600''
+        }
 
         # This lets Vault issue Consul tokens
 
@@ -515,11 +515,11 @@ in {
           pki/config/urls \
           ${if deployType != "premSim" then ''
             issuing_certificates="https://vault.${config.cluster.domain}:8200/v1/pki/ca" \
-            crl_distribution_points="https://vault.${config.cluster.domain}:8200/v1/pki/crl"
-          '' else ''
+            crl_distribution_points="https://vault.${config.cluster.domain}:8200/v1/pki/crl"''
+          else ''
             issuing_certificates="https://vault.${premSimDomain}:8200/v1/pki/ca" \
-            crl_distribution_points="https://vault.${premSimDomain}:8200/v1/pki/crl"
-          ''}
+            crl_distribution_points="https://vault.${premSimDomain}:8200/v1/pki/crl"''
+          }
 
         vault write \
           pki/roles/server \
@@ -535,10 +535,10 @@ in {
           key_type=ec \
           key_bits=256 \
           ${if deployType == "aws" then ''
-            allowed_domains=service.consul,${config.cluster.region}.consul \
-          '' else ''
-            allowed_domains=service.consul,${datacenter}.consul \
-          ''}
+            allowed_domains=service.consul,${config.cluster.region}.consul \''
+          else ''
+            allowed_domains=service.consul,${datacenter}.consul \''
+          }
           allow_subdomains=true \
           generate_lease=true \
           max_ttl=223h

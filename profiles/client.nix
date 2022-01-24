@@ -6,7 +6,7 @@ in {
   imports = [
     ./common.nix
     ./consul/client.nix
-    # ./nomad/client.nix
+    ./nomad/client.nix
     ./vault/client.nix
 
     ./auxiliaries/docker.nix

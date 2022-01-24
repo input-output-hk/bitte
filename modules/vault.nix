@@ -420,10 +420,10 @@ in {
         set -exuo pipefail
 
         ${if deployType == "aws" then ''
-          ip="$(curl -f -s http://169.254.169.254/latest/meta-data/local-ipv4)"
-        '' else ''
-          ip="$(ip -j addr | jq -r '.[] | select(.operstate == "UP") | .addr_info[] | select(.family == "inet") | .local')"
-        ''}
+          ip="$(curl -f -s http://169.254.169.254/latest/meta-data/local-ipv4)"''
+        else ''
+          ip="$(ip -j addr | jq -r '.[] | select(.operstate == "UP") | .addr_info[] | select(.family == "inet") | .local')"''
+        }
 
         addr="https://$ip"
         echo '{"cluster_addr": "'"$addr:8201"'", "api_addr": "'"$addr:8200"'"}' \
