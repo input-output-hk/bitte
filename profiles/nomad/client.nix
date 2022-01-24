@@ -14,7 +14,7 @@
     services.nomad = {
       client = {
         gc_interval = "12h";
-        node_class = config.${if deployType == "aws" then "currentAwsAutoScalingGroup"}.node_class or "core";
+        node_class = config.${if deployType == "aws" then "currentAwsAutoScalingGroup" else "currentCoreNode"}.node_class or "core";
         chroot_env = {
           # "/usr/bin/env" = "/usr/bin/env";
           "${builtins.unsafeDiscardStringContext pkgs.pkgsStatic.busybox}" =
