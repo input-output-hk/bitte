@@ -44,7 +44,7 @@
         region = lib.mkIf (deployType != "prem") config.cluster.region;
       } // (lib.optionalAttrs ((config.currentCoreNode or null) != null) {
         inherit (config.currentCoreNode) domain;
-        region = lib.mkIf (deployType != "prem") config.currentCoreNode.instanceType;
+        instance_type = lib.mkIf (deployType != "prem") config.currentCoreNode.instanceType;
       });
 
       # generate deterministic UUIDs for each node so they can rejoin.
@@ -83,19 +83,19 @@
         # Redirect consul and ec2 internal specific queries to their respective upstream DNS servers
         server=/consul/127.0.0.1#8600
         ${lib.optionalString (deployType != "prem") ''
-          server=/internal/169.254.169.253#53
-        ''}
+          server=/internal/169.254.169.253#53''
+        }
 
         # Configure reverse in-addr.arpa DNS lookups to consul for ASGs and core datacenter default address ranges
         ${lib.optionalString (deployType != "prem") ''
           rev-server=10.0.0.0/8,127.0.0.1#8600
-          rev-server=172.16.0.0/16,127.0.0.1#8600
-        ''}
+          rev-server=172.16.0.0/16,127.0.0.1#8600''
+        }
 
         # Define upstream DNS servers
         ${lib.optionalString (deployType != "prem") ''
-        server=169.254.169.253
-        ''}
+          server=169.254.169.253''
+        }
         server=8.8.8.8
 
         # Set cache and security
