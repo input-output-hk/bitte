@@ -37,7 +37,7 @@ in {
     domain = "monitoring.${domain}";
     extraOptions = {
       AUTH_PROXY_ENABLED = "true";
-      AUTH_PROXY_HEADER_NAME = "X-Authenticated-User";
+      AUTH_PROXY_HEADER_NAME = "X-Auth-Request-Email";
       AUTH_SIGNOUT_REDIRECT_URL = "/oauth2/sign_out";
       USERS_AUTO_ASSIGN_ORG_ROLE = "Editor";
     };
