@@ -697,9 +697,10 @@ let
         privateIP = lib.mkOption { type = with lib.types; str; };
 
         # flake = lib.mkOption { type = with lib.types; str; };
+
         datacenter = lib.mkOption {
           type = with lib.types; str;
-          default = this.config.region;
+          default = if this.config.deployType == "aws" then (kms2region cfg.kms) else "dc1";
         };
 
         subnet = lib.mkOption {

@@ -1,6 +1,7 @@
 { self, lib, pkgs, config, nodeName, bittelib, hashiTokens, letsencryptCertMaterial, pkiFiles, ... }:
 let
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+  datacenter = config.currentCoreNode.datacenter or config.currentAwsAutoScalingGroup.datacenter;
   domain = config.${if deployType == "aws" then "cluster" else "currentCoreNode"}.domain;
   cfg = config.services.traefik;
 in {
@@ -39,6 +40,10 @@ in {
   config = {
     services.traefik.enable = true;
     services.consul.ui = true;
+
+    networking.extraHosts = ''
+      ${config.cluster.coreNodes.monitoring.privateIP} monitoring
+    '';
 
     systemd.services.copy-acme-certs = lib.mkIf cfg.acmeDnsCertMgr {
       before = [ "traefik.service" ];
@@ -82,6 +87,7 @@ in {
         postRun = ''
           cp fullchain.pem ${letsencryptCertMaterial.certChainFile}
           cp key.pem ${letsencryptCertMaterial.keyFile}
+          cp cert.pem ${letsencryptCertMaterial.certFile}
           systemctl try-restart --no-block traefik.service
 
           export VAULT_TOKEN="$(< ${hashiTokens.vault})"
@@ -97,6 +103,11 @@ in {
       dynamicConfigOptions = let
         tlsCfg = if cfg.acmeDnsCertMgr then true else { certresolver = "acme"; };
       in {
+        tls.certificates = if cfg.acmeDnsCertMgr then [{
+          certFile = "/var/lib/traefik/certs/${builtins.baseNameOf letsencryptCertMaterial.certChainFile}";
+          keyFile = "/var/lib/traefik/certs/${builtins.baseNameOf letsencryptCertMaterial.keyFile}";
+        }] else [];
+
         http = {
           routers = let
             mkOauthRoute = service: {
@@ -268,7 +279,7 @@ in {
           };
         };
 
-        certificatesResolvers = lib.mkIf (!cfg.acmeDnsCertMgr) {
+        certificatesResolvers = if (!cfg.acmeDnsCertMgr) then {
           acme = {
             acme = {
               email = "devops@iohk.io";
@@ -276,7 +287,7 @@ in {
               httpChallenge = { entrypoint = "http"; };
             };
           };
-        };
+        } else null;
 
         providers.consulCatalog = {
           refreshInterval = "30s";
@@ -292,11 +303,20 @@ in {
           # Use local agent caching for catalog reads.
           cache = false;
 
+          # Enable Consul Connect support.
+          connectaware = true;
+
+          # Consider every service as Connect capable by default.
+          connectbydefault = false;
+
           endpoint = {
             # Defines the address of the Consul server.
             address = "127.0.0.1:${toString config.services.consul.ports.http}";
 
             scheme = "http";
+
+            # Defines the datacenter to use. If not provided in Traefik, Consul uses the default agent datacenter.
+            inherit datacenter;
 
             # Token is used to provide a per-request ACL token which overwrites the agent's default token.
             # token = ""
