@@ -10,14 +10,19 @@ assert lib.assertMsg (builtins.typeOf deploySshKey == "string") ''
 let
 
   deploy' = {
-    sshUser = "root";
-    sshOpts = [ "-C" "-i" "${deploySshKey}" "-o" "StrictHostKeyChecking=no" ];
-    nodes = builtins.mapAttrs (k: _: {
+    nodes = builtins.mapAttrs (k: _: let
+      cfg = self.nixosConfigurations.${k};
+    in {
+      sshUser = "root";
+      sshOpts = [ "-C" "-o" "StrictHostKeyChecking=no" "-i" "${deploySshKey}"];
       profiles.system.user = "root";
       profiles.system.path =
-        let inherit (self.nixosConfigurations.${k}.pkgs) system;
-        in deploy.lib.${system}.activate.nixos self.nixosConfigurations.${k};
-    }) self.nixosConfigurations;
+        let inherit (cfg.pkgs) system;
+        in deploy.lib.${system}.activate.nixos cfg;
+    } // (lib.optionalAttrs (cfg.config.currentCoreNode.deployType  == "prem") {
+      hostname = cfg.config.cluster.name + "-" + cfg.config.networking.hostName;
+      sshOpts = [ "-C" "-o" "StrictHostKeyChecking=no" ];
+    })) self.nixosConfigurations;
   };
 
 in {

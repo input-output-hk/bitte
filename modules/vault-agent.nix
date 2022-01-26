@@ -137,12 +137,13 @@ in {
       wantedBy = [ "multi-user.target" ];
 
       environment = {
-        inherit (config.environment.variables) AWS_DEFAULT_REGION;
         CONSUL_HTTP_ADDR = "127.0.0.1:8500";
         VAULT_ADDR = cfg.vaultAddress;
         VAULT_SKIP_VERIFY = "true";
         VAULT_FORMAT = "json";
-      };
+      } // (lib.optionalAttrs (config.environment.variables ? "AWS_DEFAULT_REGION") {
+        inherit (config.environment.variables) AWS_DEFAULT_REGION;
+      });
 
       path = with pkgs; [ vault-bin ];
 
