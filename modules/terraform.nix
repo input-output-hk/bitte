@@ -208,6 +208,11 @@ let
           default = { };
         };
 
+        premSimNodes = lib.mkOption {
+          type = with lib.types; attrsOf coreNodeType;
+          default = { };
+        };
+
         awsAutoScalingGroups = lib.mkOption {
           type = with lib.types; attrsOf awsAutoScalingGroupType;
           default = { };
@@ -291,6 +296,19 @@ let
               core-1.cidr = "172.16.0.0/24";
               core-2.cidr = "172.16.1.0/24";
               core-3.cidr = "172.16.2.0/24";
+            };
+          };
+        };
+
+        premSimVpc = lib.mkOption {
+          type = with lib.types; vpcType "${cfg.name}-premSim";
+          default = {
+            inherit (cfg) region;
+
+            cidr = "10.255.0.0/16";
+
+            subnets = {
+              premSim.cidr = "10.255.0.0/24";
             };
           };
         };
@@ -617,6 +635,15 @@ let
           default = [ ];
         };
 
+        node_class = lib.mkOption {
+          type = with lib.types; str;
+        };
+
+        deployType = lib.mkOption {
+          type = with lib.types; enum [ "aws" "prem" "premSim" ];
+          default = "aws";
+        };
+
         ami = lib.mkOption {
           type = with lib.types; str;
           default = config.cluster.ami;
@@ -670,6 +697,11 @@ let
         privateIP = lib.mkOption { type = with lib.types; str; };
 
         # flake = lib.mkOption { type = with lib.types; str; };
+
+        datacenter = lib.mkOption {
+          type = with lib.types; str;
+          default = if this.config.deployType == "aws" then (kms2region cfg.kms) else "dc1";
+        };
 
         subnet = lib.mkOption {
           type = with lib.types; subnetType;
@@ -751,6 +783,11 @@ let
         modules = lib.mkOption {
           type = with lib.types; listOf (oneOf [ path attrs ]);
           default = [ ];
+        };
+
+        deployType = lib.mkOption {
+          type = with lib.types; enum [ "aws" "prem" "premSim" ];
+          default = "aws";
         };
 
         ami = lib.mkOption {
@@ -870,7 +907,7 @@ in {
     currentCoreNode = lib.mkOption {
       internal = true;
       type = with lib.types; nullOr attrs;
-      default = cfg.coreNodes."${nodeName}" or null;
+      default = cfg.coreNodes."${nodeName}" or cfg.premSimNodes."${nodeName}" or null;
     };
 
     currentAwsAutoScalingGroup = lib.mkOption {

@@ -2,6 +2,9 @@
 let
   cfg = config.services.promtail;
 
+  deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+  datacenter = config.currentCoreNode.datacenter or config.currentAwsAutoScalingGroup.datacenter;
+
   configJson = pkgs.toPrettyJSON "promtail" {
     server = {
       inherit (cfg.server) http_listen_port;
@@ -17,11 +20,17 @@ let
 
     scrape_configs = [
       {
-        ec2_sd_configs = [{ inherit (config.cluster) region; }];
+        ec2_sd_configs = if deployType == "aws" then [{ inherit (config.cluster) region; }] else [];
 
-        job_name = "ec2-logs";
+        job_name = if deployType =="aws" then "ec2-logs" else "prem-logs";
 
         relabel_configs = [
+          {
+            action = "replace";
+            replacement = "/var/log/**.log";
+            target_label = "__path__";
+          }
+        ] ++ (lib.optionals (deployType == "aws") [
           {
             action = "replace";
             source_labels = [ "__meta_ec2_tag_Name" ];
@@ -38,16 +47,11 @@ let
             target_label = "zone";
           }
           {
-            action = "replace";
-            replacement = "/var/log/**.log";
-            target_label = "__path__";
-          }
-          {
             regex = "(.*)";
             source_labels = [ "__meta_ec2_private_dns_name" ];
             target_label = "__host__";
           }
-        ];
+        ]);
       }
       {
         job_name = "journal";
@@ -55,7 +59,10 @@ let
           json = false;
           labels = {
             job = "systemd-journal";
+          } // lib.optionalAttrs (deployType == "aws") {
             inherit (config.cluster) region;
+          } // lib.optionalAttrs (deployType != "aws") {
+            inherit datacenter;
           };
           max_age = "12h";
           path = "/var/log/journal";

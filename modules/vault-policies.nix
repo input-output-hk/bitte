@@ -1,5 +1,7 @@
 { pkgs, lib, config, bittelib, ... }:
 let
+  deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+
   rmModules = arg:
     let
       sanitized = lib.mapAttrsToList (name: value:
@@ -79,15 +81,22 @@ in {
 
       environment = {
         inherit (config.environment.variables)
-          AWS_DEFAULT_REGION VAULT_CACERT VAULT_ADDR VAULT_FORMAT NOMAD_ADDR;
+          VAULT_CACERT VAULT_ADDR VAULT_FORMAT NOMAD_ADDR;
+        AWS_DEFAULT_REGION = lib.mkIf (deployType == "aws")
+                             config.environment.variables.AWS_DEFAULT_REGION;
       };
 
-      path = with pkgs; [ vault-bin sops jq nomad curl cacert ];
+      path = with pkgs; [ vault-bin sops rage jq nomad curl cacert ];
 
       script = ''
         set -euo pipefail
 
-        VAULT_TOKEN="$(sops -d --extract '["root_token"]' vault.enc.json)"
+        ${if (deployType == "aws") then ''
+          VAULT_TOKEN="$(sops -d --extract '["root_token"]' vault.enc.json)"''
+        else ''
+          VAULT_TOKEN="$(rage -i /etc/ssh/ssh_host_ed25519_key -d /var/lib/vault/vault-bootstrap.json.age | jq -r '.root_token')"''
+        }
+
         export VAULT_TOKEN
         export VAULT_ADDR=https://127.0.0.1:8200
 

@@ -1,5 +1,6 @@
-{ lib, config, pkgs, nodeName, bittelib, hashiTokens, gossipEncryptionMaterial, ... }:
+{ lib, config, pkgs, nodeName, bittelib, hashiTokens, gossipEncryptionMaterial, pkiFiles, ... }:
 let
+  deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
   sanitize = obj:
     lib.getAttr (builtins.typeOf obj) {
       bool = obj;
@@ -119,6 +120,12 @@ in {
       default = "vault.d";
     };
 
+    serverNodeNames = lib.mkOption {
+      type = with lib.types; listOf str;
+      default = if deployType == "aws" then [ "core-1" "core-2" "core-3" ]
+                else [ "prem-1" "prem-2" "prem-3" ];
+    };
+
     extraConfig = lib.mkOption {
       type = with lib.types; attrs;
       default = { };
@@ -204,21 +211,20 @@ in {
     };
 
     seal = lib.mkOption {
-      type = with lib.types;
-        submodule {
-          options = {
-            awskms = lib.mkOption {
-              type = with lib.types;
-                submodule {
-                  options = {
-                    kmsKeyId = lib.mkOption { type = with lib.types; str; };
-                    region = lib.mkOption { type = with lib.types; str; };
-                  };
-                };
-            };
+      type = with lib.types; nullOr (submodule {
+        options = {
+          awskms = lib.mkOption {
+            type = with lib.types; nullOr (submodule {
+              options = {
+                kmsKeyId = lib.mkOption { type = with lib.types; str; };
+                region = lib.mkOption { type = with lib.types; str; };
+              };
+            });
+            default = null;
           };
         };
-      default = { };
+      });
+      default = null;
     };
 
     serviceRegistration = lib.mkOption {
@@ -309,10 +315,15 @@ in {
       };
 
       serviceConfig = let
+        certChainFile = if deployType == "aws" then pkiFiles.certChainFile
+                      else pkiFiles.serverCertChainFile;
+        certKeyFile = if deployType == "aws" then pkiFiles.keyFile
+                      else pkiFiles.serverKeyFile;
         preScript = pkgs.writeBashBinChecked "vault-start-pre" ''
           export PATH="${lib.makeBinPath [ pkgs.coreutils ]}"
           set -exuo pipefail
-          cp /etc/ssl/certs/cert-key.pem .
+          cp ${certChainFile} full.pem
+          cp ${certKeyFile} cert-key.pem
           chown --reference . --recursive .
         '';
 
@@ -392,7 +403,7 @@ in {
         '';
       };
 
-    systemd.services.vault-aws-addr = {
+    systemd.services.vault-addr = {
       wantedBy = [ "vault.service" ];
       before = [ "vault.service" ];
 
@@ -403,12 +414,17 @@ in {
         RestartSec = "20s";
       };
 
-      path = with pkgs; [ curl jq ];
+      path = with pkgs; [ curl jq iproute2 ];
 
       script = ''
         set -exuo pipefail
 
-        ip="$(curl -f -s http://169.254.169.254/latest/meta-data/local-ipv4)"
+        ${if deployType == "aws" then ''
+          ip="$(curl -f -s http://169.254.169.254/latest/meta-data/local-ipv4)"''
+        else ''
+          ip="$(ip -j addr | jq -r '.[] | select(.operstate == "UP") | .addr_info[] | select(.family == "inet") | .local')"''
+        }
+
         addr="https://$ip"
         echo '{"cluster_addr": "'"$addr:8201"'", "api_addr": "'"$addr:8200"'"}' \
         | jq -S . \

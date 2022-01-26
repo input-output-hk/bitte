@@ -7,16 +7,23 @@
     services.nomad-snapshots.enable = true;
   };
 
-  Config = {
+  Config = let
+    inherit (config.cluster) coreNodes premSimNodes region;
+    deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+    datacenter = config.currentCoreNode.datacenter or config.currentAwsAutoScalingGroup.datacenter;
+
+    cfg = config.services.nomad;
+  in {
     services.nomad = {
-      datacenter = config.cluster.region;
+      datacenter = if deployType == "aws" then region else datacenter;
 
       server = {
         bootstrap_expect = 3;
 
         server_join = {
-          retry_join = (lib.mapAttrsToList (_: v: v.privateIP) config.cluster.coreNodes)
-            ++ [ "provider=aws region=${config.cluster.region} tag_key=Nomad tag_value=server" ];
+          retry_join = (lib.mapAttrsToList (_: v: v.privateIP) (lib.filterAttrs (k: v: lib.elem k cfg.serverNodeNames) (premSimNodes // coreNodes)))
+            ++ (lib.optionals (deployType == "aws")
+            [ "provider=aws region=${region} tag_key=Nomad tag_value=server" ]);
         };
 
         default_scheduler_config = {

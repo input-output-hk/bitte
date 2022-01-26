@@ -35,7 +35,7 @@ let
       ../profiles/auxiliaries/nix.nix
       ../profiles/consul/policies.nix
       # This module purely exists to appease failing assertions on evaluating
-      # the proto system. The protosystem is only used to obtaion the tf config.
+      # the proto system. The protosystem is only used to obtain the tf config.
       ({ lib, ... }: {
         # assertion: The ‘fileSystems’ option does not specify your root file system.
         fileSystems."/" =

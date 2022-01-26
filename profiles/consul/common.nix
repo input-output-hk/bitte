@@ -8,23 +8,30 @@
     services.dnsmasq.enable = true;
   };
 
-  Config = let ownedKey = "/var/lib/consul/cert-key.pem";
+  Config = let
+    inherit (config.cluster) coreNodes premSimNodes region;
+    deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+    datacenter = config.currentCoreNode.datacenter or config.currentAwsAutoScalingGroup.datacenter;
+
+    cfg = config.services.consul;
+    ownedChain = "/var/lib/consul/full.pem";
+    ownedKey = "/var/lib/consul/cert-key.pem";
   in {
     services.consul = {
       addresses = { http = lib.mkDefault "127.0.0.1"; };
 
       clientAddr = "0.0.0.0";
-      datacenter = config.cluster.region;
+      datacenter = if deployType == "aws" then region else datacenter;
       enableLocalScriptChecks = true;
       logLevel = "info";
-      primaryDatacenter = config.cluster.region;
+      primaryDatacenter = if deployType == "aws" then region else datacenter;
       tlsMinVersion = "tls12";
       verifyIncoming = true;
       verifyOutgoing = true;
       verifyServerHostname = true;
 
       caFile = pkiFiles.caCertFile;
-      certFile = pkiFiles.certChainFile;
+      certFile = ownedChain;
       keyFile = ownedKey;
 
       telemetry = {
@@ -33,10 +40,11 @@
       };
 
       nodeMeta = {
-        inherit (config.cluster) region;
         inherit nodeName;
+        region = lib.mkIf (deployType != "prem") config.cluster.region;
       } // (lib.optionalAttrs ((config.currentCoreNode or null) != null) {
-        inherit (config.currentCoreNode) instanceType domain;
+        inherit (config.currentCoreNode) domain;
+        instance_type = lib.mkIf (deployType != "prem") config.currentCoreNode.instanceType;
       });
 
       # generate deterministic UUIDs for each node so they can rejoin.
@@ -48,8 +56,10 @@
 
       advertiseAddr = ''{{ GetInterfaceIP "ens5" }}'';
 
-      retryJoin = (lib.mapAttrsToList (_: v: v.privateIP) config.cluster.coreNodes)
-        ++ [ "provider=aws region=${config.cluster.region} tag_key=Consul tag_value=server" ];
+      retryJoin = (lib.mapAttrsToList (_: v: v.privateIP)
+        (lib.filterAttrs (k: v: lib.elem k cfg.serverNodeNames) (premSimNodes // coreNodes)))
+        ++ lib.optionals (deployType == "aws")
+        [ "provider=aws region=${region} tag_key=Consul tag_value=server" ];
 
       connect = {
         caProvider = "consul";
@@ -72,19 +82,27 @@
 
         # Redirect consul and ec2 internal specific queries to their respective upstream DNS servers
         server=/consul/127.0.0.1#8600
-        server=/internal/169.254.169.253#53
+        ${lib.optionalString (deployType != "prem") ''
+          server=/internal/169.254.169.253#53''
+        }
 
         # Configure reverse in-addr.arpa DNS lookups to consul for ASGs and core datacenter default address ranges
-        rev-server=10.0.0.0/8,127.0.0.1#8600
-        rev-server=172.16.0.0/16,127.0.0.1#8600
+        ${lib.optionalString (deployType != "prem") ''
+          rev-server=10.0.0.0/8,127.0.0.1#8600
+          rev-server=172.16.0.0/16,127.0.0.1#8600''
+        }
 
         # Define upstream DNS servers
-        server=169.254.169.253
+        ${lib.optionalString (deployType != "prem") ''
+          server=169.254.169.253''
+        }
         server=8.8.8.8
 
         # Set cache and security
         cache-size=65536
         local-service
+
+        # Append additional extraConfig from the ops repo as needed
       '';
     };
 

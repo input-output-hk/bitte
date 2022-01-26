@@ -4,7 +4,6 @@
     ./common.nix
 
     ./secrets-provisioning/hashistack.nix
-    ./secrets-provisioning/letsencrypt-ingress.nix
   ]; };
 
   Switches = { };

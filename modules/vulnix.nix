@@ -1,7 +1,10 @@
 { config, pkgs, lib, nodeName, hashiTokens, letsencryptCertMaterial, ... }:
-
 let
   cfg = config.services.vulnix;
+
+  deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+  domain = config.${if deployType == "aws" then "cluster" else "currentCoreNode"}.domain;
+
   whitelistFormat = pkgs.formats.toml { };
 in {
   options.services.vulnix = with lib; {
@@ -128,8 +131,8 @@ in {
       startLimitBurst = 10;
 
       environment = lib.mkIf cfg.scanNomadJobs.enable {
-        VAULT_ADDR = "https://vault.${config.cluster.domain}";
-        NOMAD_ADDR = "https://nomad.${config.cluster.domain}";
+        VAULT_ADDR = "https://vault.${domain}";
+        NOMAD_ADDR = "https://nomad.${domain}";
         VAULT_CACERT = letsencryptCertMaterial.certChainFile;
       };
 
@@ -230,7 +233,7 @@ in {
           <<< X-Nomad-Token:"$NOMAD_TOKEN" \
           curl -H @- \
             --no-progress-meter \
-            --cacert /etc/ssl/certs/${config.cluster.domain}-ca.pem \
+            --cacert /etc/ssl/certs/${domain}-ca.pem \
             -NG "$NOMAD_ADDR"/v1/event/stream \
             --data-urlencode namespace="$1" \
             --data-urlencode topic=Job \

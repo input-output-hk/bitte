@@ -30,6 +30,11 @@
     cli.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
     cli.inputs.nix.follows = "nix-auxiliary";
 
+    agenix.url = "github:ryantm/agenix";
+    agenix.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
+    agenix-cli.url = "github:cole-h/agenix-cli";
+    agenix-cli.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
+
     ragenix.url = "github:yaxitech/ragenix";
     ragenix.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
 
@@ -115,7 +120,8 @@
       overlay = nixpkgs.lib.composeManyExtensions overlays;
       profiles = lib.mkModules ./profiles;
       nixosModules = (lib.mkModules ./modules) // {
-        agenix = ragenix.nixosModules.age;
+        # Until ready to update to the new age module options
+        # agenix = ragenix.nixosModules.age;
       };
       nixosModule.imports = builtins.attrValues self.nixosModules;
     };

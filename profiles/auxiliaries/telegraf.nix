@@ -1,4 +1,8 @@
-{ pkgs, config, lib, pkiFiles, ... }: {
+{ pkgs, config, lib, pkiFiles, ... }:
+let
+  deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+  datacenter = config.currentCoreNode.datacenter or config.currentAwsAutoScalingGroup.datacenter;
+in {
 
   services.telegraf.enable = true;
 
@@ -45,7 +49,9 @@
         metric_buffer_limit = 50000;
       };
 
-      global_tags = { datacenter = config.cluster.region; };
+      global_tags = {
+        datacenter = if deployType == "aws" then config.cluster.region else datacenter;
+      };
 
       inputs = {
         statsd = {
@@ -100,7 +106,11 @@
 
         systemd_units = { unittype = "service"; };
 
-        x509_cert = { sources = [ pkiFiles.certFile ]; };
+        x509_cert = {
+          sources = [
+            (if deployType == "aws" then pkiFiles.certFile else pkiFiles.clientCertFile)
+          ];
+        };
 
         kernel = { };
         linux_sysctl_fs = { };

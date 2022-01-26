@@ -1,5 +1,10 @@
-{ self, lib, pkgs, config, nodeName, bittelib, hashiTokens, letsencryptCertMaterial, ... }: {
-
+{ self, lib, pkgs, config, nodeName, bittelib, hashiTokens, letsencryptCertMaterial, pkiFiles, ... }:
+let
+  deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+  datacenter = config.currentCoreNode.datacenter or config.currentAwsAutoScalingGroup.datacenter;
+  domain = config.${if deployType == "aws" then "cluster" else "currentCoreNode"}.domain;
+  cfg = config.services.traefik;
+in {
   imports = [
     ./common.nix
     ./consul/client.nix
@@ -8,17 +13,39 @@
     ./auxiliaries/oauth.nix
   ];
 
-  options.services.traefik.prometheusPort = lib.mkOption {
-    type = with lib.types; int;
-    default = 9090;
-    description =
-      "The default port for traefik prometheus to publish metrics on.";
+  options.services.traefik = {
+    prometheusPort = lib.mkOption {
+      type = with lib.types; int;
+      default = 9090;
+      description =
+        "The default port for traefik prometheus to publish metrics on.";
+    };
+
+    acmeDnsCertMgr = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        If true, acme systemd services will manage a single cert and provide it to traefik:
+          - using dns Let's Encrypt challenge
+          - using extraAcmeSANs which allow wildcards
+          - utilizing route53 services
+        If false, traefik will manage certs:
+          - using http Let's Encrypt challenge
+          - without other nameserver or DNS service depedencies
+          - by obtaining individual certs for each traefik router service, including nomad job app routes
+      '';
+    };
   };
 
   config = {
     services.traefik.enable = true;
+    services.consul.ui = true;
 
-    systemd.services.copy-acme-certs = {
+    networking.extraHosts = ''
+      ${config.cluster.coreNodes.monitoring.privateIP} monitoring
+    '';
+
+    systemd.services.copy-acme-certs = lib.mkIf cfg.acmeDnsCertMgr {
       before = [ "traefik.service" ];
       wantedBy = [ "traefik.service" ];
 
@@ -42,12 +69,12 @@
       '';
     };
 
-    systemd.services."acme-${nodeName}".serviceConfig = {
+    systemd.services."acme-${nodeName}".serviceConfig = lib.mkIf cfg.acmeDnsCertMgr {
       ExecStartPre = bittelib.ensureDependencies pkgs [ "vault-agent" ];
       RestrictAddressFamilies = [ "AF_UNIX" "AF_INET" "AF_INET6" ];
     };
 
-    security.acme = {
+    security.acme = lib.mkIf cfg.acmeDnsCertMgr {
       acceptTerms = true;
       certs.routing = lib.mkIf (nodeName == "routing") {
         dnsProvider = "route53";
@@ -55,7 +82,7 @@
         email = "devops@iohk.io";
         inherit (config.cluster) domain;
         credentialsFile = builtins.toFile "nothing" "";
-        extraDomainNames = [ "*.${config.cluster.domain}" ]
+        extraDomainNames = [ "*.${domain}" ]
           ++ config.cluster.extraAcmeSANs;
         postRun = ''
           cp fullchain.pem ${letsencryptCertMaterial.certChainFile}
@@ -73,36 +100,165 @@
     };
 
     services.traefik = {
-      dynamicConfigOptions = {
-        tls.certificates = [{
+      dynamicConfigOptions = let
+        tlsCfg = if cfg.acmeDnsCertMgr then true else { certresolver = "acme"; };
+      in {
+        tls.certificates = if cfg.acmeDnsCertMgr then [{
           certFile = "/var/lib/traefik/certs/${builtins.baseNameOf letsencryptCertMaterial.certChainFile}";
           keyFile = "/var/lib/traefik/certs/${builtins.baseNameOf letsencryptCertMaterial.keyFile}";
-        }];
+        }] else [];
 
         http = {
-          routers = {
-            traefik = {
-              rule = "Host(`routing.${config.cluster.domain}`)";
-              service = "api@internal";
+          routers = let
+            mkOauthRoute = service: {
+              inherit service;
               entrypoints = "https";
+              middlewares = [ "oauth-auth-redirect" ];
+              rule = "Host(`${service}.${domain}`) && PathPrefix(`/`)";
+              tls = tlsCfg;
+            };
+          in lib.mkDefault {
+            oauth2-route = {
+              entrypoints = "https";
+              middlewares = [ "auth-headers" ];
+              rule = "PathPrefix(`/oauth2/`)";
+              service = "oauth-backend";
+              priority = 999;
               tls = true;
+            };
+
+            oauth2-proxy-route = {
+              entrypoints = "https";
+              middlewares = [ "auth-headers" ];
+              rule = "Host(`oauth.${domain}`) && PathPrefix(`/`)";
+              service = "oauth-backend";
+              tls = tlsCfg;
+            };
+
+            grafana = mkOauthRoute "monitoring";
+            nomad = mkOauthRoute "nomad";
+
+            nomad-api = {
+              entrypoints = "https";
+              middlewares = [ ];
+              rule = "Host(`nomad.${domain}`) && PathPrefix(`/v1/`)";
+              service = "nomad";
+              tls = true;
+            };
+
+            vault = mkOauthRoute "vault";
+
+            vault-api = {
+              entrypoints = "https";
+              middlewares = [ ];
+              rule = "Host(`vault.${domain}`) && PathPrefix(`/v1/`)";
+              service = "vault";
+              tls = true;
+            };
+
+            consul = mkOauthRoute "consul";
+
+            consul-api = {
+              entrypoints = "https";
+              middlewares = [ ];
+              rule = "Host(`consul.${domain}`) && PathPrefix(`/v1/`)";
+              service = "consul";
+              tls = true;
+            };
+
+            traefik = {
+              entrypoints = "https";
+              middlewares = [ "oauth-auth-redirect" ];
+              # middlewares = [ ];
+              rule = "Host(`traefik.${domain}`) && PathPrefix(`/`)";
+              service = "api@internal";
+              tls = tlsCfg;
+            };
+          };
+
+          services = {
+            oauth-backend.loadBalancer = {
+              servers = [{ url = "http://127.0.0.1:4180"; }];
+            };
+
+            consul.loadBalancer = {
+              servers = [{ url = "http://127.0.0.1:8500"; }];
+            };
+
+            nomad.loadBalancer = {
+              servers = [{ url = "https://nomad.service.consul:4646"; }];
+              serversTransport = "cert-transport";
+            };
+
+            monitoring.loadBalancer = {
+              servers = [{ url = "http://monitoring:3000"; }];
+            };
+
+            vault.loadBalancer = {
+              servers = [{ url = "https://active.vault.service.consul:8200"; }];
+              serversTransport = "cert-transport";
+            };
+          };
+
+          serversTransports = {
+            cert-transport = {
+              insecureSkipVerify = true;
+              rootCAs = let
+                certChainFile = if deployType == "aws" then pkiFiles.certChainFile
+                                                       else pkiFiles.serverCertChainFile;
+              in [ certChainFile ];
+            };
+          };
+
+          middlewares = {
+            auth-headers = {
+              headers = {
+                browserXssFilter = true;
+                contentTypeNosniff = true;
+                forceSTSHeader = true;
+                frameDeny = true;
+                sslHost = domain;
+                sslRedirect = true;
+                stsIncludeSubdomains = true;
+                stsPreload = true;
+                stsSeconds = 315360000;
+              };
+            };
+
+            oauth-auth-redirect = {
+              forwardAuth = {
+                address = "https://oauth.${domain}/";
+                authResponseHeaders = [
+                  "X-Auth-Request-User"
+                  "X-Auth-Request-Email"
+                  "X-Auth-Request-Access-Token"
+                  "Authorization"
+                ];
+                trustForwardHeader = true;
+              };
             };
           };
         };
       };
 
       staticConfigOptions = {
-        metrics.prometheus = {
-          entrypoint = "metrics";
-          addEntryPointsLabels = true;
-          addServicesLabels = true;
+        metrics = {
+          prometheus = {
+            entrypoint = "metrics";
+            addEntryPointsLabels = true;
+            addServicesLabels = true;
+          };
         };
+
+        accesslog = true;
+        log.level = "info";
 
         api = { dashboard = true; };
 
         entryPoints = {
           http = {
             address = ":80";
+            forwardedHeaders.insecure = true;
             http = {
               redirections = {
                 entryPoint = {
@@ -113,13 +269,26 @@
             };
           };
 
-          https = { address = ":443"; };
+          https = {
+            address = ":443";
+            forwardedHeaders.insecure = true;
+          };
 
           metrics = {
             address =
               "127.0.0.1:${toString config.services.traefik.prometheusPort}";
           };
         };
+
+        certificatesResolvers = if (!cfg.acmeDnsCertMgr) then {
+          acme = {
+            acme = {
+              email = "devops@iohk.io";
+              storage = "/var/lib/traefik/acme.json";
+              httpChallenge = { entrypoint = "http"; };
+            };
+          };
+        } else null;
 
         providers.consulCatalog = {
           refreshInterval = "30s";
@@ -135,6 +304,12 @@
           # Use local agent caching for catalog reads.
           cache = false;
 
+          # Enable Consul Connect support.
+          connectaware = true;
+
+          # Consider every service as Connect capable by default.
+          connectbydefault = false;
+
           endpoint = {
             # Defines the address of the Consul server.
             address = "127.0.0.1:${toString config.services.consul.ports.http}";
@@ -142,7 +317,7 @@
             scheme = "http";
 
             # Defines the datacenter to use. If not provided in Traefik, Consul uses the default agent datacenter.
-            datacenter = config.cluster.region;
+            inherit datacenter;
 
             # Token is used to provide a per-request ACL token which overwrites the agent's default token.
             # token = ""

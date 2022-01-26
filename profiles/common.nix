@@ -1,4 +1,8 @@
-{ config, lib, pkgs, ... }: {
+{ config, lib, pkgs, ... }:
+let
+  inherit (config.cluster) coreNodes premSimNodes;
+  deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+in {
 
   imports = [
     ./slim.nix
@@ -10,11 +14,13 @@
     ./auxiliaries/telegraf.nix
   ];
 
-  services.ssm-agent.enable = true;
+  services.ssm-agent.enable = deployType == "aws";
   services.openntpd.enable = true;
-  services.fail2ban.enable = true;
+  services.fail2ban.enable = deployType != "premSim";
 
-  environment.variables = { AWS_DEFAULT_REGION = config.cluster.region; };
+  environment.variables = {
+    AWS_DEFAULT_REGION = lib.mkIf (deployType != "prem") config.cluster.region;
+  };
   environment.systemPackages = with pkgs; [ consul nomad vault-bin ];
 
   # Don't `nixos-rebuild switch` after the initial deploy.
@@ -48,13 +54,15 @@
   # Ref: https://bbs.archlinux.org/viewtopic.php?id=265221
   programs.ssh.package = pkgs.opensshNoCoredump;
 
-  networking.extraHosts = ''
-    ${config.cluster.coreNodes.core-1.privateIP} core.vault.service.consul
-    ${config.cluster.coreNodes.core-2.privateIP} core.vault.service.consul
-    ${config.cluster.coreNodes.core-3.privateIP} core.vault.service.consul
+  networking.extraHosts = let
+    inherit (config.services.vault) serverNodeNames;
+  in ''
+    ${lib.concatStringsSep "\n"
+    (lib.mapAttrsToList (name: instance: "${instance.privateIP} core.vault.service.consul")
+      (lib.filterAttrs (k: v: lib.elem k serverNodeNames) (premSimNodes // coreNodes)))}
 
     ${lib.concatStringsSep "\n"
-    (lib.mapAttrsToList (name: coreNode: "${coreNode.privateIP} ${name}")
-      config.cluster.coreNodes)}
+    (lib.mapAttrsToList (name: instance: "${instance.privateIP} ${name}")
+      (if deployType != "premSim" then coreNodes else premSimNodes))}
   '';
 }

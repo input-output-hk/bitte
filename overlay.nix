@@ -14,7 +14,24 @@ rec {
   nixUnstable = final.nix;
 
   nomad = inputs.nomad.defaultPackage."${final.system}";
+
+  # Until ops Rakefile is rewritten for ragenix nix secrets vs. toml
+  inherit (inputs.agenix.packages."${final.system}") agenix;
+  inherit (inputs.agenix-cli.packages."${final.system}") agenix-cli;
+
   ragenix = inputs.ragenix.defaultPackage."${final.system}";
+
+  # bitte-ruby and bundler for prem, premSim ops repo Rakefile support
+  bitte-ruby = inputs.nixpkgs-auxiliary.legacyPackages.${final.system}.bundlerEnv {
+    name = "bitte-gems";
+    gemdir = ./.;
+  };
+
+  bundler = inputs.nixpkgs-auxiliary.legacyPackages.${final.system}.bundler.overrideAttrs (o: {
+    postInstall = ''
+      sed -i -e '/if sudo_needed/I,+2 d' $out/${prev.ruby.gemPath}/gems/${o.gemName}-${o.version}/lib/bundler.rb
+    '';
+  });
 
   ssh-keys = let
     keys = import (ops-lib + "/overlays/ssh-keys.nix") lib;

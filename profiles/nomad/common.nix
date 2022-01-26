@@ -8,7 +8,15 @@
     services.nomad.vault.enabled = true;
   };
 
-  Config = let ownedKey = "/var/lib/nomad/cert-key.pem";
+  Config = let
+    inherit (config.cluster) region;
+    deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+    datacenter = config.currentCoreNode.datacenter or config.currentAwsAutoScalingGroup.datacenter;
+
+    ownedChain = "/var/lib/consul/full.pem";
+    ownedKey = "/var/lib/nomad/cert-key.pem";
+    consulOwnedChain = "/var/lib/consul/full.pem";
+    consulOwnedKey = "/var/lib/consul/cert-key.pem";
   in {
 
     environment.variables = {
@@ -34,7 +42,7 @@
         http = true;
         rpc = true;
         ca_file = pkiFiles.caCertFile;
-        cert_file = pkiFiles.certChainFile;
+        cert_file = ownedChain;
         key_file = ownedKey;
         tls_min_version = "tls12";
       };
@@ -51,15 +59,18 @@
         ssl = true;
         allow_unauthenticated = true;
         ca_file = pkiFiles.caCertFile;
-        cert_file = pkiFiles.certChainFile;
-        key_file = ownedKey;
+        cert_file = consulOwnedChain;
+        key_file = consulOwnedKey;
       };
 
       telemetry = {
         publish_allocation_metrics = true;
         publish_node_metrics = true;
         datadog_address = "localhost:8125";
-        datadog_tags = [ "region:${config.cluster.region}" "role:nomad" ];
+        datadog_tags = [
+          (if deployType == "aws" then "region:${region}" else "datacenter:${datacenter}")
+          "role:nomad"
+        ];
       };
     };
 

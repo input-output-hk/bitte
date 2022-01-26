@@ -1,4 +1,7 @@
-{ self, pkgs, config, lib, ... }: {
+{ self, pkgs, config, lib, nodeName, ... }:
+let
+  deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+in {
 
   imports = [
     ./common.nix
@@ -11,8 +14,8 @@
     ./auxiliaries/builder.nix
   ];
 
-  services.s3-upload-flake.enable = true;
-  services.zfs-client-options.enable = true;
+  services.s3-upload-flake.enable = deployType == "aws";
+  services.zfs-client-options.enable = deployType == "aws";
 
   services.telegraf.extraConfig.global_tags.role = "consul-client";
 
@@ -20,5 +23,9 @@
 
   time.timeZone = "UTC";
 
-  networking = { hostId = "9474d585"; };
+  # Maintain backward compat for the aws machines otherwise derive from hostname
+  networking.hostId = if (deployType == "aws") then "9474d585"
+    else (lib.fileContents (pkgs.runCommand "hostId" { } ''
+    ${pkgs.ruby}/bin/ruby -rzlib -e 'File.write(ENV["out"], "%08x" % Zlib.crc32("${nodeName}"))'
+  ''));
 }

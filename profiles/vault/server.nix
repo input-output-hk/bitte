@@ -5,6 +5,7 @@
     ./policies.nix
 
     ./secrets-provisioning/hashistack.nix
+    ./secrets-provisioning/cert-identity.nix
   ]; };
 
   Switches = {
@@ -13,7 +14,12 @@
     services.vault.ui = true;
   };
 
-  Config = let ownedKey = "/var/lib/vault/cert-key.pem";
+  Config = let
+    inherit (config.cluster) coreNodes premSimNodes region;
+    deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+    datacenter = config.currentCoreNode.datacenter or config.currentAwsAutoScalingGroup.datacenter;
+    ownedChain = "/var/lib/vault/full.pem";
+    ownedKey = "/var/lib/vault/cert-key.pem";
   in {
     services.vault-agent = {
       role = "core";
@@ -30,34 +36,40 @@
         clusterAddress = "${config.currentCoreNode.privateIP}:8201";
         address = "0.0.0.0:8200";
         tlsClientCaFile = pkiFiles.caCertFile;
-        tlsCertFile = pkiFiles.certChainFile;
+        tlsCertFile = ownedChain;
         tlsKeyFile = ownedKey;
         tlsMinVersion = "tls12";
       };
 
-      seal.awskms = {
-        kmsKeyId = config.cluster.kms;
-        inherit (config.cluster) region;
+      seal = lib.mkIf (deployType == "aws") {
+        awskms = {
+          kmsKeyId = config.cluster.kms;
+          inherit region;
+        };
       };
 
       disableMlock = true;
 
       telemetry = {
         dogstatsdAddr = "localhost:8125";
-        dogstatsdTags = [ "region:${config.cluster.region}" "role:vault" ];
+        dogstatsdTags = [
+          "role:vault"
+          (if (deployType == "aws") then "region:${region}" else "datacenter:${datacenter}")
+        ];
       };
 
       storage.raft = let
-        vcfg = config.services.vault.listener.tcp;
-        coreNodesWithCorePrefix = lib.filterAttrs (k: v: lib.hasPrefix "core-" k)
-          config.cluster.coreNodes;
+        vcfg = config.services.vault;
+        vaultServers =
+          lib.filterAttrs (k: v: lib.elem k vcfg.serverNodeNames)
+          (premSimNodes // coreNodes);
       in lib.mkDefault {
-        retryJoin = lib.mapAttrsToList (_: coreNode: {
-          leaderApiAddr = "https://${coreNode.privateIP}:8200";
-          leaderCaCertFile = vcfg.tlsClientCaFile;
-          leaderClientCertFile = vcfg.tlsCertFile;
-          leaderClientKeyFile = vcfg.tlsKeyFile;
-        }) coreNodesWithCorePrefix;
+        retryJoin = lib.mapAttrsToList (_: vaultServer: {
+          leaderApiAddr = "https://${vaultServer.privateIP}:8200";
+          leaderCaCertFile = vcfg.listener.tcp.tlsClientCaFile;
+          leaderClientCertFile = vcfg.listener.tcp.tlsCertFile;
+          leaderClientKeyFile = vcfg.listener.tcp.tlsKeyFile;
+        }) vaultServers;
       };
     };
 

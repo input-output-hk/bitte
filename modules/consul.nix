@@ -1,6 +1,8 @@
-{ config, lib, pkgs, bittelib, hashiTokens, gossipEncryptionMaterial, ... }:
+{ config, lib, pkgs, bittelib, hashiTokens, gossipEncryptionMaterial, pkiFiles, ... }:
 let
   cfg = config.services.consul;
+
+  deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
 
   sanitize = obj:
     lib.getAttr (builtins.typeOf obj) {
@@ -56,6 +58,12 @@ in {
       logLevel = lib.mkOption {
         type = with lib.types; enum [ "trace" "debug" "info" "warn" "err" ];
         default = "info";
+      };
+
+      serverNodeNames = lib.mkOption {
+        type = with lib.types; listOf str;
+        default = if deployType == "aws" then [ "core-1" "core-2" "core-3" ]
+                  else [ "prem-1" "prem-2" "prem-3" ];
       };
 
       extraConfig = lib.mkOption {
@@ -421,11 +429,16 @@ in {
       path = with pkgs; [ envoy ];
 
       serviceConfig = let
+        certChainFile = if deployType == "aws" then pkiFiles.certChainFile
+                        else pkiFiles.serverCertChainFile;
+        certKeyFile = if deployType == "aws" then pkiFiles.keyFile
+                      else pkiFiles.serverKeyFile;
         preScript = let
           start-pre = pkgs.writeBashBinChecked "consul-start-pre" ''
             PATH="${lib.makeBinPath [ pkgs.coreutils ]}"
             set -exuo pipefail
-            cp /etc/ssl/certs/cert-key.pem .
+            cp ${certChainFile} full.pem
+            cp ${certKeyFile} cert-key.pem
             chown --reference . --recursive .
           '';
         in "!${start-pre}/bin/consul-start-pre";
@@ -441,7 +454,7 @@ in {
             then
               CONSUL_HTTP_TOKEN="$(< ${hashiTokens.consul-default})"
               export CONSUL_HTTP_TOKEN
-            # Therefore, on core nodes, use the sops out-of-band bootstrapped master token
+            # Therefore, on core nodes, use the out-of-band bootstrapped master token
             elif [ -s ${gossipEncryptionMaterial.consul} ]
             then
               # as of writing: core nodes are observed to posess the master token
@@ -470,7 +483,7 @@ in {
             then
               CONSUL_HTTP_TOKEN="$(< ${hashiTokens.consul-default})"
               export CONSUL_HTTP_TOKEN
-            # Therefore, on core nodes, use the sops out-of-band bootstrapped master token
+            # Therefore, on core nodes, use the out-of-band bootstrapped master token
             elif [ -s ${gossipEncryptionMaterial.consul} ]
             then
               # as of writing: core nodes are observed to posess the master token
@@ -485,7 +498,8 @@ in {
 
             set -x
             cd /var/lib/consul/
-            cp /etc/ssl/certs/cert-key.pem .
+            cp ${certChainFile} full.pem
+            cp ${certKeyFile} cert-key.pem
             chown --reference . --recursive .
             consul reload
           '';

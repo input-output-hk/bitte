@@ -1,4 +1,15 @@
-{ lib, pkgs, config, ... }: {
+{ lib, pkgs, config, ... }:
+let
+  deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+  isSops = deployType == "aws";
+
+  docker-passwords-script = src: ''
+    export PATH="${lib.makeBinPath (with pkgs; [ coreutils jq ])}"
+    jq -r -e < ${src} .hashed \
+      > /var/lib/docker-registry/docker-passwords
+    chown docker-registry /var/lib/docker-registry/docker-passwords
+  '';
+in {
   systemd.services.docker-registry.serviceConfig.Environment = [
     "REGISTRY_AUTH=htpasswd"
     "REGISTRY_AUTH_HTPASSWD_REALM=docker-registry"
@@ -31,7 +42,7 @@
     redis.enable = true;
   };
 
-  secrets.generate.redis-password = ''
+  secrets.generate.redis-password = lib.mkIf isSops ''
     export PATH="${lib.makeBinPath (with pkgs; [ coreutils sops xkcdpass ])}"
 
     if [ ! -s encrypted/redis-password.json ]; then
@@ -41,14 +52,14 @@
     fi
   '';
 
-  secrets.install.redis-password = {
+  secrets.install.redis-password = lib.mkIf isSops {
     source = (toString config.secrets.encryptedRoot) + "/redis-password.json";
     target = /run/keys/redis-password;
     inputType = "binary";
     outputType = "binary";
   };
 
-  secrets.generate.docker-passwords = ''
+  secrets.generate.docker-passwords = lib.mkIf isSops ''
     export PATH="${
       lib.makeBinPath (with pkgs; [ coreutils sops jq pwgen apacheHttpd ])
     }"
@@ -66,15 +77,30 @@
     fi
   '';
 
-  secrets.install.docker-passwords = {
+  secrets.install.docker-passwords = lib.mkIf isSops {
     source = (toString config.secrets.encryptedRoot) + "/docker-passwords.json";
     target = /run/keys/docker-passwords-decrypted;
-    script = ''
-      export PATH="${lib.makeBinPath (with pkgs; [ coreutils jq ])}"
+    script = docker-passwords-script "/run/keys/docker-passwords-decrypted";
+  };
 
-      jq -r -e < /run/keys/docker-passwords-decrypted .hashed \
-        > /var/lib/docker-registry/docker-passwords
-      chown docker-registry /var/lib/docker-registry/docker-passwords
-    '';
+  age.secrets = lib.mkIf (!isSops) {
+    docker-passwords = {
+      file = config.age.encryptedRoot + "/docker/password.age";
+      path = "/run/keys/docker-passwords-decrypted";
+      owner = "root";
+      group = "root";
+      mode = "0644";
+      script = docker-passwords-script "$src" + ''
+        mv "$src" "$out"
+      '';
+    };
+
+    redis-password = {
+      file = config.age.encryptedRoot + "/redis/password.age";
+      path = "/run/keys/redis-password";
+      owner = "root";
+      group = "root";
+      mode = "0644";
+    };
   };
 }

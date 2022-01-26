@@ -1,6 +1,8 @@
-{ self, lib, pkgs, nodeName, config, bittelib, hashiTokens, ... }:
+{ self, lib, pkgs, nodeName, config, bittelib, hashiTokens, pkiFiles, ... }:
 let
   cfg = config.services.nomad;
+
+  deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
 
   # TODO: put this in lib
   sanitize = obj:
@@ -179,6 +181,12 @@ in {
     datacenter = lib.mkOption {
       type = with lib.types; str;
       default = "dc1";
+    };
+
+    serverNodeNames = lib.mkOption {
+      type = with lib.types; listOf str;
+      default = if deployType == "aws" then [ "core-1" "core-2" "core-3" ]
+                else [ "prem-1" "prem-2" "prem-3" ];
     };
 
     log_level = lib.mkOption {
@@ -1156,11 +1164,18 @@ in {
       };
 
       serviceConfig = let
+        certChainFile = if deployType == "aws" then pkiFiles.certChainFile
+                      else if cfg.server.enabled then pkiFiles.serverCertChainFile
+                      else pkiFiles.clientCertChainFile;
+        certKeyFile = if deployType == "aws" then pkiFiles.keyFile
+                      else if cfg.server.enabled then pkiFiles.serverKeyFile
+                      else pkiFiles.clientKeyFile;
         start-pre = pkgs.writeBashChecked "nomad-start-pre" ''
           PATH="${lib.makeBinPath [ pkgs.coreutils pkgs.busybox ]}"
           set -exuo pipefail
           # ${bittelib.ensureDependencies pkgs [ "consul" "vault" ]}
-          cp /etc/ssl/certs/cert-key.pem .
+          cp ${certChainFile} full.pem
+          cp ${certKeyFile} cert-key.pem
           cp ${hashiTokens.vault} .
           chown --reference . ./*.pem
         '';

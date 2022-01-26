@@ -1,10 +1,13 @@
 { lib, pkgs, config, nodeName, ... }:
 let
+  deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+
+  isSops = deployType == "aws";
   isInstance = config.currentCoreNode != null;
   isAsg = !isInstance;
   isMonitoring = nodeName == "monitoring";
 in {
-  secrets.generate.nix-key-file = ''
+  secrets.generate.nix-key-file = lib.mkIf isSops ''
     export PATH="${lib.makeBinPath (with pkgs; [ nixFlakes sops coreutils ])}"
     esk=encrypted/nix-secret-key-file
     ssk=secrets/nix-secret-key-file
@@ -33,7 +36,7 @@ in {
     done
   '';
 
-  secrets.generate.builder-ssh-key = ''
+  secrets.generate.builder-ssh-key = lib.mkIf isSops ''
     export PATH="${lib.makeBinPath (with pkgs; [ openssh sops coreutils ])}"
     epk=encrypted/nix-builder-key.pub
     spk=secrets/nix-builder-key.pub
@@ -50,7 +53,7 @@ in {
     fi
   '';
 
-  secrets.install.builder-private-ssh-key = lib.mkIf isAsg {
+  secrets.install.builder-private-ssh-key = lib.mkIf (isAsg && isSops) {
     source = (toString config.secrets.encryptedRoot) + "/nix-builder-key";
     target = /etc/nix/builder-key;
     inputType = "binary";
@@ -64,6 +67,24 @@ in {
         -i /etc/nix/builder-key \
         builder@${config.cluster.coreNodes.monitoring.privateIP} echo 'trust established'
     '';
+  };
+
+  age.secrets = lib.mkIf (isAsg && !isSops) {
+    docker-passwords = {
+      file = config.age.encryptedRoot + "/ssh/builder.age";
+      path = "/etc/nix/builder-key";
+      owner = "root";
+      group = "root";
+      mode = "0600";
+      script = ''
+        ${pkgs.openssh}/bin/ssh \
+          -o NumberOfPasswordPrompts=0 \
+          -o StrictHostKeyChecking=accept-new \
+          -i /etc/nix/builder-key \
+          builder@${config.cluster.coreNodes.monitoring.privateIP} echo 'trust established'
+        mv "$src" "$out"
+      '';
+    };
   };
 
   nix = {
