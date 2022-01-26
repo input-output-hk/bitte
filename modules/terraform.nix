@@ -203,12 +203,23 @@ let
 
         terraformOrganization = lib.mkOption { type = with lib.types; str; };
 
+        nodes = lib.mkOption {
+          type = with lib.types; attrsOf coreNodeType;
+          internal = true;
+          default = cfg.coreNodes // cfg.premSimNodes // cfg.premNodes;
+        };
+
         coreNodes = lib.mkOption {
           type = with lib.types; attrsOf coreNodeType;
           default = { };
         };
 
         premSimNodes = lib.mkOption {
+          type = with lib.types; attrsOf coreNodeType;
+          default = { };
+        };
+
+        premNodes = lib.mkOption {
           type = with lib.types; attrsOf coreNodeType;
           default = { };
         };
@@ -907,7 +918,20 @@ in {
     currentCoreNode = lib.mkOption {
       internal = true;
       type = with lib.types; nullOr attrs;
-      default = cfg.coreNodes."${nodeName}" or cfg.premSimNodes."${nodeName}" or null;
+      default = let
+        names =
+          map builtins.attrNames [ cfg.coreNodes cfg.premNodes cfg.premSimNodes ];
+        combinedNames = builtins.foldl' (s: v:
+          s ++ (map (name:
+            if (builtins.elem name s) then
+              throw "Duplicate node name: ${name}"
+            else
+              name) v)) [ ] names;
+      in builtins.seq combinedNames
+      (cfg.coreNodes."${nodeName}" or
+       cfg.premNodes."${nodeName}" or
+       cfg.premSimNodes."${nodeName}" or
+      null);
     };
 
     currentAwsAutoScalingGroup = lib.mkOption {

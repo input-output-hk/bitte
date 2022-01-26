@@ -66,7 +66,6 @@ let
       ../profiles/ami-base-config.nix
     ];
   });
-
 in {
   inherit bitteSystem bitteProtoSystem bitteAmazonSystem
     bitteAmazonSystemBaseAMI bitteAmazonZfsSystem bitteAmazonZfsSystemBaseAMI;

@@ -168,7 +168,7 @@ in {
       outputs = {
         influxdb = {
           database = "telegraf";
-          urls = [ "http://${config.cluster.coreNodes.monitoring.privateIP}:8428" ];
+          urls = [ "http://${config.cluster.nodes.monitoring.privateIP}:8428" ];
         };
       };
     };

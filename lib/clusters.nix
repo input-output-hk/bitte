@@ -5,37 +5,40 @@
 
 lib.listToAttrs (lib.forEach bitteProfiles (bitteProfile:
   let
-    inherit (_proto.config) tf;
-
     _proto = (mkSystem {
       inherit pkgs self inputs;
       modules = [ bitteProfile hydrationProfile ];
     }).bitteProtoSystem;
 
+    inherit (_proto.config) tf cluster;
+
     # Separating core and premSim nodes may cause bitte-cli tooling to break.
     # Currently groupings are viewed as core or awsAsg.
-    # May be able to split premSim nodes out going forward.
-    coreAndPremSimNodes = assert (lib.assertMsg (!builtins.any
-      (e: builtins.elem e (builtins.attrNames _proto.config.cluster.coreNodes))
-      (builtins.attrNames _proto.config.cluster.premSimNodes)) ''
-        ERROR
-        trace: ERROR  -->  premSimNodes may not have the same names as coreNodes
-      '');
-      _proto.config.cluster.premSimNodes // _proto.config.cluster.coreNodes;
+    coreAndPremSimNodes =
+       let
+         inherit (cluster);
+         names = map builtins.attrNames [ cluster.coreNodes cluster.premNodes cluster.premSimNodes ];
+         combinedNames = builtins.foldl' (s: v:
+           s ++ (map (name:
+             if (builtins.elem name s) then
+               throw "Duplicate node name: ${name}"
+             else
+               name) v)) [ ] names;
+       in builtins.seq combinedNames (cluster.coreNodes // cluster.premSimNodes);
 
-    coreNodes = lib.mapAttrs (nodeName: coreNode:
-      (mkSystem {
-        inherit pkgs self inputs nodeName;
-        modules = [ { networking.hostName = lib.mkForce nodeName; } bitteProfile hydrationProfile ]
-          ++ coreNode.modules;
-      }).bitteAmazonSystem) coreAndPremSimNodes;
+    ourMkSystem = attr: nodeName: coreNode: (mkSystem {
+      inherit pkgs self inputs ;
+      nodeName = nodeName;
+      modules = [ { networking.hostName = lib.mkForce nodeName; } bitteProfile hydrationProfile ]
+        ++ coreNode.modules;
+    }).${attr};
 
-    awsAutoScalingGroups = lib.mapAttrs (nodeName: awsAutoScalingGroup:
-      (mkSystem {
-        inherit pkgs self inputs nodeName;
-        modules = [ bitteProfile hydrationProfile ] ++ awsAutoScalingGroup.modules;
-      }).bitteAmazonZfsSystem) _proto.config.cluster.awsAutoScalingGroups;
+    awsCoreNodes = lib.mapAttrs (ourMkSystem "bitteAmazonSystem") coreAndPremSimNodes;
+    premNodes = lib.mapAttrs (ourMkSystem "bitteProtoSystem") cluster.premNodes;
+    coreNodes = awsCoreNodes // premNodes;
 
-  in lib.nameValuePair _proto.config.cluster.name {
+    awsAutoScalingGroups = lib.mapAttrs (ourMkSystem "bitteAmazonZfsSystem") cluster.awsAutoScalingGroups;
+
+  in lib.nameValuePair cluster.name {
     inherit _proto tf coreNodes awsAutoScalingGroups;
   }))

@@ -13,7 +13,7 @@ let
 
     clients = [{
       url =
-        "http://${config.cluster.coreNodes.monitoring.privateIP}:3100/loki/api/v1/push";
+        "http://${config.cluster.nodes.monitoring.privateIP}:3100/loki/api/v1/push";
     }];
 
     positions = { filename = "/var/lib/promtail/positions.yaml"; };

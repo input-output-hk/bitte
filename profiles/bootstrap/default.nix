@@ -193,9 +193,10 @@ in {
       };
 
       environment = {
-        inherit (config.environment.variables)
-          AWS_DEFAULT_REGION VAULT_CACERT VAULT_FORMAT VAULT_ADDR;
-      };
+        inherit (config.environment.variables) VAULT_CACERT VAULT_FORMAT VAULT_ADDR;
+      } // (lib.optionalAttrs (config.environment.variables ? "AWS_DEFAULT_REGION") {
+        inherit (config.environment.variables) AWS_DEFAULT_REGION;
+      });
 
       path = with pkgs; [ sops rage vault-bin consul nomad coreutils jq curl ];
 
@@ -290,10 +291,12 @@ in {
       };
 
       environment = {
-        inherit (config.environment.variables) AWS_DEFAULT_REGION NOMAD_ADDR;
+        inherit (config.environment.variables) NOMAD_ADDR;
         CURL_CA_BUNDLE = if deployType == "aws" then pkiFiles.certChainFile
                          else pkiFiles.serverCertChainFile;
-      };
+      } // (lib.optionalAttrs (config.environment.variables ? "AWS_DEFAULT_REGION") {
+        inherit (config.environment.variables) AWS_DEFAULT_REGION;
+      });
 
       path = with pkgs; [ curl sops rage coreutils jq nomad vault-bin gawk ];
 
@@ -367,9 +370,10 @@ in {
       };
 
       environment = {
-        inherit (config.environment.variables)
-          AWS_DEFAULT_REGION VAULT_CACERT VAULT_FORMAT VAULT_ADDR;
-      };
+        inherit (config.environment.variables) VAULT_CACERT VAULT_FORMAT VAULT_ADDR;
+      } // (lib.optionalAttrs (config.environment.variables ? "AWS_DEFAULT_REGION") {
+        inherit (config.environment.variables) AWS_DEFAULT_REGION;
+      });
 
       path = with pkgs; [
         consul
