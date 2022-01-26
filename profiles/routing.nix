@@ -231,6 +231,7 @@ in {
                 authResponseHeaders = [
                   "X-Auth-Request-User"
                   "X-Auth-Request-Email"
+                  "X-Auth-Request-Access-Token"
                   "Authorization"
                 ];
                 trustForwardHeader = true;

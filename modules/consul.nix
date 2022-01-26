@@ -498,6 +498,7 @@ in {
 
             set -x
             cd /var/lib/consul/
+            cp ${certChainFile} full.pem
             cp ${certKeyFile} cert-key.pem
             chown --reference . --recursive .
             consul reload
