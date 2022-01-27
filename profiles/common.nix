@@ -10,6 +10,9 @@
     ./auxiliaries/telegraf.nix
   ];
 
+  # avoid CVE-2021-4034 (PwnKit)
+  security.polkit.enable = false;
+
   services.ssm-agent.enable = true;
   services.openntpd.enable = true;
   services.fail2ban.enable = true;
