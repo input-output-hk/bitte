@@ -1,4 +1,7 @@
 { config, lib, pkgs, ... }: {
+  # avoid CVE-2021-4034 (PwnKit)
+  security.polkit.enable = false;
+
   imports = [
     ./consul/default.nix
     ./nix.nix
