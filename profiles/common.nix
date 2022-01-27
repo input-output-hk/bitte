@@ -14,6 +14,9 @@ in {
     ./auxiliaries/telegraf.nix
   ];
 
+  # avoid CVE-2021-4034 (PwnKit)
+  security.polkit.enable = false;
+
   services.ssm-agent.enable = deployType == "aws";
   services.openntpd.enable = true;
   services.fail2ban.enable = deployType != "premSim";
