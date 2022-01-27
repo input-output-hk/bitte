@@ -655,6 +655,11 @@ let
           default = "aws";
         };
 
+        primaryInterface = lib.mkOption {
+          type = with lib.types; str;
+          default = "ens5";
+        };
+
         ami = lib.mkOption {
           type = with lib.types; str;
           default = config.cluster.ami;
@@ -799,6 +804,11 @@ let
         deployType = lib.mkOption {
           type = with lib.types; enum [ "aws" "prem" "premSim" ];
           default = "aws";
+        };
+
+        primaryInterface = lib.mkOption {
+          type = with lib.types; str;
+          default = "ens5";
         };
 
         ami = lib.mkOption {

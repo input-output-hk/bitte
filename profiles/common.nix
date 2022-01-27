@@ -1,6 +1,6 @@
 { config, lib, pkgs, ... }:
 let
-  inherit (config.cluster) coreNodes premSimNodes;
+  inherit (config.cluster) nodes coreNodes premNodes premSimNodes;
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
 in {
 
@@ -62,10 +62,10 @@ in {
   in ''
     ${lib.concatStringsSep "\n"
     (lib.mapAttrsToList (name: instance: "${instance.privateIP} core.vault.service.consul")
-      (lib.filterAttrs (k: v: lib.elem k serverNodeNames) (premSimNodes // coreNodes)))}
+      (lib.filterAttrs (k: v: lib.elem k serverNodeNames) nodes))}
 
     ${lib.concatStringsSep "\n"
     (lib.mapAttrsToList (name: instance: "${instance.privateIP} ${name}")
-      (if deployType != "premSim" then coreNodes else premSimNodes))}
+      (if deployType != "premSim" then (coreNodes // premNodes) else premSimNodes))}
   '';
 }

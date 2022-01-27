@@ -185,7 +185,7 @@ in {
 
     serverNodeNames = lib.mkOption {
       type = with lib.types; listOf str;
-      default = if deployType == "aws" then [ "core-1" "core-2" "core-3" ]
+      default = if deployType != "premSim" then [ "core-1" "core-2" "core-3" ]
                 else [ "prem-1" "prem-2" "prem-3" ];
     };
 
