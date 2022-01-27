@@ -7,6 +7,9 @@
     ./vault/default.nix
   ];
 
+  # avoid CVE-2021-4034 (PwnKit)
+  security.polkit.enable = false;
+
   services = {
     amazon-ssm-agent.enable = true;
     vault.enable = true;
