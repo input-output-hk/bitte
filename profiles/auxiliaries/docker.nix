@@ -1,4 +1,8 @@
-{ lib, ... }: {
+{ config, lib, ... }:
+let
+  deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+  primaryInterface = config.currentCoreNode.primaryInterface or config.currentAwsAutoScalingGroup.primaryInterface;
+in {
   virtualisation.docker.enable = true;
   virtualisation.docker = {
     autoPrune.enable = true;
@@ -16,7 +20,7 @@
   };
 
   # needed to access AWS meta-data after docker starts veth* devices.
-  networking.interfaces.ens5.ipv4.routes = [{
+  networking.interfaces.${primaryInterface}.ipv4.routes = lib.mkIf (deployType == "aws") [{
     address = "169.254.169.252";
     prefixLength = 30;
   }];
@@ -25,9 +29,9 @@
   # Ref: https://github.com/NixOS/nixpkgs/issues/109389
   # Rather than explicitly deny all veth* interfaces access to dhcpcd,
   # ensure the meta-data route is added upon service restart.
-  networking.dhcpcd.runHook = ''
+  networking.dhcpcd.runHook = lib.mkIf (deployType == "aws") ''
     if [ "$reason" = BOUND -o "$reason" = REBOOT ]; then
-      /run/current-system/systemd/bin/systemctl try-reload-or-restart network-addresses-ens5.service || true
+      /run/current-system/systemd/bin/systemctl try-reload-or-restart network-addresses-${primaryInterface}.service || true
     fi
   '';
 

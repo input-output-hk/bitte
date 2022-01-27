@@ -9,9 +9,10 @@
   };
 
   Config = let
-    inherit (config.cluster) coreNodes premSimNodes region;
+    inherit (config.cluster) nodes region;
     deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
     datacenter = config.currentCoreNode.datacenter or config.currentAwsAutoScalingGroup.datacenter;
+    primaryInterface = config.currentCoreNode.primaryInterface or config.currentAwsAutoScalingGroup.primaryInterface;
 
     cfg = config.services.consul;
     ownedChain = "/var/lib/consul/full.pem";
@@ -52,12 +53,12 @@
         (pkgs.runCommand "node-id" { buildInputs = [ pkgs.utillinux ]; }
           "uuidgen -s -n ab8c189c-e764-4103-a1a8-d355b7f2c814 -N ${nodeName} > $out"));
 
-      bindAddr = ''{{ GetInterfaceIP "ens5" }}'';
+      bindAddr = ''{{ GetInterfaceIP "${primaryInterface}" }}'';
 
-      advertiseAddr = ''{{ GetInterfaceIP "ens5" }}'';
+      advertiseAddr = ''{{ GetInterfaceIP "${primaryInterface}" }}'';
 
       retryJoin = (lib.mapAttrsToList (_: v: v.privateIP)
-        (lib.filterAttrs (k: v: lib.elem k cfg.serverNodeNames) (premSimNodes // coreNodes)))
+        (lib.filterAttrs (k: v: lib.elem k cfg.serverNodeNames) nodes))
         ++ lib.optionals (deployType == "aws")
         [ "provider=aws region=${region} tag_key=Consul tag_value=server" ];
 

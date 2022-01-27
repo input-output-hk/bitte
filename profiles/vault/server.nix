@@ -15,7 +15,7 @@
   };
 
   Config = let
-    inherit (config.cluster) coreNodes premSimNodes region;
+    inherit (config.cluster) nodes region;
     deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
     datacenter = config.currentCoreNode.datacenter or config.currentAwsAutoScalingGroup.datacenter;
     ownedChain = "/var/lib/vault/full.pem";
@@ -61,8 +61,7 @@
       storage.raft = let
         vcfg = config.services.vault;
         vaultServers =
-          lib.filterAttrs (k: v: lib.elem k vcfg.serverNodeNames)
-          (premSimNodes // coreNodes);
+          lib.filterAttrs (k: v: lib.elem k vcfg.serverNodeNames) nodes;
       in lib.mkDefault {
         retryJoin = lib.mapAttrsToList (_: vaultServer: {
           leaderApiAddr = "https://${vaultServer.privateIP}:8200";
