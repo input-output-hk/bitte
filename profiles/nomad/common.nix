@@ -13,7 +13,7 @@
     deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
     datacenter = config.currentCoreNode.datacenter or config.currentAwsAutoScalingGroup.datacenter;
 
-    ownedChain = "/var/lib/consul/full.pem";
+    ownedChain = "/var/lib/nomad/full.pem";
     ownedKey = "/var/lib/nomad/cert-key.pem";
     consulOwnedChain = "/var/lib/consul/full.pem";
     consulOwnedKey = "/var/lib/consul/cert-key.pem";
