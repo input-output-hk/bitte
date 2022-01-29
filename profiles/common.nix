@@ -18,7 +18,22 @@ in {
   security.polkit.enable = false;
 
   services.ssm-agent.enable = deployType == "aws";
-  services.openntpd.enable = true;
+
+  # Chrony succeeds in quickly syncing large time drift systems,
+  # whereas openntpd may stay unsynced for extended periods.
+  services.chrony.enable = true;
+  networking.timeServers = lib.mkForce [
+    "0.nixos.pool.ntp.org"
+    "1.nixos.pool.ntp.org"
+    "2.nixos.pool.ntp.org"
+    "3.nixos.pool.ntp.org"
+  ];
+
+  # remove after upgrading past 21.05
+  # users.users.ntp.group = "ntp";
+  # users.groups.ntp = { };
+  users.groups.systemd-coredump = { };
+
   services.fail2ban.enable = deployType != "premSim";
 
   environment.variables = {
@@ -28,18 +43,8 @@ in {
 
   # Don't `nixos-rebuild switch` after the initial deploy.
   systemd.services.amazon-init.enable = false;
-  networking.timeServers = lib.mkForce [
-    "0.nixos.pool.ntp.org"
-    "1.nixos.pool.ntp.org"
-    "2.nixos.pool.ntp.org"
-    "3.nixos.pool.ntp.org"
-  ];
-  boot.cleanTmpDir = true;
 
-  # remove after upgrading past 21.05
-  users.users.ntp.group = "ntp";
-  users.groups.ntp = { };
-  users.groups.systemd-coredump = { };
+  boot.cleanTmpDir = true;
 
   networking.firewall = let
     all = {
