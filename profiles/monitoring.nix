@@ -13,7 +13,6 @@ in {
     ./auxiliaries/builder.nix
     ./auxiliaries/docker-registry.nix
     ./auxiliaries/loki.nix
-    ./auxiliaries/oauth.nix
   ];
 
   services.consul.ui = true;
