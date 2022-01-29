@@ -5,7 +5,11 @@ with lib;
 let
   cfg = config.age;
 
-  ageBin = "${pkgs.age}/bin/age";
+  # This pin has a 20 recipient limit
+  # Ref:
+  #  https://github.com/FiloSottile/age/issues/139
+  # ageBin = "${pkgs.age}/bin/age";
+  ageBin = "${pkgs.rage}/bin/rage";
 
   users = config.users.users;
 
