@@ -9,7 +9,6 @@ in {
     ./common.nix
     ./consul/client.nix
     ./vault/routing.nix
-
     ./auxiliaries/oauth.nix
   ];
 
@@ -35,6 +34,14 @@ in {
           - by obtaining individual certs for each traefik router service, including nomad job app routes
       '';
     };
+
+    useOauth2Proxy = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        Apply oauth middleware to the standard UI bitte services.
+      '';
+    };
   };
 
   config = {
@@ -42,7 +49,7 @@ in {
     services.consul.ui = true;
 
     networking.extraHosts = ''
-      ${config.cluster.coreNodes.monitoring.privateIP} monitoring
+      ${config.cluster.nodes.monitoring.privateIP} monitoring
     '';
 
     systemd.services.traefik.serviceConfig.ExecStart = let
@@ -158,18 +165,57 @@ in {
         tls.certificates = if cfg.acmeDnsCertMgr then [{
           certFile = "/var/lib/traefik/certs/${builtins.baseNameOf letsencryptCertMaterial.certChainFile}";
           keyFile = "/var/lib/traefik/certs/${builtins.baseNameOf letsencryptCertMaterial.keyFile}";
-        }] else [];
+        }] else [ ];
 
         http = {
           routers = let
-            mkOauthRoute = service: {
+            mkRoute = service: {
               inherit service;
               entrypoints = "https";
-              middlewares = [ "oauth-auth-redirect" ];
+              middlewares = if cfg.useOauth2Proxy then [ "oauth-auth-redirect" ] else [ ];
               rule = "Host(`${service}.${domain}`) && PathPrefix(`/`)";
               tls = tlsCfg;
             };
           in lib.mkDefault {
+            grafana = mkRoute "monitoring";
+            nomad = mkRoute "nomad";
+
+            nomad-api = {
+              entrypoints = "https";
+              middlewares = [ ];
+              rule = "Host(`nomad.${domain}`) && PathPrefix(`/v1/`)";
+              service = "nomad";
+              tls = true;
+            };
+
+            vault = mkRoute "vault";
+
+            vault-api = {
+              entrypoints = "https";
+              middlewares = [ ];
+              rule = "Host(`vault.${domain}`) && PathPrefix(`/v1/`)";
+              service = "vault";
+              tls = true;
+            };
+
+            consul = mkRoute "consul";
+
+            consul-api = {
+              entrypoints = "https";
+              middlewares = [ ];
+              rule = "Host(`consul.${domain}`) && PathPrefix(`/v1/`)";
+              service = "consul";
+              tls = true;
+            };
+
+            traefik = {
+              entrypoints = "https";
+              middlewares = if cfg.useOauth2Proxy then [ "oauth-auth-redirect" ] else [ ];
+              rule = "Host(`traefik.${domain}`) && PathPrefix(`/`)";
+              service = "api@internal";
+              tls = tlsCfg;
+            };
+          } // lib.optionalAttrs cfg.useOauth2Proxy {
             oauth2-route = {
               entrypoints = "https";
               middlewares = [ "auth-headers" ];
@@ -186,53 +232,9 @@ in {
               service = "oauth-backend";
               tls = tlsCfg;
             };
-
-            grafana = mkOauthRoute "monitoring";
-            nomad = mkOauthRoute "nomad";
-
-            nomad-api = {
-              entrypoints = "https";
-              middlewares = [ ];
-              rule = "Host(`nomad.${domain}`) && PathPrefix(`/v1/`)";
-              service = "nomad";
-              tls = true;
-            };
-
-            vault = mkOauthRoute "vault";
-
-            vault-api = {
-              entrypoints = "https";
-              middlewares = [ ];
-              rule = "Host(`vault.${domain}`) && PathPrefix(`/v1/`)";
-              service = "vault";
-              tls = true;
-            };
-
-            consul = mkOauthRoute "consul";
-
-            consul-api = {
-              entrypoints = "https";
-              middlewares = [ ];
-              rule = "Host(`consul.${domain}`) && PathPrefix(`/v1/`)";
-              service = "consul";
-              tls = true;
-            };
-
-            traefik = {
-              entrypoints = "https";
-              middlewares = [ "oauth-auth-redirect" ];
-              # middlewares = [ ];
-              rule = "Host(`traefik.${domain}`) && PathPrefix(`/`)";
-              service = "api@internal";
-              tls = tlsCfg;
-            };
           };
 
           services = {
-            oauth-backend.loadBalancer = {
-              servers = [{ url = "http://127.0.0.1:4180"; }];
-            };
-
             consul.loadBalancer = {
               servers = [{ url = "http://127.0.0.1:8500"; }];
             };
@@ -249,6 +251,12 @@ in {
             vault.loadBalancer = {
               servers = [{ url = "https://active.vault.service.consul:8200"; }];
               serversTransport = "cert-transport";
+            };
+          } // lib.optionalAttrs cfg.useOauth2Proxy {
+            oauth-backend = {
+              loadBalancer = {
+                servers = [{ url = "http://127.0.0.1:4180"; }];
+              };
             };
           };
 
@@ -276,7 +284,7 @@ in {
                 stsSeconds = 315360000;
               };
             };
-
+          } // lib.optionalAttrs cfg.useOauth2Proxy {
             oauth-auth-redirect = {
               forwardAuth = {
                 address = "https://oauth.${domain}/";
