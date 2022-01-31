@@ -2,28 +2,21 @@
   description = "Flake containing Bitte clusters";
 
   inputs = {
-    nixpkgs-core.url = "github:nixos/nixpkgs/release-21.05";
+    nixpkgs.url = "github:nixos/nixpkgs/release-21.05";
     nixpkgs-client.url = "github:nixos/nixpkgs/release-21.05";
     nixpkgs-auxiliary.url = "github:nixos/nixpkgs/nixos-21.11";
 
-    # in function of https://github.com/NixOS/nix/pull/5544
-    # we want to bump this nix version soon-ish
-    # that pr "fixes" builds on monitoring "do the right thing"
-    nix-core.url = "github:NixOS/nix/d1aaa7ef71713b6693ad3ddf8704ce62bab82095";
-    nix-core.inputs.nixpkgs.follows = "nixpkgs-core";
     # currently includes `computeLocks` fix - so follows are not screwed
     nix-auxiliary.url =
       "github:NixOS/nix/d1aaa7ef71713b6693ad3ddf8704ce62bab82095";
     nix-auxiliary.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
 
     # Legacy alias / TODO
-    nixpkgs.follows = "nixpkgs-core";
-    nix.follows = "nix-core";
+    nix.url = "github:NixOS/nix/2.6.0";
 
     fenix.url = "github:nix-community/fenix";
     rust-overlay.url = "github:oxalica/rust-overlay";
-    rust-overlay.inputs.nixpkgs.follows = "nixpkgs-core";
-
+    rust-overlay.inputs.nixpkgs.follows = "nixpkgs";
 
     cli.url = "github:input-output-hk/bitte-cli";
     cli.inputs.fenix.follows = "fenix";
@@ -49,8 +42,8 @@
     blank.url = "github:divnix/blank";
 
     nomad.url = "github:input-output-hk/nomad/release-1.2.2";
-    nomad.inputs.nixpkgs.follows = "nixpkgs-core";
-    nomad.inputs.nix.follows = "nix-core";
+    nomad.inputs.nixpkgs.follows = "nixpkgs";
+    nomad.inputs.nix.follows = "nix";
 
     ops-lib = {
       url = "github:input-output-hk/ops-lib";
@@ -104,10 +97,9 @@
       hydraJobs = let
         constituents = {
           inherit (legacyPackages)
-            bitte cfssl ci-env consul cue glusterfs
-            grafana-loki haproxy haproxy-auth-request haproxy-cors nixFlakes
-            nomad nomad-autoscaler oauth2-proxy sops terraform-with-plugins
-            vault-backend vault-bin;
+            bitte cfssl ci-env consul cue glusterfs grafana-loki haproxy
+            haproxy-auth-request haproxy-cors nixFlakes nomad nomad-autoscaler
+            oauth2-proxy sops terraform-with-plugins vault-backend vault-bin;
         };
       in {
         inherit constituents;
