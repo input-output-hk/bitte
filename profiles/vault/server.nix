@@ -20,6 +20,10 @@
     datacenter = config.currentCoreNode.datacenter or config.currentAwsAutoScalingGroup.datacenter;
     ownedChain = "/var/lib/vault/full.pem";
     ownedKey = "/var/lib/vault/cert-key.pem";
+
+    serverAddress = if config.services.vault.serverNameAddressing
+                    then "${nodeName}.internal"
+                    else config.currentCoreNode.privateIP;
   in {
     services.vault-agent = {
       role = "core";
@@ -29,8 +33,8 @@
     services.vault = {
       logLevel = "trace";
 
-      apiAddr = "https://${config.currentCoreNode.privateIP}:8200";
-      clusterAddr = "https://${config.currentCoreNode.privateIP}:8201";
+      apiAddr = "https://${serverAddress}:8200";
+      clusterAddr = "https://${serverAddress}:8201";
 
       listener.tcp = {
         clusterAddress = "${config.currentCoreNode.privateIP}:8201";
@@ -62,9 +66,11 @@
         vcfg = config.services.vault;
         vaultServers =
           lib.filterAttrs (k: v: lib.elem k vcfg.serverNodeNames) nodes;
+        vaultAddress = k: v: if config.services.vault.serverNameAddressing
+                       then "${k}.internal" else v.privateIP;
       in lib.mkDefault {
         retryJoin = lib.mapAttrsToList (_: vaultServer: {
-          leaderApiAddr = "https://${vaultServer.privateIP}:8200";
+          leaderApiAddr = "https://${vaultAddress _ vaultServer}:8200";
           leaderCaCertFile = vcfg.listener.tcp.tlsClientCaFile;
           leaderClientCertFile = vcfg.listener.tcp.tlsCertFile;
           leaderClientKeyFile = vcfg.listener.tcp.tlsKeyFile;

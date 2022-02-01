@@ -126,6 +126,25 @@ in {
                 else [ "prem-1" "prem-2" "prem-3" ];
     };
 
+    serverNameAddressing = lib.mkOption {
+      type = with lib.types; bool;
+      default = false;
+      description = ''
+        By default, vault server IPs will be used to specify raft peers, api and cluster addresses.
+        With vault server TLS requirements, the vault server IPs must then be embedded in the cert files.
+        This may force unwanted cert rotation in the case that vault servers change IPs.
+
+        Alternatively, enabling this option will instead utilize the server hostname appended with `.internal`,
+        resolved by hosts file.  Typically this will resolve in core node resolution by hostname via:
+          core-1.internal
+          core-2.internal
+          core-3.internal
+          ...
+
+        The vault server certificate will need to have `core-$n.internal` names added to the cert SAN list.
+      '';
+    };
+
     extraConfig = lib.mkOption {
       type = with lib.types; attrs;
       default = { };

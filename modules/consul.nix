@@ -202,6 +202,20 @@ in {
         default = { };
       };
 
+      recursors = lib.mkOption {
+        type = with lib.types; listOf str;
+        default = "0.0.0.0";
+        description = ''
+          This flag provides addresses of upstream DNS servers that are used to
+          recursively resolve queries if they are not inside the service domain
+          for Consul. For example, a node can use Consul directly as a DNS server,
+          and if the record is outside of the "consul." domain, the query will be
+          resolved upstream. As of Consul 1.0.1 recursors can be provided as IP
+          addresses or as go-sockaddr templates. IP addresses are resolved in
+          order, and duplicates are ignored.
+        '';
+      };
+
       retryJoin = lib.mkOption {
         type = with lib.types; listOf str;
         default = [ ];
@@ -408,8 +422,8 @@ in {
       pkgs.toPrettyJSON "config" (sanitize {
         inherit (cfg)
           ui datacenter bootstrapExpect bindAddr advertiseAddr server logLevel
-          clientAddr encrypt addresses retryJoin primaryDatacenter acl connect
-          caFile certFile keyFile autoEncrypt verifyServerHostname
+          clientAddr encrypt addresses recursors retryJoin primaryDatacenter
+          acl connect caFile certFile keyFile autoEncrypt verifyServerHostname
           verifyOutgoing verifyIncoming dataDir tlsMinVersion ports
           enableLocalScriptChecks nodeMeta telemetry nodeId enableDebug
           enableScriptChecks;
