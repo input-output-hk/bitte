@@ -57,6 +57,9 @@
 
       advertiseAddr = ''{{ GetInterfaceIP "${primaryInterface}" }}'';
 
+      # Allow cname local hostname lookups through consul via dnsmasq recursor
+      recursors = [ ''{{ GetInterfaceIP "${primaryInterface}" }}'' ];
+
       retryJoin = (lib.mapAttrsToList (_: v: v.privateIP)
         (lib.filterAttrs (k: v: lib.elem k cfg.serverNodeNames) nodes))
         ++ lib.optionals (deployType == "aws")
