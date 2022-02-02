@@ -24,7 +24,7 @@ lib.listToAttrs (lib.forEach bitteProfiles (bitteProfile:
                throw "Duplicate node name: ${name}"
              else
                name) v)) [ ] names;
-       in builtins.seq combinedNames (cluster.coreNodes // cluster.premSimNodes);
+       in builtins.deepSeq combinedNames (cluster.coreNodes // cluster.premSimNodes);
 
     ourMkSystem = attr: nodeName: coreNode: (mkSystem {
       inherit pkgs self inputs ;
