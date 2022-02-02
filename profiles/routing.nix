@@ -40,6 +40,7 @@ in {
       default = true;
       description = ''
         Apply oauth middleware to the standard UI bitte services.
+        One, but not both, of `useOauth2Proxy` or `useDigestAuth` options must be true.
       '';
     };
 
@@ -48,6 +49,7 @@ in {
       default = false;
       description = ''
         Apply digest auth middleware to the standard UI bitte services.
+        One, but not both, of `useOauth2Proxy` or `useDigestAuth` options must be true.
       '';
     };
 
@@ -70,6 +72,17 @@ in {
   };
 
   config = {
+
+    assertions = [
+      {
+        assertion = cfg.useOauth2Proxy != cfg.useDigestAuth;
+        message = ''
+          Both `useOauth2Proxy` and `useDigestAuth` options cannot be enabled at the same time.
+          One of `useOauth2Proxy` and `useDigestAuth` options must be enabled.
+        '';
+      }
+    ];
+
     services.traefik.enable = true;
     services.consul.ui = true;
 
@@ -329,6 +342,8 @@ in {
             digest-auth = {
               digestAuth = {
                 usersFile = cfg.digestAuthFile;
+                removeHeader = true;
+                headerField= "X-WebAuth-User";
               };
             };
           };
