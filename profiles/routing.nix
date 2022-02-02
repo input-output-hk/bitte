@@ -42,11 +42,38 @@ in {
         Apply oauth middleware to the standard UI bitte services.
       '';
     };
+
+    useDigestAuth = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Apply digest auth middleware to the standard UI bitte services.
+      '';
+    };
+
+    digestAuthFile = lib.mkOption {
+      type = lib.types.str;
+      default = "/run/keys/digest-auth";
+      description = ''
+        The path to the digest-auth file for the `useDigestAuth` option.
+
+        Format expected is:
+          $USER:$REALM:$HASHED_PASSWORD
+
+        Digest auth file ownership and perms are expected to be: root:keys 0640.
+        Enabling this option will place the traefik user in the `key` group.
+
+        Ref:
+          https://doc.traefik.io/traefik/v2.0/middlewares/digestauth/
+      '';
+    };
   };
 
   config = {
     services.traefik.enable = true;
     services.consul.ui = true;
+
+    users.extraGroups.keys.members = lib.mkIf cfg.useDigestAuth [ "traefik" ];
 
     networking.extraHosts = ''
       ${config.cluster.nodes.monitoring.privateIP} monitoring
@@ -169,10 +196,11 @@ in {
 
         http = {
           routers = let
+            middlewares = lib.optional cfg.useOauth2Proxy "oauth-auth-redirect"
+                          ++ lib.optional cfg.useDigestAuth "digest-auth";
             mkRoute = service: {
-              inherit service;
+              inherit service middlewares;
               entrypoints = "https";
-              middlewares = if cfg.useOauth2Proxy then [ "oauth-auth-redirect" ] else [ ];
               rule = "Host(`${service}.${domain}`) && PathPrefix(`/`)";
               tls = tlsCfg;
             };
@@ -209,8 +237,8 @@ in {
             };
 
             traefik = {
+              inherit middlewares;
               entrypoints = "https";
-              middlewares = if cfg.useOauth2Proxy then [ "oauth-auth-redirect" ] else [ ];
               rule = "Host(`traefik.${domain}`) && PathPrefix(`/`)";
               service = "api@internal";
               tls = tlsCfg;
@@ -295,6 +323,12 @@ in {
                   "Authorization"
                 ];
                 trustForwardHeader = true;
+              };
+            };
+          } // lib.optionalAttrs cfg.useDigestAuth {
+            digest-auth = {
+              digestAuth = {
+                usersFile = cfg.digestAuthFile;
               };
             };
           };
