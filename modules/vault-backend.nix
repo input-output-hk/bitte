@@ -4,6 +4,10 @@ in {
   options = {
     services.vault-backend = {
       enable = lib.mkEnableOption "Enable the Terraform Vault Backend";
+      listen = lib.mkOption {
+        type = lib.types.str;
+        default = "0.0.0.0:8080";
+      };
     };
   };
 
@@ -15,7 +19,7 @@ in {
       environment = {
         VAULT_URL = "https://${config.cluster.coreNodes.core-1.privateIP}:8200";
         VAULT_PREFIX = "vbk"; # the prefix used when storing the secrets
-        LISTEN_ADDRESS = "127.0.0.1:8080";
+        LISTEN_ADDRESS = cfg.listen;
       };
 
       serviceConfig = let
