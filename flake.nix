@@ -14,9 +14,6 @@
     rust-overlay.inputs.nixpkgs.follows = "nixpkgs";
 
     cli.url = "github:input-output-hk/bitte-cli/fix-lockfile";
-    cli.inputs.fenix.follows = "fenix";
-    cli.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
-    cli.inputs.nix.follows = "nix";
 
     agenix.url = "github:ryantm/agenix";
     agenix.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
