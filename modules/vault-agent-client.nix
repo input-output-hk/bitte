@@ -208,13 +208,9 @@ in {
         [ /etc/ssl/certs/cert.pem -nt /etc/ssl/certs/.last_restart ]
         [ /etc/ssl/certs/cert-key.pem -nt /etc/ssl/certs/.last_restart ]
 
-        systemctl try-reload-or-restart consul.service
-
-        if curl -s -k https://127.0.0.1:4646/v1/status/leader &> /dev/null; then
-          systemctl try-reload-or-restart nomad.service
-        else
-          systemctl start nomad.service
-        fi
+        systemctl restart consul.service
+        sleep 0.3
+        systemctl restart nomad.service
 
         touch /etc/ssl/certs/.last_restart
       '';
