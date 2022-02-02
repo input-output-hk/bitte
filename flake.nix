@@ -11,31 +11,22 @@
 
     fenix.url = "github:nix-community/fenix";
     rust-overlay.url = "github:oxalica/rust-overlay";
-    rust-overlay.inputs.nixpkgs.follows = "nixpkgs";
 
     cli.url = "github:input-output-hk/bitte-cli/fix-lockfile";
 
     agenix.url = "github:ryantm/agenix";
-    agenix.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
     agenix-cli.url = "github:cole-h/agenix-cli";
-    agenix-cli.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
 
     ragenix.url = "github:yaxitech/ragenix";
-    ragenix.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
 
     deploy.url = "github:input-output-hk/deploy-rs";
-    deploy.inputs.fenix.follows = "fenix";
-    deploy.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
 
     terranix.url = "github:terranix/terranix";
-    terranix.inputs.nixpkgs.follows = "blank";
 
     utils.url = "github:numtide/flake-utils";
     blank.url = "github:divnix/blank";
 
     nomad.url = "github:input-output-hk/nomad/release-1.2.2";
-    nomad.inputs.nixpkgs.follows = "nixpkgs";
-    nomad.inputs.nix.follows = "nix";
 
     ops-lib = {
       url = "github:input-output-hk/ops-lib";
@@ -48,8 +39,6 @@
 
     # DEPRECATED: will be replaces by cicero soon
     hydra.url = "github:kreisys/hydra/hydra-server-includes";
-    hydra.inputs.nix.follows = "nix";
-    hydra.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = { self, hydra, nixpkgs, utils, cli, deploy, ragenix, ... }@inputs:
