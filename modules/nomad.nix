@@ -1165,11 +1165,9 @@ in {
 
       serviceConfig = let
         certChainFile = if deployType == "aws" then pkiFiles.certChainFile
-                      else if cfg.server.enabled then pkiFiles.serverCertChainFile
-                      else pkiFiles.clientCertChainFile;
+                      else pkiFiles.serverCertChainFile;
         certKeyFile = if deployType == "aws" then pkiFiles.keyFile
-                      else if cfg.server.enabled then pkiFiles.serverKeyFile
-                      else pkiFiles.clientKeyFile;
+                      else pkiFiles.serverKeyFile;
         start-pre = pkgs.writeBashChecked "nomad-start-pre" ''
           PATH="${lib.makeBinPath [ pkgs.coreutils pkgs.busybox ]}"
           set -exuo pipefail
