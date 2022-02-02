@@ -22,6 +22,10 @@ in {
   # Chrony succeeds in quickly syncing large time drift systems,
   # whereas openntpd may stay unsynced for extended periods.
   services.chrony.enable = true;
+
+  # Ensure that the timeservers are able to resolve before iburst probing
+  systemd.services.chronyd.after = lib.mkIf config.services.dnsmasq.enable [ "dnsmasq.service" ];
+
   networking.timeServers = lib.mkForce [
     "0.nixos.pool.ntp.org"
     "1.nixos.pool.ntp.org"
