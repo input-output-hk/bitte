@@ -937,7 +937,7 @@ in {
               throw "Duplicate node name: ${name}"
             else
               name) v)) [ ] names;
-      in builtins.seq combinedNames
+      in builtins.deepSeq combinedNames
       (cfg.coreNodes."${nodeName}" or
        cfg.premNodes."${nodeName}" or
        cfg.premSimNodes."${nodeName}" or
