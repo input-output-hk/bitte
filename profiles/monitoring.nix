@@ -48,6 +48,12 @@ in {
       }
     ];
 
+    networking.firewall.allowedTCPPorts = [
+      config.services.grafana.port
+      8428  # victoriaMetrics
+      9000  # minio
+    ];
+
     services.consul.ui = true;
     services.nomad.enable = false;
     services.minio.enable = true;
@@ -75,7 +81,6 @@ in {
         AUTH_SIGNOUT_REDIRECT_URL = "/oauth2/sign_out";
       } // lib.optionalAttrs cfg.useDigestAuth {
         AUTH_PROXY_HEADER_NAME = "X-WebAuth-User";
-        AUTH_SIGNOUT_REDIRECT_URL = "/digest/sign_out";
       };
       rootUrl = "https://monitoring.${domain}/";
       provision = {

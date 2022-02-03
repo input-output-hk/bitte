@@ -307,6 +307,36 @@ in {
               '';
             };
 
+            min_dynamic_port = lib.mkOption {
+              type = with lib.types; nullOr ints.unsigned;
+              default = null;
+              description = ''
+                Specifies the minimum dynamic port to be assigned.
+                Individual ports and ranges of ports may be excluded from dynamic
+                port assignment via reserved parameters.
+
+                NOTE: Nomad uses port 20000 for this parameter by default.
+                This is within Consul's dynamic port range and may cause jobs
+                to fail randomly in a busy deployment if unadjusted.
+
+                Refs:
+                  https://www.nomadproject.io/docs/job-specification/network#dynamic-ports
+                  https://www.consul.io/docs/agent/options#ports
+                  https://github.com/hashicorp/consul/issues/12253
+                  https://github.com/hashicorp/nomad/issues/4285
+              '';
+            };
+
+            max_dynamic_port = lib.mkOption {
+              type = with lib.types; nullOr ints.unsigned;
+              default = null;
+              description = ''
+                Specifies the maximum dynamic port to be assigned.
+                Individual ports and ranges of ports may be excluded from dynamic
+                port assignment via reserved parameters.
+              '';
+            };
+
             node_class = lib.mkOption {
               type = with lib.types; nullOr str;
               default = null;
@@ -1131,11 +1161,6 @@ in {
     environment.systemPackages = [ pkgs.nomad ];
 
     users.extraUsers.nobody = { };
-
-    networking.firewall = {
-      allowedTCPPorts = [ 4646 4647 4648 ];
-      allowedUDPPorts = [ 4648 ];
-    };
 
     systemd.services.nomad = {
       after = [ "network-online.target" "vault-agent.service" ];

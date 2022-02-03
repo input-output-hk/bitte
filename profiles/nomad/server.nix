@@ -14,6 +14,17 @@
 
     cfg = config.services.nomad;
   in {
+    # Nomad firewall references:
+    #   https://www.nomadproject.io/docs/install/production/requirements
+    #
+    # Nomad ports specific to servers
+    networking.firewall.allowedTCPPorts = [
+      4648  # serf wan
+    ];
+    networking.firewall.allowedUDPPorts = [
+      4648  # serf wan
+    ];
+
     services.nomad = {
       datacenter = if deployType == "aws" then region else datacenter;
 

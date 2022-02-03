@@ -18,6 +18,16 @@
     consulOwnedChain = "/var/lib/consul/full.pem";
     consulOwnedKey = "/var/lib/consul/cert-key.pem";
   in {
+    # Nomad firewall references:
+    #   https://www.nomadproject.io/docs/install/production/requirements
+    #
+    # Nomad ports common to both clients and servers
+    networking.firewall = {
+      allowedTCPPorts = [
+        4646  # http api
+        4647  # rpc
+      ];
+    };
 
     environment.variables = {
       NOMAD_ADDR =
@@ -72,13 +82,6 @@
           "role:nomad"
         ];
       };
-    };
-
-    # Used for Consul Connect.
-    boot.kernel.sysctl = {
-      "net.bridge.bridge-nf-call-arptables" = 1;
-      "net.bridge.bridge-nf-call-ip6tables" = 1;
-      "net.bridge.bridge-nf-call-iptables" = 1;
     };
   };
 

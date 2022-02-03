@@ -369,6 +369,26 @@ in {
                 type = with lib.types; nullOr port;
                 default = null;
               };
+
+              sidecarMinPort = lib.mkOption {
+                type = with lib.types; nullOr port;
+                default = null;
+              };
+
+              sidecarMaxPort = lib.mkOption {
+                type = with lib.types; nullOr port;
+                default = null;
+              };
+
+              exposeMinPort = lib.mkOption {
+                type = with lib.types; nullOr port;
+                default = null;
+              };
+
+              exposeMaxPort = lib.mkOption {
+                type = with lib.types; nullOr port;
+                default = null;
+              };
             };
           };
       };
