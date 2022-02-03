@@ -10,6 +10,11 @@ let
     chown docker-registry /var/lib/docker-registry/docker-passwords
   '';
 in {
+
+  networking.firewall.allowedTCPPorts = [
+    config.services.dockerRegistry.port
+  ];
+
   systemd.services.docker-registry.serviceConfig.Environment = [
     "REGISTRY_AUTH=htpasswd"
     "REGISTRY_AUTH_HTPASSWD_REALM=docker-registry"

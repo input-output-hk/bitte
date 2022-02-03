@@ -83,6 +83,8 @@ in {
       }
     ];
 
+    networking.firewall.allowedTCPPorts = [ 80 443 ];
+
     services.traefik.enable = true;
     services.consul.ui = true;
 

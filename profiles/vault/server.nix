@@ -25,6 +25,18 @@
                     then "${nodeName}.internal"
                     else config.currentCoreNode.privateIP;
   in {
+    # Vault firewall references:
+    #   https://www.vaultproject.io/docs/configuration/listener/tcp
+    #   https://learn.hashicorp.com/tutorials/vault/reference-architecture
+    #
+    # Vault ports specific to servers
+    networking.firewall = {
+      allowedTCPPorts = [
+        8200  # http api
+        8201  # rpc
+      ];
+    };
+
     services.vault-agent = {
       role = "core";
       vaultAddress = "https://127.0.0.1:8200"; # avoid depending on any network (at least for the agent)

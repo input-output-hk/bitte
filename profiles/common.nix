@@ -58,8 +58,10 @@ in {
   in {
     enable = true;
     allowPing = true;
-    allowedTCPPortRanges = [ all ];
-    allowedUDPPortRanges = [ all ];
+
+    # TODO: deprecate open firewall with SG dependency in aws
+    allowedTCPPortRanges = lib.mkIf (deployType == "aws") [ all ];
+    allowedUDPPortRanges = lib.mkIf (deployType == "aws") [ all ];
   };
 
   # Remove once nixpkgs is using openssh 8.7p1+ by default to avoid coredumps

@@ -18,6 +18,23 @@
     ownedChain = "/var/lib/consul/full.pem";
     ownedKey = "/var/lib/consul/cert-key.pem";
   in {
+    # Consul firewall references:
+    #   https://support.hashicorp.com/hc/en-us/articles/1500011608961-Checking-Consul-Network-Connectivity
+    #   https://www.consul.io/docs/install/ports
+    #
+    # Consul ports common to both clients and servers
+    networking.firewall.allowedTCPPorts = [
+      8300  # server rpc
+      8301  # lan serf
+      8302  # wan serf
+      8501  # https required for connect
+      8502  # grpc required for connect
+    ];
+    networking.firewall.allowedUDPPorts = [
+      8301  # lan serf
+      8302  # wan serf
+    ];
+
     services.consul = {
       addresses = { http = lib.mkDefault "127.0.0.1"; };
 
@@ -45,7 +62,7 @@
         region = lib.mkIf (deployType != "prem") config.cluster.region;
       } // (lib.optionalAttrs ((config.currentCoreNode or null) != null) {
         inherit (config.currentCoreNode) domain;
-        instance_type = lib.mkIf (deployType != "prem") config.currentCoreNode.instanceType;
+        instanceType = lib.mkIf (deployType != "prem") config.currentCoreNode.instanceType;
       });
 
       # generate deterministic UUIDs for each node so they can rejoin.
