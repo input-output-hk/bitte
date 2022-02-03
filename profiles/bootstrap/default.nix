@@ -497,6 +497,12 @@ in {
             display_name=vault-agent-client \
             policies=vault-agent-client \
             certificate=@"/etc/ssl/certs/client.pem" \
+            ttl=3600
+
+          vault write auth/cert/certs/vault-agent-routing \
+            display_name=vault-agent-routing \
+            policies=routing \
+            certificate=@"/etc/ssl/certs/client.pem" \
             ttl=3600''
         }
 
