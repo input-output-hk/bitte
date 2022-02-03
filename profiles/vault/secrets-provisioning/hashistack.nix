@@ -72,6 +72,14 @@ let
 
       consulNomad = consulDefault;
 
+      nomadConsul = ''
+        {
+          "consul": {
+            "token": "${consulNomad}"
+          }
+        }
+      '';
+
       consulACL = ''
         {
           "acl": {
