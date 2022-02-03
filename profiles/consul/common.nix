@@ -73,7 +73,11 @@
     };
 
     services.dnsmasq = {
-      extraConfig = ''
+      extraConfig = let
+        consulDNS = lib.concatStringsSep "\n"
+          (lib.mapAttrsToList (_: v: "server=/consul/${v.privateIP}#8600")
+            (lib.filterAttrs (k: v: lib.elem k cfg.serverNodeNames) (premSimNodes // coreNodes)));
+        in ''
         # Ensure docker0 is also bound on client machines when it may not exist during dnsmasq startup:
         # - This ensures nomad docker driver jobs have dnsmasq access
         # - This enables nomad exec driver bridge mode jobs to use the docker bridge for dnsmasq access
@@ -81,7 +85,8 @@
         bind-dynamic
 
         # Redirect consul and ec2 internal specific queries to their respective upstream DNS servers
-        server=/consul/127.0.0.1#8600
+        ${consulDNS}
+
         ${lib.optionalString (deployType != "prem") ''
           server=/internal/169.254.169.253#53''
         }

@@ -9,7 +9,7 @@
   Switches = { };
 
   Config = {
-    services.vault-agent.role = "core";
+    services.vault-agent.role = "routing";
   };
 
 in Imports // lib.mkMerge [
