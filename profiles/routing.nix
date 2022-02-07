@@ -53,6 +53,14 @@ in {
       '';
     };
 
+    useDockerRegistry = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Enable use of a docker registry backend with a service hosted on the monitoring server.
+      '';
+    };
+
     digestAuthFile = lib.mkOption {
       type = lib.types.str;
       default = "/run/keys/digest-auth";
@@ -85,8 +93,9 @@ in {
 
     networking.firewall.allowedTCPPorts = [ 80 443 ];
 
-    services.traefik.enable = true;
     services.consul.ui = true;
+    services.traefik.enable = true;
+    services.oauth2_proxy.enable = cfg.useOauth2Proxy;
 
     users.extraGroups.keys.members = lib.mkIf cfg.useDigestAuth [ "traefik" ];
 
@@ -219,7 +228,7 @@ in {
               rule = "Host(`${service}.${domain}`) && PathPrefix(`/`)";
               tls = tlsCfg;
             };
-          in lib.mkDefault {
+          in lib.mkDefault ({
             grafana = mkRoute "monitoring";
             nomad = mkRoute "nomad";
 
@@ -258,7 +267,15 @@ in {
               service = "api@internal";
               tls = tlsCfg;
             };
-          } // lib.optionalAttrs cfg.useOauth2Proxy {
+          } // (lib.optionalAttrs cfg.useDockerRegistry {
+            docker-registry = {
+              entrypoints = "https";
+              middlewares = [ ];
+              rule = "Host(`docker.${domain}`) && PathPrefix(`/`)";
+              service = "docker-registry";
+              tls = true;
+            };
+          }) // (lib.optionalAttrs cfg.useOauth2Proxy {
             oauth2-route = {
               entrypoints = "https";
               middlewares = [ "auth-headers" ];
@@ -275,9 +292,9 @@ in {
               service = "oauth-backend";
               tls = tlsCfg;
             };
-          };
+          }));
 
-          services = {
+          services = lib.mkDefault ({
             consul.loadBalancer = {
               servers = [{ url = "http://127.0.0.1:8500"; }];
             };
@@ -295,13 +312,17 @@ in {
               servers = [{ url = "https://active.vault.service.consul:8200"; }];
               serversTransport = "cert-transport";
             };
+          } // lib.optionalAttrs cfg.useDockerRegistry {
+            docker-registry.loadBalancer = {
+              servers = [{ url = "http://monitoring:5000"; }];
+            };
           } // lib.optionalAttrs cfg.useOauth2Proxy {
             oauth-backend = {
               loadBalancer = {
                 servers = [{ url = "http://127.0.0.1:4180"; }];
               };
             };
-          };
+          });
 
           serversTransports = {
             cert-transport = {
@@ -313,7 +334,7 @@ in {
             };
           };
 
-          middlewares = {
+          middlewares = lib.mkDefault ({
             auth-headers = {
               headers = {
                 browserXssFilter = true;
@@ -348,7 +369,7 @@ in {
                 headerField= "X-WebAuth-User";
               };
             };
-          };
+          });
         };
       };
 

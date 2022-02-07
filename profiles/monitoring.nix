@@ -34,6 +34,14 @@ in {
         One, but not both, of `useOauth2Proxy` or `useDigestAuth` options must be true.
       '';
     };
+
+    useDockerRegistry = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Enable use of a docker registry backend with a service hosted on the monitoring server.
+      '';
+    };
   };
 
   config = {
@@ -52,6 +60,8 @@ in {
       config.services.grafana.port
       8428  # victoriaMetrics
       9000  # minio
+    ] ++ lib.optionals cfg.useDockerRegistry [
+      config.services.dockerRegistry.port  # dockerRegistry
     ];
 
     services.consul.ui = true;
@@ -62,6 +72,7 @@ in {
     services.loki.enable = true;
     services.grafana.enable = true;
     services.prometheus.enable = false;
+    services.dockerRegistry.enable = cfg.useDockerRegistry;
     services.vulnix.scanClosure = true;
 
     services.victoriametrics = {

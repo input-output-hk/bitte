@@ -5,7 +5,7 @@ let
   isSops = deployType == "aws";
 in {
 
-  services.oauth2_proxy.enable = true;
+  services.oauth2_proxy.enable = lib.mkDefault true;
 
   services.oauth2_proxy = {
     extraConfig.whitelist-domain = ".${domain}";

@@ -23,7 +23,7 @@ in {
 
   services = {
     dockerRegistry = {
-      enable = true;
+      enable = lib.mkDefault true;
       enableDelete = true;
       enableGarbageCollect = true;
       enableRedisCache = true;
