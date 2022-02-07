@@ -72,7 +72,7 @@ in {
     inherit (config.services.vault) serverNodeNames;
   in ''
     ${lib.concatStringsSep "\n"
-    (lib.mapAttrsToList (name: instance: "${instance.privateIP} ${name}.internal core.vault.service.consul")
+    (lib.mapAttrsToList (name: instance: "${instance.privateIP} ${name}.internal")
       (lib.filterAttrs (k: v: lib.elem k serverNodeNames) nodes))}
 
     ${lib.concatStringsSep "\n"
