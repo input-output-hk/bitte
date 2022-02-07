@@ -781,7 +781,7 @@ let
         node_class = lib.mkOption { type = with lib.types; str; };
 
         modules = lib.mkOption {
-          type = with lib.types; listOf (oneOf [ path attrs ]);
+          type = with lib.types; listOf (oneOf [ path attrs (functionTo attrs) ]);
           default = [ ];
         };
 
