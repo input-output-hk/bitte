@@ -12,6 +12,7 @@
     inherit (config.cluster) nodes region;
     deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
     datacenter = config.currentCoreNode.datacenter or config.currentAwsAutoScalingGroup.datacenter;
+    role = config.currentCoreNode.role or config.currentAwsAutoScalingGroup.role;
     primaryInterface = config.currentCoreNode.primaryInterface or config.currentAwsAutoScalingGroup.primaryInterface;
 
     cfg = config.services.consul;
@@ -95,24 +96,36 @@
 
     services.dnsmasq = {
       extraConfig = let
-        consulDNS = lib.concatStringsSep "\n"
-          (lib.mapAttrsToList (_: v: "server=/consul/${v.privateIP}#8600")
-            (lib.filterAttrs (k: v: lib.elem k cfg.serverNodeNames) (premSimNodes // coreNodes)));
-        in ''
+        inherit (config.services.vault) serverNodeNames;
+
+        mkResolver = type: dnsPattern: port: lib.concatStringsSep "\n"
+          (lib.mapAttrsToList (name: instance: "${type}=/${dnsPattern}/${instance.privateIP}${port}")
+          (lib.filterAttrs (k: v: lib.elem k serverNodeNames) nodes));
+
+        consulCoreDns = mkResolver "address" "core.vault.service.consul" "";
+        consulDns = mkResolver "server" "consul" "#8600";
+        consulDnsLocal = "server=/consul/127.0.0.1#8600";
+      in ''
         # Ensure docker0 is also bound on client machines when it may not exist during dnsmasq startup:
         # - This ensures nomad docker driver jobs have dnsmasq access
         # - This enables nomad exec driver bridge mode jobs to use the docker bridge for dnsmasq access
         #   when explicitly defined as a nomad network dns server ip
         bind-dynamic
 
-        # Redirect consul and ec2 internal specific queries to their respective upstream DNS servers
-        ${consulDNS}
+        # Declare core.vault.service.consul machines specifically in dnsmasq rather than hosts
+        # to provide some minimal load balancing capability.  Certs config will typically include the
+        # core.vault.service.consul defn for cores by default.
+        ${consulCoreDns}
 
+        # Redirect consul and deployType specific queries to their respective DNS servers.
+        ${if role == "router" then ''
+          # Routing machines require consul dns resolution upstream rather than localhost due to token config.
+          ${consulDns}'' else consulDnsLocal}
         ${lib.optionalString (deployType != "prem") ''
           server=/internal/169.254.169.253#53''
         }
 
-        # Configure reverse in-addr.arpa DNS lookups to consul for ASGs and core datacenter default address ranges
+        # Configure reverse in-addr.arpa DNS lookups to consul
         ${lib.optionalString (deployType != "prem") ''
           rev-server=10.0.0.0/8,127.0.0.1#8600
           rev-server=172.16.0.0/16,127.0.0.1#8600''
