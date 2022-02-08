@@ -1,33 +1,56 @@
-{ lib, config, pkgs, ... }:
-let cfg = config.services.vault-backend;
+{ lib, config, pkgs, pkiFiles, ... }:
+let
+  cfg = config.services.vault-backend;
+  deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
 in {
   options = {
     services.vault-backend = {
       enable = lib.mkEnableOption "Enable the Terraform Vault Backend";
-      listen = lib.mkOption {
+
+      debug = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+      };
+
+      interface = lib.mkOption {
         type = lib.types.str;
-        default = "0.0.0.0:8080";
+        default = "0.0.0.0";
+      };
+
+      port= lib.mkOption {
+        type = lib.types.int;
+        default = 8080;
       };
     };
   };
 
   config = lib.mkIf cfg.enable {
+    networking.firewall.allowedTCPPorts = [
+      cfg.port
+    ];
+
     systemd.services.vault-backend = {
       wantedBy = [ "multi-user.target" ];
       after = [ "network.target" ];
 
       environment = {
-        VAULT_URL = "https://${config.cluster.coreNodes.core-1.privateIP}:8200";
+        VAULT_URL = "https://core.vault.service.consul:8200";
         VAULT_PREFIX = "vbk"; # the prefix used when storing the secrets
-        LISTEN_ADDRESS = cfg.listen;
+        LISTEN_ADDRESS = "${cfg.interface}:${toString cfg.port}";
+        DEBUG = lib.mkIf cfg.debug "TRUE";
       };
 
       serviceConfig = let
+        certChainFile = if deployType == "aws" then pkiFiles.certChainFile
+                        else pkiFiles.serverCertChainFile;
+        certKeyFile = if deployType == "aws" then pkiFiles.keyFile
+                      else pkiFiles.serverKeyFile;
         execStartPre = pkgs.writeBashBinChecked "vault-backend-pre" ''
           set -exuo pipefail
           export PATH="${lib.makeBinPath [ pkgs.coreutils ]}"
 
-          cp /etc/ssl/certs/{cert,cert-key}.pem .
+          cp ${certChainFile} .
+          cp ${certKeyFile} .
           chown --reference . --recursive .
         '';
       in {

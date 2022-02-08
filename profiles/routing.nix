@@ -61,6 +61,14 @@ in {
       '';
     };
 
+    useVaultBackend = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Enable use of a vault TF backend with a service hosted on the monitoring server.
+      '';
+    };
+
     digestAuthFile = lib.mkOption {
       type = lib.types.str;
       default = "/run/keys/digest-auth";
@@ -292,6 +300,14 @@ in {
               service = "oauth-backend";
               tls = tlsCfg;
             };
+          }) // (lib.optionalAttrs cfg.useVaultBackend {
+            vault-backend = {
+              entrypoints = "https";
+              middlewares = [ ];
+              rule = "Host(`vbk.${domain}`) && PathPrefix(`/`)";
+              service = "vault-backend";
+              tls = true;
+            };
           }));
 
           services = lib.mkDefault ({
@@ -321,6 +337,10 @@ in {
               loadBalancer = {
                 servers = [{ url = "http://127.0.0.1:4180"; }];
               };
+            };
+          } // lib.optionalAttrs cfg.useVaultBackend {
+            vault-backend.loadBalancer = {
+              servers = [{ url = "http://monitoring:8080"; }];
             };
           });
 
