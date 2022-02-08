@@ -3,7 +3,7 @@ let
   inherit (terralib)
     id var regions awsProviderNameFor awsProviderFor mkSecurityGroupRule
     nullRoute nullRouteInline;
-  inherit (config.cluster) vbkBackend vbkBackendSkipCertVerification;
+  inherit (config.cluster) infraType vbkBackend vbkBackendSkipCertVerification;
 
   merge = lib.foldl' lib.recursiveUpdate { };
 
@@ -41,7 +41,7 @@ let
         vpcRegions);
   in f: lib.listToAttrs (lib.forEach peeringPairs f);
 in {
-  tf.clients.configuration = {
+  tf.clients.configuration = lib.mkIf (infraType != "prem") {
     terraform.backend.http = let
       vbk =
         "${vbkBackend}/state/${config.cluster.name}/clients";

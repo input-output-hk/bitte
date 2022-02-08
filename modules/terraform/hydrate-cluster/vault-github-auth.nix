@@ -1,8 +1,8 @@
 # Bootstrap vault github employee & aws backend.
 { terralib, lib, config, ... }:
 let
-
   inherit (terralib) var;
+  inherit (config.cluster) infraType;
 
 in {
   tf.hydrate-cluster.configuration = {
@@ -37,7 +37,7 @@ in {
             policies = [ "developer" "default" ];
           })));
 
-    resource.vault_aws_secret_backend_role = {
+    resource.vault_aws_secret_backend_role = lib.mkIf (infraType != "prem") {
       developers = {
         backend = "aws";
         name = "developer";

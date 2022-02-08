@@ -1,8 +1,11 @@
 # hydrate-cluster.aws groups & policies
-{ terralib, ... }:
-let inherit (terralib) var;
+{ terralib, config, lib, ... }:
+let
+  inherit (terralib) var;
+  inherit (config.cluster) infraType;
+
 in {
-  tf.hydrate-cluster.configuration = {
+  tf.hydrate-cluster.configuration = lib.mkIf (infraType != "prem") {
 
     resource.aws_iam_group = {
       developers = {

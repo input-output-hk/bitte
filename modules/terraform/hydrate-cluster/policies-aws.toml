@@ -1,0 +1,11 @@
+[vault] # policy roles
+
+[vault.admin]
+path."aws/*".capabilities = [ "create", "read", "update", "delete", "list" ]
+path."auth/aws/config/client".capabilities = [ "create", "read", "update", "delete", "list" ]
+path."auth/aws/role/*".capabilities = [ "create", "read", "update", "delete", "list" ]
+path."sys/auth/aws".capabilities = [ "create", "read", "update", "delete", "list", "sudo" ]
+
+
+[vault.developer]
+path."aws/creds/developer".capabilities = [ "read", "update", ] # Allow creating AWS tokens

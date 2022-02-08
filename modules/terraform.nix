@@ -224,6 +224,31 @@ let
           default = { };
         };
 
+        infraType = lib.mkOption {
+          type = with lib.types; enum [ "aws" "prem" "premSim" ];
+          default = "aws";
+          description = ''
+            The cluster infrastructure deployment type.
+
+            For an AWS cluster, "aws" should be declared.
+            For an AWS plus premSim cluster, "aws" should be declared (see NB).
+            For a premSim only cluster, "premSim" should be declared.
+            For a prem only cluster, "prem" should be declared.
+
+            The declared machine composition for a cluster should
+            comprise machines of the declared cluster type:
+
+              * type "aws" should declare coreNodes
+              * type "prem" should declare premNodes
+              * type "premSim" should declare premSimNodes
+
+            NOTE: The use of AWS plus premSim deployment in the same
+            cluster with mixed machine compoition of premNodes and
+            premSimNodes is deprecated and will not be supported in
+            the future.
+          '';
+        };
+
         awsAutoScalingGroups = lib.mkOption {
           type = with lib.types; attrsOf awsAutoScalingGroupType;
           default = { };
@@ -246,7 +271,10 @@ let
           default = { };
         };
 
-        kms = lib.mkOption { type = with lib.types; nullOr str; };
+        kms = lib.mkOption {
+          type = with lib.types; nullOr str;
+          default = null;
+        };
 
         s3Bucket = lib.mkOption { type = with lib.types; str; };
 
@@ -344,10 +372,16 @@ let
           default = false;
           description = ''
             Whether to skip TLS verification.  Useful for debugging
-            when signed certificates are not yet available/installed.
+            when signed certificates are not yet available in non
+            prod environments.
 
-            NOTE: A local `export VAULT_SKIP_VERIFY=true` may still
-            be required to successfully complete a tf operation.
+            NOTE: The following local exports may also be required
+            in conjunction with enabling this option, and are intended
+            only for short term use in a testing only environment:
+
+              export VAULT_SKIP_VERIFY=true
+              export CONSUL_HTTP_SSL_VERIFY=false
+              export NOMAD_SKIP_VERIFY=true
           '';
         };
       };
@@ -667,6 +701,18 @@ let
           type = with lib.types; str;
         };
 
+        role = lib.mkOption {
+          type = with lib.types; str;
+          default = if lib.hasPrefix "core" name then "core"
+                    else if lib.hasPrefix "prem" name then "core"
+                    else if lib.hasPrefix "router" name then "router"
+                    else if lib.hasPrefix "routing" name then "router"
+                    else if lib.hasPrefix "monitor" name then "monitor"
+                    else if lib.hasPrefix "hydra" name then "hydra"
+                    else if lib.hasPrefix "storage" name then "storage"
+                    else "default";
+        };
+
         deployType = lib.mkOption {
           type = with lib.types; enum [ "aws" "prem" "premSim" ];
           default = "aws";
@@ -980,8 +1026,8 @@ in {
             backend = "${cfg.vbkBackend}/v1";
 
             # If no kms cluster key is present, use prem deploy-rs equivalent commands
-            coreNode = if cfg.kms == null then "${cfg.name}-core-1" else "core-1";
-            coreNodeCmd = if cfg.kms == null then "ssh" else "${pkgs.bitte}/bin/bitte ssh";
+            coreNode = if cfg.infraType == "prem" then "${cfg.name}-core-1" else "core-1";
+            coreNodeCmd = if cfg.infraType == "prem" then "ssh" else "${pkgs.bitte}/bin/bitte ssh";
 
             copy = ''
               export PATH="${
