@@ -4,11 +4,11 @@
 */
 { terralib, lib, config, ... }:
 let
-
   inherit (terralib) var;
+  inherit (config.cluster) infraType;
 
 in {
-  tf.hydrate-cluster.configuration = {
+  tf.hydrate-cluster.configuration = lib.mkIf (infraType != "prem") {
 
     data.sops_file.ca = { source_file = "${config.secrets.encryptedRoot + "/ca.json"}"; };
     # TODO: commented parts are currently accomplished by a systemd one-shot
@@ -55,6 +55,7 @@ in {
     #       generate_lease = true;
     #       max_ttl = "12h";
     # };
+
     resource.vault_pki_secret_backend_intermediate_cert_request.issuing_ca = {
       # depends_on = [ (id "vault_pki_secret_backend.pki") ];
       # backend = var "vault_pki_secret_backend.pki.path";
@@ -62,6 +63,7 @@ in {
       type = "internal";
       common_name = "vault.${config.cluster.domain}";
     };
+
     resource.tls_locally_signed_cert.issuing_ca = {
       cert_request_pem =
         var "vault_pki_secret_backend_intermediate_cert_request.issuing_ca.csr";
@@ -73,12 +75,12 @@ in {
       is_ca_certificate = true;
       allowed_uses = [ "signing" "key encipherment" "cert sign" "crl sign" ];
     };
+
     resource.vault_pki_secret_backend_intermediate_set_signed.issuing_ca = {
       # backend = var "vault_pki_secret_backend.pki.path";
       backend = "pki";
       certificate = (var "tls_locally_signed_cert.issuing_ca.cert_pem")
         + (var ''data.sops_file.ca.data["cert"]'');
     };
-
   };
 }

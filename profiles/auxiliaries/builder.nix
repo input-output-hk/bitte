@@ -107,8 +107,10 @@ in {
   users.extraUsers = lib.mkIf isMonitoring {
     builder = {
       isSystemUser = true;
-      openssh.authorizedKeys.keyFiles =
-        [ ((toString config.secrets.encryptedRoot) + "/nix-builder-key.pub") ];
+      openssh.authorizedKeys.keyFiles = let
+        builderKey = if isSops then "${toString config.secrets.encryptedRoot}/nix-builder-key.pub"
+                     else config.age.encryptedRoot + "/ssh/builder.age";
+      in [ builderKey ];
       shell = pkgs.bashInteractive;
     };
   };

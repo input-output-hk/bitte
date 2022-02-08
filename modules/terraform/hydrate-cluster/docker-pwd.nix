@@ -1,8 +1,10 @@
 # Load docker developer password into vault
-{ config, terralib, ... }:
-let inherit (terralib) var;
+{ config, terralib, lib, ... }:
+let
+  inherit (terralib) var;
+  inherit (config.cluster) infraType;
 in {
-  tf.hydrate-cluster.configuration = {
+  tf.hydrate-cluster.configuration = lib.mkIf (infraType != "prem") {
 
     data.sops_file.docker-developer-password.source_file =
       "${config.secrets.encryptedRoot + "/docker-passwords.json"}";
