@@ -14,6 +14,8 @@ in {
     ./auxiliaries/builder.nix
     ./auxiliaries/docker-registry.nix
     ./auxiliaries/loki.nix
+
+    ../modules/vault-backend.nix
   ];
 
   options.services.monitoring = {
@@ -42,6 +44,15 @@ in {
         Enable use of a docker registry backend with a service hosted on the monitoring server.
       '';
     };
+
+    useVaultBackend = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Enable use of a vault TF backend with a service hosted on the monitoring server.
+      '';
+    };
+
   };
 
   config = {
@@ -73,6 +84,7 @@ in {
     services.grafana.enable = true;
     services.prometheus.enable = false;
     services.dockerRegistry.enable = cfg.useDockerRegistry;
+    services.vault-backend.enable = cfg.useVaultBackend;
     services.vulnix.scanClosure = true;
 
     services.victoriametrics = {

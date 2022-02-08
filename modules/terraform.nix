@@ -2,7 +2,7 @@
 let
   inherit (terralib) var id regions awsProviderFor;
 
-  kms2region = kms: builtins.elemAt (lib.splitString ":" kms) 3;
+  kms2region = kms: if kms == null then null else builtins.elemAt (lib.splitString ":" kms) 3;
 
   merge = lib.foldl' lib.recursiveUpdate { };
 
@@ -246,7 +246,7 @@ let
           default = { };
         };
 
-        kms = lib.mkOption { type = with lib.types; str; };
+        kms = lib.mkOption { type = with lib.types; nullOr str; };
 
         s3Bucket = lib.mkOption { type = with lib.types; str; };
 
@@ -292,7 +292,7 @@ let
         };
 
         region = lib.mkOption {
-          type = with lib.types; str;
+          type = with lib.types; nullOr str;
           default = kms2region cfg.kms;
         };
 
@@ -332,6 +332,23 @@ let
         flakePath = lib.mkOption {
           type = with lib.types; path;
           default = self.outPath;
+        };
+
+        vbkBackend = lib.mkOption {
+          type = with lib.types; str;
+          default = "https://vbk.infra.aws.iohkdev.io";
+        };
+
+        vbkBackendSkipCertVerification = lib.mkOption {
+          type = with lib.types; bool;
+          default = false;
+          description = ''
+            Whether to skip TLS verification.  Useful for debugging
+            when signed certificates are not yet available/installed.
+
+            NOTE: A local `export VAULT_SKIP_VERIFY=true` may still
+            be required to successfully complete a tf operation.
+          '';
         };
       };
     });
@@ -960,7 +977,12 @@ in {
       type = with lib.types;
         attrsOf (submodule ({ name, ... }@this: {
           options = let
-            backend = "https://vault.infra.aws.iohkdev.io/v1";
+            backend = "${cfg.vbkBackend}/v1";
+
+            # If no kms cluster key is present, use prem deploy-rs equivalent commands
+            coreNode = if cfg.kms == null then "${cfg.name}-core-1" else "core-1";
+            coreNodeCmd = if cfg.kms == null then "ssh" else "${pkgs.bitte}/bin/bitte ssh";
+
             copy = ''
               export PATH="${
                 lib.makeBinPath [ pkgs.coreutils pkgs.terraform-with-plugins ]
@@ -982,10 +1004,10 @@ in {
                 echo implement fine-grained ACL. Hence, for hydrate-cluster
                 echo a management token is required. The boostrap token is
                 echo such a management token.
-                echo Fetching from 'core-1', the presumed bootstrapper ...
+                echo Fetching from '${coreNode}', the presumed bootstrapper ...
                 echo -----------------------------------------------------
                 declare NOMAD_TOKEN
-                NOMAD_TOKEN="$(${pkgs.bitte}/bin/bitte ssh core-1 cat /var/lib/nomad/bootstrap.token)"
+                NOMAD_TOKEN="$(${coreNodeCmd} ${coreNode} cat /var/lib/nomad/bootstrap.token)"
                 export NOMAD_TOKEN
               fi
 
@@ -1026,7 +1048,7 @@ in {
                 echo -----------------------------------------------------
                 echo ERROR: env variable GITHUB_TOKEN is not set or empty.
                 echo Yet, it is required to authenticate before the
-                echo infra cluster vault terraform backend.
+                echo utilizing the cluster vault terraform backend.
                 echo -----------------------------------------------------
                 echo "Please 'export GITHUB_TOKEN=ghp_hhhhhhhh...' using"
                 echo your appropriate personal github access token.

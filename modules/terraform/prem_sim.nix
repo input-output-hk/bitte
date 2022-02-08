@@ -3,6 +3,7 @@ let
   inherit (terralib)
     var id pp regions awsProviderNameFor awsProviderFor mkSecurityGroupRule
     nullRoute;
+  inherit (config.cluster) vbkBackend vbkBackendSkipCertVerification;
 
   merge = lib.foldl' lib.recursiveUpdate { };
   tags = { Cluster = config.cluster.name; };
@@ -10,11 +11,12 @@ in {
   tf.prem-sim.configuration = {
     terraform.backend.http = let
       vbk =
-        "https://vbk.infra.aws.iohkdev.io/state/${config.cluster.name}/prem-sim";
+        "${vbkBackend}/state/${config.cluster.name}/prem-sim";
     in {
       address = vbk;
       lock_address = vbk;
       unlock_address = vbk;
+      skip_cert_verification = vbkBackendSkipCertVerification;
     };
 
     terraform.required_providers = pkgs.terraform-provider-versions;
