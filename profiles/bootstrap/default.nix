@@ -265,6 +265,28 @@ in {
           ''))}
         ''}
 
+        ${lib.optionalString (deployType != "aws") ''
+          # Finally allow cert roles to login to Vault
+
+          vault write auth/cert/certs/vault-agent-core \
+            display_name=vault-agent-core \
+            policies=vault-agent-core \
+            certificate=@"/etc/ssl/certs/client.pem" \
+            ttl=3600
+
+          vault write auth/cert/certs/vault-agent-client \
+            display_name=vault-agent-client \
+            policies=vault-agent-client \
+            certificate=@"/etc/ssl/certs/client.pem" \
+            ttl=3600
+
+          vault write auth/cert/certs/vault-agent-routing \
+            display_name=vault-agent-routing \
+            policies=routing \
+            certificate=@"/etc/ssl/certs/client.pem" \
+            ttl=3600''
+        }
+
         ${initialVaultSecrets}
 
         ${initialVaultStaticSecrets}
@@ -489,25 +511,7 @@ in {
         }
 
         ${lib.optionalString (deployType != "aws") ''
-          echo "$auth" | jq -e '."cert/"'         || vault auth enable cert
-
-          vault write auth/cert/certs/vault-agent-core \
-            display_name=vault-agent-core \
-            policies=vault-agent-core \
-            certificate=@"/etc/ssl/certs/client.pem" \
-            ttl=3600
-
-          vault write auth/cert/certs/vault-agent-client \
-            display_name=vault-agent-client \
-            policies=vault-agent-client \
-            certificate=@"/etc/ssl/certs/client.pem" \
-            ttl=3600
-
-          vault write auth/cert/certs/vault-agent-routing \
-            display_name=vault-agent-routing \
-            policies=routing \
-            certificate=@"/etc/ssl/certs/client.pem" \
-            ttl=3600''
+          echo "$auth" | jq -e '."cert/"'         || vault auth enable cert''
         }
 
         # This lets Vault issue Consul tokens
