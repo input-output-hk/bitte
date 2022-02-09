@@ -1,6 +1,7 @@
 { lib, pkgs, config, nodeName, ... }:
 let
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+  role = config.currentCoreNode.role or config.currentAwsAutoScalingGroup.role;
 
   isSops = deployType == "aws";
   isInstance = config.currentCoreNode != null;
@@ -65,11 +66,11 @@ in {
         -o NumberOfPasswordPrompts=0 \
         -o StrictHostKeyChecking=accept-new \
         -i /etc/nix/builder-key \
-        builder@${config.cluster.coreNodes.monitoring.privateIP} echo 'trust established'
+        builder@${config.cluster.nodes.monitoring.privateIP} echo 'trust established'
     '';
   };
 
-  age.secrets = lib.mkIf (isAsg && !isSops) {
+  age.secrets = lib.mkIf (!isSops && (role == "client")) {
     docker-passwords = {
       file = config.age.encryptedRoot + "/ssh/builder.age";
       path = "/etc/nix/builder-key";
@@ -81,7 +82,7 @@ in {
           -o NumberOfPasswordPrompts=0 \
           -o StrictHostKeyChecking=accept-new \
           -i /etc/nix/builder-key \
-          builder@${config.cluster.coreNodes.monitoring.privateIP} echo 'trust established'
+          builder@${config.cluster.nodes.monitoring.privateIP} echo 'trust established'
         mv "$src" "$out"
       '';
     };
@@ -109,7 +110,7 @@ in {
       isSystemUser = true;
       openssh.authorizedKeys.keyFiles = let
         builderKey = if isSops then "${toString config.secrets.encryptedRoot}/nix-builder-key.pub"
-                     else config.age.encryptedRoot + "/ssh/builder.age";
+                     else config.age.encryptedRoot + "/ssh/builder.pub";
       in [ builderKey ];
       shell = pkgs.bashInteractive;
     };

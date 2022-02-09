@@ -710,6 +710,7 @@ let
                     else if lib.hasPrefix "monitor" name then "monitor"
                     else if lib.hasPrefix "hydra" name then "hydra"
                     else if lib.hasPrefix "storage" name then "storage"
+                    else if lib.hasPrefix "client" name then "client"
                     else "default";
         };
 
@@ -858,6 +859,11 @@ let
         };
 
         node_class = lib.mkOption { type = with lib.types; str; };
+
+        role = lib.mkOption {
+          type = with lib.types; str;
+          default = "client";
+        };
 
         modules = lib.mkOption {
           type = with lib.types; listOf (oneOf [ path attrs (functionTo attrs) ]);
