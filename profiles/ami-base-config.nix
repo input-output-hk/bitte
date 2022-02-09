@@ -14,7 +14,7 @@
     [ "nixpkgs=${pkgs.path}" "nixos-config=/etc/nixos/configuration.nix" ];
 
   nix.extraOptions = ''
-    experimental-features = nix-command flakes ca-references
+    experimental-features = nix-command flakes
   '';
 
   systemd.services.console-getty.enable = false;
