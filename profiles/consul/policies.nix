@@ -63,6 +63,11 @@
         keyPrefix = allRead;
       };
 
+      traefik = {
+        servicePrefix = allRead;
+        nodePrefix = allRead;
+      };
+
       consul-server-default = {
         nodePrefix = allWrite;
         # servicePrefix = allWrite;

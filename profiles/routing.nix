@@ -45,6 +45,58 @@ in {
       ${config.cluster.coreNodes.monitoring.privateIP} monitoring
     '';
 
+    systemd.services.traefik.serviceConfig.ExecStart = let
+        cfg = config.services.traefik;
+        jsonValue = with lib.types;
+          let
+            valueType = nullOr (oneOf [
+              bool
+              int
+              float
+              str
+              (lazyAttrsOf valueType)
+              (listOf valueType)
+            ]) // {
+              description = "JSON value";
+              emptyValue.value = { };
+            };
+          in valueType;
+        dynamicConfigFile = if cfg.dynamicConfigFile == null then
+          pkgs.runCommand "config.toml" {
+            buildInputs = [ pkgs.remarshal ];
+            preferLocalBuild = true;
+          } ''
+            remarshal -if json -of toml \
+              < ${
+                pkgs.writeText "dynamic_config.json"
+                (builtins.toJSON cfg.dynamicConfigOptions)
+              } \
+              > $out
+          ''
+        else
+          cfg.dynamicConfigFile;
+        staticConfigFile = if cfg.staticConfigFile == null then
+          pkgs.runCommand "config.toml" {
+            buildInputs = [ pkgs.yj ];
+            preferLocalBuild = true;
+          } ''
+            yj -jt -i \
+              < ${
+                pkgs.writeText "static_config.json" (builtins.toJSON
+                  (lib.recursiveUpdate cfg.staticConfigOptions {
+                    providers.file.filename = "${dynamicConfigFile}";
+                  }))
+              } \
+              > $out
+          ''
+        else
+          cfg.staticConfigFile;
+    in lib.mkForce (pkgs.writeShellScript "traefik.sh" ''
+      export CONSUL_HTTP_TOKEN="$(< $CREDENTIALS_DIRECTORY/consul)"
+      exec ${config.services.traefik.package}/bin/traefik --configfile=${staticConfigFile}
+    '');
+    systemd.services.traefik.serviceConfig.LoadCredential = "consul:${hashiTokens.consul-default}";
+
     systemd.services.copy-acme-certs = lib.mkIf cfg.acmeDnsCertMgr {
       before = [ "traefik.service" ];
       wantedBy = [ "traefik.service" ];

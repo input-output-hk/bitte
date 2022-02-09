@@ -249,6 +249,12 @@ in {
             policies=default,client,nomad-server \
             period=24h
 
+          vault write auth/aws/role/${config.cluster.name}-routing \
+            auth_type=iam \
+            bound_iam_principal_arn="$arn:role/${config.cluster.name}-core" \
+            policies=default,routing \
+            period=24h
+
           ${lib.concatStringsSep "\n" (lib.forEach config.cluster.adminNames (name: ''
             vault write "auth/aws/role/${name}" \
               auth_type=iam \
@@ -490,6 +496,12 @@ in {
           vault write auth/cert/certs/vault-agent-client \
             display_name=vault-agent-client \
             policies=vault-agent-client \
+            certificate=@"/etc/ssl/certs/client.pem" \
+            ttl=3600
+
+          vault write auth/cert/certs/vault-agent-routing \
+            display_name=vault-agent-routing \
+            policies=routing \
             certificate=@"/etc/ssl/certs/client.pem" \
             ttl=3600''
         }

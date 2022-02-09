@@ -44,6 +44,7 @@ in {
       consul-vault-srv = "vault-consul-token";
       nomad-snapshot = "/run/keys/nomad-snapshot-token";
       nomad-autoscaler = "/run/keys/nomad-autoscaler-token";
+      traefik = "/run/keys/traefik-consul-token";
     };
   };
 }

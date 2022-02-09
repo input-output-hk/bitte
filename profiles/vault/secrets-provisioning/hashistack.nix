@@ -1,28 +1,121 @@
-{ config, lib, pkgs, hashiTokens, ... }: let
+{ config, lib, pkgs, hashiTokens, ... }:
+let
+  roles = let
+    reload = service:
+      "${pkgs.systemd}/bin/systemctl --no-block try-reload-or-restart ${service} || true";
+    restart = service:
+      "${pkgs.systemd}/bin/systemctl --no-block try-restart ${service} || true";
+  in {
+    core = rec {
+      inherit reload restart;
 
-  clientsConsulAgentToken = if config.services.vault-agent.disableTokenRotation.consulAgent
-  then ''{{ with secret "kv/bootstrap/static-tokens/clients/consul-agent" }}{{ .Data.data.token }}{{ end }}''
-  else ''{{ with secret "consul/creds/consul-agent" }}{{ .Data.token }}{{ end }}'';
+      consulNomad = ''
+        {{- with secret "consul/creds/nomad-server" }}{{ .Data.token }}{{ end -}}'';
+      nomadAutoscaler = ''
+        {{- with secret "nomad/creds/nomad-autoscaler" }}{{ .Data.secret_id }}{{ end -}}'';
+      nomadSnapshot = ''
+        {{- with secret "nomad/creds/management" }}{{ .Data.secret_id }}{{ end -}}'';
+      nomadConsul = ''
+        {
+          "consul": {
+            "token": "${consulNomad}"
+          }
+        }
+      '';
 
-  clientsConsulDefaultToken = if config.services.vault-agent.disableTokenRotation.consulDefault
-  then ''{{ with secret "kv/bootstrap/static-tokens/clients/consul-default" }}{{ .Data.data.token }}{{ end }}''
-  else ''{{ with secret "consul/creds/consul-default" }}{{ .Data.token }}{{ end }}'';
+      consulAgent =
+        if config.services.vault-agent.disableTokenRotation.consulAgent then
+          ''
+            {{ with secret "kv/bootstrap/static-tokens/cores/consul-server-agent" }}{{ .Data.data.token }}{{ end }}''
+        else
+          ''
+            {{ with secret "consul/creds/consul-server-agent" }}{{ .Data.token }}{{ end }}'';
 
-  coresConsulAgentToken = if config.services.vault-agent.disableTokenRotation.consulAgent
-  then ''{{ with secret "kv/bootstrap/static-tokens/cores/consul-server-agent" }}{{ .Data.data.token }}{{ end }}''
-  else ''{{ with secret "consul/creds/consul-server-agent" }}{{ .Data.token }}{{ end }}'';
+      consulDefault =
+        if config.services.vault-agent.disableTokenRotation.consulDefault then
+          ''
+            {{ with secret "kv/bootstrap/static-tokens/cores/consul-server-default" }}{{ .Data.data.token }}{{ end }}''
+        else
+          ''
+            {{ with secret "consul/creds/consul-server-default" }}{{ .Data.token }}{{ end }}'';
 
-  coresConsulDefaultToken = if config.services.vault-agent.disableTokenRotation.consulDefault
-  then ''{{ with secret "kv/bootstrap/static-tokens/cores/consul-server-default" }}{{ .Data.data.token }}{{ end }}''
-  else ''{{ with secret "consul/creds/consul-server-default" }}{{ .Data.token }}{{ end }}'';
+      consulACL = ''
+        {
+          "acl": {
+            "tokens": {
+              "agent": "${consulAgent}",
+              "default": "${consulDefault}"
+            }
+          }
+        }
+      '';
+    };
 
-  reload-client = service: "${pkgs.systemd}/bin/systemctl            try-reload-or-restart ${service}";
-  reload-server = service: "${pkgs.systemd}/bin/systemctl --no-block try-reload-or-restart ${service} || true";
-  restart-client = service: "${pkgs.systemd}/bin/systemctl            try-restart ${service}";
-  restart-server = service: "${pkgs.systemd}/bin/systemctl --no-block try-restart ${service} || true";
+    client = rec {
+      inherit reload restart;
 
-  isClient = config.services.vault-agent.role == "client";
+      consulAgent =
+        if config.services.vault-agent.disableTokenRotation.consulAgent then
+          ''
+            {{ with secret "kv/bootstrap/static-tokens/clients/consul-agent" }}{{ .Data.data.token }}{{ end }}''
+        else
+          ''
+            {{ with secret "consul/creds/consul-agent" }}{{ .Data.token }}{{ end }}'';
 
+      consulDefault =
+        if config.services.vault-agent.disableTokenRotation.consulDefault then
+          ''
+            {{ with secret "kv/bootstrap/static-tokens/clients/consul-default" }}{{ .Data.data.token }}{{ end }}''
+        else
+          ''
+            {{ with secret "consul/creds/consul-default" }}{{ .Data.token }}{{ end }}'';
+
+      consulNomad = consulDefault;
+
+      nomadConsul = ''
+        {
+          "consul": {
+            "token": "${consulNomad}"
+          }
+        }
+      '';
+
+      consulACL = ''
+        {
+          "acl": {
+            "tokens": {
+              "agent": "${consulAgent}",
+              "default": "${consulDefault}"
+            }
+          }
+        }
+      '';
+    };
+
+    routing = rec {
+      inherit reload restart;
+      inherit (roles.client) consulAgent consulNomad;
+      consulDefault = ''
+        {{ with secret "consul/creds/consul-default" }}{{ .Data.token }}{{ end }}'';
+      traefik =
+        ''{{ with secret "consul/creds/traefik" }}{{ .Data.token }}{{ end }}'';
+
+      consulACL = ''
+        {
+          "acl": {
+            "tokens": {
+              "agent": "${consulAgent}"
+            }
+          }
+        }
+      '';
+    };
+  };
+
+  roleName = config.services.vault-agent.role;
+  role = roles."${roleName}";
+  isClient = roleName == "client";
+  isRouting = roleName == "routing";
 in {
   services.vault-agent = {
     sinks = [{
@@ -32,81 +125,43 @@ in {
         perms = "0644";
       };
     }];
+
     templates = {
-
-      ${hashiTokens.consul-default} = lib.mkIf config.services.consul.enable ( if isClient
-      then {
-        command = restart-client "consul.service";
-        contents = ''
-          ${clientsConsulDefaultToken}
-        '';
-      } else {
-        command = reload-server "consul.service";
-        contents = ''
-          ${coresConsulDefaultToken}
-        '';
-      });
-
-      ${hashiTokens.consul-nomad} = lib.mkIf config.services.nomad.enable ( if isClient
-      then {
-        command = restart-client "nomad.service";
-        contents = ''
-          ${clientsConsulDefaultToken}
-        '';
-      } else {
-        command = restart-server "nomad.service";
-        contents = ''
-          {{- with secret "consul/creds/nomad-server" }}{{ .Data.token }}{{ end -}}
-        '';
-      });
-
-      ${hashiTokens.nomad-autoscaler} = lib.mkIf (config.services.nomad-autoscaler.enable && !isClient) {
-        command = reload-server "nomad-autoscaler.service";
-        contents = ''
-          {{- with secret "nomad/creds/nomad-autoscaler" }}{{ .Data.secret_id }}{{ end -}}
-        '';
+      "${hashiTokens.consul-default}" = lib.mkIf config.services.consul.enable {
+        command = role.restart "consul.service";
+        contents = role.consulDefault;
       };
 
-      ${hashiTokens.nomad-snapshot} = lib.mkIf (config.services.nomad-snapshots.enable && !isClient) {
-        contents = ''
-          {{- with secret "nomad/creds/management" }}{{ .Data.secret_id }}{{ end -}}
-        '';
+      "${hashiTokens.consul-nomad}" = lib.mkIf config.services.nomad.enable {
+        command = role.restart "nomad.service";
+        contents = role.consulNomad;
       };
 
+      "${hashiTokens.nomad-autoscaler}" =
+        lib.mkIf config.services.nomad-autoscaler.enable {
+          command = role.reload "nomad-autoscaler.service";
+          contents = role.nomadAutoscaler;
+        };
 
-      ${hashiTokens.consuld-json} = lib.mkIf config.services.consul.enable ( if isClient
-        then {
-          command = restart-client "consul";
-          contents = ''
-            { "acl": {
-                "tokens": {
-                  "agent": "${clientsConsulAgentToken}",
-                  "default": "${clientsConsulDefaultToken}"
-                }
-            }}
-          '';
-        } else {
-          command = reload-server "consul.service";
-          contents = ''
-            { "acl": {
-                "tokens": {
-                  "agent": "${coresConsulAgentToken}",
-                  "default": "${coresConsulDefaultToken}"
-                }
-            }}
-          '';
-        });
+      "${hashiTokens.nomad-snapshot}" =
+        lib.mkIf config.services.nomad-snapshots.enable {
+          contents = role.nomadSnapshot;
+        };
 
-      # TODO: remove duplication
-      ${hashiTokens.nomadd-consul-json} = lib.mkIf (config.services.nomad.enable && !isClient) {
-        command = restart-server "nomad.service";
-        contents = ''
-          {
-            "consul": {
-              "token": "{{ with secret "consul/creds/nomad-server" }}{{ .Data.token }}{{ end }}"
-            }
-          }
-        '';
+      "${hashiTokens.consuld-json}" = lib.mkIf config.services.consul.enable {
+        command = role.restart "consul.service";
+        contents = role.consulACL;
+      };
+
+      "${hashiTokens.nomadd-consul-json}" =
+        lib.mkIf (config.services.nomad.enable && isClient) {
+          command = role.restart "nomad.service";
+          contents = role.nomadConsul;
+        };
+
+      "${hashiTokens.traefik}" = lib.mkIf isRouting {
+        command = role.restart "traefik.service";
+        contents = role.traefik;
       };
     };
   };

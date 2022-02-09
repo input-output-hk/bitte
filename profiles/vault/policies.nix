@@ -7,7 +7,8 @@ let
   l = "list";
   s = "sudo";
 
-  deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+  deployType =
+    config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
 in {
   services.vault.policies = {
     # Role for prem or premSim
@@ -32,7 +33,6 @@ in {
         "consul/creds/consul-default".capabilities = [ r u ];
         "kv/data/bootstrap/clients/*".capabilities = [ r ];
         "kv/data/bootstrap/static-tokens/clients/*".capabilities = [ r ];
-        # "pki/issue/client".capabilities = [ u ];
         "pki/issue/client".capabilities = [ c u ];
         "pki/roles/client".capabilities = [ r ];
       };
@@ -101,6 +101,14 @@ in {
       "pki/issue/client".capabilities = [ c u ];
       "pki/roles/client".capabilities = [ r ];
       "sys/capabilities-self".capabilities = [ u ];
+    };
+
+    routing.path = {
+      "auth/token/lookup-self".capabilities = [ r ];
+      "auth/token/renew-self".capabilities = [ u ];
+      "consul/creds/consul-default".capabilities = [ r u ];
+      "consul/creds/consul-agent".capabilities = [ r u ];
+      "consul/creds/traefik".capabilities = [ r u ];
     };
 
     nomad-server.path = {
