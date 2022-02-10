@@ -146,7 +146,7 @@ let
       export PATH="${
         lib.makeBinPath [
           pkgs.openssh
-          pkgs.nixUnstable
+          pkgs.nix
           pkgs.git
           pkgs.mercurial
           pkgs.lsof

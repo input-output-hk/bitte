@@ -1,6 +1,5 @@
 { pkgs, self, ... }: {
   nix = {
-    package = pkgs.nixFlakes;
     gc.automatic = true;
     gc.options = "--max-freed $((10 * 1024 * 1024))";
     optimise.automatic = true;
