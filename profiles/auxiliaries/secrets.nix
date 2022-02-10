@@ -135,7 +135,7 @@ in {
   '';
 
   secrets.generate.cache = lib.mkIf (isInstance && isSops) ''
-    export PATH="${lib.makeBinPath (with pkgs; [ coreutils nixFlakes jq ])}"
+    export PATH="${lib.makeBinPath (with pkgs; [ coreutils nix jq ])}"
 
     mkdir -p secrets encrypted
 

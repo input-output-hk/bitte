@@ -9,9 +9,8 @@ let
     '';
 in final: prev:
 rec {
-  inherit (inputs.nix.packages.x86_64-linux) nix;
-  nixFlakes = final.nix;
-  nixUnstable = final.nix;
+  nixFlakes = nixUnstable;
+  nixUnstable = builtins.throw "use pkgs.nix directly";
 
   nomad = inputs.nomad.defaultPackage."${final.system}";
 
@@ -185,4 +184,3 @@ rec {
   });
 
 })
-

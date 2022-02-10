@@ -59,10 +59,11 @@
     hydra.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, hydra, nixpkgs, utils, cli, deploy, ragenix, ... }@inputs:
+  outputs = { self, hydra, nixpkgs, utils, cli, deploy, ragenix, nix, ... }@inputs:
     let
 
       overlays = [
+        nix.overlay
         cli.overlay
         # `bitte` build depend on nixpkgs-unstable rust version
         # TODO: remove when bitte itself is bumped
