@@ -51,7 +51,7 @@ in {
         };
     };
 
-    role = lib.mkOption { type = with lib.types; enum [ "client" "core" "routing" ]; };
+    role = lib.mkOption { type = with lib.types; enum [ "client" "core" "routing" "hydra" ]; };
 
     vaultAddress = lib.mkOption {
       type = with lib.types; str;
