@@ -12,6 +12,7 @@ in {
     ./auxiliaries/ssh.nix
     ./auxiliaries/promtail.nix
     ./auxiliaries/telegraf.nix
+    ./auxiliaries/builder.nix
   ];
 
   # avoid CVE-2021-4034 (PwnKit)

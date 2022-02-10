@@ -218,6 +218,11 @@ let
           default = { };
         };
 
+        builder = lib.mkOption {
+          type = types.str;
+          default = "monitoring";
+        };
+
         route53 = lib.mkOption {
           type = with lib.types; bool;
           default = true;
