@@ -110,6 +110,25 @@ let
         }
       '';
     };
+
+    hydra = rec {
+      inherit reload restart;
+      inherit (roles.client) consulAgent consulNomad;
+      consulDefault = ''
+        {{ with secret "consul/creds/consul-default" }}{{ .Data.token }}{{ end }}'';
+      traefik =
+        ''{{ with secret "consul/creds/traefik" }}{{ .Data.token }}{{ end }}'';
+
+      consulACL = ''
+        {
+          "acl": {
+            "tokens": {
+              "agent": "${consulAgent}"
+            }
+          }
+        }
+      '';
+    };
   };
 
   roleName = config.services.vault-agent.role;
