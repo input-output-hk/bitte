@@ -3,22 +3,14 @@
 
   inputs = {
     nixpkgs-core.url = "github:nixos/nixpkgs/release-21.05";
-    nixpkgs-client.url = "github:nixos/nixpkgs/release-21.05";
     nixpkgs-auxiliary.url = "github:nixos/nixpkgs/nixos-21.11";
 
-    # in function of https://github.com/NixOS/nix/pull/5544
-    # we want to bump this nix version soon-ish
-    # that pr "fixes" builds on monitoring "do the right thing"
-    nix-core.url = "github:NixOS/nix/d1aaa7ef71713b6693ad3ddf8704ce62bab82095";
-    nix-core.inputs.nixpkgs.follows = "nixpkgs-core";
-    # currently includes `computeLocks` fix - so follows are not screwed
-    nix-auxiliary.url =
-      "github:NixOS/nix/d1aaa7ef71713b6693ad3ddf8704ce62bab82095";
-    nix-auxiliary.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
+    # includes follows fix from PR #6036
+    nix.url = "github:nixos/nix/52f52319ad21bdbd7a33bb85eccc83756648f110";
+    nix.inputs.nixpkgs.follows = "nixpkgs-core";
 
     # Legacy alias / TODO
     nixpkgs.follows = "nixpkgs-core";
-    nix.follows = "nix-core";
 
     fenix.url = "github:nix-community/fenix";
     rust-overlay.url = "github:oxalica/rust-overlay";
@@ -28,7 +20,7 @@
     cli.url = "github:input-output-hk/bitte-cli";
     cli.inputs.fenix.follows = "fenix";
     cli.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
-    cli.inputs.nix.follows = "nix-auxiliary";
+    cli.inputs.nix.follows = "nix";
 
     agenix.url = "github:ryantm/agenix";
     agenix.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
@@ -50,7 +42,7 @@
 
     nomad.url = "github:input-output-hk/nomad/release-1.2.2";
     nomad.inputs.nixpkgs.follows = "nixpkgs-core";
-    nomad.inputs.nix.follows = "nix-core";
+    nomad.inputs.nix.follows = "nix";
 
     ops-lib = {
       url = "github:input-output-hk/ops-lib";
