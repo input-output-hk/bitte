@@ -103,6 +103,14 @@ in {
       "sys/capabilities-self".capabilities = [ u ];
     };
 
+    hydra.path = {
+      "auth/token/lookup-self".capabilities = [ r ];
+      "auth/token/renew-self".capabilities = [ u ];
+      "consul/creds/consul-default".capabilities = [ r u ];
+      "consul/creds/consul-agent".capabilities = [ r u ];
+      "consul/creds/traefik".capabilities = [ r u ];
+    };
+
     routing.path = {
       "auth/token/lookup-self".capabilities = [ r ];
       "auth/token/renew-self".capabilities = [ u ];

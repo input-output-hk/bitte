@@ -255,6 +255,12 @@ in {
             policies=default,routing \
             period=24h
 
+          vault write auth/aws/role/${config.cluster.name}-hydra \
+            auth_type=iam \
+            bound_iam_principal_arn="$arn:role/${config.cluster.name}-core" \
+            policies=default,hydra \
+            period=24h
+
           ${lib.concatStringsSep "\n" (lib.forEach config.cluster.adminNames (name: ''
             vault write "auth/aws/role/${name}" \
               auth_type=iam \
