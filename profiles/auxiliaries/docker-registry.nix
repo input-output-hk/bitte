@@ -88,6 +88,9 @@ in {
     script = docker-passwords-script "/run/keys/docker-passwords-decrypted";
   };
 
+  # For the prem case, hydrate-secrets handles the push to vault instead of sops
+  # TODO: add proper docker password generation creds in the Rakefile
+  # TODO: add more unified handling between aws and prem secrets
   age.secrets = lib.mkIf (!isSops) {
     docker-passwords = {
       file = config.age.encryptedRoot + "/docker/password.age";
