@@ -6,7 +6,8 @@ let
   isSops = deployType == "aws";
   isInstance = config.currentCoreNode != null;
   isAsg = !isInstance;
-  isMonitoring = nodeName == "monitoring";
+  isClient = role == "client";
+  isMonitoring = (nodeName == "monitoring") || (role == "monitor");
 in {
   secrets.generate.nix-key-file = lib.mkIf isSops ''
     export PATH="${lib.makeBinPath (with pkgs; [ nixFlakes sops coreutils ])}"
@@ -70,7 +71,7 @@ in {
     '';
   };
 
-  age.secrets = lib.mkIf (!isSops && (role == "client")) {
+  age.secrets = lib.mkIf (!isSops && isClient) {
     docker-passwords = {
       file = config.age.encryptedRoot + "/ssh/builder.age";
       path = "/etc/nix/builder-key";
@@ -81,7 +82,7 @@ in {
         ${pkgs.openssh}/bin/ssh \
           -o NumberOfPasswordPrompts=0 \
           -o StrictHostKeyChecking=accept-new \
-          -i /etc/nix/builder-key \
+          -i $src \
           builder@${config.cluster.nodes.monitoring.privateIP} echo 'trust established'
         mv "$src" "$out"
       '';
@@ -89,14 +90,14 @@ in {
   };
 
   nix = {
-    distributedBuilds = isAsg;
-    maxJobs = lib.mkIf isAsg 0;
+    distributedBuilds = isAsg || isClient;
+    maxJobs = lib.mkIf (isAsg || isClient) 0;
     extraOptions = ''
       builders-use-substitutes = true
     '';
     trustedUsers = lib.mkIf isMonitoring [ "root" "builder" ];
-    buildMachines = lib.optionals isAsg [{
-      hostName = config.cluster.coreNodes.monitoring.privateIP;
+    buildMachines = lib.optionals (isAsg || isClient) [{
+      hostName = config.cluster.nodes.monitoring.privateIP;
       maxJobs = 5;
       speedFactor = 1;
       sshKey = "/etc/nix/builder-key";
