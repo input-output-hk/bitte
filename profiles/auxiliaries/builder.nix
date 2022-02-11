@@ -7,17 +7,25 @@ let
   isSops = deployType == "aws";
   isInstance = config.currentCoreNode != null;
   isAsg = !isInstance;
-  isAsgRemoteBuilder = nodeName == cfg.asgRemoteBuilder;
+  isAsgRemoteBuilder = nodeName == cfg.asgRemoteBuilder.nodeName;
 in {
   options.profiles.auxiliaries.builder = with lib; {
     enable = mkEnableOption "builder profile" // {
-      default = nodeName == cfg.asgRemoteBuilder || isAsg;
+      default = nodeName == cfg.asgRemoteBuilder.nodeName || isAsg;
     };
 
-    asgRemoteBuilder = mkOption {
-      type = types.str;
-      description = "node name of the remote build machine for ASG clients";
-      default = config.cluster.builder;
+    asgRemoteBuilder = {
+      nodeName = mkOption {
+        type = types.str;
+        description = "node name of the remote build machine for ASG clients";
+        default = config.cluster.builder;
+      };
+
+      buildMachine = mkOption {
+        type = types.attrs;
+        description = "extra `nix.buildMachines.*` options";
+        default = {};
+      };
     };
   };
 
@@ -58,7 +66,7 @@ in {
       esk=encrypted/nix-builder-key
       ssk=secrets/nix-builder-key
       if [ ! -s "$esk" ]; then
-        ssh-keygen -t ed25519 -f "$ssk" -P "" -C "builder@${cfg.asgRemoteBuilder}"
+        ssh-keygen -t ed25519 -f "$ssk" -P "" -C "builder@${cfg.asgRemoteBuilder.nodeName}"
         sops --encrypt --input-type binary --kms '${config.cluster.kms}' "$ssk" \
           > "$esk.new"
         mv "$esk.new" "$esk"
@@ -80,7 +88,7 @@ in {
           -o NumberOfPasswordPrompts=0 \
           -o StrictHostKeyChecking=accept-new \
           -i /etc/nix/builder-key \
-          builder@${cfg.asgRemoteBuilder} echo 'trust established'
+          builder@${cfg.asgRemoteBuilder.nodeName} echo 'trust established'
       '';
     };
 
@@ -96,7 +104,7 @@ in {
             -o NumberOfPasswordPrompts=0 \
             -o StrictHostKeyChecking=accept-new \
             -i /etc/nix/builder-key \
-            builder@${cfg.asgRemoteBuilder} echo 'trust established'
+            builder@${cfg.asgRemoteBuilder.nodeName} echo 'trust established'
           mv "$src" "$out"
         '';
       };
@@ -109,14 +117,14 @@ in {
         builders-use-substitutes = true
       '';
       trustedUsers = lib.mkIf isAsgRemoteBuilder [ "root" "builder" ];
-      buildMachines = lib.optionals isAsg [{
-        hostName = cfg.asgRemoteBuilder;
+      buildMachines = lib.optionals isAsg [({
+        hostName = cfg.asgRemoteBuilder.nodeName;
         maxJobs = 5;
         speedFactor = 1;
         sshKey = "/etc/nix/builder-key";
         sshUser = "builder";
         system = "x86_64-linux";
-      }];
+      } // cfg.asgRemoteBuilder.buildMachine)];
     };
 
     users.extraUsers = lib.mkIf isAsgRemoteBuilder {
