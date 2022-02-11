@@ -11,15 +11,23 @@ let
   isAsg = !isInstance;
   isClient = role == "client";
   isMonitoring = (nodeName == "monitoring") || (role == "monitor");
-  isRemoteBuilder = nodeName == cfg.remoteBuilder;
+  isRemoteBuilder = nodeName == cfg.remoteBuilder.nodeName;
 in {
   options.profiles.auxiliaries.builder = with lib; {
     enable = mkEnableOption "builder profile" // { default = true; };
 
-    remoteBuilder = mkOption {
-      type = types.str;
-      description = "node name of the remote build machine for all machines";
-      default = config.cluster.builder;
+    remoteBuilder = {
+      nodeName = mkOption {
+        type = types.str;
+        description = "node name of the remote build machine for all machines";
+        default = config.cluster.builder;
+      };
+
+      buildMachine = mkOption {
+        type = types.attrs;
+        description = "extra `nix.buildMachines.*` options";
+        default = { };
+      };
     };
   };
 
@@ -60,7 +68,7 @@ in {
       esk=encrypted/nix-builder-key
       ssk=secrets/nix-builder-key
       if [ ! -s "$esk" ]; then
-        ssh-keygen -t ed25519 -f "$ssk" -P "" -C "builder@${cfg.remoteBuilder}"
+        ssh-keygen -t ed25519 -f "$ssk" -P "" -C "builder@${cfg.remoteBuilder.nodeName}"
         sops --encrypt --input-type binary --kms '${config.cluster.kms}' "$ssk" \
           > "$esk.new"
         mv "$esk.new" "$esk"
@@ -82,7 +90,7 @@ in {
           -o NumberOfPasswordPrompts=0 \
           -o StrictHostKeyChecking=accept-new \
           -i $src \
-          builder@${cfg.remoteBuilder} echo 'trust established'
+          builder@${cfg.remoteBuilder.nodeName} echo 'trust established'
         mv "$src" "$out"
       '';
     };
@@ -99,7 +107,7 @@ in {
             -o NumberOfPasswordPrompts=0 \
             -o StrictHostKeyChecking=accept-new \
             -i $src \
-            builder@${cfg.remoteBuilder} echo 'trust established'
+            builder@${cfg.remoteBuilder.nodeName} echo 'trust established'
           mv "$src" "$out"
         '';
       };
@@ -112,14 +120,16 @@ in {
         builders-use-substitutes = true
       '';
       trustedUsers = lib.mkIf isRemoteBuilder [ "root" "builder" ];
-      buildMachines = lib.optionals (!isRemoteBuilder) [{
-        hostName = cfg.remoteBuilder;
-        maxJobs = 5;
-        speedFactor = 1;
-        sshKey = "/etc/nix/builder-key";
-        sshUser = "builder";
-        system = "x86_64-linux";
-      }];
+      buildMachines = lib.optionals (!isRemoteBuilder) [
+        ({
+          hostName = cfg.remoteBuilder.nodeName;
+          maxJobs = 5;
+          speedFactor = 1;
+          sshKey = "/etc/nix/builder-key";
+          sshUser = "builder";
+          system = "x86_64-linux";
+        } // cfg.remoteBuilder.buildMachine)
+      ];
     };
 
     users.extraUsers = lib.mkIf isRemoteBuilder {
