@@ -34,6 +34,7 @@ in {
       after = [ "network.target" ];
 
       environment = {
+        VAULT_CACERT = "crt.pem";
         VAULT_URL = "https://core.vault.service.consul:8200";
         VAULT_PREFIX = "vbk"; # the prefix used when storing the secrets
         LISTEN_ADDRESS = "${cfg.interface}:${toString cfg.port}";
@@ -49,8 +50,8 @@ in {
           set -exuo pipefail
           export PATH="${lib.makeBinPath [ pkgs.coreutils ]}"
 
-          cp ${certChainFile} .
-          cp ${certKeyFile} .
+          cp ${certChainFile} crt.pem
+          cp ${certKeyFile} key.pem
           chown --reference . --recursive .
         '';
       in {
