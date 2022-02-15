@@ -5,43 +5,43 @@ in {
   age.secrets = lib.mkIf (deployType != "aws") {
     vault-full-server = {
       file = config.age.encryptedRoot + "/ssl/server-full.age";
-      path = "/etc/ssl/certs/server-full.pem";
+      path = pkiFiles.serverCertChainFile;
       mode = "0644";
     };
 
     vault-full-client = {
       file = config.age.encryptedRoot + "/ssl/client-full.age";
-      path = "/etc/ssl/certs/client-full.pem";
+      path = pkiFiles.clientCertChainFile;
       mode = "0644";
     };
 
     vault-ca = {
       file = config.age.encryptedRoot + "/ssl/ca.age";
-      path = "/etc/ssl/certs/ca.pem";
+      path = pkiFiles.vaultCaCertFile;
       mode = "0644";
     };
 
     vault-server = {
       file = config.age.encryptedRoot + "/ssl/server.age";
-      path = "/etc/ssl/certs/server.pem";
+      path = pkiFiles.serverCertFile;
       mode = "0644";
     };
 
     vault-server-key = {
       file = config.age.encryptedRoot + "/ssl/server-key.age";
-      path = "/etc/ssl/certs/server-key.pem";
+      path = pkiFiles.serverKeyFile;
       mode = "0600";
     };
 
     vault-client = {
       file = config.age.encryptedRoot + "/ssl/client.age";
-      path = "/etc/ssl/certs/client.pem";
+      path = pkiFiles.clientCertFile;
       mode = "0644";
     };
 
     vault-client-key = {
       file = config.age.encryptedRoot + "/ssl/client-key.age";
-      path = "/etc/ssl/certs/client-key.pem";
+      path = pkiFiles.clientKeyFile;
       mode = "0600";
     };
   };

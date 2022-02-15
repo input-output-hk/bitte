@@ -46,6 +46,7 @@
       primaryDatacenter = if deployType == "aws" then region else datacenter;
       tlsMinVersion = "tls12";
       verifyIncoming = true;
+      verifyIncomingRpc = true;
       verifyOutgoing = true;
       verifyServerHostname = true;
 
