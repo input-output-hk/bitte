@@ -68,7 +68,6 @@ in {
       "nomad/creds/*".capabilities = [ r ];
       "pki/cert/ca".capabilities = [ r ];
       "pki/certs".capabilities = [ l ];
-      "pki-consul/*".capabilities = [ s ];
       "pki/issue/*".capabilities = [ c u ];
       "pki/revoke".capabilities = [ c u ];
       "pki/roles/server".capabilities = [ r ];

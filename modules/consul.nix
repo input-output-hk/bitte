@@ -346,6 +346,8 @@ in {
 
       verifyIncoming = lib.mkEnableOption "Verify incoming conns";
 
+      verifyIncomingRpc = lib.mkEnableOption "Verify incoming rpc conns";
+
       verifyOutgoing = lib.mkEnableOption "Verify outgoing conns";
 
       verifyServerHostname = lib.mkEnableOption "Verify server hostname";
@@ -444,7 +446,7 @@ in {
           ui datacenter bootstrapExpect bindAddr advertiseAddr server logLevel
           clientAddr encrypt addresses recursors retryJoin primaryDatacenter
           acl connect caFile certFile keyFile autoEncrypt verifyServerHostname
-          verifyOutgoing verifyIncoming dataDir tlsMinVersion ports
+          verifyOutgoing verifyIncoming verifyIncomingRpc dataDir tlsMinVersion ports
           enableLocalScriptChecks nodeMeta telemetry nodeId enableDebug
           enableScriptChecks;
       });
