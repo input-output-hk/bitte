@@ -271,7 +271,7 @@ in {
           vault write auth/cert/certs/vault-agent-core \
             display_name=vault-agent-core \
             policies=vault-agent-core \
-            certificate=@"/etc/ssl/certs/client.pem" \
+            certificate=@"/etc/ssl/certs/server.pem" \
             ttl=3600
 
           vault write auth/cert/certs/vault-agent-client \
@@ -502,7 +502,6 @@ in {
         echo "$secrets" | jq -e '."kv/"'          || vault secrets enable -version=2 kv
         echo "$secrets" | jq -e '."nomad/"'       || vault secrets enable nomad
         echo "$secrets" | jq -e '."pki/"'         || vault secrets enable pki
-        echo "$secrets" | jq -e '."pki-consul/"'  || vault secrets enable -path pki-consul pki
 
         auth="$(vault auth list)"
 
