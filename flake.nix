@@ -109,10 +109,20 @@
             nomad nomad-autoscaler oauth2-proxy sops terraform-with-plugins
             vault-backend vault-bin;
         };
+
+        awsCluster = lib.mkBitteStack {
+          inherit self inputs;
+          clusters = "${self}/tests/aws-cluster";
+          hydrateModule = ./tests/aws-cluster/hydrate.nix;
+          # todo: remove
+          deploySshKey = "./tests/aws-cluster/secrets/id_ed25519";
+          pkgs = legacyPackages;
+          domain = "example.iohk.io";
+        };
       in {
         inherit constituents;
         required = legacyPackages.mkRequired constituents;
-      };
+      } // awsCluster.hydraJobs."${system}";
 
     }) // {
       inherit lib;
