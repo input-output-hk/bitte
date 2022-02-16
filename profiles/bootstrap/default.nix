@@ -33,15 +33,15 @@ let
 
   initialVaultSecrets = if deployType == "aws" then ''
     sops --decrypt --extract '["encrypt"]' ${
-      (toString config.secrets.encryptedRoot) + "/consul-clients.json"
+      config.secrets.encryptedRoot + "/consul-clients.json"
     } | vault kv put kv/bootstrap/clients/consul encrypt=-
 
     sops --decrypt --extract '["server"]["encrypt"]' ${
-      (toString config.secrets.encryptedRoot) + "/nomad.json"
+      config.secrets.encryptedRoot + "/nomad.json"
     } | vault kv put kv/bootstrap/clients/nomad encrypt=-
 
     sops --decrypt ${
-      (toString config.secrets.encryptedRoot) + "/nix-cache.json"
+      config.secrets.encryptedRoot + "/nix-cache.json"
     } | vault kv put kv/bootstrap/cache/nix-key -
   '' else ''
     rage -i /etc/ssh/ssh_host_ed25519_key -d ${config.age.encryptedRoot + "/consul/encrypt.age"} \

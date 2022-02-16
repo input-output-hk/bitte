@@ -12,7 +12,6 @@ let
 
   sopsDecrypt = path:
     # NB: we can't work on store paths that don't yet exist before they are generated
-    assert lib.assertMsg (builtins.isString path) "sopsDecrypt: path must be a string ${toString path}";
     "${pkgs.sops}/bin/sops --decrypt --input-type json ${path}";
 
   isInstance = config.currentCoreNode != null;
@@ -103,17 +102,17 @@ in {
   '';
 
   secrets.install.nomad-server = lib.mkIf (isInstance && isSops) {
-    source = (toString config.secrets.encryptedRoot) + "/nomad.json";
+    source = config.secrets.encryptedRoot + "/nomad.json";
     target = gossipEncryptionMaterial.nomad;
   };
 
   secrets.install.consul-server = lib.mkIf (isInstance && isSops) {
-    source = (toString config.secrets.encryptedRoot) + "/consul-core.json";
+    source = config.secrets.encryptedRoot + "/consul-core.json";
     target = gossipEncryptionMaterial.consul;
   };
 
   secrets.install.consul-clients = lib.mkIf (!isInstance && isSops) {
-    source = (toString config.secrets.encryptedRoot) + "/consul-clients.json";
+    source = config.secrets.encryptedRoot + "/consul-clients.json";
     target = gossipEncryptionMaterial.consul;
     script = ''
       ${pkgs.systemd}/bin/systemctl restart consul.service
@@ -193,7 +192,7 @@ in {
   secrets.install.certs = lib.mkIf (isInstance && isSops) {
     script = ''
       export PATH="${lib.makeBinPath (with pkgs; [ cfssl jq coreutils ])}"
-      cert="$(${sopsDecrypt ((toString config.secrets.encryptedRoot) + "/cert.json")})"
+      cert="$(${sopsDecrypt ((config.secrets.encryptedRoot) + "/cert.json")})"
       echo "$cert" | cfssljson -bare cert
       cp ${builtins.baseNameOf pkiFiles.certFile} ${pkiFiles.certFile}
       cp ${builtins.baseNameOf pkiFiles.keyFile} ${pkiFiles.keyFile}

@@ -54,7 +54,7 @@ in {
   '';
 
   secrets.install.builder-private-ssh-key = lib.mkIf (isAsg && isSops) {
-    source = (toString config.secrets.encryptedRoot) + "/nix-builder-key";
+    source = config.secrets.encryptedRoot + "/nix-builder-key";
     target = /etc/nix/builder-key;
     inputType = "binary";
     outputType = "binary";
@@ -108,7 +108,7 @@ in {
     builder = {
       isSystemUser = true;
       openssh.authorizedKeys.keyFiles =
-        [ ((toString config.secrets.encryptedRoot) + "/nix-builder-key.pub") ];
+        [ (config.secrets.encryptedRoot + "/nix-builder-key.pub") ];
       shell = pkgs.bashInteractive;
     };
   };

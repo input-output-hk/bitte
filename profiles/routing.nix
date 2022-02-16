@@ -305,10 +305,10 @@ in {
           cache = false;
 
           # Enable Consul Connect support.
-          connectaware = true;
+          # connectaware = true;
 
           # Consider every service as Connect capable by default.
-          connectbydefault = false;
+          # connectbydefault = false;
 
           endpoint = {
             # Defines the address of the Consul server.

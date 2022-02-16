@@ -30,7 +30,7 @@ in {
   secrets.install.oauth.script = lib.mkIf isSops ''
     export PATH="${lib.makeBinPath (with pkgs; [ sops coreutils ])}"
 
-    cat ${(toString config.secrets.encryptedRoot) + "/oauth-secrets"} \
+    cat ${config.secrets.encryptedRoot + "/oauth-secrets"} \
       | sops -d /dev/stdin \
       > /run/keys/oauth-secrets
 
