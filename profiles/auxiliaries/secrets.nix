@@ -238,4 +238,17 @@ in {
         > $out
     '';
   };
+
+  age.secrets.nomad-encrypt = lib.mkIf (config.services.nomad.server.enabled && !isSops) {
+    file = config.age.encryptedRoot + /nomad/encrypt.age;
+    path = gossipEncryptionMaterial.nomad;
+    mode = "0444";
+    script = ''
+      echo '{}' \
+        | ${pkgs.jq}/bin/jq \
+          --arg encrypt "$(< "$src")" \
+          '.server.encrypt = $encrypt' \
+        > $out
+    '';
+  };
 }
