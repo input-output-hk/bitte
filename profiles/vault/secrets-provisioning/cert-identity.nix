@@ -1,9 +1,10 @@
 { config, lib, pkgs, pkiFiles, ... }:
 let
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+  isServer = (config.services.vault-agent.role == "core") || config.services.consul.server || config.services.nomad.server.enabled;
 in {
   age.secrets = lib.mkIf (deployType != "aws") {
-    vault-full-server = {
+    vault-full-server = lib.mkIf isServer {
       file = config.age.encryptedRoot + "/ssl/server-full.age";
       path = pkiFiles.serverCertChainFile;
       mode = "0644";
@@ -15,19 +16,25 @@ in {
       mode = "0644";
     };
 
-    vault-ca = {
+    # Avoid this on clients in prem envs since client will
+    # cert authenticate to vault via agent and then write
+    # out a ca_chain including the intermediate to ca.pem
+    #
+    # Pushing this only to servers will avoid collision
+    # of ca.pem from age on deploy and vault-agent ca.pem.
+    vault-ca = lib.mkIf isServer {
       file = config.age.encryptedRoot + "/ssl/ca.age";
-      path = pkiFiles.vaultCaCertFile;
+      path = pkiFiles.caCertFile;
       mode = "0644";
     };
 
-    vault-server = {
+    vault-server = lib.mkIf isServer {
       file = config.age.encryptedRoot + "/ssl/server.age";
       path = pkiFiles.serverCertFile;
       mode = "0644";
     };
 
-    vault-server-key = {
+    vault-server-key = lib.mkIf isServer {
       file = config.age.encryptedRoot + "/ssl/server-key.age";
       path = pkiFiles.serverKeyFile;
       mode = "0600";
