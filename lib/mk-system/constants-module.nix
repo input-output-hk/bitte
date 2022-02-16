@@ -14,7 +14,6 @@ in {
       keyFile = "/etc/ssl/certs/cert-key.pem";
 
       # "prem" and "premSim" deployType cert files
-      vaultCaCertFile = "/etc/ssl/certs/vault-ca.pem";
       clientCertFile = "/etc/ssl/certs/client.pem";
       clientKeyFile = "/etc/ssl/certs/client-key.pem";
       clientCertChainFile = "/etc/ssl/certs/client-full.pem";

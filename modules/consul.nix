@@ -3,6 +3,8 @@ let
   cfg = config.services.consul;
 
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+  role = config.currentCoreNode.role or config.currentAwsAutoScalingGroup.role;
+  isClient = role == "client";
 
   sanitize = obj:
     lib.getAttr (builtins.typeOf obj) {
@@ -465,10 +467,14 @@ in {
       path = with pkgs; [ envoy ];
 
       serviceConfig = let
-        certChainFile = if deployType == "aws" then pkiFiles.certChainFile
-                        else pkiFiles.serverCertChainFile;
-        certKeyFile = if deployType == "aws" then pkiFiles.keyFile
-                      else pkiFiles.serverKeyFile;
+        # Some prem machines roles are not Consul servers but do not utilize
+        # intermediate cert pki either like a client would.  So here we examine
+        # the machine role (isClient) rather than cfg.server which is not
+        # granular enough in this case.
+        certChainFile = if (deployType != "aws" && !isClient) then pkiFiles.serverCertChainFile
+                        else pkiFiles.certChainFile;
+        certKeyFile = if (deployType != "aws" && !isClient) then pkiFiles.serverKeyFile
+                      else pkiFiles.keyFile;
         preScript = let
           start-pre = pkgs.writeBashBinChecked "consul-start-pre" ''
             PATH="${lib.makeBinPath [ pkgs.coreutils ]}"

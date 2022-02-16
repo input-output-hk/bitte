@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }: let
+{ config, lib, pkgs, pkiFiles, ... }: let
 
   Imports = { imports = [
     ./secrets-provisioning/cert-identity.nix
@@ -29,9 +29,10 @@
         header_value = config.cluster.domain;
       } else if cfg.autoAuthMethod == "cert" then {
         name = "vault-agent-${cfg.role}";
-        ca_cert = config.age.secrets.vault-ca.path;
-        client_cert = config.age.secrets.vault-client.path;
-        client_key = config.age.secrets.vault-client-key.path;
+        client_cert = if cfg.role == "core" then pkiFiles.serverCertFile
+                      else pkiFiles.clientCertFile;
+        client_key = if cfg.role == "core" then pkiFiles.serverKeyFile
+                      else pkiFiles.clientKeyFile;
       } else (abort "Unknown vault autoAuthMethod");
     };
   };

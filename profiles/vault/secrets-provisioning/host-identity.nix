@@ -1,12 +1,12 @@
 { config, lib, pkgs, pkiFiles, ... }: let
 
-  deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+  datacenter = config.currentCoreNode.datacenter or config.currentAwsAutoScalingGroup.datacenter;
 
   reload = service: "${pkgs.systemd}/bin/systemctl try-reload-or-restart ${service}";
   restart = service: "${pkgs.systemd}/bin/systemctl try-restart ${service}";
 
   pkiAttrs = {
-    common_name = "server.${config.cluster.region}.consul";
+    common_name = "server.${datacenter}.consul";
     ip_sans = [ "127.0.0.1" ];
     alt_names =
       [ "vault.service.consul" "consul.service.consul" "nomad.service.consul" ];
@@ -22,7 +22,7 @@
   pkiSecret = ''"pki/issue/client" ${toString pkiArgs}'';
 
 in {
-  services.vault-agent.templates = lib.mkIf (deployType == "aws") {
+  services.vault-agent.templates = {
     "${pkiFiles.certChainFile}" = {
       command = restart "certs-updated.service";
       contents = ''
@@ -33,7 +33,7 @@ in {
     };
 
     "${pkiFiles.caCertFile}" = {
-      # TODO: this is the chain up to vault's intermediate CaCert, includiong the rootCaCert
+      # TODO: this is the chain up to vault's intermediate CaCert, including the rootCaCert
       # it is not the rootCaCert only
       command = restart "certs-updated.service";
       contents = ''
