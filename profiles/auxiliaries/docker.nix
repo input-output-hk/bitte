@@ -54,10 +54,7 @@ in {
       fi
     '';
 
-    # Allow docker containers to issue DNS queries to the local host, which runs dnsmasq,
-    # which allows them to resolve consul service domains as described in https://www.consul.io/docs/discovery/dns
-    networking.firewall.extraCommands = ''
-      iptables -A INPUT -i docker0 -p udp -m udp --dport 53 -j ACCEPT
-    '';
+    # Trust traffic originating from the Nomad bridge where nomad bridge jobs are run
+    networking.firewall.trustedInterfaces = [ "docker0" ];
   };
 }

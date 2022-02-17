@@ -16,12 +16,17 @@
     #   https://www.nomadproject.io/docs/install/production/requirements
     #
     # Nomad ports specific to clients
-    networking.firewall.allowedTCPPortRanges = [
-      {
-        from = cfg.client.min_dynamic_port;
-        to = cfg.client.max_dynamic_port;
-      }
-    ];
+    networking.firewall = {
+      allowedTCPPortRanges = [
+        {
+          from = cfg.client.min_dynamic_port;
+          to = cfg.client.max_dynamic_port;
+        }
+      ];
+
+      # Trust traffic originating from the Nomad bridge where nomad bridge jobs are run
+      trustedInterfaces = [ cfg.client.bridge_network_name ];
+    };
 
     # Used for Consul Connect in clients
     boot.kernel.sysctl = {
