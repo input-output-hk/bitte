@@ -26,9 +26,6 @@
 
 
     cli.url = "github:input-output-hk/bitte-cli";
-    cli.inputs.fenix.follows = "fenix";
-    cli.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
-    cli.inputs.nix.follows = "nix-auxiliary";
 
     agenix.url = "github:ryantm/agenix";
     agenix.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
@@ -71,10 +68,7 @@
     let
 
       overlays = [
-        cli.overlay
-        # `bitte` build depend on nixpkgs-unstable rust version
-        # TODO: remove when bitte itself is bumped
-        (final: prev: { inherit (cli.legacyPackages."${final.system}") bitte; })
+        (_: prev: { inherit (cli.packages.${prev.system}) bitte; })
         hydra.overlay
         deploy.overlay
         localPkgsOverlay

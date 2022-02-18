@@ -7,7 +7,6 @@ mkShell.override { stdenv = stdenvNoCC; } {
 
   buildInputs = [
     awscli
-    bitte
     cfssl
     consul
     consul-template
