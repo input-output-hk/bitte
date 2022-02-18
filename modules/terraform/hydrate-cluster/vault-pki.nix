@@ -10,7 +10,7 @@ let
 in {
   tf.hydrate-cluster.configuration = {
 
-    data.sops_file.ca = { source_file = "./encrypted/ca.json"; };
+    data.sops_file.ca = { source_file = "${config.secrets.encryptedRoot + "/ca.json"}"; };
     # TODO: commented parts are currently accomplished by a systemd one-shot
     # resource.vault_pki_secret_backend.pki = {
     #   description = "Cluster wide TLS/SSL PKI backend";
