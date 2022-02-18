@@ -2,42 +2,16 @@
   description = "Flake containing Bitte clusters";
 
   inputs = {
-    nixpkgs-core.url = "github:nixos/nixpkgs/release-21.05";
-    nixpkgs-client.url = "github:nixos/nixpkgs/release-21.05";
-    nixpkgs-auxiliary.url = "github:nixos/nixpkgs/nixos-21.11";
+    nixpkgs.url = "github:nixos/nixpkgs/43cdc5b364511eabdcad9fde639777ffd9e5bab1"; # nixos-21.05
+    nixpkgs-core.follows = "nixpkgs";
+    nixpkgs-client.follows = "nixpkgs";
 
-    # in function of https://github.com/NixOS/nix/pull/5544
-    # we want to bump this nix version soon-ish
-    # that pr "fixes" builds on monitoring "do the right thing"
-    nix-core.url = "github:NixOS/nix/d1aaa7ef71713b6693ad3ddf8704ce62bab82095";
-    nix-core.inputs.nixpkgs.follows = "nixpkgs-core";
-    # currently includes `computeLocks` fix - so follows are not screwed
-    nix-auxiliary.url =
-      "github:NixOS/nix/d1aaa7ef71713b6693ad3ddf8704ce62bab82095";
-    nix-auxiliary.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
-
-    # Legacy alias / TODO
-    nixpkgs.follows = "nixpkgs-core";
-    nix.follows = "nix-core";
-
-    fenix.url = "github:nix-community/fenix";
-    rust-overlay.url = "github:oxalica/rust-overlay";
-    rust-overlay.inputs.nixpkgs.follows = "nixpkgs-core";
-
-
+    nix.url = "github:NixOS/nix";
     cli.url = "github:input-output-hk/bitte-cli";
-
     agenix.url = "github:ryantm/agenix";
-    agenix.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
     agenix-cli.url = "github:cole-h/agenix-cli";
-    agenix-cli.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
-
     ragenix.url = "github:yaxitech/ragenix";
-    ragenix.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
-
     deploy.url = "github:input-output-hk/deploy-rs";
-    deploy.inputs.fenix.follows = "fenix";
-    deploy.inputs.nixpkgs.follows = "nixpkgs-auxiliary";
 
     terranix.url = "github:terranix/terranix";
     terranix.inputs.nixpkgs.follows = "blank";
@@ -46,8 +20,6 @@
     blank.url = "github:divnix/blank";
 
     nomad.url = "github:input-output-hk/nomad/release-1.2.2";
-    nomad.inputs.nixpkgs.follows = "nixpkgs-core";
-    nomad.inputs.nix.follows = "nix-core";
 
     ops-lib = {
       url = "github:input-output-hk/ops-lib";

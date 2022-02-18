@@ -1,11 +1,12 @@
-{ mkCluster, mkDeploy, lib }:
+{ mkCluster, mkDeploy, lib, nixpkgs, bitte }:
 
 { self # target flake self
 , inputs
-, pkgs
 , domain
 , bitteProfile
 , deploySshKey
+, overlays ? [ ]
+, pkgs ? null
 , clusters ? null
 , hydrationProfile ? hydrateModule
 , hydrateModule ? hydrationProfile
@@ -17,7 +18,24 @@
 , dockerRole ? "developer"
 }:
 
+assert lib.asserts.assertMsg (pkgs == null) (lib.warn ''
+
+Important! Immediate action required:
+
+mkBitteStack { pkgs } is instantly removed. It's presence caused hard to debug
+nixpkgs version mismatches.
+
+Please pass mkBitteStack { overlays } instead.
+'' "Gotta do that now. Sorry, my friend.");
+
 let
+  overlays' = overlays ++ [bitte.overlay];
+  pkgs = import nixpkgs {
+    overlays = overlays';
+    system = "x86_64-linux";
+    config.allowUnfree = true;
+  };
+
   # a contract fulfilled by `tf.hydrate`
   vaultDockerPasswordKey = "kv/nomad-cluster/docker-developer-password";
 
