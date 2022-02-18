@@ -1,9 +1,21 @@
 { mkCluster, mkDeploy, lib }:
 
 { self # target flake self
-, inputs, pkgs, domain, clusters, deploySshKey, hydrateModule, jobs ? null
-, envs ? { }, docker ? null, dockerRegistry ? "docker." + domain
-, dockerRole ? "developer" }:
+, inputs
+, pkgs
+, domain
+, bitteProfile
+, deploySshKey
+, clusters ? null
+, hydrationProfile ? hydrateModule
+, hydrateModule ? hydrationProfile
+, nomadEnvs ? envs
+, envs ? nomadEnvs
+, jobs ? null
+, docker ? null
+, dockerRegistry ? "docker." + domain
+, dockerRole ? "developer"
+}:
 
 let
   # a contract fulfilled by `tf.hydrate`
@@ -152,10 +164,21 @@ in rec {
 
   inherit envs;
 
-  clusters = mkCluster {
-    inherit pkgs self inputs hydrateModule;
-    clusterFiles = readDirRec clusters';
-  };
+  clusters = if clusters' != null
+    then lib.warn ''
+
+    Use of mkBitteStack { cluster } deprecated.
+    Use mkBitteStack { bitteProfile } instead.
+
+    Please ask a knowledgeable colleague for refactoring help.
+    '' mkCluster {
+      inherit pkgs self inputs hydrationProfile;
+      bitteProfiles = readDirRec clusters';
+    }
+    else mkCluster {
+      inherit pkgs self inputs hydrationProfile;
+      bitteProfiles = [ bitteProfile ];
+    };
 
   nixosConfigurations = mkNixosConfigurations clusters;
 

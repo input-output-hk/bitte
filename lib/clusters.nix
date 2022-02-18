@@ -1,15 +1,15 @@
 { mkSystem, lib }:
 
 { self # target flake's 'self'
-, inputs, pkgs, clusterFiles, hydrateModule }:
+, inputs, pkgs, bitteProfiles, hydrationProfile }:
 
-lib.listToAttrs (lib.forEach clusterFiles (file:
+lib.listToAttrs (lib.forEach bitteProfiles (bitteProfile:
   let
     inherit (_proto.config) tf;
 
     _proto = (mkSystem {
       inherit pkgs self inputs;
-      modules = [ file hydrateModule ];
+      modules = [ bitteProfile hydrationProfile ];
     }).bitteProtoSystem;
 
     # Separating core and premSim nodes may cause bitte-cli tooling to break.
@@ -26,14 +26,14 @@ lib.listToAttrs (lib.forEach clusterFiles (file:
     coreNodes = lib.mapAttrs (nodeName: coreNode:
       (mkSystem {
         inherit pkgs self inputs nodeName;
-        modules = [ { networking.hostName = lib.mkForce nodeName; } file hydrateModule ]
+        modules = [ { networking.hostName = lib.mkForce nodeName; } bitteProfile hydrationProfile ]
           ++ coreNode.modules;
       }).bitteAmazonSystem) coreAndPremSimNodes;
 
     awsAutoScalingGroups = lib.mapAttrs (nodeName: awsAutoScalingGroup:
       (mkSystem {
         inherit pkgs self inputs nodeName;
-        modules = [ file ] ++ awsAutoScalingGroup.modules;
+        modules = [ bitteProfile ] ++ awsAutoScalingGroup.modules;
       }).bitteAmazonZfsSystem) _proto.config.cluster.awsAutoScalingGroups;
 
   in lib.nameValuePair _proto.config.cluster.name {
