@@ -54,7 +54,7 @@ in {
       fi
     '';
 
-    # Trust traffic originating from the Nomad bridge where nomad bridge jobs are run
+    # Trust traffic originating from the docker bridge where docker driver jobs are run
     networking.firewall.trustedInterfaces = [ "docker0" ];
   };
 }
