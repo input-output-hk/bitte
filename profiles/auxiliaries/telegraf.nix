@@ -2,6 +2,8 @@
 let
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
   datacenter = config.currentCoreNode.datacenter or config.currentAwsAutoScalingGroup.datacenter;
+  role = config.currentCoreNode.role or config.currentAwsAutoScalingGroup.role;
+  isClient = role == "client";
 in {
 
   services.telegraf.enable = true;
@@ -108,7 +110,7 @@ in {
 
         x509_cert = {
           sources = [
-            (if deployType == "aws" then pkiFiles.certFile else pkiFiles.clientCertFile)
+            (if (deployType != "aws" && !isClient) then pkiFiles.serverCertChainFile else pkiFiles.clientCertFile)
           ];
         };
 
@@ -120,12 +122,13 @@ in {
         processes = { };
         swap = { };
         system = { };
+      } // (lib.optionalAttrs config.services.consul.enable {
         procstat = { pattern = "(consul)"; };
         consul = {
           address = "localhost:8500";
           scheme = "http";
         };
-      } // (lib.optionalAttrs config.services.ingress.enable {
+      }) // (lib.optionalAttrs config.services.ingress.enable {
         haproxy = { servers = [ "http://127.0.0.1:1936/haproxy?stats" ]; };
       }) // (lib.optionalAttrs config.services.vulnix.enable {
         http_listener_v2 = {
