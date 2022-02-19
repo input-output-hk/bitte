@@ -9,7 +9,7 @@ let
     mkdir -p /etc/telegraf
 
     ${pkgs.jq}/bin/jq \
-      < ${pkgs.writeText "config.json" (builtins.toJSON cfg.extraConfig)} \
+      < ${pkgs.writeText "config.json" (builtins.toJSON (lib.recursiveUpdate cfg.extraConfig cfg.overrides))} \
       --arg host "$(${pkgs.nettools}/bin/hostname)" '.global_tags.hostname = $host' \
       | ${pkgs.remarshal}/bin/remarshal -if json -of toml \
       > /etc/telegraf/config.toml
@@ -46,6 +46,13 @@ in {
             };
           };
         };
+      };
+
+      # TODO: There is probably a better way to do this
+      overrides = mkOption {
+        default = { };
+        description = "An overrides attr to allow better attr merge support to extraConfig";
+        type = types.attrs;
       };
     };
   };

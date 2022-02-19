@@ -221,7 +221,7 @@ in {
     '';
   };
 
-  age.secrets.consul-encrypt = lib.mkIf (!isSops) {
+  age.secrets.consul-encrypt = lib.mkIf (config.services.consul.enable && !isSops) {
     file = config.age.encryptedRoot + /consul/encrypt.age;
     path = gossipEncryptionMaterial.consul;
     mode = "0444";
