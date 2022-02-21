@@ -43,7 +43,6 @@
 
       overlays = [
         nix.overlay
-        cli.overlay
         (_: prev: { inherit (cli.packages."${prev.system}") bitte; })
         hydra.overlay
         deploy.overlay
