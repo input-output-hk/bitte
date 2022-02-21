@@ -56,7 +56,7 @@ let
         package = pkgs.nixFlakes;
         extraOptions = '''
           show-trace = true
-          experimental-features = nix-command flakes
+          experimental-features = nix-command flakes ca-references
         ''';
         binaryCaches = [
           "https://hydra.iohk.io"
