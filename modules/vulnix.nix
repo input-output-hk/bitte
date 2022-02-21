@@ -136,7 +136,7 @@ in {
         VAULT_CACERT = letsencryptCertMaterial.certChainFile;
       };
 
-      path = with pkgs; [ cfg.package vault-bin curl jq nixFlakes gitMinimal ];
+      path = with pkgs; [ cfg.package vault-bin curl jq nix gitMinimal ];
 
       script = let
         mkWhitelists = map (lib.flip lib.pipe [

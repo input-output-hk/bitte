@@ -11,7 +11,6 @@ in {
 
     ./auxiliaries/docker.nix
     ./auxiliaries/reaper.nix
-    ./auxiliaries/builder.nix
   ];
 
   services.s3-upload-flake.enable = deployType == "aws";

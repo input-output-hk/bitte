@@ -2,7 +2,8 @@
   description = "Flake containing Bitte clusters";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/43cdc5b364511eabdcad9fde639777ffd9e5bab1"; # nixos-21.05
+    nixpkgs.url =
+      "github:nixos/nixpkgs/43cdc5b364511eabdcad9fde639777ffd9e5bab1"; # nixos-21.05
     nixpkgs-core.follows = "nixpkgs";
     nixpkgs-client.follows = "nixpkgs";
 
@@ -36,11 +37,13 @@
     hydra.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, hydra, nixpkgs, utils, cli, deploy, ragenix, ... }@inputs:
+  outputs =
+    { self, hydra, nixpkgs, utils, cli, deploy, ragenix, nix, ... }@inputs:
     let
 
       overlays = [
-        (_: prev: { inherit (cli.packages.${prev.system}) bitte; })
+        nix.overlay
+        (_: prev: { inherit (cli.packages."${prev.system}") bitte; })
         hydra.overlay
         deploy.overlay
         localPkgsOverlay
@@ -70,10 +73,9 @@
       hydraJobs = let
         constituents = {
           inherit (legacyPackages)
-            bitte cfssl ci-env consul cue glusterfs
-            grafana-loki haproxy haproxy-auth-request haproxy-cors nixFlakes
-            nomad nomad-autoscaler oauth2-proxy sops terraform-with-plugins
-            vault-backend vault-bin;
+            bitte cfssl ci-env consul cue glusterfs grafana-loki haproxy
+            haproxy-auth-request haproxy-cors nixFlakes nomad nomad-autoscaler
+            oauth2-proxy sops terraform-with-plugins vault-backend vault-bin;
         };
       in {
         inherit constituents;

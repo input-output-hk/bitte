@@ -56,7 +56,7 @@ let
         package = pkgs.nixFlakes;
         extraOptions = '''
           show-trace = true
-          experimental-features = nix-command flakes
+          experimental-features = nix-command flakes ca-references
         ''';
         binaryCaches = [
           "https://hydra.iohk.io"
@@ -146,7 +146,7 @@ let
       export PATH="${
         lib.makeBinPath [
           pkgs.openssh
-          pkgs.nixUnstable
+          pkgs.nix
           pkgs.git
           pkgs.mercurial
           pkgs.lsof
@@ -216,6 +216,11 @@ let
         awsAutoScalingGroups = lib.mkOption {
           type = with lib.types; attrsOf awsAutoScalingGroupType;
           default = { };
+        };
+
+        builder = lib.mkOption {
+          type = types.str;
+          default = "monitoring";
         };
 
         route53 = lib.mkOption {

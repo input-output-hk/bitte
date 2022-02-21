@@ -10,7 +10,6 @@ in {
     ./consul/client.nix
     ./vault/monitoring.nix
 
-    ./auxiliaries/builder.nix
     ./auxiliaries/docker-registry.nix
     ./auxiliaries/loki.nix
     ./auxiliaries/oauth.nix
