@@ -1,8 +1,6 @@
 { lib, pkgs, ... }: {
   imports = [ ./auxiliaries/nix.nix ./auxiliaries/ssh.nix ];
 
-  disabledModules = [ "virtualisation/amazon-image.nix" ];
-
   environment = {
     systemPackages = with pkgs; [
       bat
@@ -36,12 +34,7 @@
   time.timeZone = "UTC";
 
   services.chrony.enable = true;
-  networking.hostName = "iso-installer";
-
-  users.extraUsers = {
-    root.initialHashedPassword = lib.mkForce null;
-    nixos.initialHashedPassword = lib.mkForce null;
-  };
+  networking.hostName = lib.mkDefault "iso-installer";
 
   services.getty.helpLine = lib.mkForce ''
     Welcome to the bitte nixOS installer.
