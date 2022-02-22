@@ -928,7 +928,7 @@
         "handler": 1,
         "message": "Average key-value store commit time over the past hour is > 20 ms.\nThe consul servers may be overloaded or not functioning correctly.",
         "name": "[Consul] KVs apply alert",
-        "noDataState": "alerting",
+        "noDataState": "ok",
         "notifications": []
       },
       "aliasColors": {},
