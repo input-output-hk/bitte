@@ -39,7 +39,7 @@ in {
 
     useDockerRegistry = lib.mkOption {
       type = lib.types.bool;
-      default = false;
+      default = true;
       description = ''
         Enable use of a docker registry backend with a service hosted on the monitoring server.
       '';
