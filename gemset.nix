@@ -24,10 +24,10 @@
     platforms = [];
     source = {
       remotes = ["https://rubygems.org"];
-      sha256 = "1f5kr8za7hvla38fc0n9jiv55iq62k5bzclsa5kdb14l3r4w6qnw";
+      sha256 = "0zb2dr2ihb1qiknn5iaj1ha1w9p7lj9yq5waasndlfadz225ajji";
       type = "gem";
     };
-    version = "1.2.4";
+    version = "1.3.0";
   };
   method_source = {
     groups = ["default"];
@@ -65,10 +65,10 @@
     platforms = [];
     source = {
       remotes = ["https://rubygems.org"];
-      sha256 = "0p3vaq2fbmlphphqr0yjc5cyzzxjizq4zbxbbw3j2vpgdcmpi6bs";
+      sha256 = "1h5aiqqlk51z12kgvanhdvd0ajvv2i68z6a7450yxgmflfaiwz7c";
       type = "gem";
     };
-    version = "1.2.0";
+    version = "1.3.0";
   };
   toml-rb = {
     dependencies = ["citrus"];
@@ -76,9 +76,9 @@
     platforms = [];
     source = {
       remotes = ["https://rubygems.org"];
-      sha256 = "1mrr8c9agmf9l9gs63lnsqzc62x08hj673yix7bjss1kvagwjnsr";
+      sha256 = "18ihbwncslffpai40wdm2jrgfjp27hw5lcqcddaz733pvv405nff";
       type = "gem";
     };
-    version = "2.1.0";
+    version = "2.1.2";
   };
 }
