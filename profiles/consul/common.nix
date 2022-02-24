@@ -9,9 +9,9 @@
   };
 
   Config = let
-    inherit (config.cluster) nodes region;
+    inherit (config.cluster) nodes;
     deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
-    datacenter = config.currentCoreNode.datacenter or config.currentAwsAutoScalingGroup.datacenter;
+    datacenter = config.currentCoreNode.datacenter or config.cluster.region;
     role = config.currentCoreNode.role or config.currentAwsAutoScalingGroup.role;
     primaryInterface = config.currentCoreNode.primaryInterface or config.currentAwsAutoScalingGroup.primaryInterface;
 
@@ -37,13 +37,14 @@
     ];
 
     services.consul = {
+      inherit datacenter;
+
       addresses = { http = lib.mkDefault "127.0.0.1"; };
 
       clientAddr = "0.0.0.0";
-      datacenter = if deployType == "aws" then region else datacenter;
       enableLocalScriptChecks = true;
       logLevel = "info";
-      primaryDatacenter = if deployType == "aws" then region else datacenter;
+      primaryDatacenter = datacenter;
       tlsMinVersion = "tls12";
       verifyIncoming = true;
       verifyIncomingRpc = true;
@@ -82,7 +83,7 @@
       retryJoin = (lib.mapAttrsToList (_: v: v.privateIP)
         (lib.filterAttrs (k: v: lib.elem k cfg.serverNodeNames) nodes))
         ++ lib.optionals (deployType == "aws")
-        [ "provider=aws region=${region} tag_key=Consul tag_value=server" ];
+        [ "provider=aws region=${config.cluster.region} tag_key=Consul tag_value=server" ];
 
       connect = {
         caProvider = "consul";

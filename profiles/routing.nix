@@ -1,7 +1,7 @@
 { self, lib, pkgs, config, nodeName, bittelib, hashiTokens, letsencryptCertMaterial, pkiFiles, ... }:
 let
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
-  datacenter = config.currentCoreNode.datacenter or config.currentAwsAutoScalingGroup.datacenter;
+  datacenter = config.currentCoreNode.datacenter or config.cluster.region;
   domain = config.${if deployType == "aws" then "cluster" else "currentCoreNode"}.domain;
   cfg = config.services.traefik;
 in {

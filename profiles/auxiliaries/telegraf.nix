@@ -1,7 +1,7 @@
 { pkgs, config, lib, pkiFiles, ... }:
 let
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
-  datacenter = config.currentCoreNode.datacenter or config.currentAwsAutoScalingGroup.datacenter;
+  datacenter = config.currentCoreNode.datacenter or config.cluster.region;
   role = config.currentCoreNode.role or config.currentAwsAutoScalingGroup.role;
   isClient = role == "client";
 in {
@@ -51,9 +51,7 @@ in {
         metric_buffer_limit = 50000;
       };
 
-      global_tags = {
-        datacenter = if deployType == "aws" then config.cluster.region else datacenter;
-      };
+      global_tags = { inherit datacenter; };
 
       inputs = {
         statsd = {

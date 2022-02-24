@@ -1,6 +1,6 @@
 { config, lib, pkgs, pkiFiles, ... }: let
 
-  datacenter = config.currentCoreNode.datacenter or config.currentAwsAutoScalingGroup.datacenter;
+  datacenter = config.currentCoreNode.datacenter or config.cluster.region;
 
   reload = service: "${pkgs.systemd}/bin/systemctl try-reload-or-restart ${service}";
   restart = service: "${pkgs.systemd}/bin/systemctl try-restart ${service}";

@@ -11,7 +11,7 @@
   Config = let
     inherit (config.cluster) region;
     deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
-    datacenter = config.currentCoreNode.datacenter or config.currentAwsAutoScalingGroup.datacenter;
+    datacenter = config.currentCoreNode.datacenter or config.cluster.region;
 
     ownedChain = "/var/lib/nomad/full.pem";
     ownedKey = "/var/lib/nomad/cert-key.pem";

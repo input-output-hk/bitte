@@ -17,7 +17,7 @@
   Config = let
     inherit (config.cluster) nodes region;
     deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
-    datacenter = config.currentCoreNode.datacenter or config.currentAwsAutoScalingGroup.datacenter;
+    datacenter = config.currentCoreNode.datacenter or config.cluster.region;
     ownedChain = "/var/lib/vault/full.pem";
     ownedKey = "/var/lib/vault/cert-key.pem";
 
