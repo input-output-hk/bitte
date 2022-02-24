@@ -8,7 +8,7 @@ in {
   options = {
     virtualisation.docker = {
       logLevel = lib.mkOption {
-        type = lib.types.str;
+        type = lib.types.enum [ "debug" "info" "warn" "error" "fatal" ];
         default = "info";
         description = ''
           Set the logging level ("debug"|"info"|"warn"|"error"|"fatal") (default "info")
@@ -57,7 +57,6 @@ in {
       autoPrune.dates = "daily";
 
       extraOptions = lib.concatStringsSep " " ([
-        "--log-level=${cfg.logLevel}"
         "--log-driver=journald"
         # For simplicity, let the bridge network have a static ip/mask (by default it
         # would choose this one, but fall back to the next range if this one is already used)
@@ -65,7 +64,8 @@ in {
         # Which allows us to specify that containers should use the local host as the DNS server
         # This is written into the containers /etc/resolv.conf
         "--dns=172.17.0.1"
-      ] ++ lib.optional (!cfg.logBlockingMode) "--log-opt mode=non-blocking"
+      ] ++ lib.optional (cfg.logLevel != "info") "--log-level=${cfg.logLevel}"
+        ++ lib.optional (!cfg.logBlockingMode) "--log-opt mode=non-blocking"
         ++ lib.optional (!cfg.logBlockingMode) "--log-opt max-buffer-size=${cfg.logMaxBufferSize}"
         ++ (lib.optionals (cfg.insecureRegistries != null)
         # Declares insecure registries to be used TEMPORARILY in a test environment
