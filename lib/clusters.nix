@@ -26,18 +26,19 @@ lib.listToAttrs (lib.forEach bitteProfiles (bitteProfile:
                name) v)) [ ] names;
        in builtins.deepSeq combinedNames (cluster.coreNodes // cluster.premSimNodes);
 
-    ourMkSystem = attr: nodeName: coreNode: (mkSystem {
-      inherit pkgs self inputs ;
-      nodeName = nodeName;
-      modules = [ { networking.hostName = lib.mkForce nodeName; } bitteProfile hydrationProfile ]
-        ++ coreNode.modules;
-    }).${attr};
+    coreModules = nodeName: [ bitteProfile hydrationProfile { networking.hostName = lib.mkForce nodeName; } ];
+    asgModules = nodeName: [ bitteProfile hydrationProfile ];
 
-    awsCoreNodes = lib.mapAttrs (ourMkSystem "bitteAmazonSystem") coreAndPremSimNodes;
-    premNodes = lib.mapAttrs (ourMkSystem "bitteProtoSystem") cluster.premNodes;
+    ourMkSystem = systemType: baseModules: nodeName: node: (mkSystem {
+      inherit pkgs self inputs nodeName;
+      modules = (baseModules nodeName) ++ node.modules;
+    }).${systemType};
+
+    awsCoreNodes = lib.mapAttrs (ourMkSystem "bitteAmazonSystem" coreModules) coreAndPremSimNodes;
+    premNodes = lib.mapAttrs (ourMkSystem "bitteProtoSystem" coreModules) cluster.premNodes;
     coreNodes = awsCoreNodes // premNodes;
 
-    awsAutoScalingGroups = lib.mapAttrs (ourMkSystem "bitteAmazonZfsSystem") cluster.awsAutoScalingGroups;
+    awsAutoScalingGroups = lib.mapAttrs (ourMkSystem "bitteAmazonZfsSystem" asgModules) cluster.awsAutoScalingGroups;
 
   in lib.nameValuePair cluster.name {
     inherit _proto tf coreNodes awsAutoScalingGroups;
