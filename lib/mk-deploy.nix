@@ -19,7 +19,7 @@ let
       profiles.system.path =
         let inherit (cfg.pkgs) system;
         in deploy.lib.${system}.activate.nixos cfg;
-    } // (lib.optionalAttrs (cfg.config.currentCoreNode.deployType  == "prem") {
+    } // (lib.optionalAttrs ((cfg.config.currentCoreNode.deployType or cfg.config.currentAwsAutoScalingGroup.deployType) == "prem") {
       hostname = cfg.config.cluster.name + "-" + cfg.config.networking.hostName;
       sshOpts = [ "-C" "-o" "StrictHostKeyChecking=no" ];
     })) self.nixosConfigurations;
