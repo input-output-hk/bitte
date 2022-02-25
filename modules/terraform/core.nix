@@ -2,7 +2,7 @@
 let
   inherit (terralib)
     var id pp regions awsProviderNameFor awsProviderFor mkSecurityGroupRule
-    nullRoute;
+    nullRoute mkAttachment mkStorage;
   inherit (config.cluster) infraType vbkBackend vbkBackendSkipCertVerification;
 
   merge = lib.foldl' lib.recursiveUpdate { };
@@ -320,5 +320,18 @@ in {
           key_name = var "aws_key_pair.core.key_name";
         })
       ]) config.cluster.coreNodes;
+
+    # ---------------------------------------------------------------
+    # Extra Storage
+    # ---------------------------------------------------------------
+    resource.aws_volume_attachment = lib.mapAttrs (
+      # host name == volume name
+      host: _: mkAttachment host host "/dev/sdh"
+    ) (lib.filterAttrs (_: v: v.ebsVolume != null) config.cluster.coreNodes);
+
+    # host name == volume name
+    resource.aws_ebs_volume = lib.mapAttrs (
+      host: cfg: mkStorage host config.cluster.kms cfg.ebsVolume
+    ) (lib.filterAttrs (_: v: v.ebsVolume != null) config.cluster.coreNodes);
   };
 }

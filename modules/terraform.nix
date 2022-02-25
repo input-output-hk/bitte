@@ -640,6 +640,28 @@ let
       };
     });
 
+  ebsVolumeType = with lib.types;
+    submodule ({ name, ... }@this: {
+      options = {
+        iops = lib.mkOption {
+          type = with lib.types; int;
+          default = 3000;
+        };
+        size = lib.mkOption {
+          type = with lib.types; int;
+          default = 500;
+        };
+        type = lib.mkOption {
+          type = with lib.types; str;
+          default = "gp3";
+        };
+        throughput = lib.mkOption {
+          type = with lib.types; int;
+          default = 125;
+        };
+      };
+    });
+
   nodeIamType = parentName:
     with lib.types;
     submodule {
@@ -801,6 +823,11 @@ let
         volumeSize = lib.mkOption {
           type = with lib.types; ints.positive;
           default = 30;
+        };
+
+        ebsVolume = lib.mkOption {
+          type = with lib.types; nullOr ebsVolumeType;
+          default = null;
         };
 
         securityGroupName = lib.mkOption {
