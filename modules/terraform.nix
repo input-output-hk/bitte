@@ -362,6 +362,11 @@ let
           default = self.outPath;
         };
 
+        vaultBackend = lib.mkOption {
+          type = with lib.types; str;
+          default = "https://vault.infra.aws.iohkdev.io";
+        };
+
         vbkBackend = lib.mkOption {
           type = with lib.types; str;
           default = "https://vbk.infra.aws.iohkdev.io";
@@ -1029,7 +1034,7 @@ in {
       type = with lib.types;
         attrsOf (submodule ({ name, ... }@this: {
           options = let
-            backend = "${cfg.vbkBackend}/v1";
+            backend = "${cfg.vaultBackend}/v1";
 
             # If no kms cluster key is present, use prem deploy-rs equivalent commands
             coreNode = if cfg.infraType == "prem" then "${cfg.name}-core-1" else "core-1";
