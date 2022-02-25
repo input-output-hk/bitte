@@ -74,8 +74,8 @@ let
       };
     };
 
-  hostVolumeType = with lib.types;
-    listOf (attrsOf (submodule {
+  hostVolumeType = with lib.types; let
+    mod = submodule {
       options = {
         path = lib.mkOption {
           type = with lib.types; nullOr path;
@@ -96,7 +96,9 @@ let
           '';
         };
       };
-    }));
+    };
+  in
+    either (listOf (attrsOf mod)) (attrsOf mod);
 in {
   disabledModules = [ "services/networking/nomad.nix" ];
   options.services.nomad = {
@@ -548,7 +550,15 @@ in {
 
             host_volume = lib.mkOption {
               type = with lib.types; hostVolumeType;
-              default = [ ];
+              default = { };
+              apply = x:
+                if builtins.isList x
+                then lib.warn ''
+
+                service.nomad.client.host_volume has changed from a list to an attrset
+                please update your config now.
+                '' builtins.foldl' lib.recursiveUpdate { } x
+                else x;
               description = ''
                 Exposes paths from the host as volumes that can be mounted into
                 jobs.
@@ -1161,6 +1171,16 @@ in {
     environment.systemPackages = [ pkgs.nomad ];
 
     users.extraUsers.nobody = { };
+
+    system.activationScripts.nomad-host-volumes = ''
+      export PATH="${lib.makeBinPath (with pkgs; [ fd coreutils ])}:$PATH"
+    '' + (builtins.concatStringsSep "\n" (
+      lib.mapAttrsToList (k: v: ''
+          mkdir -p ${v.path}
+          fd . -o root ${v.path} -X chown nobody:nogroup || true
+        ''
+      ) config.services.nomad.client.host_volume
+    ));
 
     systemd.services.nomad = {
       after = [ "network-online.target" "vault-agent.service" ];
