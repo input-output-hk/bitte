@@ -143,5 +143,23 @@ in rec {
       ])));
     };
   };
+
+  mkStorage = host: kms: specs: {
+    availability_zone = var "aws_instance.${host}.availability_zone";
+    encrypted = true;
+    inherit (specs)
+      iops
+      size
+      type
+      throughput
+    ;
+    kms_key_id = kms;
+  };
+
+  mkAttachment = host: volume: device_name: {
+    inherit device_name;
+    volume_id = var "aws_ebs_volume.${volume}.id";
+    instance_id = var "aws_instance.${host}.id";
+  };
 }
 
