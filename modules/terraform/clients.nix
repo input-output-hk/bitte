@@ -40,8 +40,13 @@ let
       (lib.imap0 (i: connector: regionPeeringPairs vpcRegions connector i)
         vpcRegions);
   in f: lib.listToAttrs (lib.forEach peeringPairs f);
+
+  infraTypeCheck = if builtins.elem infraType [ "aws" "premSim" ] then true else (throw ''
+    To utilize the clients TF attr, the cluster config parameter `infraType`
+    must either "aws" or "premSim".
+  '');
 in {
-  tf.clients.configuration = lib.mkIf (infraType != "prem") {
+  tf.clients.configuration = lib.mkIf infraTypeCheck {
     terraform.backend.http = let
       vbk =
         "${vbkBackend}/state/${config.cluster.name}/clients";

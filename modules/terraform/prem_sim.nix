@@ -7,8 +7,13 @@ let
 
   merge = lib.foldl' lib.recursiveUpdate { };
   tags = { Cluster = config.cluster.name; };
+
+  infraTypeCheck = if builtins.elem infraType [ "aws" "premSim" ] then true else (throw ''
+    To utilize the prem-sim TF attr, the cluster config parameter `infraType`
+    must either "aws" or "premSim".
+  '');
 in {
-  tf.prem-sim.configuration = lib.mkIf (infraType == "premSim") {
+  tf.prem-sim.configuration = lib.mkIf infraTypeCheck {
     terraform.backend.http = let
       vbk =
         "${vbkBackend}/state/${config.cluster.name}/prem-sim";
