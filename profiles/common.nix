@@ -33,11 +33,6 @@ in {
     "3.nixos.pool.ntp.org"
   ];
 
-  # remove after upgrading past 21.05
-  # users.users.ntp.group = "ntp";
-  # users.groups.ntp = { };
-  users.groups.systemd-coredump = { };
-
   services.fail2ban.enable = deployType != "premSim";
 
   environment.variables = {
