@@ -19,5 +19,6 @@ in rec {
   mkSystem = import ./mk-system.nix { inherit nixpkgs bitte; };
 
   ensureDependencies = import ./ensure-dependencies.nix { inherit lib; };
+  mkNomadHostVolumesConfig = import ./mk-nomad-host-volumes-config.nix { inherit lib; };
 }
 
