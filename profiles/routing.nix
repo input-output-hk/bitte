@@ -281,7 +281,7 @@ in {
               middlewares = [ ];
               rule = "Host(`docker.${domain}`) && PathPrefix(`/`)";
               service = "docker-registry";
-              tls = true;
+              tls = tlsCfg;
             };
           }) // (lib.optionalAttrs cfg.useOauth2Proxy {
             oauth2-route = {
@@ -306,7 +306,7 @@ in {
               middlewares = [ ];
               rule = "Host(`vbk.${domain}`) && PathPrefix(`/`)";
               service = "vault-backend";
-              tls = true;
+              tls = tlsCfg;
             };
           }));
 

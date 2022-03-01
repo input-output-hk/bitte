@@ -1059,7 +1059,7 @@ in {
                 echo Fetching nomad bootstrap token for hydrate-cluster.
                 echo This is a standard requirement since nomad does not
                 echo implement fine-grained ACL. Hence, for hydrate-cluster
-                echo a management token is required. The boostrap token is
+                echo a management token is required. The bootstrap token is
                 echo such a management token.
                 echo Fetching from '${coreNode}', the presumed bootstrapper ...
                 echo -----------------------------------------------------
@@ -1124,7 +1124,10 @@ in {
                 echo
                 echo -----------------------------------------------------
                 echo TIP: you can avoid repetitive calls to the infra auth
-                echo api by exporting the following env variables as is:
+                echo api by exporting the following env variables as is.
+                echo
+                echo The current vault backend in use for TF is:
+                echo ${cfg.vaultBackend}
                 echo -----------------------------------------------------
                 echo "export TF_HTTP_USERNAME=\"$user\""
                 echo "export TF_HTTP_PASSWORD=\"$pass\""
