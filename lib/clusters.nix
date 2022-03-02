@@ -33,7 +33,7 @@ lib.listToAttrs (lib.forEach bitteProfiles (bitteProfile:
     awsAutoScalingGroups = lib.mapAttrs (nodeName: awsAutoScalingGroup:
       (mkSystem {
         inherit pkgs self inputs nodeName;
-        modules = [ bitteProfile ] ++ awsAutoScalingGroup.modules;
+        modules = [ bitteProfile hydrationProfile ] ++ awsAutoScalingGroup.modules;
       }).bitteAmazonZfsSystem) _proto.config.cluster.awsAutoScalingGroups;
 
   in lib.nameValuePair _proto.config.cluster.name {
