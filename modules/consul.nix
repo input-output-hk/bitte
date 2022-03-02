@@ -3,6 +3,8 @@ let
   cfg = config.services.consul;
 
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+  role = config.currentCoreNode.role or config.currentAwsAutoScalingGroup.role;
+  isClient = role == "client";
 
   sanitize = obj:
     lib.getAttr (builtins.typeOf obj) {
@@ -62,7 +64,7 @@ in {
 
       serverNodeNames = lib.mkOption {
         type = with lib.types; listOf str;
-        default = if deployType == "aws" then [ "core-1" "core-2" "core-3" ]
+        default = if deployType != "premSim" then [ "core-1" "core-2" "core-3" ]
                   else [ "prem-1" "prem-2" "prem-3" ];
       };
 
@@ -202,6 +204,20 @@ in {
         default = { };
       };
 
+      recursors = lib.mkOption {
+        type = with lib.types; listOf str;
+        default = "0.0.0.0";
+        description = ''
+          This flag provides addresses of upstream DNS servers that are used to
+          recursively resolve queries if they are not inside the service domain
+          for Consul. For example, a node can use Consul directly as a DNS server,
+          and if the record is outside of the "consul." domain, the query will be
+          resolved upstream. As of Consul 1.0.1 recursors can be provided as IP
+          addresses or as go-sockaddr templates. IP addresses are resolved in
+          order, and duplicates are ignored.
+        '';
+      };
+
       retryJoin = lib.mkOption {
         type = with lib.types; listOf str;
         default = [ ];
@@ -332,6 +348,8 @@ in {
 
       verifyIncoming = lib.mkEnableOption "Verify incoming conns";
 
+      verifyIncomingRpc = lib.mkEnableOption "Verify incoming rpc conns";
+
       verifyOutgoing = lib.mkEnableOption "Verify outgoing conns";
 
       verifyServerHostname = lib.mkEnableOption "Verify server hostname";
@@ -352,6 +370,26 @@ in {
               };
 
               https = lib.mkOption {
+                type = with lib.types; nullOr port;
+                default = null;
+              };
+
+              sidecarMinPort = lib.mkOption {
+                type = with lib.types; nullOr port;
+                default = null;
+              };
+
+              sidecarMaxPort = lib.mkOption {
+                type = with lib.types; nullOr port;
+                default = null;
+              };
+
+              exposeMinPort = lib.mkOption {
+                type = with lib.types; nullOr port;
+                default = null;
+              };
+
+              exposeMaxPort = lib.mkOption {
                 type = with lib.types; nullOr port;
                 default = null;
               };
@@ -408,9 +446,9 @@ in {
       pkgs.toPrettyJSON "config" (sanitize {
         inherit (cfg)
           ui datacenter bootstrapExpect bindAddr advertiseAddr server logLevel
-          clientAddr encrypt addresses retryJoin primaryDatacenter acl connect
-          caFile certFile keyFile autoEncrypt verifyServerHostname
-          verifyOutgoing verifyIncoming dataDir tlsMinVersion ports
+          clientAddr encrypt addresses recursors retryJoin primaryDatacenter
+          acl connect caFile certFile keyFile autoEncrypt verifyServerHostname
+          verifyOutgoing verifyIncoming verifyIncomingRpc dataDir tlsMinVersion ports
           enableLocalScriptChecks nodeMeta telemetry nodeId enableDebug
           enableScriptChecks;
       });
@@ -429,10 +467,14 @@ in {
       path = with pkgs; [ envoy ];
 
       serviceConfig = let
-        certChainFile = if deployType == "aws" then pkiFiles.certChainFile
-                        else pkiFiles.serverCertChainFile;
-        certKeyFile = if deployType == "aws" then pkiFiles.keyFile
-                      else pkiFiles.serverKeyFile;
+        # Some prem machines roles are not Consul servers but do not utilize
+        # intermediate cert pki either like a client would.  So here we examine
+        # the machine role (isClient) rather than cfg.server which is not
+        # granular enough in this case.
+        certChainFile = if (deployType != "aws" && !isClient) then pkiFiles.serverCertChainFile
+                        else pkiFiles.certChainFile;
+        certKeyFile = if (deployType != "aws" && !isClient) then pkiFiles.serverKeyFile
+                      else pkiFiles.keyFile;
         preScript = let
           start-pre = pkgs.writeBashBinChecked "consul-start-pre" ''
             PATH="${lib.makeBinPath [ pkgs.coreutils ]}"

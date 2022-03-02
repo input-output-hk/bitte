@@ -1,7 +1,7 @@
 { self, lib, pkgs, config, nodeName, bittelib, hashiTokens, letsencryptCertMaterial, pkiFiles, ... }:
 let
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
-  datacenter = config.currentCoreNode.datacenter or config.currentAwsAutoScalingGroup.datacenter;
+  datacenter = config.currentCoreNode.datacenter or config.cluster.region;
   domain = config.${if deployType == "aws" then "cluster" else "currentCoreNode"}.domain;
   cfg = config.services.traefik;
 in {
@@ -9,7 +9,6 @@ in {
     ./common.nix
     ./consul/client.nix
     ./vault/routing.nix
-
     ./auxiliaries/oauth.nix
   ];
 
@@ -35,14 +34,81 @@ in {
           - by obtaining individual certs for each traefik router service, including nomad job app routes
       '';
     };
+
+    useOauth2Proxy = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        Apply oauth middleware to the standard UI bitte services.
+        One, but not both, of `useOauth2Proxy` or `useDigestAuth` options must be true.
+      '';
+    };
+
+    useDigestAuth = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Apply digest auth middleware to the standard UI bitte services.
+        One, but not both, of `useOauth2Proxy` or `useDigestAuth` options must be true.
+      '';
+    };
+
+    useDockerRegistry = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        Enable use of a docker registry backend with a service hosted on the monitoring server.
+      '';
+    };
+
+    useVaultBackend = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Enable use of a vault TF backend with a service hosted on the monitoring server.
+      '';
+    };
+
+    digestAuthFile = lib.mkOption {
+      type = lib.types.str;
+      default = "/run/keys/digest-auth";
+      description = ''
+        The path to the digest-auth file for the `useDigestAuth` option.
+
+        Format expected is:
+          $USER:$REALM:$HASHED_PASSWORD
+
+        Digest auth file ownership and perms are expected to be: root:keys 0640.
+        Enabling this option will place the traefik user in the `key` group.
+
+        Ref:
+          https://doc.traefik.io/traefik/v2.0/middlewares/digestauth/
+      '';
+    };
   };
 
   config = {
-    services.traefik.enable = true;
+
+    assertions = [
+      {
+        assertion = cfg.useOauth2Proxy != cfg.useDigestAuth;
+        message = ''
+          Both `useOauth2Proxy` and `useDigestAuth` options cannot be enabled at the same time.
+          One of `useOauth2Proxy` and `useDigestAuth` options must be enabled.
+        '';
+      }
+    ];
+
+    networking.firewall.allowedTCPPorts = [ 80 443 ];
+
     services.consul.ui = true;
+    services.traefik.enable = true;
+    services.oauth2_proxy.enable = cfg.useOauth2Proxy;
+
+    users.extraGroups.keys.members = lib.mkIf cfg.useDigestAuth [ "traefik" ];
 
     networking.extraHosts = ''
-      ${config.cluster.coreNodes.monitoring.privateIP} monitoring
+      ${config.cluster.nodes.monitoring.privateIP} monitoring
     '';
 
     systemd.services.traefik.serviceConfig.ExecStart = let
@@ -158,18 +224,66 @@ in {
         tls.certificates = if cfg.acmeDnsCertMgr then [{
           certFile = "/var/lib/traefik/certs/${builtins.baseNameOf letsencryptCertMaterial.certChainFile}";
           keyFile = "/var/lib/traefik/certs/${builtins.baseNameOf letsencryptCertMaterial.keyFile}";
-        }] else [];
+        }] else [ ];
 
         http = {
           routers = let
-            mkOauthRoute = service: {
-              inherit service;
+            middlewares = lib.optional cfg.useOauth2Proxy "oauth-auth-redirect"
+                          ++ lib.optional cfg.useDigestAuth "digest-auth";
+            mkRoute = service: {
+              inherit service middlewares;
               entrypoints = "https";
-              middlewares = [ "oauth-auth-redirect" ];
               rule = "Host(`${service}.${domain}`) && PathPrefix(`/`)";
               tls = tlsCfg;
             };
-          in lib.mkDefault {
+          in lib.mkDefault ({
+            grafana = mkRoute "monitoring";
+            nomad = mkRoute "nomad";
+
+            nomad-api = {
+              entrypoints = "https";
+              middlewares = [ ];
+              rule = "Host(`nomad.${domain}`) && PathPrefix(`/v1/`)";
+              service = "nomad";
+              tls = true;
+            };
+
+            vault = mkRoute "vault";
+
+            vault-api = {
+              entrypoints = "https";
+              middlewares = [ ];
+              rule = "Host(`vault.${domain}`) && PathPrefix(`/v1/`)";
+              service = "vault";
+              tls = true;
+            };
+
+            consul = mkRoute "consul";
+
+            consul-api = {
+              entrypoints = "https";
+              middlewares = [ ];
+              rule = "Host(`consul.${domain}`) && PathPrefix(`/v1/`)";
+              service = "consul";
+              tls = true;
+            };
+
+            traefik = {
+              inherit middlewares;
+              entrypoints = "https";
+              rule = "Host(`traefik.${domain}`) && PathPrefix(`/`)";
+              service = "api@internal";
+              tls = tlsCfg;
+            };
+          } // (lib.optionalAttrs cfg.useDockerRegistry {
+            docker-registry = {
+              entrypoints = "https";
+              middlewares = [ ];
+              rule = "Host(`docker.${domain}`) && PathPrefix(`/`)";
+              service = "docker-registry";
+              tls = tlsCfg;
+            };
+          }) // (lib.optionalAttrs cfg.useOauth2Proxy {
             oauth2-route = {
               entrypoints = "https";
               middlewares = [ "auth-headers" ];
@@ -186,53 +300,17 @@ in {
               service = "oauth-backend";
               tls = tlsCfg;
             };
-
-            grafana = mkOauthRoute "monitoring";
-            nomad = mkOauthRoute "nomad";
-
-            nomad-api = {
+          }) // (lib.optionalAttrs cfg.useVaultBackend {
+            vault-backend = {
               entrypoints = "https";
               middlewares = [ ];
-              rule = "Host(`nomad.${domain}`) && PathPrefix(`/v1/`)";
-              service = "nomad";
-              tls = true;
-            };
-
-            vault = mkOauthRoute "vault";
-
-            vault-api = {
-              entrypoints = "https";
-              middlewares = [ ];
-              rule = "Host(`vault.${domain}`) && PathPrefix(`/v1/`)";
-              service = "vault";
-              tls = true;
-            };
-
-            consul = mkOauthRoute "consul";
-
-            consul-api = {
-              entrypoints = "https";
-              middlewares = [ ];
-              rule = "Host(`consul.${domain}`) && PathPrefix(`/v1/`)";
-              service = "consul";
-              tls = true;
-            };
-
-            traefik = {
-              entrypoints = "https";
-              middlewares = [ "oauth-auth-redirect" ];
-              # middlewares = [ ];
-              rule = "Host(`traefik.${domain}`) && PathPrefix(`/`)";
-              service = "api@internal";
+              rule = "Host(`vbk.${domain}`) && PathPrefix(`/`)";
+              service = "vault-backend";
               tls = tlsCfg;
             };
-          };
+          }));
 
-          services = {
-            oauth-backend.loadBalancer = {
-              servers = [{ url = "http://127.0.0.1:4180"; }];
-            };
-
+          services = lib.mkDefault ({
             consul.loadBalancer = {
               servers = [{ url = "http://127.0.0.1:8500"; }];
             };
@@ -250,7 +328,21 @@ in {
               servers = [{ url = "https://active.vault.service.consul:8200"; }];
               serversTransport = "cert-transport";
             };
-          };
+          } // lib.optionalAttrs cfg.useDockerRegistry {
+            docker-registry.loadBalancer = {
+              servers = [{ url = "http://monitoring:5000"; }];
+            };
+          } // lib.optionalAttrs cfg.useOauth2Proxy {
+            oauth-backend = {
+              loadBalancer = {
+                servers = [{ url = "http://127.0.0.1:4180"; }];
+              };
+            };
+          } // lib.optionalAttrs cfg.useVaultBackend {
+            vault-backend.loadBalancer = {
+              servers = [{ url = "http://monitoring:8080"; }];
+            };
+          });
 
           serversTransports = {
             cert-transport = {
@@ -262,7 +354,7 @@ in {
             };
           };
 
-          middlewares = {
+          middlewares = lib.mkDefault ({
             auth-headers = {
               headers = {
                 browserXssFilter = true;
@@ -276,7 +368,7 @@ in {
                 stsSeconds = 315360000;
               };
             };
-
+          } // lib.optionalAttrs cfg.useOauth2Proxy {
             oauth-auth-redirect = {
               forwardAuth = {
                 address = "https://oauth.${domain}/";
@@ -289,7 +381,15 @@ in {
                 trustForwardHeader = true;
               };
             };
-          };
+          } // lib.optionalAttrs cfg.useDigestAuth {
+            digest-auth = {
+              digestAuth = {
+                usersFile = cfg.digestAuthFile;
+                removeHeader = true;
+                headerField= "X-WebAuth-User";
+              };
+            };
+          });
         };
       };
 

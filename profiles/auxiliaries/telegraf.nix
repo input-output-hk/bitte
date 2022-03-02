@@ -1,7 +1,9 @@
 { pkgs, config, lib, pkiFiles, ... }:
 let
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
-  datacenter = config.currentCoreNode.datacenter or config.currentAwsAutoScalingGroup.datacenter;
+  datacenter = config.currentCoreNode.datacenter or config.cluster.region;
+  role = config.currentCoreNode.role or config.currentAwsAutoScalingGroup.role;
+  isClient = role == "client";
 in {
 
   services.telegraf.enable = true;
@@ -49,9 +51,7 @@ in {
         metric_buffer_limit = 50000;
       };
 
-      global_tags = {
-        datacenter = if deployType == "aws" then config.cluster.region else datacenter;
-      };
+      global_tags = { inherit datacenter; };
 
       inputs = {
         statsd = {
@@ -108,7 +108,9 @@ in {
 
         x509_cert = {
           sources = [
-            (if deployType == "aws" then pkiFiles.certFile else pkiFiles.clientCertFile)
+            (if (deployType != "aws" && !isClient) then pkiFiles.serverCertFile
+             else if (deployType != "aws" && isClient) then pkiFiles.clientCertFile
+             else pkiFiles.certFile)
           ];
         };
 
@@ -120,12 +122,13 @@ in {
         processes = { };
         swap = { };
         system = { };
+      } // (lib.optionalAttrs config.services.consul.enable {
         procstat = { pattern = "(consul)"; };
         consul = {
           address = "localhost:8500";
           scheme = "http";
         };
-      } // (lib.optionalAttrs config.services.ingress.enable {
+      }) // (lib.optionalAttrs config.services.ingress.enable {
         haproxy = { servers = [ "http://127.0.0.1:1936/haproxy?stats" ]; };
       }) // (lib.optionalAttrs config.services.vulnix.enable {
         http_listener_v2 = {
@@ -168,7 +171,7 @@ in {
       outputs = {
         influxdb = {
           database = "telegraf";
-          urls = [ "http://${config.cluster.coreNodes.monitoring.privateIP}:8428" ];
+          urls = [ "http://${config.cluster.nodes.monitoring.privateIP}:8428" ];
         };
       };
     };

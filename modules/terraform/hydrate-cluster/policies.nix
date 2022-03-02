@@ -1,11 +1,13 @@
-/* Polices
+/* Policies
    Related to roles that are impersonated by humans.
    -> Machine roles best have a different venue.
 */
-{ terralib, config, ... }:
+{ terralib, config, lib, ... }:
 let
 
   inherit (terralib) var id;
+  inherit (config.cluster) infraType;
+
   tfcfg = config.tf.hydrate-cluster.configuration;
 
   __fromTOML = builtins.fromTOML;
@@ -14,11 +16,17 @@ let
   nomadPolicies = tfcfg.locals.policies.nomad;
   consulPolicies = tfcfg.locals.policies.consul;
 
+  localsBasePolicy = __fromTOML (__readFile ./policies-base.toml);
+  localsAwsPolicy = __fromTOML (__readFile ./policies-aws.toml);
+
+  localsPolicy = if infraType == "prem" then localsBasePolicy
+                 else lib.recursiveUpdate localsBasePolicy localsAwsPolicy;
+
 in {
   tf.hydrate-cluster.configuration = {
 
     # this is an auxiliary datastructure that can be modified/extended via terranix's magic merge
-    locals.policies = __fromTOML (__readFile ./policies.toml);
+    locals.policies = localsPolicy;
 
     # Vault
     resource.vault_policy = __mapAttrs (name: v: {

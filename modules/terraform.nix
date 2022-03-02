@@ -2,7 +2,7 @@
 let
   inherit (terralib) var id regions awsProviderFor;
 
-  kms2region = kms: builtins.elemAt (lib.splitString ":" kms) 3;
+  kms2region = kms: if kms == null then null else builtins.elemAt (lib.splitString ":" kms) 3;
 
   merge = lib.foldl' lib.recursiveUpdate { };
 
@@ -203,6 +203,12 @@ let
 
         terraformOrganization = lib.mkOption { type = with lib.types; str; };
 
+        nodes = lib.mkOption {
+          type = with lib.types; attrsOf coreNodeType;
+          internal = true;
+          default = cfg.coreNodes // cfg.premSimNodes // cfg.premNodes;
+        };
+
         coreNodes = lib.mkOption {
           type = with lib.types; attrsOf coreNodeType;
           default = { };
@@ -211,6 +217,36 @@ let
         premSimNodes = lib.mkOption {
           type = with lib.types; attrsOf coreNodeType;
           default = { };
+        };
+
+        premNodes = lib.mkOption {
+          type = with lib.types; attrsOf coreNodeType;
+          default = { };
+        };
+
+        infraType = lib.mkOption {
+          type = with lib.types; enum [ "aws" "prem" "premSim" ];
+          default = "aws";
+          description = ''
+            The cluster infrastructure deployment type.
+
+            For an AWS cluster, "aws" should be declared.
+            For an AWS plus premSim cluster, "aws" should be declared (see NB).
+            For a premSim only cluster, "premSim" should be declared.
+            For a prem only cluster, "prem" should be declared.
+
+            The declared machine composition for a cluster should
+            comprise machines of the declared cluster type:
+
+              * type "aws" should declare coreNodes
+              * type "prem" should declare premNodes
+              * type "premSim" should declare premSimNodes
+
+            NOTE: The use of AWS plus premSim deployment in the same
+            cluster with mixed machine compoition of premNodes and
+            premSimNodes is deprecated and will not be supported in
+            the future.
+          '';
         };
 
         awsAutoScalingGroups = lib.mkOption {
@@ -235,7 +271,10 @@ let
           default = { };
         };
 
-        kms = lib.mkOption { type = with lib.types; str; };
+        kms = lib.mkOption {
+          type = with lib.types; nullOr str;
+          default = null;
+        };
 
         s3Bucket = lib.mkOption { type = with lib.types; str; };
 
@@ -281,7 +320,7 @@ let
         };
 
         region = lib.mkOption {
-          type = with lib.types; str;
+          type = with lib.types; nullOr str;
           default = kms2region cfg.kms;
         };
 
@@ -321,6 +360,34 @@ let
         flakePath = lib.mkOption {
           type = with lib.types; path;
           default = self.outPath;
+        };
+
+        vaultBackend = lib.mkOption {
+          type = with lib.types; str;
+          default = "https://vault.infra.aws.iohkdev.io";
+        };
+
+        vbkBackend = lib.mkOption {
+          type = with lib.types; str;
+          default = "https://vbk.infra.aws.iohkdev.io";
+        };
+
+        vbkBackendSkipCertVerification = lib.mkOption {
+          type = with lib.types; bool;
+          default = false;
+          description = ''
+            Whether to skip TLS verification.  Useful for debugging
+            when signed certificates are not yet available in non
+            prod environments.
+
+            NOTE: The following local exports may also be required
+            in conjunction with enabling this option, and are intended
+            only for short term use in a testing only environment:
+
+              export VAULT_SKIP_VERIFY=true
+              export CONSUL_HTTP_SSL_VERIFY=false
+              export NOMAD_SKIP_VERIFY=true
+          '';
         };
       };
     });
@@ -639,9 +706,27 @@ let
           type = with lib.types; str;
         };
 
+        role = lib.mkOption {
+          type = with lib.types; str;
+          default = if lib.hasPrefix "core" name then "core"
+                    else if lib.hasPrefix "prem" name then "core"
+                    else if lib.hasPrefix "router" name then "router"
+                    else if lib.hasPrefix "routing" name then "router"
+                    else if lib.hasPrefix "monitor" name then "monitor"
+                    else if lib.hasPrefix "hydra" name then "hydra"
+                    else if lib.hasPrefix "storage" name then "storage"
+                    else if lib.hasPrefix "client" name then "client"
+                    else "default";
+        };
+
         deployType = lib.mkOption {
           type = with lib.types; enum [ "aws" "prem" "premSim" ];
           default = "aws";
+        };
+
+        primaryInterface = lib.mkOption {
+          type = with lib.types; str;
+          default = "ens5";
         };
 
         ami = lib.mkOption {
@@ -780,6 +865,11 @@ let
 
         node_class = lib.mkOption { type = with lib.types; str; };
 
+        role = lib.mkOption {
+          type = with lib.types; str;
+          default = "client";
+        };
+
         modules = lib.mkOption {
           type = with lib.types; listOf (oneOf [ path attrs (functionTo attrs) ]);
           default = [ ];
@@ -788,6 +878,11 @@ let
         deployType = lib.mkOption {
           type = with lib.types; enum [ "aws" "prem" "premSim" ];
           default = "aws";
+        };
+
+        primaryInterface = lib.mkOption {
+          type = with lib.types; str;
+          default = "ens5";
         };
 
         ami = lib.mkOption {
@@ -907,7 +1002,20 @@ in {
     currentCoreNode = lib.mkOption {
       internal = true;
       type = with lib.types; nullOr attrs;
-      default = cfg.coreNodes."${nodeName}" or cfg.premSimNodes."${nodeName}" or null;
+      default = let
+        names =
+          map builtins.attrNames [ cfg.coreNodes cfg.premNodes cfg.premSimNodes ];
+        combinedNames = builtins.foldl' (s: v:
+          s ++ (map (name:
+            if (builtins.elem name s) then
+              throw "Duplicate node name: ${name}"
+            else
+              name) v)) [ ] names;
+      in builtins.deepSeq combinedNames
+      (cfg.coreNodes."${nodeName}" or
+       cfg.premNodes."${nodeName}" or
+       cfg.premSimNodes."${nodeName}" or
+      null);
     };
 
     currentAwsAutoScalingGroup = lib.mkOption {
@@ -926,7 +1034,12 @@ in {
       type = with lib.types;
         attrsOf (submodule ({ name, ... }@this: {
           options = let
-            backend = "https://vault.infra.aws.iohkdev.io/v1";
+            backend = "${cfg.vaultBackend}/v1";
+
+            # If no kms cluster key is present, use prem deploy-rs equivalent commands
+            coreNode = if cfg.infraType == "prem" then "${cfg.name}-core-1" else "core-1";
+            coreNodeCmd = if cfg.infraType == "prem" then "ssh" else "${pkgs.bitte}/bin/bitte ssh";
+
             copy = ''
               export PATH="${
                 lib.makeBinPath [ pkgs.coreutils pkgs.terraform-with-plugins ]
@@ -946,12 +1059,12 @@ in {
                 echo Fetching nomad bootstrap token for hydrate-cluster.
                 echo This is a standard requirement since nomad does not
                 echo implement fine-grained ACL. Hence, for hydrate-cluster
-                echo a management token is required. The boostrap token is
+                echo a management token is required. The bootstrap token is
                 echo such a management token.
-                echo Fetching from 'core-1', the presumed bootstrapper ...
+                echo Fetching from '${coreNode}', the presumed bootstrapper ...
                 echo -----------------------------------------------------
                 declare NOMAD_TOKEN
-                NOMAD_TOKEN="$(${pkgs.bitte}/bin/bitte ssh core-1 cat /var/lib/nomad/bootstrap.token)"
+                NOMAD_TOKEN="$(${coreNodeCmd} ${coreNode} cat /var/lib/nomad/bootstrap.token)"
                 export NOMAD_TOKEN
               fi
 
@@ -992,7 +1105,7 @@ in {
                 echo -----------------------------------------------------
                 echo ERROR: env variable GITHUB_TOKEN is not set or empty.
                 echo Yet, it is required to authenticate before the
-                echo infra cluster vault terraform backend.
+                echo utilizing the cluster vault terraform backend.
                 echo -----------------------------------------------------
                 echo "Please 'export GITHUB_TOKEN=ghp_hhhhhhhh...' using"
                 echo your appropriate personal github access token.
@@ -1011,7 +1124,10 @@ in {
                 echo
                 echo -----------------------------------------------------
                 echo TIP: you can avoid repetitive calls to the infra auth
-                echo api by exporting the following env variables as is:
+                echo api by exporting the following env variables as is.
+                echo
+                echo The current vault backend in use for TF is:
+                echo ${cfg.vaultBackend}
                 echo -----------------------------------------------------
                 echo "export TF_HTTP_USERNAME=\"$user\""
                 echo "export TF_HTTP_PASSWORD=\"$pass\""

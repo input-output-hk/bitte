@@ -3,18 +3,25 @@ let
   inherit (terralib)
     var id pp regions awsProviderNameFor awsProviderFor mkSecurityGroupRule
     nullRoute;
+  inherit (config.cluster) infraType vbkBackend vbkBackendSkipCertVerification;
 
   merge = lib.foldl' lib.recursiveUpdate { };
   tags = { Cluster = config.cluster.name; };
+
+  infraTypeCheck = if builtins.elem infraType [ "aws" "premSim" ] then true else (throw ''
+    To utilize the prem-sim TF attr, the cluster config parameter `infraType`
+    must either "aws" or "premSim".
+  '');
 in {
-  tf.prem-sim.configuration = {
+  tf.prem-sim.configuration = lib.mkIf infraTypeCheck {
     terraform.backend.http = let
       vbk =
-        "https://vbk.infra.aws.iohkdev.io/state/${config.cluster.name}/prem-sim";
+        "${vbkBackend}/state/${config.cluster.name}/prem-sim";
     in {
       address = vbk;
       lock_address = vbk;
       unlock_address = vbk;
+      skip_cert_verification = vbkBackendSkipCertVerification;
     };
 
     terraform.required_providers = pkgs.terraform-provider-versions;

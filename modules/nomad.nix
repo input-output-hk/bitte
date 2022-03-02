@@ -185,7 +185,7 @@ in {
 
     serverNodeNames = lib.mkOption {
       type = with lib.types; listOf str;
-      default = if deployType == "aws" then [ "core-1" "core-2" "core-3" ]
+      default = if deployType != "premSim" then [ "core-1" "core-2" "core-3" ]
                 else [ "prem-1" "prem-2" "prem-3" ];
     };
 
@@ -304,6 +304,36 @@ in {
               description = ''
                 An override for the total memory. If set, this value overrides
                 any detected memory.
+              '';
+            };
+
+            min_dynamic_port = lib.mkOption {
+              type = with lib.types; nullOr ints.unsigned;
+              default = null;
+              description = ''
+                Specifies the minimum dynamic port to be assigned.
+                Individual ports and ranges of ports may be excluded from dynamic
+                port assignment via reserved parameters.
+
+                NOTE: Nomad uses port 20000 for this parameter by default.
+                This is within Consul's dynamic port range and may cause jobs
+                to fail randomly in a busy deployment if unadjusted.
+
+                Refs:
+                  https://www.nomadproject.io/docs/job-specification/network#dynamic-ports
+                  https://www.consul.io/docs/agent/options#ports
+                  https://github.com/hashicorp/consul/issues/12253
+                  https://github.com/hashicorp/nomad/issues/4285
+              '';
+            };
+
+            max_dynamic_port = lib.mkOption {
+              type = with lib.types; nullOr ints.unsigned;
+              default = null;
+              description = ''
+                Specifies the maximum dynamic port to be assigned.
+                Individual ports and ranges of ports may be excluded from dynamic
+                port assignment via reserved parameters.
               '';
             };
 
@@ -1132,11 +1162,6 @@ in {
 
     users.extraUsers.nobody = { };
 
-    networking.firewall = {
-      allowedTCPPorts = [ 4646 4647 4648 ];
-      allowedUDPPorts = [ 4648 ];
-    };
-
     systemd.services.nomad = {
       after = [ "network-online.target" "vault-agent.service" ];
       wantedBy = [ "multi-user.target" ];
@@ -1164,12 +1189,10 @@ in {
       };
 
       serviceConfig = let
-        certChainFile = if deployType == "aws" then pkiFiles.certChainFile
-                      else if cfg.server.enabled then pkiFiles.serverCertChainFile
-                      else pkiFiles.clientCertChainFile;
-        certKeyFile = if deployType == "aws" then pkiFiles.keyFile
-                      else if cfg.server.enabled then pkiFiles.serverKeyFile
-                      else pkiFiles.clientKeyFile;
+        certChainFile = if (deployType != "aws" && cfg.server.enabled) then pkiFiles.serverCertChainFile
+                        else pkiFiles.certChainFile;
+        certKeyFile = if (deployType != "aws" && cfg.server.enabled) then pkiFiles.serverKeyFile
+                      else pkiFiles.keyFile;
         start-pre = pkgs.writeBashChecked "nomad-start-pre" ''
           PATH="${lib.makeBinPath [ pkgs.coreutils pkgs.busybox ]}"
           set -exuo pipefail

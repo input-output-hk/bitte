@@ -1,4 +1,8 @@
 _: {
+  networking.firewall.allowedTCPPorts = [
+    3100  # loki
+  ];
+
   services.loki = {
     configuration = {
       auth_enabled = false;

@@ -4,16 +4,18 @@
 #   - aws_iam_role
 #   - aws_iam_role_policy
 # - It is also a reference for data points in core.nix & clients.nix
-# - Keem these machine AWS IAM policies separate in here for overview
+# - Keep these machine AWS IAM policies separate in here for overview
 # - Find (more volatile) operator policies in hydrate.nix
 
 { self, lib, pkgs, config, terralib, ... }:
 let
   inherit (terralib) allowS3For;
+  inherit (config.cluster) infraType;
+
   bucketArn = "arn:aws:s3:::${config.cluster.s3Bucket}";
   allowS3ForBucket = allowS3For bucketArn;
 in {
-  cluster.iam = {
+  cluster.iam = lib.mkIf (infraType != "prem") {
     roles = {
       client = {
         assumePolicy = {

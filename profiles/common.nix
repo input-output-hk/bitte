@@ -1,6 +1,6 @@
 { config, lib, pkgs, ... }:
 let
-  inherit (config.cluster) coreNodes premSimNodes;
+  inherit (config.cluster) nodes coreNodes premNodes premSimNodes;
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
 in {
 
@@ -18,7 +18,21 @@ in {
   security.polkit.enable = false;
 
   services.ssm-agent.enable = deployType == "aws";
-  services.openntpd.enable = true;
+
+  # Chrony succeeds in quickly syncing large time drift systems,
+  # whereas openntpd may stay unsynced for extended periods.
+  services.chrony.enable = true;
+
+  # Ensure that the timeservers are able to resolve before iburst probing
+  systemd.services.chronyd.after = lib.mkIf config.services.dnsmasq.enable [ "dnsmasq.service" ];
+
+  networking.timeServers = lib.mkForce [
+    "0.nixos.pool.ntp.org"
+    "1.nixos.pool.ntp.org"
+    "2.nixos.pool.ntp.org"
+    "3.nixos.pool.ntp.org"
+  ];
+
   services.fail2ban.enable = deployType != "premSim";
 
   environment.variables = {
@@ -28,18 +42,8 @@ in {
 
   # Don't `nixos-rebuild switch` after the initial deploy.
   systemd.services.amazon-init.enable = false;
-  networking.timeServers = lib.mkForce [
-    "0.nixos.pool.ntp.org"
-    "1.nixos.pool.ntp.org"
-    "2.nixos.pool.ntp.org"
-    "3.nixos.pool.ntp.org"
-  ];
-  boot.cleanTmpDir = true;
 
-  # remove after upgrading past 21.05
-  users.users.ntp.group = "ntp";
-  users.groups.ntp = { };
-  users.groups.systemd-coredump = { };
+  boot.cleanTmpDir = true;
 
   networking.firewall = let
     all = {
@@ -49,8 +53,10 @@ in {
   in {
     enable = true;
     allowPing = true;
-    allowedTCPPortRanges = [ all ];
-    allowedUDPPortRanges = [ all ];
+
+    # TODO: deprecate open firewall with SG dependency in aws
+    allowedTCPPortRanges = lib.mkIf (deployType == "aws") [ all ];
+    allowedUDPPortRanges = lib.mkIf (deployType == "aws") [ all ];
   };
 
   # Remove once nixpkgs is using openssh 8.7p1+ by default to avoid coredumps
@@ -61,11 +67,11 @@ in {
     inherit (config.services.vault) serverNodeNames;
   in ''
     ${lib.concatStringsSep "\n"
-    (lib.mapAttrsToList (name: instance: "${instance.privateIP} core.vault.service.consul")
-      (lib.filterAttrs (k: v: lib.elem k serverNodeNames) (premSimNodes // coreNodes)))}
+    (lib.mapAttrsToList (name: instance: "${instance.privateIP} ${name}.internal")
+      (lib.filterAttrs (k: v: lib.elem k serverNodeNames) nodes))}
 
     ${lib.concatStringsSep "\n"
     (lib.mapAttrsToList (name: instance: "${instance.privateIP} ${name}")
-      (if deployType != "premSim" then coreNodes else premSimNodes))}
+      (if deployType != "premSim" then (coreNodes // premNodes) else premSimNodes))}
   '';
 }

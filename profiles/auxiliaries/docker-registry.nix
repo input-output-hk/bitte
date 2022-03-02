@@ -10,6 +10,11 @@ let
     chown docker-registry /var/lib/docker-registry/docker-passwords
   '';
 in {
+
+  networking.firewall.allowedTCPPorts = [
+    config.services.dockerRegistry.port
+  ];
+
   systemd.services.docker-registry.serviceConfig.Environment = [
     "REGISTRY_AUTH=htpasswd"
     "REGISTRY_AUTH_HTPASSWD_REALM=docker-registry"
@@ -18,7 +23,7 @@ in {
 
   services = {
     dockerRegistry = {
-      enable = true;
+      enable = lib.mkDefault true;
       enableDelete = true;
       enableGarbageCollect = true;
       enableRedisCache = true;
@@ -83,6 +88,9 @@ in {
     script = docker-passwords-script "/run/keys/docker-passwords-decrypted";
   };
 
+  # For the prem case, hydrate-secrets handles the push to vault instead of sops
+  # TODO: add proper docker password generation creds in the Rakefile
+  # TODO: add more unified handling between aws and prem secrets
   age.secrets = lib.mkIf (!isSops) {
     docker-passwords = {
       file = config.age.encryptedRoot + "/docker/password.age";

@@ -203,12 +203,17 @@ in {
     '';
   };
 
-  age.secrets.consul-token-master = lib.mkIf (isInstance && !isSops) {
+  age.secrets.consul-token-master = lib.mkIf (config.services.consul.server && !isSops) {
     file = config.age.encryptedRoot + "/consul/token-master.age";
-    path = "/etc/consul.d/secrets.json";
+    path = gossipEncryptionMaterial.consul;
     mode = "0444";
     script = ''
-      echo '{}' \
+      if [ -s "${gossipEncryptionMaterial.consul}" ]; then
+        CONTENTS="$(< "${gossipEncryptionMaterial.consul}")"
+      else
+        CONTENTS="{}"
+      fi
+      echo "$CONTENTS" \
         | ${pkgs.jq}/bin/jq \
           --arg token "$(< "$src")" \
           '.acl.tokens.master = $token' \
@@ -216,15 +221,33 @@ in {
     '';
   };
 
-  age.secrets.consul-encrypt = lib.mkIf (!isSops) {
+  age.secrets.consul-encrypt = lib.mkIf (config.services.consul.enable && !isSops) {
     file = config.age.encryptedRoot + /consul/encrypt.age;
-    path = "/etc/consul.d/encrypt.json";
+    path = gossipEncryptionMaterial.consul;
+    mode = "0444";
+    script = ''
+      if [ -s "${gossipEncryptionMaterial.consul}" ]; then
+        CONTENTS="$(< "${gossipEncryptionMaterial.consul}")"
+      else
+        CONTENTS="{}"
+      fi
+      echo "$CONTENTS" \
+        | ${pkgs.jq}/bin/jq \
+          --arg encrypt "$(< "$src")" \
+          '.encrypt = $encrypt' \
+        > $out
+    '';
+  };
+
+  age.secrets.nomad-encrypt = lib.mkIf (config.services.nomad.server.enabled && !isSops) {
+    file = config.age.encryptedRoot + /nomad/encrypt.age;
+    path = gossipEncryptionMaterial.nomad;
     mode = "0444";
     script = ''
       echo '{}' \
         | ${pkgs.jq}/bin/jq \
           --arg encrypt "$(< "$src")" \
-          '.encrypt = $encrypt' \
+          '.server.encrypt = $encrypt' \
         > $out
     '';
   };

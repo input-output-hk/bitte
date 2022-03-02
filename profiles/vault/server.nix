@@ -15,12 +15,28 @@
   };
 
   Config = let
-    inherit (config.cluster) coreNodes premSimNodes region;
+    inherit (config.cluster) nodes region;
     deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
-    datacenter = config.currentCoreNode.datacenter or config.currentAwsAutoScalingGroup.datacenter;
+    datacenter = config.currentCoreNode.datacenter or config.cluster.region;
     ownedChain = "/var/lib/vault/full.pem";
     ownedKey = "/var/lib/vault/cert-key.pem";
+
+    serverAddress = if config.services.vault.serverNameAddressing
+                    then "${nodeName}.internal"
+                    else config.currentCoreNode.privateIP;
   in {
+    # Vault firewall references:
+    #   https://www.vaultproject.io/docs/configuration/listener/tcp
+    #   https://learn.hashicorp.com/tutorials/vault/reference-architecture
+    #
+    # Vault ports specific to servers
+    networking.firewall = {
+      allowedTCPPorts = [
+        8200  # http api
+        8201  # rpc
+      ];
+    };
+
     services.vault-agent = {
       role = "core";
       vaultAddress = "https://127.0.0.1:8200"; # avoid depending on any network (at least for the agent)
@@ -29,8 +45,8 @@
     services.vault = {
       logLevel = "trace";
 
-      apiAddr = "https://${config.currentCoreNode.privateIP}:8200";
-      clusterAddr = "https://${config.currentCoreNode.privateIP}:8201";
+      apiAddr = "https://${serverAddress}:8200";
+      clusterAddr = "https://${serverAddress}:8201";
 
       listener.tcp = {
         clusterAddress = "${config.currentCoreNode.privateIP}:8201";
@@ -61,11 +77,12 @@
       storage.raft = let
         vcfg = config.services.vault;
         vaultServers =
-          lib.filterAttrs (k: v: lib.elem k vcfg.serverNodeNames)
-          (premSimNodes // coreNodes);
+          lib.filterAttrs (k: v: lib.elem k vcfg.serverNodeNames) nodes;
+        vaultAddress = k: v: if config.services.vault.serverNameAddressing
+                       then "${k}.internal" else v.privateIP;
       in lib.mkDefault {
         retryJoin = lib.mapAttrsToList (_: vaultServer: {
-          leaderApiAddr = "https://${vaultServer.privateIP}:8200";
+          leaderApiAddr = "https://${vaultAddress _ vaultServer}:8200";
           leaderCaCertFile = vcfg.listener.tcp.tlsClientCaFile;
           leaderClientCertFile = vcfg.listener.tcp.tlsCertFile;
           leaderClientKeyFile = vcfg.listener.tcp.tlsKeyFile;

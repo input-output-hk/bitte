@@ -8,12 +8,23 @@
   };
 
   Config = let
-    inherit (config.cluster) coreNodes premSimNodes region;
+    inherit (config.cluster) nodes region;
     deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
-    datacenter = config.currentCoreNode.datacenter or config.currentAwsAutoScalingGroup.datacenter;
+    datacenter = config.currentCoreNode.datacenter or config.cluster.region;
 
     cfg = config.services.nomad;
   in {
+    # Nomad firewall references:
+    #   https://www.nomadproject.io/docs/install/production/requirements
+    #
+    # Nomad ports specific to servers
+    networking.firewall.allowedTCPPorts = [
+      4648  # serf wan
+    ];
+    networking.firewall.allowedUDPPorts = [
+      4648  # serf wan
+    ];
+
     services.nomad = {
       datacenter = if deployType == "aws" then region else datacenter;
 
@@ -21,7 +32,7 @@
         bootstrap_expect = 3;
 
         server_join = {
-          retry_join = (lib.mapAttrsToList (_: v: v.privateIP) (lib.filterAttrs (k: v: lib.elem k cfg.serverNodeNames) (premSimNodes // coreNodes)))
+          retry_join = (lib.mapAttrsToList (_: v: v.privateIP) (lib.filterAttrs (k: v: lib.elem k cfg.serverNodeNames) nodes))
             ++ (lib.optionals (deployType == "aws")
             [ "provider=aws region=${region} tag_key=Nomad tag_value=server" ]);
         };

@@ -1,11 +1,13 @@
 { lib, pkgs, config, nodeName, ... }:
 let
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+  role = config.currentCoreNode.role or config.currentAwsAutoScalingGroup.role;
 
   isSops = deployType == "aws";
   isInstance = config.currentCoreNode != null;
   isAsg = !isInstance;
-  isMonitoring = nodeName == "monitoring";
+  isClient = role == "client";
+  isMonitoring = (nodeName == "monitoring") || (role == "monitor");
 in {
   secrets.generate.nix-key-file = lib.mkIf isSops ''
     export PATH="${lib.makeBinPath (with pkgs; [ nixFlakes sops coreutils ])}"
@@ -65,11 +67,11 @@ in {
         -o NumberOfPasswordPrompts=0 \
         -o StrictHostKeyChecking=accept-new \
         -i /etc/nix/builder-key \
-        builder@${config.cluster.coreNodes.monitoring.privateIP} echo 'trust established'
+        builder@${config.cluster.nodes.monitoring.privateIP} echo 'trust established'
     '';
   };
 
-  age.secrets = lib.mkIf (isAsg && !isSops) {
+  age.secrets = lib.mkIf (!isSops && isClient) {
     docker-passwords = {
       file = config.age.encryptedRoot + "/ssh/builder.age";
       path = "/etc/nix/builder-key";
@@ -80,22 +82,22 @@ in {
         ${pkgs.openssh}/bin/ssh \
           -o NumberOfPasswordPrompts=0 \
           -o StrictHostKeyChecking=accept-new \
-          -i /etc/nix/builder-key \
-          builder@${config.cluster.coreNodes.monitoring.privateIP} echo 'trust established'
+          -i $src \
+          builder@${config.cluster.nodes.monitoring.privateIP} echo 'trust established'
         mv "$src" "$out"
       '';
     };
   };
 
   nix = {
-    distributedBuilds = isAsg;
-    maxJobs = lib.mkIf isAsg 0;
+    distributedBuilds = isAsg || isClient;
+    maxJobs = lib.mkIf (isAsg || isClient) 0;
     extraOptions = ''
       builders-use-substitutes = true
     '';
     trustedUsers = lib.mkIf isMonitoring [ "root" "builder" ];
-    buildMachines = lib.optionals isAsg [{
-      hostName = config.cluster.coreNodes.monitoring.privateIP;
+    buildMachines = lib.optionals (isAsg || isClient) [{
+      hostName = config.cluster.nodes.monitoring.privateIP;
       maxJobs = 5;
       speedFactor = 1;
       sshKey = "/etc/nix/builder-key";
@@ -107,8 +109,10 @@ in {
   users.extraUsers = lib.mkIf isMonitoring {
     builder = {
       isSystemUser = true;
-      openssh.authorizedKeys.keyFiles =
-        [ ((toString config.secrets.encryptedRoot) + "/nix-builder-key.pub") ];
+      openssh.authorizedKeys.keyFiles = let
+        builderKey = if isSops then "${toString config.secrets.encryptedRoot}/nix-builder-key.pub"
+                     else config.age.encryptedRoot + "/ssh/builder.pub";
+      in [ builderKey ];
       shell = pkgs.bashInteractive;
     };
   };

@@ -28,7 +28,7 @@
       }];
     };
 
-    systemd.services.certs-updated = lib.mkIf (deployType == "aws") {
+    systemd.services.certs-updated = {
       wantedBy = [ "multi-user.target" ];
       after = [ "vault-agent.service" ];
       path = with pkgs; [ coreutils curl systemd ];

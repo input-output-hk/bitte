@@ -2,7 +2,6 @@
 
 [vault.admin]
 path."approle/*".capabilities = [ "create", "read", "update", "delete", "list" ]
-path."aws/*".capabilities = [ "create", "read", "update", "delete", "list" ]
 path."consul/*".capabilities = [ "create", "read", "update", "delete", "list" ]
 path."kv/*".capabilities = [ "create", "read", "update", "delete", "list" ]
 path."nomad/*".capabilities = [ "create", "read", "update", "delete", "list" ]
@@ -11,8 +10,6 @@ path."runtime/*".capabilities = [ "create", "read", "update", "delete", "list" ]
 path."sops/*".capabilities = [ "create", "read", "update", "delete", "list" ]
 path."starttime/*".capabilities = [ "create", "read", "update", "delete", "list" ] # Starttime app secrets (accessible by nomad-cluster role)
 
-path."auth/aws/config/client".capabilities = [ "create", "read", "update", "delete", "list" ]
-path."auth/aws/role/*".capabilities = [ "create", "read", "update", "delete", "list" ]
 path."auth/github-employees/config".capabilities = [ "create", "read", "update", "delete", "list", "sudo" ]
 path."auth/github-employees/map/teams/*".capabilities = [ "create", "read", "update", "delete", "list", "sudo" ]
 path."auth/github-terraform/config".capabilities = [ "create", "read", "update", "delete", "list", "sudo" ]
@@ -31,7 +28,6 @@ path."auth/token/roles/*".capabilities = [ "create", "read", "update", "delete",
 path."auth/token/roles/nomad-cluster".capabilities = [ "create", "read", "update", "delete", "list" ]
 path."auth/token/roles/nomad-server".capabilities = [ "read" ]
 path."identity/*".capabilities = [ "create", "read", "update", "delete", "list" ]
-path."sys/auth/aws".capabilities = [ "create", "read", "update", "delete", "list", "sudo" ]
 path."sys/auth".capabilities = [ "read", "list" ]
 path."sys/auth/github-employees".capabilities = [ "create", "read", "update", "delete", "list", "sudo" ]
 path."sys/auth/github-employees/config".capabilities = [ "create", "read" ]
@@ -47,7 +43,6 @@ path."sys/policy/*".capabilities = [ "create", "read", "update", "delete", "list
 
 
 [vault.developer]
-path."aws/creds/developer".capabilities = [ "read", "update", ] # Allow creating AWS tokens
 path."consul/creds/developer".capabilities = [ "read", "update", ] # Allow creating Consul tokens
 path."nomad/creds/developer".capabilities = [ "read", "update", ] # Allow creating Nomad tokens
 path."sops/dev".capabilities = [ "read", "list", ] # Allow to decrypt dev sops secrets

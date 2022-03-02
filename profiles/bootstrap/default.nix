@@ -193,9 +193,10 @@ in {
       };
 
       environment = {
-        inherit (config.environment.variables)
-          AWS_DEFAULT_REGION VAULT_CACERT VAULT_FORMAT VAULT_ADDR;
-      };
+        inherit (config.environment.variables) VAULT_CACERT VAULT_FORMAT VAULT_ADDR;
+      } // (lib.optionalAttrs (config.environment.variables ? "AWS_DEFAULT_REGION") {
+        inherit (config.environment.variables) AWS_DEFAULT_REGION;
+      });
 
       path = with pkgs; [ sops rage vault-bin consul nomad coreutils jq curl ];
 
@@ -264,6 +265,28 @@ in {
           ''))}
         ''}
 
+        ${lib.optionalString (deployType != "aws") ''
+          # Finally allow cert roles to login to Vault
+
+          vault write auth/cert/certs/vault-agent-core \
+            display_name=vault-agent-core \
+            policies=vault-agent-core \
+            certificate=@"/etc/ssl/certs/server.pem" \
+            ttl=3600
+
+          vault write auth/cert/certs/vault-agent-client \
+            display_name=vault-agent-client \
+            policies=vault-agent-client \
+            certificate=@"/etc/ssl/certs/client.pem" \
+            ttl=3600
+
+          vault write auth/cert/certs/vault-agent-routing \
+            display_name=vault-agent-routing \
+            policies=routing \
+            certificate=@"/etc/ssl/certs/client.pem" \
+            ttl=3600''
+        }
+
         ${initialVaultSecrets}
 
         ${initialVaultStaticSecrets}
@@ -290,10 +313,12 @@ in {
       };
 
       environment = {
-        inherit (config.environment.variables) AWS_DEFAULT_REGION NOMAD_ADDR;
+        inherit (config.environment.variables) NOMAD_ADDR;
         CURL_CA_BUNDLE = if deployType == "aws" then pkiFiles.certChainFile
                          else pkiFiles.serverCertChainFile;
-      };
+      } // (lib.optionalAttrs (config.environment.variables ? "AWS_DEFAULT_REGION") {
+        inherit (config.environment.variables) AWS_DEFAULT_REGION;
+      });
 
       path = with pkgs; [ curl sops rage coreutils jq nomad vault-bin gawk ];
 
@@ -367,9 +392,10 @@ in {
       };
 
       environment = {
-        inherit (config.environment.variables)
-          AWS_DEFAULT_REGION VAULT_CACERT VAULT_FORMAT VAULT_ADDR;
-      };
+        inherit (config.environment.variables) VAULT_CACERT VAULT_FORMAT VAULT_ADDR;
+      } // (lib.optionalAttrs (config.environment.variables ? "AWS_DEFAULT_REGION") {
+        inherit (config.environment.variables) AWS_DEFAULT_REGION;
+      });
 
       path = with pkgs; [
         consul
@@ -476,7 +502,6 @@ in {
         echo "$secrets" | jq -e '."kv/"'          || vault secrets enable -version=2 kv
         echo "$secrets" | jq -e '."nomad/"'       || vault secrets enable nomad
         echo "$secrets" | jq -e '."pki/"'         || vault secrets enable pki
-        echo "$secrets" | jq -e '."pki-consul/"'  || vault secrets enable -path pki-consul pki
 
         auth="$(vault auth list)"
 
@@ -485,25 +510,7 @@ in {
         }
 
         ${lib.optionalString (deployType != "aws") ''
-          echo "$auth" | jq -e '."cert/"'         || vault auth enable cert
-
-          vault write auth/cert/certs/vault-agent-core \
-            display_name=vault-agent-core \
-            policies=vault-agent-core \
-            certificate=@"/etc/ssl/certs/client.pem" \
-            ttl=3600
-
-          vault write auth/cert/certs/vault-agent-client \
-            display_name=vault-agent-client \
-            policies=vault-agent-client \
-            certificate=@"/etc/ssl/certs/client.pem" \
-            ttl=3600
-
-          vault write auth/cert/certs/vault-agent-routing \
-            display_name=vault-agent-routing \
-            policies=routing \
-            certificate=@"/etc/ssl/certs/client.pem" \
-            ttl=3600''
+          echo "$auth" | jq -e '."cert/"'         || vault auth enable cert''
         }
 
         # This lets Vault issue Consul tokens
