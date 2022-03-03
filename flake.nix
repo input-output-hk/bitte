@@ -4,8 +4,7 @@
   inputs = {
     nixpkgs.url =
       "github:nixos/nixpkgs/43cdc5b364511eabdcad9fde639777ffd9e5bab1"; # nixos-21.05
-    nixpkgs-core.follows = "nixpkgs";
-    nixpkgs-client.follows = "nixpkgs";
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixpkgs-unstable";
 
     nix.url = "github:NixOS/nix";
     cli.url = "github:input-output-hk/bitte-cli";

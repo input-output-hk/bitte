@@ -18,6 +18,9 @@ rec {
   inherit (inputs.agenix.packages."${final.system}") agenix;
   inherit (inputs.agenix-cli.packages."${final.system}") agenix-cli;
 
+  # We need at least Traefik 2.5.3 for Consul Connect
+  inherit (inputs.nixpkgs-unstable.legacyPackages."${final.system}") traefik;
+
   ragenix = inputs.ragenix.defaultPackage."${final.system}";
 
   # bitte-ruby and bundler for prem, premSim ops repo Rakefile support
