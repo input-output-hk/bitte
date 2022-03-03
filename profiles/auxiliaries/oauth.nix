@@ -25,6 +25,8 @@ in {
     cookie.domain = ".${domain}";
   };
 
+  systemd.services.oauth2_proxy.serviceConfig.RestartSec = "5s";
+
   users.extraGroups.keys.members = [ "oauth2_proxy" ];
 
   secrets.install.oauth.script = lib.mkIf isSops ''
