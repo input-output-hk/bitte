@@ -2,6 +2,7 @@
 let
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
   isSops = deployType == "aws";
+  relEncryptedFolder = lib.last (builtins.split "-" (toString config.secrets.encryptedRoot));
 
   docker-passwords-script = src: ''
     export PATH="${lib.makeBinPath (with pkgs; [ coreutils jq ])}"
@@ -50,10 +51,10 @@ in {
   secrets.generate.redis-password = lib.mkIf isSops ''
     export PATH="${lib.makeBinPath (with pkgs; [ coreutils sops xkcdpass ])}"
 
-    if [ ! -s encrypted/redis-password.json ]; then
+    if [ ! -s ${relEncryptedFolder}/redis-password.json ]; then
       xkcdpass \
       | sops --encrypt --kms '${config.cluster.kms}' /dev/stdin \
-      > encrypted/redis-password.json
+      > ${relEncryptedFolder}/redis-password.json
     fi
   '';
 
@@ -69,7 +70,7 @@ in {
       lib.makeBinPath (with pkgs; [ coreutils sops jq pwgen apacheHttpd ])
     }"
 
-    if [ ! -s encrypted/docker-passwords.json ]; then
+    if [ ! -s ${relEncryptedFolder}/docker-passwords.json ]; then
       password="$(pwgen -cB 32)"
       hashed="$(echo "$password" | htpasswd -i -B -n developer)"
 
@@ -77,8 +78,8 @@ in {
         | jq --arg password "$password" '.password = $password' \
         | jq --arg hashed "$hashed" '.hashed = $hashed' \
         | sops --encrypt --input-type json --output-type json --kms '${config.cluster.kms}' /dev/stdin \
-        > encrypted/docker-passwords.new.json
-      mv encrypted/docker-passwords.new.json encrypted/docker-passwords.json
+        > ${relEncryptedFolder}/docker-passwords.new.json
+      mv ${relEncryptedFolder}/docker-passwords.new.json ${relEncryptedFolder}/docker-passwords.json
     fi
   '';
 

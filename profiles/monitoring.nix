@@ -5,6 +5,7 @@ let
     config.${if deployType == "aws" then "cluster" else "currentCoreNode"}.domain;
   isSops = deployType == "aws";
   cfg = config.services.monitoring;
+  relEncryptedFolder = lib.last (builtins.split "-" (toString config.secrets.encryptedRoot));
 in {
   imports = [
     ./common.nix
@@ -151,10 +152,10 @@ in {
     secrets.generate.grafana-password = lib.mkIf isSops ''
       export PATH="${lib.makeBinPath (with pkgs; [ coreutils sops xkcdpass ])}"
 
-      if [ ! -s encrypted/grafana-password.json ]; then
+      if [ ! -s ${relEncryptedFolder}/grafana-password.json ]; then
         xkcdpass \
         | sops --encrypt --kms '${config.cluster.kms}' /dev/stdin \
-        > encrypted/grafana-password.json
+        > ${relEncryptedFolder}/grafana-password.json
       fi
     '';
 

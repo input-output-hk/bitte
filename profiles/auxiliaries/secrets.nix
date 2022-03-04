@@ -77,6 +77,7 @@ let
       "127.0.0.1"
     ] ++ (lib.mapAttrsToList (_: i: i.privateIP) config.cluster.coreNodes);
   };
+  relEncryptedFolder = lib.last (builtins.split "-" (toString config.secrets.encryptedRoot));
 
 in {
   secrets.generate.consul = lib.mkIf (isInstance && isSops) ''
@@ -84,21 +85,21 @@ in {
 
     encrypt="$(consul keygen)"
 
-    if [ ! -s encrypted/consul-core.json ]; then
-      echo generating encrypted/consul-core.json
+    if [ ! -s ${relEncryptedFolder}/consul-core.json ]; then
+      echo generating ${relEncryptedFolder}/consul-core.json
       echo '{}' \
       | jq --arg encrypt "$encrypt" '.encrypt = $encrypt' \
       | jq --arg token "$(uuidgen)" '.acl.tokens.master = $token' \
       | ${sopsEncrypt} \
-      > encrypted/consul-core.json
+      > ${relEncryptedFolder}/consul-core.json
     fi
 
-    if [ ! -s encrypted/consul-clients.json ]; then
-      echo generating encrypted/consul-clients.json
+    if [ ! -s ${relEncryptedFolder}/consul-clients.json ]; then
+      echo generating ${relEncryptedFolder}/consul-clients.json
       echo '{}' \
       | jq --arg encrypt "$encrypt" '.encrypt = $encrypt' \
       | ${sopsEncrypt} \
-      > encrypted/consul-clients.json
+      > ${relEncryptedFolder}/consul-clients.json
     fi
   '';
 
@@ -123,14 +124,14 @@ in {
   secrets.generate.nomad = lib.mkIf (isInstance && isSops) ''
     export PATH="${lib.makeBinPath (with pkgs; [ nomad jq ])}"
 
-    if [ ! -s encrypted/nomad.json ]; then
-      echo generating encrypted/nomad.json
+    if [ ! -s ${relEncryptedFolder}/nomad.json ]; then
+      echo generating ${relEncryptedFolder}/nomad.json
       encrypt="$(nomad operator keygen)"
 
       echo '{}' \
       | jq --arg encrypt "$encrypt" '.server.encrypt = $encrypt' \
       | ${sopsEncrypt} \
-      > encrypted/nomad.json
+      > ${relEncryptedFolder}/nomad.json
     fi
   '';
 
@@ -139,7 +140,7 @@ in {
 
     mkdir -p secrets encrypted
 
-    if [ ! -s encrypted/nix-public-key-file ]; then
+    if [ ! -s ${relEncryptedFolder}/nix-public-key-file ]; then
       if [ ! -s secrets/nix-secret-key-file ] || [ ! -s secrets/nix-public-key-file ]; then
         echo generating Nix cache keys
         nix-store \
@@ -149,16 +150,16 @@ in {
           secrets/nix-public-key-file
       fi
 
-      cp secrets/nix-public-key-file encrypted/nix-public-key-file
+      cp secrets/nix-public-key-file ${relEncryptedFolder}/nix-public-key-file
     fi
 
-    if [ ! -s encrypted/nix-cache.json ]; then
-      echo generating encrypted/nix-cache.json
+    if [ ! -s ${relEncryptedFolder}/nix-cache.json ]; then
+      echo generating ${relEncryptedFolder}/nix-cache.json
       echo '{}' \
       | jq --arg private "$(< secrets/nix-secret-key-file)" '.private = $private' \
       | jq --arg public "$(< secrets/nix-public-key-file)" '.public = $public' \
       | ${sopsEncrypt} \
-      > encrypted/nix-cache.json
+      > ${relEncryptedFolder}/nix-cache.json
     fi
   '';
 
@@ -167,13 +168,13 @@ in {
       lib.makeBinPath (with pkgs; [ cfssl jq coreutils terraform-with-plugins ])
     }"
 
-    if [ ! -s encrypted/ca.json ]; then
+    if [ ! -s ${relEncryptedFolder}/ca.json ]; then
       ca="$(cfssl gencert -initca ${caJson})"
       echo "$ca" | cfssljson -bare secrets/ca
-      echo "$ca" | ${sopsEncrypt} > encrypted/ca.json
+      echo "$ca" | ${sopsEncrypt} > ${relEncryptedFolder}/ca.json
     fi
 
-    if [ ! -s encrypted/cert.json ]; then
+    if [ ! -s ${relEncryptedFolder}/cert.json ]; then
       cert="$(
         cfssl gencert \
           -ca secrets/ca.pem \
@@ -186,7 +187,7 @@ in {
       echo "$cert" | cfssljson -bare secrets/cert
       cat secrets/cert.pem secrets/ca.pem > secrets/full.pem
       cert="$(echo "$cert" | jq --arg full "$(< secrets/full.pem)" '.full = $full')"
-      echo "$cert" | ${sopsEncrypt} > encrypted/cert.json
+      echo "$cert" | ${sopsEncrypt} > ${relEncryptedFolder}/cert.json
     fi
   '';
 
