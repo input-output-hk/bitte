@@ -6,7 +6,7 @@
       "github:nixos/nixpkgs/43cdc5b364511eabdcad9fde639777ffd9e5bab1"; # nixos-21.05
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixpkgs-unstable";
 
-    nix.url = "github:NixOS/nix";
+    nix.url = "github:kreisys/nix/goodnix-maybe-dont-functor";
     cli.url = "github:input-output-hk/bitte-cli";
     agenix.url = "github:ryantm/agenix";
     agenix-cli.url = "github:cole-h/agenix-cli";
