@@ -12,6 +12,7 @@ let
   isClient = role == "client";
   isMonitoring = (nodeName == "monitoring") || (role == "monitor");
   isRemoteBuilder = nodeName == cfg.remoteBuilder.nodeName;
+  relEncryptedFolder = lib.last (builtins.split "-" (toString config.secrets.encryptedRoot));
 in {
   options.profiles.auxiliaries.builder = with lib; {
     enable = mkEnableOption "builder profile" // { default = true; };
@@ -34,7 +35,7 @@ in {
   config = lib.mkIf cfg.enable {
     secrets.generate.nix-key-file = lib.mkIf isSops ''
       export PATH="${lib.makeBinPath (with pkgs; [ nix sops coreutils ])}"
-      esk=encrypted/nix-secret-key-file
+      esk=${relEncryptedFolder}/nix-secret-key-file
       ssk=secrets/nix-secret-key-file
       if [ ! -s "$esk" ]; then
         if [ -s "$ssk" ]; then
@@ -51,7 +52,7 @@ in {
         sops --decrypt --input-type binary "$ssk" > "$ssk.new"
         mv "$ssk.new" "$ssk"
       fi
-      epk=encrypted/nix-public-key-file
+      epk=${relEncryptedFolder}/nix-public-key-file
       spk=secrets/nix-public-key-file
       for pub in "$epk" "$spk"; do
         if [ ! -s "$pub" ]; then
@@ -63,9 +64,9 @@ in {
 
     secrets.generate.builder-ssh-key = lib.mkIf isSops ''
       export PATH="${lib.makeBinPath (with pkgs; [ openssh sops coreutils ])}"
-      epk=encrypted/nix-builder-key.pub
+      epk=${relEncryptedFolder}/nix-builder-key.pub
       spk=secrets/nix-builder-key.pub
-      esk=encrypted/nix-builder-key
+      esk=${relEncryptedFolder}/nix-builder-key
       ssk=secrets/nix-builder-key
       if [ ! -s "$esk" ]; then
         ssh-keygen -t ed25519 -f "$ssk" -P "" -C "builder@${cfg.remoteBuilder.nodeName}"

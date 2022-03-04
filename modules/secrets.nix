@@ -50,6 +50,7 @@ let
           type = with lib.types; str;
           apply = f:
             let
+              relEncryptedFolder = lib.last (builtins.split "-" (toString config.secrets.encryptedRoot));
               scripts = lib.concatStringsSep "\n" (lib.mapAttrsToList
                 (name: value:
                   let
@@ -67,11 +68,11 @@ let
               }"
 
               (flock -w 30 9 || exit 1
-                mkdir -p secrets encrypted
+                mkdir -p secrets ${relEncryptedFolder}
 
                 ${scripts}
 
-                git add encrypted/
+                git add ${relEncryptedFolder}/
               ) 9>.secrets-generate.lock
             '';
         };
