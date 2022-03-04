@@ -324,14 +324,18 @@ in {
     # ---------------------------------------------------------------
     # Extra Storage
     # ---------------------------------------------------------------
-    resource.aws_volume_attachment = lib.mapAttrs (
+    resource.aws_volume_attachment = let
+      storageNodes = lib.filterAttrs (_: v: v.ebsVolume != null) config.cluster.coreNodes;
+    in lib.mkIf (storageNodes != {}) (lib.mapAttrs (
       # host name == volume name
       host: _: mkAttachment host host "/dev/sdh"
-    ) (lib.filterAttrs (_: v: v.ebsVolume != null) config.cluster.coreNodes);
+    ) storageNodes );
 
     # host name == volume name
-    resource.aws_ebs_volume = lib.mapAttrs (
+    resource.aws_ebs_volume = let
+      storageNodes = lib.filterAttrs (_: v: v.ebsVolume != null) config.cluster.coreNodes;
+    in lib.mkIf (storageNodes != {}) (lib.mapAttrs (
       host: cfg: mkStorage host config.cluster.kms cfg.ebsVolume
-    ) (lib.filterAttrs (_: v: v.ebsVolume != null) config.cluster.coreNodes);
+    ) storageNodes );
   };
 }
