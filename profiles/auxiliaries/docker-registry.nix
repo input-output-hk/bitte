@@ -1,4 +1,4 @@
-{ lib, pkgs, config, ... }:
+{ lib, pkgs, config, etcEncrypted, ... }:
 let
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
   isSops = deployType == "aws";
@@ -59,7 +59,7 @@ in {
   '';
 
   secrets.install.redis-password = lib.mkIf isSops {
-    source = (toString config.secrets.encryptedRoot) + "/redis-password.json";
+    source = "${etcEncrypted}/redis-password.json";
     target = /run/keys/redis-password;
     inputType = "binary";
     outputType = "binary";
@@ -84,7 +84,7 @@ in {
   '';
 
   secrets.install.docker-passwords = lib.mkIf isSops {
-    source = (toString config.secrets.encryptedRoot) + "/docker-passwords.json";
+    source = "${etcEncrypted}/docker-passwords.json";
     target = /run/keys/docker-passwords-decrypted;
     script = docker-passwords-script "/run/keys/docker-passwords-decrypted";
   };

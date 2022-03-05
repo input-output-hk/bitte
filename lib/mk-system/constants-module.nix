@@ -4,6 +4,8 @@ let
   domain = config.${if deployType == "aws" then "cluster" else "currentCoreNode"}.domain;
 in {
   _module.args = {
+    etcEncrypted = "/etc/encrypted";
+
     pkiFiles = {
       # Common deployType cert files
       caCertFile = "/etc/ssl/certs/ca.pem";

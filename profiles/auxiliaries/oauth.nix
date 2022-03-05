@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, etcEncrypted, ... }:
 let
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
   domain = config.${if deployType == "aws" then "cluster" else "currentCoreNode"}.domain;
@@ -30,7 +30,7 @@ in {
   secrets.install.oauth.script = lib.mkIf isSops ''
     export PATH="${lib.makeBinPath (with pkgs; [ sops coreutils ])}"
 
-    cat ${(toString config.secrets.encryptedRoot) + "/oauth-secrets"} \
+    cat ${etcEncrypted}/oauth-secrets \
       | sops -d /dev/stdin \
       > /run/keys/oauth-secrets
 
