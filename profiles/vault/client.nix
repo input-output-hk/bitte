@@ -15,9 +15,13 @@
   in {
     services.vault-agent = {
       role = "client";
+      # if we use aws and consul depends on vault bootstrapping (get a token)
+      # then we cannot depend on consul to access vault, obviously
       vaultAddress = if deployType == "aws" then "https://vault.${domain}"
                      else "https://core.vault.service.consul:8200";
       cache.useAutoAuthToken = true;
+      # john.lotoski: The extra listener exists on the docker bridge and enables access to
+      # vault for both bridge mode exec jobs and bridge mode docker jobs I believe. IIRC
       listener = [{
           type = "tcp";
           address = "172.17.0.1:8200";
