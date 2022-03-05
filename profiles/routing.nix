@@ -455,8 +455,8 @@ in {
           # Use local agent caching for catalog reads.
           cache = false;
 
-          # Enable Consul Connect support.
-          connectaware = true;
+          # Disable Consul Connect support.
+          connectaware = false;
 
           # Consider every service as Connect capable by default.
           connectbydefault = false;
