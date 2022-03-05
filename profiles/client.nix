@@ -8,6 +8,7 @@ in {
     ./consul/client.nix
     ./nomad/client.nix
     ./vault/client.nix
+    ./glusterfs/client.nix
 
     ./auxiliaries/docker.nix
     ./auxiliaries/reaper.nix
