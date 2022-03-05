@@ -54,6 +54,8 @@ in rec {
   systemdService = {
     wantedBy = [ "${service.name}.service" ];
     partOf = [ "${service.name}.service" ];
+    after = [ "consul.service" "vault-agent.service" ];
+    wants = [ "consul.service" "vault-agent.service" ];
 
     environment = {
       VAULT_ADDR = "https://127.0.0.1:8200";
