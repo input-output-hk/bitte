@@ -1,4 +1,4 @@
-{ self, lib, pkgs, config, pkiFiles, gossipEncryptionMaterial, ... }:
+{ self, lib, pkgs, config, pkiFiles, gossipEncryptionMaterial, etcEncrypted, ... }:
 let
   # Note: Cert definitions in this file are applicable to AWS deployType clusters.
   # For premSim and prem deploType clusters, see the Rakefilefor cert genertaion details.
@@ -80,6 +80,8 @@ let
   relEncryptedFolder = lib.last (builtins.split "-" (toString config.secrets.encryptedRoot));
 
 in {
+  environment.etc.encrypted.source = config.secrets.encryptedRoot; # etcEncrypted
+
   secrets.generate.consul = lib.mkIf (isInstance && isSops) ''
     export PATH="${lib.makeBinPath (with pkgs; [ consul toybox jq coreutils ])}"
 
@@ -104,17 +106,17 @@ in {
   '';
 
   secrets.install.nomad-server = lib.mkIf (isInstance && isSops) {
-    source = (toString config.secrets.encryptedRoot) + "/nomad.json";
+    source = "${etcEncrypted}/nomad.json";
     target = gossipEncryptionMaterial.nomad;
   };
 
   secrets.install.consul-server = lib.mkIf (isInstance && isSops) {
-    source = (toString config.secrets.encryptedRoot) + "/consul-core.json";
+    source = "${etcEncrypted}/consul-core.json";
     target = gossipEncryptionMaterial.consul;
   };
 
   secrets.install.consul-clients = lib.mkIf (!isInstance && isSops) {
-    source = (toString config.secrets.encryptedRoot) + "/consul-clients.json";
+    source = "${etcEncrypted}/consul-clients.json";
     target = gossipEncryptionMaterial.consul;
     script = ''
       ${pkgs.systemd}/bin/systemctl restart consul.service
@@ -194,7 +196,7 @@ in {
   secrets.install.certs = lib.mkIf (isInstance && isSops) {
     script = ''
       export PATH="${lib.makeBinPath (with pkgs; [ cfssl jq coreutils ])}"
-      cert="$(${sopsDecrypt ((toString config.secrets.encryptedRoot) + "/cert.json")})"
+      cert="$(${sopsDecrypt "${etcEncrypted}/cert.json"})"
       echo "$cert" | cfssljson -bare cert
       cp ${builtins.baseNameOf pkiFiles.certFile} ${pkiFiles.certFile}
       cp ${builtins.baseNameOf pkiFiles.keyFile} ${pkiFiles.keyFile}

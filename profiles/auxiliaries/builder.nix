@@ -1,4 +1,4 @@
-{ lib, pkgs, config, nodeName, ... }:
+{ lib, pkgs, config, nodeName, etcEncrypted, ... }:
 let
   deployType =
     config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
@@ -80,7 +80,7 @@ in {
     '';
 
     secrets.install.builder-private-ssh-key = lib.mkIf (isAsg && isSops) {
-      source = (toString config.secrets.encryptedRoot) + "/nix-builder-key";
+      source = "${etcEncrypted}/nix-builder-key";
       target = /etc/nix/builder-key;
       inputType = "binary";
       outputType = "binary";

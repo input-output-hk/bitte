@@ -1,4 +1,4 @@
-{ lib, pkgs, config, bittelib, pkiFiles, hashiTokens, gossipEncryptionMaterial, nodeName, ... }:
+{ lib, pkgs, config, bittelib, pkiFiles, hashiTokens, gossipEncryptionMaterial, nodeName, etcEncrypted, ... }:
 
 let
   inherit (config.currentCoreNode) datacenter deployType privateIP;
@@ -32,17 +32,14 @@ let
   '';
 
   initialVaultSecrets = if deployType == "aws" then ''
-    sops --decrypt --extract '["encrypt"]' ${
-      (toString config.secrets.encryptedRoot) + "/consul-clients.json"
-    } | vault kv put kv/bootstrap/clients/consul encrypt=-
+    sops --decrypt --extract '["encrypt"]' ${etcEncrypted}/consul-clients.json \
+    | vault kv put kv/bootstrap/clients/consul encrypt=-
 
-    sops --decrypt --extract '["server"]["encrypt"]' ${
-      (toString config.secrets.encryptedRoot) + "/nomad.json"
-    } | vault kv put kv/bootstrap/clients/nomad encrypt=-
+    sops --decrypt --extract '["server"]["encrypt"]' ${etcEncrypted}/nomad.json \
+    | vault kv put kv/bootstrap/clients/nomad encrypt=-
 
-    sops --decrypt ${
-      (toString config.secrets.encryptedRoot) + "/nix-cache.json"
-    } | vault kv put kv/bootstrap/cache/nix-key -
+    sops --decrypt ${etcEncrypted}/nix-cache.json \
+    | vault kv put kv/bootstrap/cache/nix-key -
   '' else ''
     rage -i /etc/ssh/ssh_host_ed25519_key -d ${config.age.encryptedRoot + "/consul/encrypt.age"} \
       | tr -d '\n' | vault kv put kv/bootstrap/clients/consul encrypt=-

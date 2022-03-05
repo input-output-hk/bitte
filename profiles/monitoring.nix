@@ -1,4 +1,4 @@
-{ lib, pkgs, config, nodeName, ... }:
+{ lib, pkgs, config, nodeName, etcEncrypted, ... }:
 let
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
   domain =
@@ -164,7 +164,7 @@ in {
 
       mkdir -p /var/lib/grafana
 
-      cat ${(toString config.secrets.encryptedRoot) + "/grafana-password.json"} \
+      cat ${etcEncrypted}/grafana-password.json \
         | sops -d /dev/stdin \
         > /var/lib/grafana/password
     '';
