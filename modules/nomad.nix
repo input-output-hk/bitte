@@ -14,8 +14,8 @@ let
       path = toString obj;
       list = map sanitize obj;
       inherit null;
-      set = if (builtins.length (builtins.attrNames obj) == 0) then
-        null
+      set = if obj == { } then
+        { }
       else
         lib.pipe obj [
           (lib.filterAttrs
