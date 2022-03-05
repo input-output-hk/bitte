@@ -6,17 +6,8 @@ let
   quotaSize =
     config.tf.core.configuration.resource.aws_ebs_volume.${nodeName}.size * 1.8;
 in {
-  imports = [
-    ../common.nix
-    ../consul/client.nix
-    ../vault/client.nix
-  ];
 
   services.glusterfs.enable = true;
-  services.vault-agent.enable = true;
-  services.vault-agent.vaultAddress = "https://${config.cluster.coreNodes.core-2.privateIP}:8200";
-  services.vault-agent.templates = { };
-  services.vault-agent.role = "core";
 
   systemd.services.glusterd.path = with pkgs; [ nettools ];
 
@@ -36,37 +27,6 @@ in {
       fsType = "glusterfs";
     };
   };
-
-  systemd.services.storage-service = (pkgs.consulRegister {
-    inherit pkiFiles;
-    service = {
-      name = "glusterd";
-      port = 24007;
-      tags = [ "gluster" "server" ];
-
-      checks = {
-        gluster-tcp = {
-          interval = "10s";
-          timeout = "5s";
-          tcp = "localhost:24007";
-        };
-
-        # gluster-pool = {
-        #   interval = "10s";
-        #   timeout = "5s";
-        #   args = let
-        #     script = pkgs.writeBashChecked "gluster-pool-check.sh" ''
-        #       set -exuo pipefail
-        #       export PATH="${
-        #         lib.makeBinPath (with pkgs; [ glusterfs gnugrep ])
-        #       }"
-        #       exec gluster pool list | egrep -v 'UUID|localhost' | grep Connected
-        #     '';
-        #   in [ script ];
-        # };
-      };
-    };
-  }).systemdService;
 
   systemd.services."mnt-gv0.mount" = {
     after = [ "setup-glusterfs.service" ];

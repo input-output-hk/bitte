@@ -6,4 +6,10 @@
     device = "glusterd.service.consul:/gv0";
     fsType = "glusterfs";
   };
+
+  systemd.services."mnt-gv0.mount" = {
+    after = [ "consul.service" ];
+    wants = [ "consul.service" ];
+  };
+
 }
