@@ -2,9 +2,6 @@
 
   Imports = { imports = [
     ./common.nix
-
-    ./secrets-provisioning/hashistack.nix
-    ./secrets-provisioning/host-identity.nix
   ]; };
 
   Switches = {

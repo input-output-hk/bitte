@@ -2,8 +2,6 @@
 
   Imports = { imports = [
     ./common.nix
-
-    ./secrets-provisioning/hashistack.nix
   ]; };
 
   Switches = { };

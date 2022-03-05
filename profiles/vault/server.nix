@@ -3,9 +3,6 @@
   Imports = { imports = [
     ./common.nix
     ./policies.nix
-
-    ./secrets-provisioning/hashistack.nix
-    ./secrets-provisioning/cert-identity.nix
   ]; };
 
   Switches = {

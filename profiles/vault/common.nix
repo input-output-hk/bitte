@@ -1,7 +1,7 @@
 { config, lib, pkgs, pkiFiles, ... }: let
 
   Imports = { imports = [
-    ./secrets-provisioning/cert-identity.nix
+    ./secrets-provisioning/hashistack.nix
   ]; };
 
   Switches = {

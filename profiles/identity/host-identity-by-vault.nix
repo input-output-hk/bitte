@@ -1,5 +1,7 @@
 { config, lib, pkgs, pkiFiles, ... }: let
 
+  isClient = config.services.vault-agent.role == "client";
+
   datacenter = config.currentCoreNode.datacenter or config.cluster.region;
 
   reload = service: "${pkgs.systemd}/bin/systemctl try-reload-or-restart ${service}";
@@ -22,7 +24,7 @@
   pkiSecret = ''"pki/issue/client" ${toString pkiArgs}'';
 
 in {
-  services.vault-agent.templates = {
+  services.vault-agent.templates = lib.mkIf isClient {
     "${pkiFiles.certChainFile}" = {
       command = restart "certs-updated.service";
       contents = ''

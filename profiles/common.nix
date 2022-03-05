@@ -7,6 +7,9 @@ in {
   imports = [
     ./slim.nix
 
+    ./identity/host-identity-by-age.nix
+    ./identity/host-identity-by-vault.nix
+
     ./auxiliaries/secrets.nix
     ./auxiliaries/nix.nix
     ./auxiliaries/ssh.nix
