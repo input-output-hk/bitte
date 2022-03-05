@@ -20,8 +20,7 @@
       vaultAddress = if deployType == "aws" then "https://vault.${domain}"
                      else "https://core.vault.service.consul:8200";
       cache.useAutoAuthToken = true;
-      # john.lotoski: The extra listener exists on the docker bridge and enables access to
-      # vault for both bridge mode exec jobs and bridge mode docker jobs I believe. IIRC
+      # Commit 248791a: Binds vault agent to docker bridge for bridge net access
       listener = [{
           type = "tcp";
           address = "172.17.0.1:8200";
