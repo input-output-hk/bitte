@@ -9,7 +9,7 @@ in {
   imports = [
     ./common.nix
     ./consul/client.nix
-    ./vault/monitoring.nix
+    ./vault/aux.nix
 
     ./auxiliaries/docker-registry.nix
     ./auxiliaries/loki.nix
