@@ -245,7 +245,7 @@ in {
             auth_type=iam \
             bound_iam_principal_arn="$arn:role/${config.cluster.name}-client" \
             policies=default,client,nomad-server \
-            period=24h
+            period=24h || true # only available after 'tf.clients.apply'
 
           vault write auth/aws/role/${config.cluster.name}-routing \
             auth_type=iam \
@@ -257,7 +257,7 @@ in {
             auth_type=iam \
             bound_iam_principal_arn="$arn:role/${config.cluster.name}-core" \
             policies=default,hydra \
-            period=24h
+            period=24h || true # only available if a hydra is deployed
 
           ${lib.concatStringsSep "\n" (lib.forEach config.cluster.adminNames (name: ''
             vault write "auth/aws/role/${name}" \
