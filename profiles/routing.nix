@@ -158,9 +158,10 @@ in {
         else
           cfg.staticConfigFile;
     in lib.mkForce (pkgs.writeShellScript "traefik.sh" ''
-      export CONSUL_HTTP_TOKEN="$(< ${hashiTokens.consul-default})"
+      export CONSUL_HTTP_TOKEN="$(< $CREDENTIALS_DIRECTORY/consul)"
       exec ${config.services.traefik.package}/bin/traefik --configfile=${staticConfigFile}
     '');
+    systemd.services.traefik.serviceConfig.LoadCredential = "consul:${hashiTokens.consul-default}";
 
     systemd.services.copy-acme-certs = lib.mkIf cfg.acmeDnsCertMgr {
       before = [ "traefik.service" ];
