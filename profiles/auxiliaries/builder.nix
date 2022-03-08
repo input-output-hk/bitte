@@ -90,9 +90,8 @@ in {
         ssh \
           -o NumberOfPasswordPrompts=0 \
           -o StrictHostKeyChecking=accept-new \
-          -i $src \
+          -i $target \
           builder@${cfg.remoteBuilder.nodeName} echo 'trust established'
-        mv "$src" "$out"
       '';
     };
 
