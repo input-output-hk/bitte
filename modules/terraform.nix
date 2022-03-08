@@ -201,7 +201,7 @@ let
 
         secrets = lib.mkOption { type = with lib.types; path; };
 
-        terraformOrganization = lib.mkOption { type = with lib.types; str; };
+        vaultWardenTransitBackupItemId = lib.mkOption { type = with lib.types; str; };
 
         nodes = lib.mkOption {
           type = with lib.types; attrsOf coreNodeType;
