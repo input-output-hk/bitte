@@ -12,6 +12,16 @@ let
     To utilize the core TF attr, the cluster config parameter `infraType`
     must either "aws" or "premSim".
   '');
+  sopsEncrypt =
+    "${pkgs.sops}/bin/sops --encrypt --input-type json --kms '${config.cluster.kms}' /dev/stdin";
+
+  sopsDecrypt = path:
+    # NB: we can't work on store paths that don't yet exist before they are generated
+    assert lib.assertMsg (builtins.isString path) "sopsDecrypt: path must be a string ${toString path}";
+    "${pkgs.sops}/bin/sops --decrypt --input-type json ${path}";
+
+  relEncryptedFolder = lib.last (builtins.split "-" (toString config.secrets.encryptedRoot));
+
 in {
   tf.core.configuration = lib.mkIf infraTypeCheck {
     terraform.backend.http = let
@@ -295,7 +305,36 @@ in {
           ebs_optimized =
             lib.mkIf (coreNode.ebsOptimized != null) coreNode.ebsOptimized;
 
-          provisioner = [
+          provisioner = let
+            ssh = "${pkgs.openssh}/bin/ssh -C -oUserKnownHostsFile=/dev/null -oNumberOfPasswordPrompts=0 -oServerAliveInterval=60 -oControlPersist=600 -oStrictHostKeyChecking=no -i ./secrets/ssh-${config.cluster.name} root@${var "self.public_ip"} -- ";
+          in (lib.optionals (name == "core-1") [{
+              local-exec = {
+                command = ''
+                  echo
+                  echo Waiting for ssh to come up on port 22 ...
+                  while test -z "$(
+                    ${pkgs.socat}/bin/socat \
+                      -T2 stdout \
+                      tcp:${var "self.public_ip"}:22,connect-timeout=2,readbytes=1 \
+                      2>/dev/null
+                  )"
+                  do
+                      printf " ."
+                      sleep 5
+                  done
+
+                  sleep 1
+                  if test -f ${relEncryptedFolder}/vault.enc.json; then
+                    secret="$(cat ${relEncryptedFolder}/vault.enc.json)"
+                    ${ssh} echo "$secret" > /var/lib/vault/vault.enc.json
+                  fi
+                  if test -f ${relEncryptedFolder}/nomad.bootstrap.enc.json; then
+                    secret="$(${sopsDecrypt "${relEncryptedFolder}/nomad.bootstrap.enc.json"}|${pkgs.jq}/bin/jq -r '.token')"
+                    ${ssh} echo "$secret" > /var/lib/nomad/bootstrap.token
+                  fi
+                '';
+              };
+            }]) ++ [
             {
               local-exec = {
                 command = "${
@@ -312,8 +351,47 @@ in {
                 inherit (coreNode.localProvisioner) interpreter environment;
                 working_dir = coreNode.localProvisioner.workingDir;
               };
+            }] ++
+            (lib.optionals (name == "core-1") [{
+              local-exec = {
+                command = ''
+                  echo
+                  echo Waiting for ssh to come up on port 22 ...
+                  while test -z "$(
+                    ${pkgs.socat}/bin/socat \
+                      -T2 stdout \
+                      tcp:${var "self.public_ip"}:22,connect-timeout=2,readbytes=1 \
+                      2>/dev/null
+                  )"
+                  do
+                      printf " ."
+                      sleep 5
+                  done
+
+                  sleep 1
+
+                  if ! test -f ${relEncryptedFolder}/vault.enc.json; then
+                    echo
+                    echo Waiting for bootstrapping on core-1 to finish for vault /var/lib/vault/vault.enc.json ...
+                    ${ssh} 'while ! test -f /var/lib/vault/vault.enc.json; do sleep 5; done'
+                    echo ... found /var/lib/vault/vault.enc.json
+                    secret="$(${ssh} cat /var/lib/vault/vault.enc.json)"
+                    echo "$secret" > ${relEncryptedFolder}/vault.enc.json
+                    ${pkgs.git}/bin/git add ${relEncryptedFolder}/vault.enc.json
+                  fi
+                  if ! test -f ${relEncryptedFolder}/nomad.bootstrap.enc.json; then
+                    echo
+                    echo Waiting for bootstrapping on core-1 to finish for nomad /var/lib/nomad/bootstrap.token ...
+                    ${ssh} 'while ! test -f /var/lib/nomad/bootstrap.token; do sleep 5; done'
+                    echo ... found /var/lib/nomad/bootstrap.token
+                    secret="$(${ssh} cat /var/lib/nomad/bootstrap.token)"
+                    echo "{}" | ${pkgs.jq}/bin/jq ".token = \"$secret\"" | ${sopsEncrypt} > ${relEncryptedFolder}/nomad.bootstrap.enc.json
+                    ${pkgs.git}/bin/git add ${relEncryptedFolder}/nomad.bootstrap.enc.json
+                  fi
+                '';
+              };
             }
-          ];
+          ]);
         })
 
         (lib.mkIf config.cluster.generateSSHKey {
