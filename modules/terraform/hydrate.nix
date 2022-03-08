@@ -12,11 +12,11 @@ let
 
   vbkStub = "${vbkBackend}/state/${config.cluster.name}";
 
-  tfConfig = { hydrateType, extraConfig ? { } }: {
+  tfConfig = { key, extraConfig ? { } }: {
     terraform.backend.http = {
-      address = "${vbkStub}/hydrate-${hydrateType}";
-      lock_address = "${vbkStub}/hydrate-${hydrateType}";
-      unlock_address = "${vbkStub}/hydrate-${hydrateType}";
+      address = "${vbkStub}/${key}";
+      lock_address = "${vbkStub}/${key}";
+      unlock_address = "${vbkStub}/${key}";
       skip_cert_verification = vbkBackendSkipCertVerification;
     };
     terraform.required_providers = pkgs.terraform-provider-versions;
@@ -24,6 +24,8 @@ let
   } // extraConfig;
 
 in {
+  tf.backup-transit-keys.configuration = tfConfig { key = "backup-transit-keys"; };
+  tf.restore-transit-keys.configuration = tfConfig { key = "restore-transit-keys"; };
 
   # preconfigure hydrate-secrets
   tf.secrets-hydrate.configuration = abort ''
@@ -40,7 +42,7 @@ in {
     Be sure to update your local hydrate.nix file with secrets-hydrate renamed to hydrate-secrets, otherwise:
       * TF will want to destroy your hydrate app secrets on the next plan/apply.
   '';
-  tf.hydrate-secrets.configuration = tfConfig { hydrateType = "secrets"; };
+  tf.hydrate-secrets.configuration = tfConfig { key = "hydrate-secrets"; };
 
   # preconfigure hydrate-app
   tf.app-hydrate.configuration = abort ''
@@ -57,7 +59,7 @@ in {
     Be sure to update your local hydrate.nix file with app-hydrate renamed to hydrate-app, otherwise:
       * TF will want to destroy your hydrate app config on the next plan/apply.
   '';
-  tf.hydrate-app.configuration = tfConfig { hydrateType = "app"; };
+  tf.hydrate-app.configuration = tfConfig { key = "hydrate-app"; };
 
   # preconfigure hydrate-cluster
   tf.hydrate.configuration = abort ''
@@ -76,7 +78,7 @@ in {
       * On the next bootstrapper deploy (ex: core-1), any hydrate cluster defined consul roles/policies will be purged causing job disruption.
   '';
   tf.hydrate-cluster.configuration = tfConfig {
-    hydrateType = "cluster";
+    key = "hydrate-cluster";
     extraConfig = {
       provider.aws = [{ inherit (config.cluster) region; }]
         ++ (lib.forEach regions (region: {

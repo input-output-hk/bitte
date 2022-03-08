@@ -7,7 +7,7 @@ in final: prev: {
   inherit (prev) terraform_0_13 terraform_0_14;
 
   terraform-provider-names =
-    [ "acme" "aws" "consul" "local" "nomad" "null" "sops" "tls" "vault" "rabbitmq" "postgresql" ];
+    [ "acme" "aws" "consul" "local" "nomad" "null" "sops" "tls" "vault" "rabbitmq" "postgresql" "bitwarden"];
 
   terraform-provider-versions = lib.listToAttrs (map (name:
     let
@@ -89,6 +89,15 @@ in final: prev: {
       repo = "terraform-provider-postgresql";
       rev = "v1.14.0";
       sha256 = "sha256-2VDPKpBedX0Q6xWwUL/2afGvtvlRSQhK+wdXTLyI6CM=";
+    };
+    bitwarden = buildWithGoModule {
+      provider-source-address = "registry.terraform.io/maxlaverse/bitwarden";
+      version = "0.1.0";
+      vendorSha256 = "sha256-oS7N9tTHUngos8lCtQ60KQOeQ7YsFOy+9vGimSECYWU=";
+      owner = "maxlaverse";
+      repo = "terraform-provider-bitwarden";
+      rev = "v0.1.0";
+      sha256 = "sha256-giQiehlry6RCYkTh/N9nLlrO8wN7X0gnKEg0Ozptyxo=";
     };
   });
 
