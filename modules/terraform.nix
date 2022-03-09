@@ -6,6 +6,13 @@ let
 
   merge = lib.foldl' lib.recursiveUpdate { };
 
+  sopsDecrypt = path:
+    # NB: we can't work on store paths that don't yet exist before they are generated
+    assert lib.assertMsg (builtins.isString path) "sopsDecrypt: path must be a string ${toString path}";
+    "${pkgs.sops}/bin/sops --decrypt --input-type json ${path}";
+
+  relEncryptedFolder = lib.last (builtins.split "-" (toString config.secrets.encryptedRoot));
+
   # without zfs
   coreAMIs = {
     eu-central-1.x86_64-linux = "ami-0961cad26b3399fce";
@@ -1086,18 +1093,15 @@ in {
             prepare = ''
               # shellcheck disable=SC2050
               if [ "${name}" == "hydrate-cluster" ]; then
-                echo
-                echo -----------------------------------------------------
-                echo Fetching nomad bootstrap token for hydrate-cluster.
-                echo This is a standard requirement since nomad does not
-                echo implement fine-grained ACL. Hence, for hydrate-cluster
-                echo a management token is required. The bootstrap token is
-                echo such a management token.
-                echo Fetching from '${coreNode}', the presumed bootstrapper ...
-                echo -----------------------------------------------------
                 declare NOMAD_TOKEN
-                NOMAD_TOKEN="$(${coreNodeCmd} ${coreNode} cat /var/lib/nomad/bootstrap.token)"
+                NOMAD_TOKEN="$(${sopsDecrypt "${relEncryptedFolder}/nomad.bootstrap.enc.json"}|${pkgs.jq}/bin/jq -r '.token')"
                 export NOMAD_TOKEN
+                declare VAULT_TOKEN
+                VAULT_TOKEN="$(${sopsDecrypt "${relEncryptedFolder}/vault.enc.json"}|${pkgs.jq}/bin/jq -r '.root_token')"
+                export VAULT_TOKEN
+                declare CONSUL_HTTP_TOKEN
+                CONSUL_HTTP_TOKEN="$(${sopsDecrypt "${relEncryptedFolder}/consul-core.json"}|${pkgs.jq}/bin/jq -r '.acl.tokens.master')"
+                export CONSUL_HTTP_TOKEN
               fi
 
               for arg in "$@"
