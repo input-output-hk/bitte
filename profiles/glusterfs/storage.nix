@@ -66,7 +66,7 @@ in {
 
         gluster volume bitrot gv0 enable || true
         gluster volume quota gv0 enable || true
-        gluster volume quota gv0 limit-usage / ${toString quotaSize}GB
+        gluster volume quota gv0 limit-usage / ${toString quotaSize}GB || true
       '';
     };
   };
