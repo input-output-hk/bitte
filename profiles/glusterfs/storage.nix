@@ -31,6 +31,9 @@ in {
   systemd.services."mnt-gv0.mount" = {
     after = [ "setup-glusterfs.service" ];
     wants = [ "setup-glusterfs.service" ];
+
+    serviceConfig.Restart = "on-failure";
+    serviceConfig.RestartSec = "20s";
   };
 
   systemd.services.setup-glusterfs = {
