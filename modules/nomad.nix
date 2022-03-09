@@ -1172,16 +1172,6 @@ in {
 
     users.extraUsers.nobody = { };
 
-    system.activationScripts.nomad-host-volumes = ''
-      export PATH="${lib.makeBinPath (with pkgs; [ fd coreutils ])}:$PATH"
-    '' + (builtins.concatStringsSep "\n" (
-      lib.mapAttrsToList (k: v: ''
-          mkdir -p ${v.path}
-          fd . -o root ${v.path} -X chown nobody:nogroup || true
-        ''
-      ) config.services.nomad.client.host_volume
-    ));
-
     systemd.services.nomad = {
       after = [ "network-online.target" "vault-agent.service" ];
       wantedBy = [ "multi-user.target" ];
@@ -1213,7 +1203,7 @@ in {
                         else pkiFiles.certChainFile;
         certKeyFile = if (deployType != "aws" && cfg.server.enabled) then pkiFiles.serverKeyFile
                       else pkiFiles.keyFile;
-        start-pre = pkgs.writeBashChecked "nomad-start-pre" ''
+        start-pre = pkgs.writeBashChecked "nomad-start-pre" (''
           PATH="${lib.makeBinPath [ pkgs.coreutils pkgs.busybox ]}"
           set -exuo pipefail
           # ${bittelib.ensureDependencies pkgs [ "consul" "vault" ]}
@@ -1221,7 +1211,16 @@ in {
           cp ${certKeyFile} cert-key.pem
           cp ${hashiTokens.vault} .
           chown --reference . ./*.pem
-        '';
+        '' + ''
+          export PATH="${lib.makeBinPath (with pkgs; [ fd coreutils ])}:$PATH"
+        '' + (builtins.concatStringsSep "\n" (
+          lib.mapAttrsToList (k: v: ''
+            mkdir -p ${v.path}
+            fd . -o root ${v.path} -X chown nobody:nogroup || true
+          ''
+          ) config.services.nomad.client.host_volume
+        )));
+
       in {
         ExecStartPre = "!${start-pre}";
         ExecStart = let

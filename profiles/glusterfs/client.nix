@@ -12,4 +12,7 @@
     wants = [ "consul.service" ];
   };
 
+  systemd.services.nomad = {
+    after = [ "mnt-gv0.mount" ];
+  };
 }
