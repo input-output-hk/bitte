@@ -8,10 +8,6 @@
 
     ./glusterfs/storage.nix
   ];
-  systemd.services."mnt-gv0.mount" = {
-    after = [ "setup-glusterfs.service" ];
-    wants = [ "setup-glusterfs.service" ];
-  };
 
   systemd.services.storage-service = (pkgs.consulRegister {
     inherit pkiFiles;
