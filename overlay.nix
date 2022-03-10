@@ -41,6 +41,10 @@ rec {
   in { devOps = allKeysFrom devOps; };
 
   consul = prev.callPackage ./pkgs/consul { };
+  convert-cue-to-nix = final.callPackage ./pkgs/convert-cue-to-nix.nix {
+    alejandra = inputs.alejandra.defaultPackage.${prev.hostPlatform.system};
+    iogo = inputs.cli.inputs.iogo.legacyPackages.${prev.hostPlatform.system}.iogo;
+  };
   cue = prev.callPackage ./pkgs/cue.nix { };
   vault-bin = prev.callPackage ./pkgs/vault-bin.nix { };
   mill = prev.callPackage ./pkgs/mill.nix { };
@@ -51,6 +55,7 @@ rec {
   boundary = prev.callPackage ./pkgs/boundary.nix { };
   grpcdump = prev.callPackage ./pkgs/grpcdump.nix { };
   glusterfs = final.callPackage ./pkgs/glusterfs.nix { };
+  hcl2json = prev.callPackage ./pkgs/hcl2json.nix { };
   victoriametrics = prev.callPackage ./pkgs/victoriametrics.nix { };
   nomad-autoscaler = prev.callPackage ./pkgs/nomad-autoscaler.nix { };
   vault-backend = final.callPackage ./pkgs/vault-backend.nix { };

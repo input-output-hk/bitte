@@ -6,6 +6,9 @@
       "github:nixos/nixpkgs/43cdc5b364511eabdcad9fde639777ffd9e5bab1"; # nixos-21.05
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixpkgs-unstable";
 
+    # alejandra is in nixos-unstable, we can drop input after bumping nixpkgs to 22.05 or unstable
+    alejandra.url = "github:kamadorueda/alejandra";
+    alejandra.inputs.nixpkgs.follows = "nixpkgs-unstable";
     nix.url = "github:NixOS/nix";
     cli.url = "github:input-output-hk/bitte-cli";
     agenix.url = "github:ryantm/agenix";
