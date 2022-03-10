@@ -116,6 +116,9 @@ in {
       "consul/creds/consul-default".capabilities = [ r u ];
       "consul/creds/consul-agent".capabilities = [ r u ];
       "consul/creds/traefik".capabilities = [ r u ];
+      "kv/data/bootstrap/letsencrypt/cert".capabilities = [ c r u d l ];
+      "kv/data/bootstrap/letsencrypt/fullchain".capabilities = [ c r u d l ];
+      "kv/data/bootstrap/letsencrypt/key".capabilities = [ c r u d l ];
     };
 
     nomad-server.path = {
