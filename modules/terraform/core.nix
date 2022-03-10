@@ -306,7 +306,9 @@ in {
             lib.mkIf (coreNode.ebsOptimized != null) coreNode.ebsOptimized;
 
           provisioner = let
-            ssh = "${pkgs.openssh}/bin/ssh -C -oUserKnownHostsFile=/dev/null -oNumberOfPasswordPrompts=0 -oServerAliveInterval=60 -oControlPersist=600 -oStrictHostKeyChecking=no -i ./secrets/ssh-${config.cluster.name} root@${var "self.public_ip"} -- ";
+            ssh = "${pkgs.openssh}/bin/ssh -C -oUserKnownHostsFile=/dev/null -oNumberOfPasswordPrompts=0 -oServerAliveInterval=60 -oControlPersist=600 -oStrictHostKeyChecking=no -i ./secrets/ssh-${config.cluster.name} ${target}";
+            scp = "${pkgs.openssh}/bin/scp -C -oUserKnownHostsFile=/dev/null -oNumberOfPasswordPrompts=0 -oServerAliveInterval=60 -oControlPersist=600 -oStrictHostKeyChecking=no -i ./secrets/ssh-${config.cluster.name} ";
+            target = "root@${var "self.public_ip"}";
           in (lib.optionals (name == "core-1") [{
               local-exec = {
                 command = ''
@@ -325,12 +327,17 @@ in {
 
                   sleep 1
                   if test -f ${relEncryptedFolder}/vault.enc.json; then
-                    secret="$(cat ${relEncryptedFolder}/vault.enc.json)"
-                    ${ssh} echo "$secret" > /var/lib/vault/vault.enc.json
+                    ${ssh} -- "mkdir -p /var/lib/private/vault"
+                    ${scp} "${relEncryptedFolder}/vault.enc.json" "${target}:/var/lib/private/vault/vault.enc.json"
+                    ${ssh} -- "touch /var/lib/private/vault/.bootstrap-done"
                   fi
                   if test -f ${relEncryptedFolder}/nomad.bootstrap.enc.json; then
-                    secret="$(${sopsDecrypt "${relEncryptedFolder}/nomad.bootstrap.enc.json"}|${pkgs.jq}/bin/jq -r '.token')"
-                    ${ssh} echo "$secret" > /var/lib/nomad/bootstrap.token
+                    tempfile=$(mktemp)
+                    ${ssh} -- "mkdir -p /var/lib/nomad"
+                    ${sopsDecrypt "${relEncryptedFolder}/nomad.bootstrap.enc.json"}|${pkgs.jq}/bin/jq -r '.token' > "$tempfile"
+                    ${scp} "$tempfile" "${target}:/var/lib/nomad/bootstrap.token"
+                    rm "$tempfile"
+                    ${ssh} -- "touch /var/lib/nomad/.bootstrap-done"
                   fi
                 '';
               };
@@ -373,7 +380,7 @@ in {
                   if ! test -f ${relEncryptedFolder}/vault.enc.json; then
                     echo
                     echo Waiting for bootstrapping on core-1 to finish for vault /var/lib/vault/vault.enc.json ...
-                    ${ssh} 'while ! test -f /var/lib/vault/vault.enc.json; do sleep 5; done'
+                    ${ssh} -- 'while ! test -f /var/lib/vault/vault.enc.json; do sleep 5; done'
                     echo ... found /var/lib/vault/vault.enc.json
                     secret="$(${ssh} cat /var/lib/vault/vault.enc.json)"
                     echo "$secret" > ${relEncryptedFolder}/vault.enc.json
@@ -382,9 +389,9 @@ in {
                   if ! test -f ${relEncryptedFolder}/nomad.bootstrap.enc.json; then
                     echo
                     echo Waiting for bootstrapping on core-1 to finish for nomad /var/lib/nomad/bootstrap.token ...
-                    ${ssh} 'while ! test -f /var/lib/nomad/bootstrap.token; do sleep 5; done'
+                    ${ssh} -- 'while ! test -f /var/lib/nomad/bootstrap.token; do sleep 5; done'
                     echo ... found /var/lib/nomad/bootstrap.token
-                    secret="$(${ssh} cat /var/lib/nomad/bootstrap.token)"
+                    secret="$(${ssh} -- cat /var/lib/nomad/bootstrap.token)"
                     echo "{}" | ${pkgs.jq}/bin/jq ".token = \"$secret\"" | ${sopsEncrypt} > ${relEncryptedFolder}/nomad.bootstrap.enc.json
                     ${pkgs.git}/bin/git add ${relEncryptedFolder}/nomad.bootstrap.enc.json
                   fi
