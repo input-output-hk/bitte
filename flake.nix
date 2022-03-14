@@ -2,8 +2,7 @@
   description = "Flake containing Bitte clusters";
 
   inputs = {
-    nixpkgs.url =
-      "github:nixos/nixpkgs/43cdc5b364511eabdcad9fde639777ffd9e5bab1"; # nixos-21.05
+    nixpkgs.url = "github:nixos/nixpkgs/43cdc5b364511eabdcad9fde639777ffd9e5bab1"; # nixos-21.05
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixpkgs-unstable";
 
     nix.url = "github:kreisys/nix/goodnix-maybe-dont-functor";
@@ -20,6 +19,7 @@
     blank.url = "github:divnix/blank";
 
     nomad.url = "github:input-output-hk/nomad/release-1.2.2";
+    nomad-driver-nix.url = "github:input-output-hk/nomad-driver-nix";
 
     ops-lib = {
       url = "github:input-output-hk/ops-lib";

@@ -1,10 +1,11 @@
-{ config, lib, pkgs, ... }: let
+{ config, lib, pkgs, nomad-driver-nix, ... }: let
 
   Imports = { imports = [ ./common.nix ./bridge-lo-fixup.nix ]; };
 
   Switches = {
     services.nomad.client.enabled = true;
     services.nomad.plugin.raw_exec.enabled = false;
+    services.nomad.plugin.nix-driver.enabled = true;
   };
 
   Config = let
@@ -36,14 +37,18 @@
     };
 
     services.nomad = {
+      pluginDir = "${nomad-driver-nix.defaultPackage.x86_64-linux}/bin";
       client = {
         gc_interval = "12h";
         node_class = config.${if deployType == "aws" then "currentAwsAutoScalingGroup" else "currentCoreNode"}.node_class or "core";
         chroot_env = {
           # "/usr/bin/env" = "/usr/bin/env";
-          "${builtins.unsafeDiscardStringContext pkgs.pkgsStatic.busybox}" =
-            "/usr";
+          "${builtins.unsafeDiscardStringContext pkgs.pkgsStatic.busybox}" = "/usr";
           "/etc/passwd" = "/etc/passwd";
+          "/etc/resolv.conf" = "/etc/resolv.conf";
+          "/etc/ssl/certs/ca-bundle.crt" = "/etc/ssl/certs/ca-bundle.crt";
+          "/etc/ssl/certs/ca-certificates.crt" = "/etc/ssl/certs/ca-certificates.crt";
+
         };
 
         # min_dynamic_port adjusted higher than the 20000 default to avoid collision

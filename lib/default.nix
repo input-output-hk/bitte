@@ -20,5 +20,26 @@ in rec {
 
   ensureDependencies = import ./ensure-dependencies.nix { inherit lib; };
   mkNomadHostVolumesConfig = import ./mk-nomad-host-volumes-config.nix { inherit lib; };
+
+  augmentNomadJob = import ./augment-nomad-job.nix { inherit nixpkgs; };
+  mkNomadJobs = ns: envs: let
+    pkgs = import nixpkgs { system = "x86_64-linux";};
+  in
+    builtins.mapAttrs (n: job:
+    let
+      rendered = pkgs.writeText "${n}.${ns}.nomad.json"
+        (builtins.toJSON { job = augmentNomadJob job.job; });
+
+      # TODO: make this proper repo-automation
+      push = pkgs.writeShellScript "push" ''
+        cat ${rendered}|jq -r '.job | to_entries | .[].value.group | to_entries | .[].value.task | to_entries | .[].value.config.packages[]'|xargs nix store sign --key-file secrets/nix-secret-key-file
+        cat ${rendered}|jq -r '.job | to_entries | .[].value.group | to_entries | .[].value.task | to_entries | .[].value.config.packages[]'|xargs nix copy --to $1
+      '';
+    in
+      pkgs.linkFarm "job.${n}.${ns}" [
+        { name = "job"; path = rendered; }
+        { name = "push"; path = push; }
+      ]
+    ) envs.${ns};
 }
 
