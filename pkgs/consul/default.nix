@@ -27,6 +27,8 @@ buildGoModule rec {
     #   https://github.com/hashicorp/consul/issues/8283
     #   https://github.com/hashicorp/consul/pull/9639
     ./consul-issue-8283.patch
+    # https://github.com/hashicorp/consul/issues/12145
+    ./0001-state-deregister-service-with-sunken-token.patch
   ];
 
   passthru.tests.consul = nixosTests.consul;
