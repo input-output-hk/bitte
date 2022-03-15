@@ -78,4 +78,13 @@ in {
     (lib.mapAttrsToList (name: instance: "${instance.privateIP} ${name}")
       (if deployType != "premSim" then (coreNodes // premNodes) else premSimNodes))}
   '';
+
+  # Convenience
+  environment.interactiveShellInit = ''
+    . ${pkgs.complete-alias}/bin/complete_alias
+    alias scl='systemctl'
+    complete -F _complete_alias scl
+    alias jcl='journalctl'
+    complete -F _complete_alias jcl
+  '';
 }

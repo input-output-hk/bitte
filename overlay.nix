@@ -19,7 +19,7 @@ rec {
   inherit (inputs.agenix-cli.packages."${final.system}") agenix-cli;
 
   # We need at least Traefik 2.5.3 for Consul Connect
-  inherit (inputs.nixpkgs-unstable.legacyPackages."${final.system}") traefik;
+  inherit (inputs.nixpkgs-unstable.legacyPackages."${final.system}") traefik complete-alias;
 
   ragenix = inputs.ragenix.defaultPackage."${final.system}";
 
