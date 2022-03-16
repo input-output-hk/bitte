@@ -1,0 +1,250 @@
+From 298cbc2a6fc8d4f99031515ab03ceb45e96483d5 Mon Sep 17 00:00:00 2001
+From: David Arnold <david.arnold@iohk.io>
+Date: Tue, 15 Mar 2022 15:20:45 -0500
+Subject: [PATCH 1/2] state: deregister service with sunken token
+
+fixes: #12145
+---
+ agent/local/state.go | 69 ++++++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 67 insertions(+), 2 deletions(-)
+
+diff --git a/agent/local/state.go b/agent/local/state.go
+index 8427068d708..ad7f7efa174 100644
+--- a/agent/local/state.go
++++ b/agent/local/state.go
+@@ -1287,6 +1287,13 @@ func (l *State) deleteService(key structs.ServiceID) error {
+ 		EnterpriseMeta: key.EnterpriseMeta,
+ 		WriteRequest:   structs.WriteRequest{Token: st},
+ 	}
++	fallback_req := structs.DeregisterRequest{
++		Datacenter:     l.config.Datacenter,
++		Node:           l.config.NodeName,
++		ServiceID:      key.ID,
++		EnterpriseMeta: key.EnterpriseMeta,
++		WriteRequest:   structs.WriteRequest{Token: l.tokens.AgentToken()},
++	}
+ 	var out struct{}
+ 	err := l.Delegate.RPC("Catalog.Deregister", &req, &out)
+ 	switch {
+@@ -1303,8 +1310,32 @@ func (l *State) deleteService(key structs.ServiceID) error {
+ 		}
+ 		l.logger.Info("Deregistered service", "service", key.ID)
+ 		return nil
+-
+-	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
++	case acl.IsErrNotFound(err):
++    		// token might have sunken already, fallback to the default token
++        	var out struct{}
++        	err := l.Delegate.RPC("Catalog.Deregister", &fallback_req, &out)
++        	switch {
++        	case err == nil:
++        		delete(l.services, key)
++        		// service deregister also deletes associated checks
++        		for _, c := range l.checks {
++        			if c.Deleted && c.Check != nil {
++        				sid := c.Check.CompoundServiceID()
++        				if sid.Matches(key) {
++        					l.pruneCheck(c.Check.CompoundCheckID())
++        				}
++        			}
++        		}
++        		l.logger.Info("Deregistered service", "service", key.ID)
++        		return nil
++        	default:
++        		l.logger.Warn("Deregistering service failed.",
++        			"service", key.String(),
++        			"error", err,
++        		)
++        		return err
++        	}
++	case acl.IsErrPermissionDenied(err):
+ 		// todo(fs): mark the service to be in sync to prevent excessive retrying before next full sync
+ 		// todo(fs): some backoff strategy might be a better solution
+ 		l.services[key].InSync = true
+@@ -1468,12 +1499,26 @@ func (l *State) syncCheck(key structs.CheckID) error {
+ 		SkipNodeUpdate:  l.nodeInfoInSync,
+ 	}
+ 
++	fallback_req := structs.RegisterRequest{
++		Datacenter:      l.config.Datacenter,
++		ID:              l.config.NodeID,
++		Node:            l.config.NodeName,
++		Address:         l.config.AdvertiseAddr,
++		TaggedAddresses: l.config.TaggedAddresses,
++		NodeMeta:        l.metadata,
++		Check:           c.Check,
++		EnterpriseMeta:  c.Check.EnterpriseMeta,
++		WriteRequest:    structs.WriteRequest{Token: l.tokens.UserToken()},
++		SkipNodeUpdate:  l.nodeInfoInSync,
++	}
++
+ 	serviceKey := structs.NewServiceID(c.Check.ServiceID, &key.EnterpriseMeta)
+ 
+ 	// Pull in the associated service if any
+ 	s := l.services[serviceKey]
+ 	if s != nil && !s.Deleted {
+ 		req.Service = s.Service
++		fallback_req.Service = s.Service
+ 	}
+ 
+ 	var out struct{}
+@@ -1487,6 +1532,26 @@ func (l *State) syncCheck(key structs.CheckID) error {
+ 		l.logger.Info("Synced check", "check", key.String())
+ 		return nil
+ 
++	case acl.IsErrNotFound(err):
++    		// token might have sunken already, fallback to the default token
++        	var out struct{}
++	 	err := l.Delegate.RPC("Catalog.Register", &fallback_req, &out)
++        	switch {
++        	case err == nil:
++        		l.checks[key].InSync = true
++        		// Given how the register API works, this info is also updated
++        		// every time we sync a check.
++        		l.nodeInfoInSync = true
++        		l.logger.Info("Synced check", "check", key.String())
++        		return nil
++        	default:
++        		l.logger.Warn("Syncing check failed.",
++        			"check", key.String(),
++        			"error", err,
++        		)
++        		return err
++        	}
++
+ 	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
+ 		// todo(fs): mark the check to be in sync to prevent excessive retrying before next full sync
+ 		// todo(fs): some backoff strategy might be a better solution
+
+From 15bc463a87dd7a13ca3b5681ba67cabb1654dd7a Mon Sep 17 00:00:00 2001
+From: "John A. Lotoski" <39752197+johnalotoski@users.noreply.github.com>
+Date: Wed, 16 Mar 2022 15:44:28 -0500
+Subject: [PATCH 2/2] state: sunken token fallback_req logging and case fixup
+ (#1)
+
+---
+ agent/local/state.go | 103 +++++++++++++++++++++++++------------------
+ 1 file changed, 60 insertions(+), 43 deletions(-)
+
+diff --git a/agent/local/state.go b/agent/local/state.go
+index ad7f7efa174..888e8b58d77 100644
+--- a/agent/local/state.go
++++ b/agent/local/state.go
+@@ -1311,30 +1311,39 @@ func (l *State) deleteService(key structs.ServiceID) error {
+ 		l.logger.Info("Deregistered service", "service", key.ID)
+ 		return nil
+ 	case acl.IsErrNotFound(err):
+-    		// token might have sunken already, fallback to the default token
+-        	var out struct{}
+-        	err := l.Delegate.RPC("Catalog.Deregister", &fallback_req, &out)
+-        	switch {
+-        	case err == nil:
+-        		delete(l.services, key)
+-        		// service deregister also deletes associated checks
+-        		for _, c := range l.checks {
+-        			if c.Deleted && c.Check != nil {
+-        				sid := c.Check.CompoundServiceID()
+-        				if sid.Matches(key) {
+-        					l.pruneCheck(c.Check.CompoundCheckID())
+-        				}
+-        			}
+-        		}
+-        		l.logger.Info("Deregistered service", "service", key.ID)
+-        		return nil
+-        	default:
+-        		l.logger.Warn("Deregistering service failed.",
+-        			"service", key.String(),
+-        			"error", err,
+-        		)
+-        		return err
+-        	}
++		// token might have sunken already, fallback to the default token
++		var out struct{}
++		err := l.Delegate.RPC("Catalog.Deregister", &fallback_req, &out)
++		switch {
++		case err == nil || strings.Contains(err.Error(), "Unknown service"):
++			delete(l.services, key)
++			// service deregister also deletes associated checks
++			for _, c := range l.checks {
++				if c.Deleted && c.Check != nil {
++					sid := c.Check.CompoundServiceID()
++					if sid.Matches(key) {
++						l.pruneCheck(c.Check.CompoundCheckID())
++					}
++				}
++			}
++			l.logger.Info("Deregistered service with fallback_req", "service", key.ID)
++			return nil
++		case acl.IsErrPermissionDenied(err):
++			// todo(fs): mark the service to be in sync to prevent excessive retrying before next full sync
++			// todo(fs): some backoff strategy might be a better solution
++			l.services[key].InSync = true
++			accessorID := l.aclAccessorID(st)
++			l.logger.Warn("Service deregistration blocked by ACLs with fallback_req", "service", key.String(), "accessorID", accessorID)
++			metrics.IncrCounter([]string{"acl", "blocked", "service", "deregistration"}, 1)
++			return nil
++
++		default:
++			l.logger.Warn("Deregistering service failed with fallback_req.",
++				"service", key.String(),
++				"error", err,
++			)
++			return err
++		}
+ 	case acl.IsErrPermissionDenied(err):
+ 		// todo(fs): mark the service to be in sync to prevent excessive retrying before next full sync
+ 		// todo(fs): some backoff strategy might be a better solution
+@@ -1533,26 +1542,34 @@ func (l *State) syncCheck(key structs.CheckID) error {
+ 		return nil
+ 
+ 	case acl.IsErrNotFound(err):
+-    		// token might have sunken already, fallback to the default token
+-        	var out struct{}
+-	 	err := l.Delegate.RPC("Catalog.Register", &fallback_req, &out)
+-        	switch {
+-        	case err == nil:
+-        		l.checks[key].InSync = true
+-        		// Given how the register API works, this info is also updated
+-        		// every time we sync a check.
+-        		l.nodeInfoInSync = true
+-        		l.logger.Info("Synced check", "check", key.String())
+-        		return nil
+-        	default:
+-        		l.logger.Warn("Syncing check failed.",
+-        			"check", key.String(),
+-        			"error", err,
+-        		)
+-        		return err
+-        	}
++		// token might have sunken already, fallback to the default token
++		var out struct{}
++		err := l.Delegate.RPC("Catalog.Register", &fallback_req, &out)
++		switch {
++		case err == nil:
++			l.checks[key].InSync = true
++			// Given how the register API works, this info is also updated
++			// every time we sync a check.
++			l.nodeInfoInSync = true
++			l.logger.Info("Synced check with fallback_req", "check", key.String())
++			return nil
++		case acl.IsErrPermissionDenied(err):
++			// todo(fs): mark the check to be in sync to prevent excessive retrying before next full sync
++			// todo(fs): some backoff strategy might be a better solution
++			l.checks[key].InSync = true
++			accessorID := l.aclAccessorID(ct)
++			l.logger.Warn("Check registration blocked by ACLs with fallback_req", "check", key.String(), "accessorID", accessorID)
++			metrics.IncrCounter([]string{"acl", "blocked", "check", "registration"}, 1)
++			return nil
++		default:
++			l.logger.Warn("Syncing check failed with fallback_req.",
++				"check", key.String(),
++				"error", err,
++			)
++			return err
++		}
+ 
+-	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
++	case acl.IsErrPermissionDenied(err):
+ 		// todo(fs): mark the check to be in sync to prevent excessive retrying before next full sync
+ 		// todo(fs): some backoff strategy might be a better solution
+ 		l.checks[key].InSync = true
