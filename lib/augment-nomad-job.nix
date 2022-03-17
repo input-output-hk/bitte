@@ -9,13 +9,7 @@
       else
         let
           json = pkgs.writeTextDir "jobs/${name}.json" (builtins.toJSON orig);
-          closure = pkgs.buildPackages.closureInfo { rootPaths = json; };
-          closureStorePaths = nixpkgs.lib.splitString "\n" (nixpkgs.lib.fileContents "${closure}/store-paths");
-          join = pkgs.symlinkJoin {
-            name = "closure";
-            paths = closureStorePaths;
-          };
-          config = orig.config // { packages = (orig.config.packages or [ ]) ++ [ join ]; };
+          config = orig.config // { packages = (orig.config.packages or [ ]) ++ [json]; };
         in
         { inherit config; }));
 in addPackage
