@@ -6,7 +6,6 @@
 
   Config = let
     cfg = config.services.consul;
-    isDocker = config.virtualisation.docker.enable == true;
   in {
     # Consul firewall references:
     #   https://support.hashicorp.com/hc/en-us/articles/1500011608961-Checking-Consul-Network-Connectivity
@@ -25,7 +24,7 @@
     ];
 
     services.consul = {
-      addresses.http = lib.mkIf isDocker "127.0.0.1 {{ GetInterfaceIP \"docker0\" }}";
+      addresses.http = "127.0.0.1 172.17.0.1";
       ports = {
         # Default dynamic port ranges for consul clients.
         # Nomad default ephemeral dynamic port range will need to be adjusted to avoid random collision.
