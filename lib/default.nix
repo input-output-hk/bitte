@@ -32,7 +32,6 @@ in rec {
 
       # TODO: make this proper repo-automation
       push = pkgs.writeShellScript "push" ''
-        cat ${rendered}|jq -r '.job | to_entries | .[].value.group | to_entries | .[].value.task | to_entries | .[].value.config.packages[]'|xargs nix store sign --key-file secrets/nix-secret-key-file
         cat ${rendered}|jq -r '.job | to_entries | .[].value.group | to_entries | .[].value.task | to_entries | .[].value.config.packages[]'|xargs nix copy --to $1
       '';
     in
