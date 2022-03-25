@@ -35,6 +35,8 @@ rec {
     '';
   });
 
+  nomad-follower = inputs.nomad-follower.defaultPackage."${prev.system}";
+
   ssh-keys = let
     keys = import (ops-lib + "/overlays/ssh-keys.nix") lib;
     inherit (keys) allKeysFrom devOps;
