@@ -1,4 +1,4 @@
-{ config, lib, pkgs, nomad-driver-nix, ... }: let
+{ config, lib, pkgs, nomad-driver-nix, dockerAuth, ... }: let
 
   Imports = { imports = [ ./common.nix ./bridge-lo-fixup.nix ]; };
 
@@ -38,6 +38,8 @@
 
     services.nomad = {
       pluginDir = "${nomad-driver-nix.defaultPackage.x86_64-linux}/bin";
+      plugin.docker.auth.config = dockerAuth;
+
       client = {
         gc_interval = "12h";
         node_class = config.${if deployType == "aws" then "currentAwsAutoScalingGroup" else "currentCoreNode"}.node_class or "core";

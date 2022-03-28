@@ -35,6 +35,8 @@ in {
       consul = "/etc/consul.d/secrets.json";
     };
 
+    dockerAuth = "/var/lib/nomad/.docker/config.json";
+
     hashiTokens = {
       vaultd-consul-json = "/etc/vault.d/consul-token.json";
       nomadd-consul-json = "/etc/nomad.d/consul-token.json";

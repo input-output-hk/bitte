@@ -1,4 +1,4 @@
-{ self, lib, pkgs, config, pkiFiles, gossipEncryptionMaterial, etcEncrypted, ... }:
+{ self, lib, pkgs, config, pkiFiles, gossipEncryptionMaterial, etcEncrypted, dockerAuth, ... }:
 let
   # Note: Cert definitions in this file are applicable to AWS deployType clusters.
   # For premSim and prem deploType clusters, see the Rakefilefor cert genertaion details.
@@ -104,6 +104,23 @@ in {
       > ${relEncryptedFolder}/consul-clients.json
     fi
   '';
+
+  secrets.install.docker-login = lib.mkIf (!isInstance && isSops) {
+    source = "${etcEncrypted}/docker-passwords.json";
+    target = dockerAuth;
+    /*
+      {
+        "auths": {
+          "docker.infra.aws.iohkdev.io": {
+            "auth": "ffffffffffffffffffffff"
+          }
+        },
+        "HttpHeaders": {
+          "User-Agent": "Docker-Client/19.03.12 (linux)"
+        }
+      }
+    */
+  };
 
   secrets.install.nomad-server = lib.mkIf (isInstance && isSops) {
     source = "${etcEncrypted}/nomad.json";
