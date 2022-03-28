@@ -1,4 +1,4 @@
-{ self, lib, pkgs, config, pkiFiles, gossipEncryptionMaterial, etcEncrypted, dockerAuth, ... }:
+{ self, lib, pkgs, config, pkiFiles, gossipEncryptionMaterial, etcEncrypted, dockerAuth, netrcFile, ... }:
 let
   # Note: Cert definitions in this file are applicable to AWS deployType clusters.
   # For premSim and prem deploType clusters, see the Rakefilefor cert genertaion details.
@@ -121,6 +121,15 @@ in {
       }
     */
   };
+
+  secrets.install.github = {
+    source = "${etcEncrypted}/netrc";
+    target = netrcFile;
+    script = ''
+      chmod 0600 ${netrcFile}
+    '';
+  };
+
 
   secrets.install.nomad-server = lib.mkIf (isInstance && isSops) {
     source = "${etcEncrypted}/nomad.json";

@@ -36,6 +36,7 @@ in {
     };
 
     dockerAuth = "/var/lib/nomad/.docker/config.json";
+    netrcFile = "/etc/nix/netrc";
 
     hashiTokens = {
       vaultd-consul-json = "/etc/vault.d/consul-token.json";
