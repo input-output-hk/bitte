@@ -93,3 +93,7 @@ quota.policy = "write"
 
 [nomad.developer]
 
+[nomad.nomad-follower]
+description = "Collects logs from Nomad allocations"
+agent.policy = "read"
+namespace."*" = { capabilities = [ "read-job" ], policy = "read" }

@@ -97,6 +97,7 @@ in {
       "kv/data/bootstrap/static-tokens/clients/*".capabilities = [ r ];
       "kv/data/nomad-cluster/*".capabilities = [ r l ];
       "kv/metadata/nomad-cluster/*".capabilities = [ r l ];
+      "nomad/creds/nomad-follower" = [ r u ];
       "pki/issue/client".capabilities = [ c u ];
       "pki/roles/client".capabilities = [ r ];
       "sys/capabilities-self".capabilities = [ u ];

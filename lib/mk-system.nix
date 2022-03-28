@@ -23,7 +23,7 @@ let
           ++ modules;
         specialArgs = {
           inherit nodeName self inputs;
-          inherit (bitte.inputs) terranix nomad-driver-nix;
+          inherit (bitte.inputs) terranix nomad-driver-nix nomad-follower;
           bittelib = bitte.lib;
           inherit (bitte.lib) terralib;
         };

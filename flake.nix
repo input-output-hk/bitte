@@ -20,6 +20,7 @@
 
     nomad.url = "github:input-output-hk/nomad/release-1.2.6";
     nomad-driver-nix.url = "github:input-output-hk/nomad-driver-nix";
+    nomad-follower.url = "github:input-output-hk/nomad-follower";
 
     ops-lib = {
       url = "github:input-output-hk/ops-lib";
