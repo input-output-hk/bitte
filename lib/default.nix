@@ -18,6 +18,8 @@ in rec {
   mkDeploy = import ./mk-deploy.nix { inherit deploy lib; };
   mkSystem = import ./mk-system.nix { inherit nixpkgs bitte; };
 
+  securityGroupRules = import ./security-group-rules.nix { inherit terralib; };
+
   ensureDependencies = import ./ensure-dependencies.nix { inherit lib; };
   mkNomadHostVolumesConfig = import ./mk-nomad-host-volumes-config.nix { inherit lib; };
 
