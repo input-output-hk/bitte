@@ -1211,16 +1211,7 @@ in {
           cp ${certKeyFile} cert-key.pem
           cp ${hashiTokens.vault} .
           chown --reference . ./*.pem
-        '' + ''
-          export PATH="${lib.makeBinPath (with pkgs; [ fd coreutils ])}:$PATH"
-        '' + (builtins.concatStringsSep "\n" (
-          lib.mapAttrsToList (k: v: ''
-            mkdir -p ${v.path}
-            chown nobody:nogroup "$_"
-            fd . -o root "$_" -X chown nobody:nogroup || true
-          ''
-          ) config.services.nomad.client.host_volume
-        )));
+        '');
 
       in {
         ExecStartPre = "!${start-pre}";
