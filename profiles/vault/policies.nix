@@ -110,7 +110,7 @@ in {
       "auth/token/renew-self" = [ u ];
       "consul/creds/consul-default" = [ r u ];
       "consul/creds/consul-agent" = [ r u ];
-      "consul/creds/traefik" = [ r u ];
+      "consul/creds/consul-register" = [ r ];
     };
 
     routing.path = caps {
