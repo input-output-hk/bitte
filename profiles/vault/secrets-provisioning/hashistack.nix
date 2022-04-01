@@ -123,7 +123,8 @@ let
         {
           "acl": {
             "tokens": {
-              "agent": "${consulAgent}"
+              "agent": "${consulAgent}",
+              "default": "${consulDefault}"
             }
           }
         }
