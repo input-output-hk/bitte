@@ -902,11 +902,11 @@
         "utils": "utils_6"
       },
       "locked": {
-        "lastModified": 1648463119,
-        "narHash": "sha256-4CvOIWdDtGsWAGy/jO3HCs+hu8hZ6WjHnGNhmF0tbdc=",
+        "lastModified": 1649019465,
+        "narHash": "sha256-xyTFXFIVlD5iK6/6oAdw7DLSQ0HMZUvz6Uzrsw1h7TY=",
         "owner": "input-output-hk",
         "repo": "nomad-follower",
-        "rev": "e900a2276efafda6738f58fae3935079f5e970f3",
+        "rev": "c632a7371b3a3391a1523477308f272b8fd1b17c",
         "type": "github"
       },
       "original": {
