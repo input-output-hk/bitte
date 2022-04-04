@@ -360,10 +360,7 @@ let
             subnets = lib.pipe 3 [
               (builtins.genList lib.id)
               (map (idx: lib.nameValuePair "core-${toString (idx+1)}" {
-                inherit idx;
                 cidr = net.cidr.subnet 8 idx cidr;
-                # cidr = "10.${base}.${toString idx}.0/18";
-                # cidr = terralib.earlyVar ''cidrsubnet("${cidr}", 8, ${toString (idx+1)})'';
                 availabilityZone =
                   var
                     "module.instance_types_to_azs.availability_zones[${toString idx}]";
@@ -675,10 +672,6 @@ let
           type = with lib.types; str;
           default = id "aws_subnet.${this.config.name}";
         };
-
-        idx = lib.mkOption {
-          type = with lib.types; ints.unsigned;
-        };
       };
     });
 
@@ -989,7 +982,6 @@ let
                   lib.stringToCharacters
                   (lib.flip builtins.elemAt idx)
                 ]) {
-                  inherit idx;
                   cidr = net.cidr.subnet 2 idx cidr;
                   availabilityZone =
                     var
