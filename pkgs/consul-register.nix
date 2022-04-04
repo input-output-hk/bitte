@@ -25,7 +25,7 @@ let
     CONSUL_HTTP_TOKEN="$(
       vault read \
         -tls-skip-verify \
-        -address https://active.vault.service.consul:8200 \
+        -address http://127.0.0.1:8200 \
         -field token \
         consul/creds/${creds}
     )"
