@@ -100,6 +100,7 @@ in {
           provider = awsProviderFor config.cluster.vpc.region;
           vpc_id = id "aws_vpc.core";
           cidr_block = subnet.cidr;
+          # This indirectly consumes "module.instance_types_to_azs"
           availability_zone = subnet.availabilityZone;
 
           lifecycle = [{ create_before_destroy = true; }];
