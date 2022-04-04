@@ -18,6 +18,8 @@ in rec {
   mkDeploy = import ./mk-deploy.nix { inherit deploy lib; };
   mkSystem = import ./mk-system.nix { inherit nixpkgs bitte; };
 
+  net = import ./net.nix { inherit lib; };
+
   securityGroupRules = import ./security-group-rules.nix { inherit terralib; };
 
   ensureDependencies = import ./ensure-dependencies.nix { inherit lib; };
