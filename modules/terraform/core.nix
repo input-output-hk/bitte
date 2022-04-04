@@ -46,6 +46,11 @@ in {
         }));
     };
 
+    module.instance_types_to_azs = {
+      source = "${./modules/instance-types-to-azs}";
+      instance_types = config.cluster.requiredInstanceTypes;
+    };
+
     # ---------------------------------------------------------------
     # Networking
     # ---------------------------------------------------------------
@@ -95,6 +100,8 @@ in {
           provider = awsProviderFor config.cluster.vpc.region;
           vpc_id = id "aws_vpc.core";
           cidr_block = subnet.cidr;
+          # This indirectly consumes "module.instance_types_to_azs"
+          availability_zone = subnet.availabilityZone;
 
           lifecycle = [{ create_before_destroy = true; }];
 
