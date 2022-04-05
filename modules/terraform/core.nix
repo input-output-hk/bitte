@@ -257,12 +257,17 @@ in {
       lib.nameValuePair coreNode.uid {
         vpc = true;
         network_interface = id "aws_network_interface.${coreNode.uid}";
-        associate_with_private_ip = coreNode.privateIP;
         tags = {
           Cluster = config.cluster.name;
           Name = coreNode.name;
         };
         lifecycle = [{ create_before_destroy = true; }];
+      }) config.cluster.coreNodes;
+
+    resource.aws_eip_association = lib.mapAttrs' (name: coreNode:
+      lib.nameValuePair coreNode.uid {
+        instance_id   = id "aws_instance.${name}";
+        allocation_id = id "aws_eip.${coreNode.uid}";
       }) config.cluster.coreNodes;
 
     resource.aws_network_interface = lib.mapAttrs' (name: coreNode:
@@ -280,6 +285,7 @@ in {
     resource.aws_instance = lib.mapAttrs (name: coreNode:
       lib.mkMerge [
         (lib.mkIf coreNode.enable {
+          depends_on = [ "aws_eip.${coreNode.uid}" ];
           inherit (coreNode) ami;
           instance_type = coreNode.instanceType;
           monitoring = true;
@@ -315,7 +321,7 @@ in {
           provisioner = let
             ssh = "${pkgs.openssh}/bin/ssh -C -oUserKnownHostsFile=/dev/null -oNumberOfPasswordPrompts=0 -oServerAliveInterval=60 -oControlPersist=600 -oStrictHostKeyChecking=no -i ./secrets/ssh-${config.cluster.name} ${target}";
             scp = "${pkgs.openssh}/bin/scp -C -oUserKnownHostsFile=/dev/null -oNumberOfPasswordPrompts=0 -oServerAliveInterval=60 -oControlPersist=600 -oStrictHostKeyChecking=no -i ./secrets/ssh-${config.cluster.name} ";
-            target = "root@${var "self.public_ip"}";
+            target = "root@${var "aws_eip.${coreNode.uid}.public_ip"}";
           in (lib.optionals (name == "core-1") [{
               local-exec = {
                 command = ''
@@ -324,7 +330,7 @@ in {
                   while test -z "$(
                     ${pkgs.socat}/bin/socat \
                       -T2 stdout \
-                      tcp:${var "self.public_ip"}:22,connect-timeout=2,readbytes=1 \
+                      tcp:${var "aws_eip.${coreNode.uid}.public_ip"}:22,connect-timeout=2,readbytes=1 \
                       2>/dev/null
                   )"
                   do
@@ -359,7 +365,7 @@ in {
             {
               local-exec = let
                 command =
-                  coreNode.localProvisioner.protoCommand (var "self.public_ip");
+                  coreNode.localProvisioner.protoCommand (var "aws_eip.${coreNode.uid}.public_ip");
               in {
                 inherit command;
                 inherit (coreNode.localProvisioner) interpreter environment;
@@ -374,7 +380,7 @@ in {
                   while test -z "$(
                     ${pkgs.socat}/bin/socat \
                       -T2 stdout \
-                      tcp:${var "self.public_ip"}:22,connect-timeout=2,readbytes=1 \
+                      tcp:${var "aws_eip.${coreNode.uid}.public_ip"}:22,connect-timeout=2,readbytes=1 \
                       2>/dev/null
                   )"
                   do
