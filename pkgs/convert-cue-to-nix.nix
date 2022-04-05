@@ -16,7 +16,7 @@ writeShellScriptBin "convert-cue-to-nix.sh" ''
   namespaces=($(cue export | jq -r '.rendered | keys[]'))
   pwd="$(pwd)"
 
-  for ns in ''${namespace[@]}; do
+  for ns in ''${namespaces[@]}; do
     jobs=($(cue export | jq -r ".rendered[\"$ns\"] | keys[]"))
     mkdir -p $ns
     pushd $ns
