@@ -900,11 +900,11 @@
         "utils": "utils_6"
       },
       "locked": {
-        "lastModified": 1648463119,
-        "narHash": "sha256-4CvOIWdDtGsWAGy/jO3HCs+hu8hZ6WjHnGNhmF0tbdc=",
+        "lastModified": 1649062947,
+        "narHash": "sha256-il92h97qdOevDuIQnRpXjobjLoyDRcbyLTydRqR3l/Y=",
         "owner": "input-output-hk",
         "repo": "nomad-follower",
-        "rev": "e900a2276efafda6738f58fae3935079f5e970f3",
+        "rev": "5a749294755ce7ff315fdae99fa3abf47d7f62d1",
         "type": "github"
       },
       "original": {
