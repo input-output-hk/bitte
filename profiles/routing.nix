@@ -22,7 +22,10 @@ in {
 
     acmeDnsCertMgr = lib.mkOption {
       type = lib.types.bool;
-      default = true;
+      default = lib.warn ''
+        CAUTION: -- default will change soon to:
+        services.traefik.acmeDnsCertMgr = false;
+      '' true;
       description = ''
         If true, acme systemd services will manage a single cert and provide it to traefik:
           - using dns Let's Encrypt challenge
@@ -55,7 +58,10 @@ in {
 
     useDockerRegistry = lib.mkOption {
       type = lib.types.bool;
-      default = true;
+      default = lib.warn ''
+        CAUTION: -- default will change soon to:
+        services.traefik.useDockerRegistry = false;
+      '' true;
       description = ''
         Enable use of a docker registry backend with a service hosted on the monitoring server.
       '';
@@ -63,7 +69,10 @@ in {
 
     useVaultBackend = lib.mkOption {
       type = lib.types.bool;
-      default = false;
+      default = lib.warn ''
+        CAUTION: -- default will change soon to:
+        services.traefik.useVaultBackend = true;
+      '' false;
       description = ''
         Enable use of a vault TF backend with a service hosted on the monitoring server.
       '';
