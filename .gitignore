@@ -8,3 +8,4 @@
 /result*
 /.lego
 .direnv
+cli/target

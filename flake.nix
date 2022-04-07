@@ -6,7 +6,6 @@
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixpkgs-unstable";
 
     nix.url = "github:kreisys/nix/goodnix-maybe-dont-functor";
-    cli.url = "github:input-output-hk/bitte-cli";
     agenix.url = "github:ryantm/agenix";
     agenix-cli.url = "github:cole-h/agenix-cli";
     ragenix.url = "github:yaxitech/ragenix";
@@ -21,6 +20,11 @@
     nomad.url = "github:input-output-hk/nomad/release-1.2.6";
     nomad-driver-nix.url = "github:input-output-hk/nomad-driver-nix";
     nomad-follower.url = "github:input-output-hk/nomad-follower";
+
+    fenix = {
+      url = "github:nix-community/fenix";
+      inputs.nixpkgs.follows = "nixpkgs-unstable";
+    };
 
     ops-lib = {
       url = "github:input-output-hk/ops-lib";
@@ -38,16 +42,17 @@
   };
 
   outputs =
-    { self, hydra, nixpkgs, utils, cli, deploy, ragenix, nix, ... }@inputs:
+    { self, hydra, nixpkgs, nixpkgs-unstable, utils, deploy, ragenix, nix, fenix, ... }@inputs:
     let
 
       overlays = [
+        fenix.overlay
         nix.overlay
-        (_: prev: { inherit (cli.packages."${prev.system}") bitte; })
         hydra.overlay
         deploy.overlay
         localPkgsOverlay
         terraformProvidersOverlay
+        (_: prev: { inherit (self.packages."${prev.system}") bitte; })
       ];
       terraformProvidersOverlay =
         import ./terraform-providers-overlay.nix inputs;
@@ -59,16 +64,61 @@
           config.allowUnfree = true; # for ssm-session-manager-plugin
         };
 
+      unstablePkgsForSystem = system:
+        import nixpkgs-unstable {
+          inherit overlays system;
+        };
+
       lib = import ./lib {
         inherit (nixpkgs) lib;
         inherit inputs;
       };
 
-    in utils.lib.eachSystem [ "x86_64-linux" ] (system: rec {
+      toolchain = "stable";
 
+    in utils.lib.eachSystem [ "x86_64-linux" ] (system: let
       legacyPackages = pkgsForSystem system;
+      unstablePackages = unstablePkgsForSystem system;
+      rustPkg = unstablePackages.fenix."${toolchain}".withComponents [
+        "cargo"
+        "clippy"
+        "rust-src"
+        "rustc"
+        "rustfmt"
+      ];
+    in rec {
+      inherit legacyPackages;
+      devShells.default = legacyPackages.devShell;
+      devShells.cli = with unstablePackages;
+        mkShell {
+          RUST_BACKTRACE = "1";
+          RUST_SRC_PATH = "${rustPkg}/lib/rustlib/src/rust/library";
 
-      inherit (legacyPackages) devShell;
+          buildInputs = [
+            legacyPackages.treefmt
+            shfmt
+            nodePackages.prettier
+            cfssl
+            sops
+            openssl
+            zlib
+            pkg-config
+            rustPkg
+            rust-analyzer-nightly
+          ] ++ lib.optionals stdenv.isDarwin (with darwin;
+            with apple_sdk.frameworks; [
+              libiconv
+              libresolv
+              Libsystem
+              SystemConfiguration
+              Security
+              CoreFoundation
+            ]);
+        };
+
+
+      packages.bitte =  unstablePackages.callPackage ./cli/package.nix { inherit toolchain; };
+      defaultPackage = packages.bitte;
 
       hydraJobs = let
         constituents = {
@@ -92,5 +142,6 @@
         # agenix = ragenix.nixosModules.age;
       };
       nixosModule.imports = builtins.attrValues self.nixosModules;
+      devshellModule = import ./devshellModule.nix;
     };
 }
