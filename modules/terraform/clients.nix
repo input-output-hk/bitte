@@ -65,6 +65,13 @@ in {
         alias = awsProviderNameFor region;
       }));
 
+    module = mapAwsAsgVpcs (vpc:
+      lib.nameValuePair "instance_types_to_azs_${vpc.region}" {
+        providers.aws = awsProviderFor vpc.region;
+        source = "${./modules/instance-types-to-azs}";
+        instance_types = config.cluster.requiredAsgInstanceTypes;
+      });
+
     # ---------------------------------------------------------------
     # Networking
     # ---------------------------------------------------------------
@@ -155,6 +162,7 @@ in {
           provider = awsProviderFor vpc.region;
           vpc_id = id "aws_vpc.${vpc.region}";
           cidr_block = subnet.cidr;
+          availability_zone = subnet.availabilityZone;
 
           lifecycle = [{ create_before_destroy = true; }];
 
