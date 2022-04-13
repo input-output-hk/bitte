@@ -76,7 +76,12 @@
 
       toolchain = "stable";
 
-    in utils.lib.eachSystem [ "x86_64-linux" ] (system: let
+    in utils.lib.eachSystem [
+      "aarch64-darwin"
+      "aarch64-linux"
+      "x86_64-darwin"
+      "x86_64-linux"
+    ] (system: let
       legacyPackages = pkgsForSystem system;
       unstablePackages = unstablePkgsForSystem system;
       rustPkg = unstablePackages.fenix."${toolchain}".withComponents [
