@@ -1,6 +1,6 @@
 { self, config, pkgs, lib, nodeName, terralib, terranix, bittelib, ... }:
 let
-  inherit (terralib) var id regions awsProviderFor;
+  inherit (terralib) var id regions awsProviderFor amis;
   inherit (bittelib) net;
 
   kms2region = kms: if kms == null then null else builtins.elemAt (lib.splitString ":" kms) 3;
@@ -15,14 +15,13 @@ let
   relEncryptedFolder = lib.last (builtins.split "-" (toString config.secrets.encryptedRoot));
 
   # without zfs
-  coreAMIs = {
-    eu-central-1.x86_64-linux = "ami-0961cad26b3399fce";
-    eu-west-1.x86_64-linux = "ami-010d1407e12e86a68";
-    us-east-1.x86_64-linux = "ami-0641447e25cba1b93";
-    us-east-2.x86_64-linux = "ami-00bc9ae8a038a7ccd";
-    us-west-1.x86_64-linux = "ami-037994350972840c1";
-    us-west-2.x86_64-linux = "ami-0fe2b3e2649511a18";
-  };
+  coreAMIs = with lib; pipe supportedRegions [
+    # => us-east-1
+    (map (region: nameValuePair region {
+      x86_64-linux = amis."21.05"."${region}".hvm-ebs;
+    }))
+    listToAttrs
+  ];
 
   # with zfs
   clientAMIs = {
@@ -34,7 +33,7 @@ let
     us-west-2.x86_64-linux = "ami-09b83c344225d1128";
   };
 
-  vpcMap = lib.pipe [
+  supportedRegions = [
     "ap-northeast-1"
     "ap-northeast-2"
     "ap-south-1"
@@ -51,7 +50,12 @@ let
     "us-east-2"
     "us-west-1"
     "us-west-2"
-  ] [ (lib.imap0 (i: v: lib.nameValuePair v i)) builtins.listToAttrs ];
+  ];
+
+  vpcMap = lib.pipe supportedRegions [
+    (lib.imap0 (i: v: lib.nameValuePair v i))
+    builtins.listToAttrs
+  ];
 
   # This user data only injects the cache and nix3 config so that
   # deploy-rs can take it from there (efficiently)
