@@ -713,11 +713,11 @@
     "ops-lib": {
       "flake": false,
       "locked": {
-        "lastModified": 1637750711,
-        "narHash": "sha256-Il/cWznjosBV8bWP9aeDfpLfT6K1jjXdi72hWazBK68=",
+        "lastModified": 1649848729,
+        "narHash": "sha256-5zN9gpn+DwdB67bcHfDD8zgMnR0EaJd2JVNMyL6J1N0=",
         "owner": "input-output-hk",
         "repo": "ops-lib",
-        "rev": "20646de3e33cd46780418c64ba7c99d8d3547653",
+        "rev": "517c747f4d5d56e626f62618803bfccb09f14019",
         "type": "github"
       },
       "original": {
