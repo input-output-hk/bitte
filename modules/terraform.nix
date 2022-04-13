@@ -15,12 +15,12 @@ let
   relEncryptedFolder = lib.last (builtins.split "-" (toString config.secrets.encryptedRoot));
 
   # without zfs
-  coreAMIs = with lib; pipe supportedRegions [
+  coreAMIs = lib.pipe supportedRegions [
     # => us-east-1
-    (map (region: nameValuePair region {
+    (map (region: lib.nameValuePair region {
       x86_64-linux = amis."21.05"."${region}".hvm-ebs;
     }))
-    listToAttrs
+    lib.listToAttrs
   ];
 
   # with zfs
