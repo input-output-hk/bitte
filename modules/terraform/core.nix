@@ -321,42 +321,32 @@ in {
             lib.mkIf (coreNode.ebsOptimized != null) coreNode.ebsOptimized;
 
           provisioner = let
-            ssh = "${pkgs.openssh}/bin/ssh -C -oUserKnownHostsFile=/dev/null -oNumberOfPasswordPrompts=0 -oServerAliveInterval=60 -oControlPersist=600 -oStrictHostKeyChecking=no -i ./secrets/ssh-${config.cluster.name} ${target}";
-            scp = "${pkgs.openssh}/bin/scp -C -oUserKnownHostsFile=/dev/null -oNumberOfPasswordPrompts=0 -oServerAliveInterval=60 -oControlPersist=600 -oStrictHostKeyChecking=no -i ./secrets/ssh-${config.cluster.name} ";
-            target = "root@${var "aws_eip.${coreNode.uid}.public_ip"}";
-          in (lib.optionals (name == "core-1") [{
-              local-exec = {
-                command = ''
-                  echo
-                  echo Waiting for ssh to come up on port 22 ...
-                  while test -z "$(
-                    ${pkgs.socat}/bin/socat \
-                      -T2 stdout \
-                      tcp:${var "aws_eip.${coreNode.uid}.public_ip"}:22,connect-timeout=2,readbytes=1 \
-                      2>/dev/null
-                  )"
-                  do
-                      printf " ."
-                      sleep 5
-                  done
-
-                  sleep 1
-                  if test -f ${relEncryptedFolder}/vault.enc.json; then
-                    ${ssh} -- "mkdir -p /var/lib/private/vault"
-                    ${scp} "${relEncryptedFolder}/vault.enc.json" "${target}:/var/lib/private/vault/vault.enc.json"
-                    ${ssh} -- "touch /var/lib/private/vault/.bootstrap-done"
-                  fi
-                  if test -f ${relEncryptedFolder}/nomad.bootstrap.enc.json; then
-                    tempfile=$(mktemp)
-                    ${ssh} -- "mkdir -p /var/lib/nomad"
-                    ${sopsDecrypt "${relEncryptedFolder}/nomad.bootstrap.enc.json"}|${pkgs.jq}/bin/jq -r '.token' > "$tempfile"
-                    ${scp} "$tempfile" "${target}:/var/lib/nomad/bootstrap.token"
-                    rm "$tempfile"
-                    ${ssh} -- "touch /var/lib/nomad/.bootstrap-done"
-                  fi
-                '';
-              };
-            }]) ++ [
+            sshArgs = "-C -oConnectTimeout=5 -oUserKnownHostsFile=/dev/null -oNumberOfPasswordPrompts=0 -oServerAliveInterval=60 -oControlPersist=600 -oStrictHostKeyChecking=no -i ./secrets/ssh-${config.cluster.name}";
+            publicIP = var "aws_eip.${coreNode.uid}.public_ip";
+            target = "root@${publicIP}";
+            ssh = "${pkgs.openssh}/bin/ssh ${sshArgs} ${target}";
+            scp = "${pkgs.openssh}/bin/scp ${sshArgs} ";
+            waitForSsh' = ''
+              echo Waiting for ssh to come up on port 22 ...
+              while test -z "$(
+                ${pkgs.socat}/bin/socat \
+                  -T2 stdout \
+                  tcp:${var "aws_eip.${coreNode.uid}.public_ip"}:22,connect-timeout=2,readbytes=1 \
+                  2>/dev/null
+              )"
+              do
+                  printf " ."
+                  sleep 5
+              done
+            '';
+            waitForSsh = ''
+              echo Waiting for ssh to come up on port 22 ...
+              while ! ${ssh} true; do
+                  printf " ."
+                  sleep 5
+              done
+            '';
+          in [
             {
               local-exec = {
                 command = "${
@@ -367,28 +357,18 @@ in {
             {
               local-exec = let
                 command =
-                  coreNode.localProvisioner.protoCommand (var "aws_eip.${coreNode.uid}.public_ip");
+                  coreNode.localProvisioner.protoCommand publicIP;
               in {
                 inherit command;
                 inherit (coreNode.localProvisioner) interpreter environment;
                 working_dir = coreNode.localProvisioner.workingDir;
               };
-            }] ++
-            (lib.optionals (name == "core-1") [{
+            }
+            (lib.optional (name == "core-1") {
               local-exec = {
                 command = ''
                   echo
-                  echo Waiting for ssh to come up on port 22 ...
-                  while test -z "$(
-                    ${pkgs.socat}/bin/socat \
-                      -T2 stdout \
-                      tcp:${var "aws_eip.${coreNode.uid}.public_ip"}:22,connect-timeout=2,readbytes=1 \
-                      2>/dev/null
-                  )"
-                  do
-                      printf " ."
-                      sleep 5
-                  done
+                  ${waitForSsh}
 
                   sleep 1
 
@@ -414,8 +394,8 @@ in {
                   fi
                 '';
               };
-            }
-          ]);
+            })
+          ];
         })
 
         (lib.mkIf config.cluster.generateSSHKey {
