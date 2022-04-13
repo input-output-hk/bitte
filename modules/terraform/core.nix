@@ -393,7 +393,7 @@ in {
                   if ! test -f ${relEncryptedFolder}/vault.enc.json; then
                     echo
                     echo Waiting for bootstrapping on core-1 to finish for vault /var/lib/vault/vault.enc.json ...
-                    while ! ${ssh} -- test -f /var/lib/vault/vault.enc.json; do
+                    while ! ${ssh} -- test -f /var/lib/vault/vault.enc.json &>/dev/null; do
                       sleep 5
                     done
                     echo ... found /var/lib/vault/vault.enc.json
