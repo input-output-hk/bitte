@@ -120,6 +120,19 @@ in {
       ${config.cluster.nodes.monitoring.privateIP} monitoring
     '';
 
+    # Only start traefik once the token is available
+    systemd.paths.traefik-consul-token = {
+      wantedBy = [ "multi-user.target" ];
+      pathConfig = {
+        Unit = "traefik.service";
+        PathExists = hashiTokens.traefik;
+      };
+    };
+
+    # Get rid of the default `multi-user.target` so that the
+    # above path unit actually has an effect.
+    systemd.services.traefik.wantedBy = lib.mkForce [];
+
     systemd.services.traefik.serviceConfig.ExecStart = let
         cfg = config.services.traefik;
         jsonValue = with lib.types;
@@ -170,7 +183,7 @@ in {
       export CONSUL_HTTP_TOKEN="$(< $CREDENTIALS_DIRECTORY/consul)"
       exec ${config.services.traefik.package}/bin/traefik --configfile=${staticConfigFile}
     '');
-    systemd.services.traefik.serviceConfig.LoadCredential = "consul:${hashiTokens.consul-default}";
+    systemd.services.traefik.serviceConfig.LoadCredential = "consul:${hashiTokens.traefik}";
 
     systemd.services.copy-acme-certs = lib.mkIf cfg.acmeDnsCertMgr {
       before = [ "traefik.service" ];
