@@ -120,6 +120,7 @@ in {
       ${config.cluster.nodes.monitoring.privateIP} monitoring
     '';
 
+    # Only start traefik once the token is available
     systemd.paths.traefik-consul-token = {
       wantedBy = [ "multi-user.target" ];
       pathConfig = {
@@ -128,7 +129,10 @@ in {
       };
     };
 
+    # Get rid of the default `multi-user.target` so that the
+    # above path unit actually has an effect.
     systemd.services.traefik.wantedBy = lib.mkForce [];
+
     systemd.services.traefik.serviceConfig.ExecStart = let
         cfg = config.services.traefik;
         jsonValue = with lib.types;
