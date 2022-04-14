@@ -180,7 +180,6 @@ in {
         };
 
       "${hashiTokens.traefik}" = lib.mkIf isRouting {
-        command = role.restart "traefik.service";
         contents = role.traefik;
       };
     };
