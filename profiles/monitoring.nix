@@ -78,7 +78,7 @@ in {
     services.consul.ui = true;
     services.nomad.enable = false;
     services.minio.enable = true;
-    services.vulnix.enable = true;
+    # services.vulnix.enable = true;
     services.victoriametrics.enable = true;
     services.loki.enable = true;
     services.grafana.enable = true;
