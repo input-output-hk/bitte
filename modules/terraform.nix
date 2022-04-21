@@ -977,6 +977,21 @@ let
 
         region = lib.mkOption { type = with lib.types; str; };
 
+        vpcZoneIdentifierSuffix = lib.mkOption {
+          type = with lib.types; nullOr (listOf str);
+          default = null;
+          description = ''
+            Optionally used with asg declarations to constrain asg members to specific
+            region subnets and therefore availability zones.  Example for an asg defined
+            for eu-central-1:
+
+              vpcZoneIdentifierSuffix = [ "a" ];
+
+            This example would constrain the asg to only the subnet aws_subnet.eu-central-1-a
+            resulting in availability zone constraint of eu-central-1a.
+          '';
+        };
+
         iam =
           lib.mkOption { type = with lib.types; nodeIamType this.config.name; };
 
