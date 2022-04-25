@@ -125,6 +125,7 @@ in {
   secrets.install.github = {
     source = "${etcEncrypted}/netrc";
     target = netrcFile;
+    outputType = "binary";
     script = ''
       chmod 0600 ${netrcFile}
     '';
