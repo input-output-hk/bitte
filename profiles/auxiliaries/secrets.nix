@@ -122,7 +122,7 @@ in {
     */
   };
 
-  secrets.install.github = {
+  secrets.install.github = lib.mkIf isSops {
     source = "${etcEncrypted}/netrc";
     target = netrcFile;
     outputType = "binary";
@@ -130,7 +130,6 @@ in {
       chmod 0600 ${netrcFile}
     '';
   };
-
 
   secrets.install.nomad-server = lib.mkIf (isInstance && isSops) {
     source = "${etcEncrypted}/nomad.json";
@@ -280,5 +279,13 @@ in {
           '.server.encrypt = $encrypt' \
         > $out
     '';
+  };
+
+  age.secrets.netrc = lib.mkIf (!isSops) {
+    file = config.age.encryptedRoot + "/netrc/password.age";
+    path = "/etc/nix/netrc";
+    owner = "root";
+    group = "root";
+    mode = "0600";
   };
 }
