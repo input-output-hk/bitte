@@ -183,7 +183,7 @@ in {
       export CONSUL_HTTP_TOKEN="$(< $CREDENTIALS_DIRECTORY/consul)"
       exec ${config.services.traefik.package}/bin/traefik --configfile=${staticConfigFile}
     '');
-    systemd.services.traefik.serviceConfig.LoadCredential = "consul:${hashiTokens.traefik}";
+    systemd.services.traefik.serviceConfig.LoadCredential = "consul:${hashiTokens.consul-default}";
 
     systemd.services.copy-acme-certs = lib.mkIf cfg.acmeDnsCertMgr {
       before = [ "traefik.service" ];
