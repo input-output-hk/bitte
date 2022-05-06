@@ -227,18 +227,6 @@ let
             ];
         };
 
-        requiredAsgInstanceTypes = lib.mkOption {
-          internal = true;
-          readOnly = true;
-          type = with lib.types; listOf str;
-          default =
-            lib.pipe config.cluster.awsAutoScalingGroups [
-              builtins.attrValues
-              (map (lib.attrByPath [ "instanceType" ] null))
-              lib.unique
-            ];
-        };
-
         nodes = lib.mkOption {
           type = with lib.types; attrsOf coreNodeType;
           internal = true;
@@ -983,25 +971,25 @@ let
         vpc = lib.mkOption {
           type = vpcType this.config.uid;
           default = let
-            inherit (this.config) region;
             base = toString (vpcMap.${this.config.region} * 4);
             cidr = "10.${base}.0.0/16";
             atoz = "abcdefghijklmnopqrstuvwxyz";
           in {
-            inherit cidr region;
+            inherit cidr;
+            region = this.config.region;
 
             name = "${cfg.name}-${this.config.region}-asgs";
             subnets = lib.pipe 3 [
               (builtins.genList lib.id)
               (map (idx: lib.nameValuePair
-                (lib.pipe atoz [
+                (pipe atoz [
                   lib.stringToCharacters
                   (lib.flip builtins.elemAt idx)
                 ]) {
                   cidr = net.cidr.subnet 2 idx cidr;
                   availabilityZone =
                     var
-                      "module.instance_types_to_azs_${region}.availability_zones[${toString idx}]";
+                      "module.instance_types_to_azs.availability_zones[${toString idx}]";
                 }))
               lib.listToAttrs
             ];
