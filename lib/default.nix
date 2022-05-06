@@ -9,6 +9,7 @@ in rec {
 
   recImport = import ./rec-import.nix { inherit lib; };
   sanitize = import ./sanitize.nix { inherit lib snakeCase; };
+  sops = import ./sops.nix { inherit lib terralib; };
   snakeCase = import ./snake-case.nix { inherit lib; };
   mkModules = import ./make-modules.nix { inherit lib; };
 
@@ -17,6 +18,7 @@ in rec {
     import ./mk-bitte-stack.nix { inherit mkCluster mkDeploy lib nixpkgs bitte; };
   mkDeploy = import ./mk-deploy.nix { inherit deploy lib; };
   mkSystem = import ./mk-system.nix { inherit nixpkgs bitte; };
+  mkSopsConfig = sops.mkSopsConfig;
 
   net = import ./net.nix { inherit lib; };
 
