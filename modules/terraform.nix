@@ -1,7 +1,6 @@
 { self, config, pkgs, lib, nodeName, terralib, terranix, bittelib, ... }:
 let
   inherit (terralib) var id regions awsProviderFor amis;
-  inherit (bittelib) net;
 
   kms2region = kms: if kms == null then null else builtins.elemAt (lib.splitString ":" kms) 3;
 
@@ -215,18 +214,6 @@ let
 
         vaultWardenTransitBackupItemId = lib.mkOption { type = with lib.types; str; };
 
-        requiredInstanceTypes = lib.mkOption {
-          internal = true;
-          readOnly = true;
-          type = with lib.types; listOf str;
-          default =
-            lib.pipe config.cluster.coreNodes [
-              builtins.attrValues
-              (map (lib.attrByPath [ "instanceType" ] null))
-              lib.unique
-            ];
-        };
-
         nodes = lib.mkOption {
           type = with lib.types; attrsOf coreNodeType;
           internal = true;
@@ -354,39 +341,29 @@ let
         };
 
         vpc = lib.mkOption {
-          type = vpcType cfg.name;
-          default = let
-            cidr = "172.16.0.0/16";
-          in {
-            inherit cidr;
+          type = with lib.types; vpcType cfg.name;
+          default = {
             inherit (cfg) region;
 
-            subnets = lib.pipe 3 [
-              (builtins.genList lib.id)
-              (map (idx: lib.nameValuePair "core-${toString (idx+1)}" {
-                cidr = net.cidr.subnet 8 idx cidr;
-                availabilityZone =
-                  var
-                    "module.instance_types_to_azs.availability_zones[${toString idx}]";
-              }))
-              lib.listToAttrs
-            ];
+            cidr = "172.16.0.0/16";
+
+            subnets = {
+              core-1.cidr = "172.16.0.0/24";
+              core-2.cidr = "172.16.1.0/24";
+              core-3.cidr = "172.16.2.0/24";
+            };
           };
         };
 
         premSimVpc = lib.mkOption {
           type = with lib.types; vpcType "${cfg.name}-premSim";
-          default = let
-            cidr = "10.255.0.0/16";
-          in {
-            inherit cidr;
+          default = {
             inherit (cfg) region;
 
+            cidr = "10.255.0.0/16";
+
             subnets = {
-              premSim.cidr = net.cidr.subnet 8 0 cidr;
-              premSim.availabilityZone =
-                var
-                  "module.instance_types_to_azs.availability_zones[0]";
+              premSim.cidr = "10.255.0.0/24";
             };
           };
         };
@@ -663,11 +640,6 @@ let
         name = lib.mkOption {
           type = with lib.types; str;
           default = name;
-        };
-
-        availabilityZone = lib.mkOption {
-          type = with lib.types; nullOr str;
-          default = null;
         };
 
         cidr = lib.mkOption { type = with lib.types; str; };
@@ -969,30 +941,20 @@ let
           lib.mkOption { type = with lib.types; nodeIamType this.config.name; };
 
         vpc = lib.mkOption {
-          type = vpcType this.config.uid;
-          default = let
-            base = toString (vpcMap.${this.config.region} * 4);
-            cidr = "10.${base}.0.0/16";
-            atoz = "abcdefghijklmnopqrstuvwxyz";
+          type = with lib.types; vpcType this.config.uid;
+          default = let base = toString (vpcMap."${this.config.region}" * 4);
           in {
-            inherit cidr;
-            region = this.config.region;
+            inherit (this.config) region;
+
+            cidr = "10.${base}.0.0/16";
 
             name = "${cfg.name}-${this.config.region}-asgs";
-            subnets = lib.pipe 3 [
-              (builtins.genList lib.id)
-              (map (idx: lib.nameValuePair
-                (pipe atoz [
-                  lib.stringToCharacters
-                  (lib.flip builtins.elemAt idx)
-                ]) {
-                  cidr = net.cidr.subnet 2 idx cidr;
-                  availabilityZone =
-                    var
-                      "module.instance_types_to_azs.availability_zones[${toString idx}]";
-                }))
-              lib.listToAttrs
-            ];
+            subnets = {
+              a.cidr = "10.${base}.0.0/18";
+              b.cidr = "10.${base}.64.0/18";
+              c.cidr = "10.${base}.128.0/18";
+              # d.cidr = "10.${base}.192.0/18";
+            };
           };
         };
 
