@@ -9,7 +9,7 @@ in rec {
 
   recImport = import ./rec-import.nix { inherit lib; };
   sanitize = import ./sanitize.nix { inherit lib snakeCase; };
-  sops = import ./sops.nix { inherit lib terralib; };
+  kv = import ./kv.nix { inherit lib terralib; };
   snakeCase = import ./snake-case.nix { inherit lib; };
   mkModules = import ./make-modules.nix { inherit lib; };
 
@@ -18,7 +18,8 @@ in rec {
     import ./mk-bitte-stack.nix { inherit mkCluster mkDeploy lib nixpkgs bitte; };
   mkDeploy = import ./mk-deploy.nix { inherit deploy lib; };
   mkSystem = import ./mk-system.nix { inherit nixpkgs bitte; };
-  mkSopsConfig = sops.mkSopsConfig;
+  mkVaultResources = kv.mkVaultResources;
+  mkConsulResources = kv.mkConsulResources;
 
   net = import ./net.nix { inherit lib; };
 
@@ -35,15 +36,9 @@ in rec {
     let
       rendered = pkgs.writeText "${n}.${ns}.nomad.json"
         (builtins.toJSON { job = augmentNomadJob job.job; });
-
-      # TODO: make this proper repo-automation
-      push = pkgs.writeShellScript "push" ''
-        cat ${rendered}|jq -r '.job | to_entries | .[].value.group | to_entries | .[].value.task | to_entries | .[].value.config.packages[]'|xargs nix copy --to $1
-      '';
     in
       pkgs.linkFarm "job.${n}.${ns}" [
         { name = "job"; path = rendered; }
-        { name = "push"; path = push; }
       ]
     ) envs.${ns};
 }
