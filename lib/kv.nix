@@ -11,22 +11,12 @@ in rec {
   #     baz.txt
   #     bat.txt
   #
-  # travervseFiles ./foo
+  # traverseFiles ./foo
   # => [ "bar/baz.txt" "bar/bat.txt" ]
-  traverseFiles = topDir: let
-    dirItems = dir: let
-      dir' = builtins.readDir dir;
-    in
-      lib.mapAttrsFlatten (
-        name: type:
-        if type == "directory"
-          then
-            lib.flatten (builtins.map (x: "${name}/${x}") (dirItems "${dir}/${name}"))
-          else
-            name
-      )
-      dir';
-  in lib.flatten (dirItems topDir);
+  traverseFiles = dir:
+    map
+    (s: lib.removePrefix "${toString dir}/" (toString s))
+    (lib.filesystem.listFilesRecursive dir);
 
   # Like traverseFiles, but will only retain files ending in `.enc{,.yaml,.json}`
   sopsFiles = dir: lib.filter (name: let
