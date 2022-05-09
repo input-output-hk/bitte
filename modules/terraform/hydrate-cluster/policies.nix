@@ -31,7 +31,14 @@ in {
     # Vault
     resource.vault_policy = __mapAttrs (name: v: {
       inherit name;
-      policy = __toJSON vaultPolicies.${name};
+      policy = __toJSON (
+        vaultPolicies.${name}
+        # ... also add pki role policies to obtain a workload identity
+        // {
+          path."pki/issue/${name}".capabilities = [ "create" "read" ];
+          path."pki/roles/${name}".capabilities = [ "read" ];
+        }
+      );
     }) vaultPolicies;
 
     # Nomad
@@ -62,5 +69,21 @@ in {
      backend = "consul";
      policies = [ name ];
     }) consulPolicies;
+
+    # PKI for vault and consul roles
+    resource.vault_pki_secret_backend_role = __mapAttrs (name: _: {
+      # TODO: see TODO in ./vault-pki.nix
+      # backend = var "vault_pki_secret_backend.pki.path";
+      inherit name;
+      backend = "pki";
+      key_type = "ec";
+      key_bits = 256;
+      allow_any_name = true;
+      enforce_hostnames = false;
+      generate_lease = true;
+      key_usage = ["DigitalSignature" "KeyAgreement" "KeyEncipherment"];
+      # 87600h
+      max_ttl = "315360000";
+    }) consulPolicies // vaultPolicies; # we'r only interested in the keys anyway
   };
 }
