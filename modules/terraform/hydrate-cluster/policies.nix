@@ -32,9 +32,9 @@ in {
     resource.vault_policy = __mapAttrs (name: v: {
       inherit name;
       policy = __toJSON (
-        vaultPolicies.${name}
+        lib.recursiveUpdate vaultPolicies.${name}
         # ... also add pki role policies to obtain a workload identity
-        // {
+        {
           path."pki/issue/${name}".capabilities = [ "create" "read" ];
           path."pki/roles/${name}".capabilities = [ "read" ];
         }
@@ -84,6 +84,6 @@ in {
       key_usage = ["DigitalSignature" "KeyAgreement" "KeyEncipherment"];
       # 87600h
       max_ttl = "315360000";
-    }) consulPolicies // vaultPolicies; # we'r only interested in the keys anyway
+    }) (consulPolicies // vaultPolicies); # we'r only interested in the keys anyway
   };
 }
