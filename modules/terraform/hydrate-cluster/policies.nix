@@ -29,13 +29,13 @@ in {
     locals.policies = localsPolicy;
 
     # Vault
-    resource.vault_policy = __mapAttrs (name: v: {
+    resource.vault_policy = __mapAttrs (name: _: {
       inherit name;
       policy = __toJSON (
         lib.recursiveUpdate vaultPolicies.${name}
         # ... also add pki role policies to obtain a workload identity
         {
-          path."pki/issue/${name}".capabilities = [ "create" "read" ];
+          path."pki/issue/${name}".capabilities = [ "update" ];
           path."pki/roles/${name}".capabilities = [ "read" ];
         }
       );
