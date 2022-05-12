@@ -14,6 +14,9 @@ let
     vpc_peering_connection_id = null;
     gateway_id = null;
     vpc_endpoint_id = null;
+    carrier_gateway_id = null;
+    core_network_arn = null;
+    destination_prefix_list_id = null;
   };
 in rec {
   amis = import (nixpkgs + "/nixos/modules/virtualisation/ec2-amis.nix");
