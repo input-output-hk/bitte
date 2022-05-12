@@ -46,8 +46,6 @@ rec {
   cue = prev.callPackage ./pkgs/cue.nix { };
   vault-bin = prev.callPackage ./pkgs/vault-bin.nix { };
   mill = prev.callPackage ./pkgs/mill.nix { };
-  haproxy-auth-request = prev.callPackage ./pkgs/haproxy-auth-request.nix { };
-  haproxy-cors = prev.callPackage ./pkgs/haproxy-cors.nix { };
   devShell = final.callPackage ./pkgs/dev-shell.nix { };
   consulRegister = prev.callPackage ./pkgs/consul-register.nix { };
   boundary = prev.callPackage ./pkgs/boundary.nix { };
