@@ -2,10 +2,9 @@
   description = "Flake containing Bitte clusters";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/43cdc5b364511eabdcad9fde639777ffd9e5bab1"; # nixos-21.05
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixpkgs-unstable";
 
-    nix.url = "github:kreisys/nix/goodnix-maybe-dont-functor";
     agenix.url = "github:ryantm/agenix";
     agenix-cli.url = "github:cole-h/agenix-cli";
     ragenix.url = "github:yaxitech/ragenix";
@@ -37,17 +36,15 @@
 
     # DEPRECATED: will be replaces by cicero soon
     hydra.url = "github:kreisys/hydra/hydra-server-includes";
-    hydra.inputs.nix.follows = "nix";
     hydra.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs =
-    { self, hydra, nixpkgs, nixpkgs-unstable, utils, deploy, ragenix, nix, fenix, ... }@inputs:
+    { self, hydra, nixpkgs, nixpkgs-unstable, utils, deploy, ragenix, fenix, ... }@inputs:
     let
 
       overlays = [
         fenix.overlay
-        nix.overlay
         hydra.overlay
         deploy.overlay
         localPkgsOverlay
