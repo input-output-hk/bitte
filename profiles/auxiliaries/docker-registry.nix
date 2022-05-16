@@ -3,23 +3,10 @@ let
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
   isSops = deployType == "aws";
   relEncryptedFolder = lib.last (builtins.split "-" (toString config.secrets.encryptedRoot));
-
-  docker-passwords-script = src: ''
-    export PATH="${lib.makeBinPath (with pkgs; [ coreutils jq ])}"
-    jq -r -e < ${src} .hashed \
-      > /var/lib/docker-registry/docker-passwords
-    chown docker-registry /var/lib/docker-registry/docker-passwords
-  '';
 in {
 
   networking.firewall.allowedTCPPorts = [
     config.services.dockerRegistry.port
-  ];
-
-  systemd.services.docker-registry.serviceConfig.Environment = [
-    "REGISTRY_AUTH=htpasswd"
-    "REGISTRY_AUTH_HTPASSWD_REALM=docker-registry"
-    "REGISTRY_AUTH_HTPASSWD_PATH=/var/lib/docker-registry/docker-passwords"
   ];
 
   services = {
@@ -48,6 +35,36 @@ in {
     redis.enable = true;
   };
 
+  systemd.services.docker-registry-service =
+    (pkgs.consulRegister {
+      pkiFiles.caCertFile = "/etc/ssl/certs/ca.pem";
+      service = {
+        name = "docker-registry";
+        port = config.services.dockerRegistry.port;
+        tags = [
+          "ingress"
+          "traefik.enable=true"
+          "traefik.http.routers.docker-registry-auth.rule=Host(`registry.ci.iog.io`)"
+          "traefik.http.routers.docker-registry-auth.entrypoints=https"
+          "traefik.http.routers.docker-registry-auth.tls=true"
+          "traefik.http.routers.docker-registry-auth.tls.certresolver=acme"
+          "traefik.http.routers.docker-registry-auth.middlewares=docker-registry-auth"
+          "traefik.http.middlewares.docker-registry-auth.basicauth.usersfile=/var/lib/traefik/basic-auth"
+          "traefik.http.middlewares.docker-registry-auth.basicauth.realm=Registry"
+          "traefik.http.middlewares.docker-registry-auth.basicauth.removeheader=true"
+        ];
+
+        checks = {
+          docker-registry-tcp = {
+            interval = "10s";
+            timeout = "5s";
+            tcp = "127.0.0.1:${toString config.services.dockerRegistry.port}";
+          };
+        };
+      };
+    })
+    .systemdService;
+
   secrets.generate.redis-password = lib.mkIf isSops ''
     export PATH="${lib.makeBinPath (with pkgs; [ coreutils sops xkcdpass ])}"
 
@@ -65,45 +82,10 @@ in {
     outputType = "binary";
   };
 
-  secrets.generate.docker-passwords = lib.mkIf isSops ''
-    export PATH="${
-      lib.makeBinPath (with pkgs; [ coreutils sops jq pwgen apacheHttpd ])
-    }"
-
-    if [ ! -s ${relEncryptedFolder}/docker-passwords.json ]; then
-      password="$(pwgen -cB 32)"
-      hashed="$(echo "$password" | htpasswd -i -B -n developer)"
-
-      echo '{}' \
-        | jq --arg password "$password" '.password = $password' \
-        | jq --arg hashed "$hashed" '.hashed = $hashed' \
-        | sops --encrypt --input-type json --output-type json --kms '${config.cluster.kms}' /dev/stdin \
-        > ${relEncryptedFolder}/docker-passwords.new.json
-      mv ${relEncryptedFolder}/docker-passwords.new.json ${relEncryptedFolder}/docker-passwords.json
-    fi
-  '';
-
-  secrets.install.docker-passwords = lib.mkIf isSops {
-    source = "${etcEncrypted}/docker-passwords.json";
-    target = /run/keys/docker-passwords-decrypted;
-    script = docker-passwords-script "/run/keys/docker-passwords-decrypted";
-  };
-
   # For the prem case, hydrate-secrets handles the push to vault instead of sops
   # TODO: add proper docker password generation creds in the Rakefile
   # TODO: add more unified handling between aws and prem secrets
   age.secrets = lib.mkIf (!isSops) {
-    docker-passwords = {
-      file = config.age.encryptedRoot + "/docker/password.age";
-      path = "/run/keys/docker-passwords-decrypted";
-      owner = "root";
-      group = "root";
-      mode = "0644";
-      script = docker-passwords-script "$src" + ''
-        mv "$src" "$out"
-      '';
-    };
-
     redis-password = {
       file = config.age.encryptedRoot + "/redis/password.age";
       path = "/run/keys/redis-password";
