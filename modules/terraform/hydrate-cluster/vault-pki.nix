@@ -67,13 +67,12 @@ in {
     resource.tls_locally_signed_cert.issuing_ca = {
       cert_request_pem =
         var "vault_pki_secret_backend_intermediate_cert_request.issuing_ca.csr";
-      ca_key_algorithm = "ECDSA";
       ca_private_key_pem = var ''data.sops_file.ca.data["key"]'';
       ca_cert_pem = var ''data.sops_file.ca.data["cert"]'';
 
       validity_period_hours = 43800;
       is_ca_certificate = true;
-      allowed_uses = [ "signing" "key encipherment" "cert sign" "crl sign" ];
+      allowed_uses = [ "digital_signature" "key_encipherment" "cert_signing" "crl_signing" ];
     };
 
     resource.vault_pki_secret_backend_intermediate_set_signed.issuing_ca = {
