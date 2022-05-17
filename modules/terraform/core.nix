@@ -156,13 +156,16 @@ in {
 
     resource.tls_private_key.private_key = { algorithm = "RSA"; };
 
-    resource.local_file = {
+    resource.local_sensitive_file = {
       "ssh-${config.cluster.name}" = lib.mkIf config.cluster.generateSSHKey {
         filename = "secrets/ssh-${config.cluster.name}";
-        sensitive_content =
+        content =
           var "tls_private_key.${config.cluster.name}.private_key_pem";
         file_permission = "0600";
       };
+    };
+
+    resource.local_file = {
       "ssh-${config.cluster.name}-pub" =
         lib.mkIf config.cluster.generateSSHKey {
           filename = "secrets/ssh-${config.cluster.name}.pub";
