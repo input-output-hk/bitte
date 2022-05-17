@@ -63,10 +63,6 @@ in {
     allowedUDPPortRanges = lib.mkIf (deployType == "aws") [ all ];
   };
 
-  # Remove once nixpkgs is using openssh 8.7p1+ by default to avoid coredumps
-  # Ref: https://bbs.archlinux.org/viewtopic.php?id=265221
-  programs.ssh.package = pkgs.opensshNoCoredump;
-
   networking.extraHosts = let
     inherit (config.services.vault) serverNodeNames;
   in ''
