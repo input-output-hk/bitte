@@ -58,7 +58,7 @@ in {
   };
 
   ###### implementation
-  config = mkIf config.services.telegraf.enable {
+  config = mkIf cfg.enable {
     systemd.services.telegraf = {
       description = "Telegraf Agent";
       wantedBy = [ "multi-user.target" ];
