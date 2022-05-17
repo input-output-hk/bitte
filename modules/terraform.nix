@@ -381,7 +381,7 @@ let
             inherit cidr;
             inherit (cfg) region;
 
-            subnets = lib.pipe 3 [
+            subnets = lib.pipe (builtins.length (builtins.attrNames cfg.coreNodes)) [
               (builtins.genList lib.id)
               (map (idx: lib.nameValuePair "core-${toString (idx+1)}" {
                 cidr = net.cidr.subnet 8 idx cidr;

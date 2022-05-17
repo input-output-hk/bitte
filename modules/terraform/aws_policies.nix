@@ -162,11 +162,7 @@ in {
 
           assumeRole = {
             effect = "Allow";
-            resources = [
-              config.cluster.coreNodes.core-1.iam.instanceProfile.tfArn
-              config.cluster.coreNodes.core-2.iam.instanceProfile.tfArn
-              config.cluster.coreNodes.core-3.iam.instanceProfile.tfArn
-            ];
+            resources = lib.mapAttrsToList (_: attrs: attrs.iam.instanceProfile.tfArn) config.cluster.coreNodes;
             actions = [ "sts:AssumeRole" ];
           };
 
