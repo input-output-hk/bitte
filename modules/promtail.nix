@@ -11,10 +11,7 @@ let
       inherit (cfg.server) grpc_listen_port;
     };
 
-    clients = [{
-      url =
-        "http://${config.cluster.nodes.monitoring.privateIP}:3100/loki/api/v1/push";
-    }];
+    inherit (cfg) clients;
 
     positions = { filename = "/var/lib/promtail/positions.yaml"; };
 
@@ -106,6 +103,17 @@ in {
     services.promtail = {
       enable = lib.mkEnableOption "Enable Promtail";
 
+      clients = lib.mkOption {
+        default = [];
+        type = with lib.types; listOf (submodule {
+            options = {
+              url = lib.mkOption {
+                type = lib.types.string;
+              };
+            };
+          });
+      };
+
       server = lib.mkOption {
         default = { };
         type = with lib.types;
@@ -126,7 +134,7 @@ in {
     };
   };
 
-  config = lib.mkIf (cfg.enable && config.cluster.nodes ? monitoring)  {
+  config = lib.mkIf cfg.enable {
     systemd.services.promtail = {
       description = "Promtail service for Loki";
       after = [ "network-online.target" ];
