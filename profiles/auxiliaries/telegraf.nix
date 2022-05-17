@@ -5,35 +5,8 @@ let
   role = config.currentCoreNode.role or config.currentAwsAutoScalingGroup.role;
   isClient = role == "client";
 in {
-
-  services.telegraf.enable = true;
-
-  systemd.services.telegraf.path = with pkgs; [ procps ];
-
-  services.vulnix.sink = let
-    inherit (config.services.telegraf.extraConfig.inputs.http_listener_v2)
-      service_address path;
-    address =
-      (lib.optionalString (lib.hasPrefix ":" service_address) "127.0.0.1")
-      + service_address;
-  in pkgs.writeBashChecked "vulnix-telegraf" ''
-    function send {
-      ${pkgs.curl}/bin/curl --no-progress-meter \
-        -XPOST http://${address}${path} --data-binary @- "$@"
-    }
-
-    if [[ -n "$NOMAD_JOB_NAMESPACE$NOMAD_JOB_ID$NOMAD_JOB_TASKGROUP_NAME$NOMAD_JOB_TASK_NAME" ]]; then
-      send \
-        -H "X-Telegraf-Tag-nomad_namespace: $NOMAD_JOB_NAMESPACE" \
-        -H "X-Telegraf-Tag-nomad_job: $NOMAD_JOB_ID" \
-        -H "X-Telegraf-Tag-nomad_taskgroup: $NOMAD_JOB_TASKGROUP_NAME" \
-        -H "X-Telegraf-Tag-nomad_task: $NOMAD_JOB_TASK_NAME"
-    else
-      send
-    fi
-  '';
-
-  services.telegraf = {
+  services.telegraf = lib.mkIf (config.cluster.nodes ? monitoring) {
+    enable = true;
     extraConfig = {
       agent = {
         interval = "10s";
@@ -176,4 +149,29 @@ in {
       };
     };
   };
+
+  systemd.services.telegraf.path = with pkgs; [ procps ];
+
+  services.vulnix.sink = let
+    inherit (config.services.telegraf.extraConfig.inputs.http_listener_v2)
+      service_address path;
+    address =
+      (lib.optionalString (lib.hasPrefix ":" service_address) "127.0.0.1")
+      + service_address;
+  in pkgs.writeBashChecked "vulnix-telegraf" ''
+    function send {
+      ${pkgs.curl}/bin/curl --no-progress-meter \
+        -XPOST http://${address}${path} --data-binary @- "$@"
+    }
+
+    if [[ -n "$NOMAD_JOB_NAMESPACE$NOMAD_JOB_ID$NOMAD_JOB_TASKGROUP_NAME$NOMAD_JOB_TASK_NAME" ]]; then
+      send \
+        -H "X-Telegraf-Tag-nomad_namespace: $NOMAD_JOB_NAMESPACE" \
+        -H "X-Telegraf-Tag-nomad_job: $NOMAD_JOB_ID" \
+        -H "X-Telegraf-Tag-nomad_taskgroup: $NOMAD_JOB_TASKGROUP_NAME" \
+        -H "X-Telegraf-Tag-nomad_task: $NOMAD_JOB_TASK_NAME"
+    else
+      send
+    fi
+  '';
 }
