@@ -126,7 +126,7 @@ in {
     };
   };
 
-  config = lib.mkIf cfg.enable {
+  config = lib.mkIf (cfg.enable && config.cluster.nodes ? monitoring)  {
     systemd.services.promtail = {
       description = "Promtail service for Loki";
       after = [ "network-online.target" ];
