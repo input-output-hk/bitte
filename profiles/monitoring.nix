@@ -78,14 +78,14 @@ in {
     services.consul.ui = true;
     services.nomad.enable = false;
     services.minio.enable = true;
-    services.vulnix.enable = true;
     services.victoriametrics.enable = true;
     services.loki.enable = true;
     services.grafana.enable = true;
     services.prometheus.enable = false;
     services.dockerRegistry.enable = cfg.useDockerRegistry;
     services.vault-backend.enable = cfg.useVaultBackend;
-    services.vulnix.scanClosure = true;
+    # services.vulnix.enable = true;
+    # services.vulnix.scanClosure = true;
 
     services.victoriametrics = {
       retentionPeriod = 12; # months
