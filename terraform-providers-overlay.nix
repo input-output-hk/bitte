@@ -46,6 +46,15 @@ in
           rev = "v1.5.0-patched2";
           sha256 = "1h6yk0wrn1dxsy9dsh0dwkpkbs8w9qjqqc6gl9nkrqbcd558jxfb";
         };
+        aws = buildWithGoModule {
+          provider-source-address = "registry.terraform.io/hashicorp/aws";
+          version = "3.27.0";
+          vendorSha256 = "sha256-moTiCt/1dB7ZmpQcqX/yeztZmH/GNQWERih5jZcBAV4=";
+          owner = "hashicorp";
+          repo = "terraform-provider-aws";
+          rev = "v3.27.0";
+          sha256 = "sha256-rdO2eb41I5eBY/htRTCqdN843eWnnwqCW3ER824txUI=";
+        };
         consul = buildWithGoModule {
           provider-source-address = "registry.terraform.io/hashicorp/consul";
           version = "2.11.0";
