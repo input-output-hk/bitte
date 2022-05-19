@@ -7,7 +7,7 @@
   inputs.data-merge.url = "github:divnix/data-merge";
   inputs.capsules.url = "github:input-output-hk/devshell-capsules";
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-21.11";
+    nixpkgs.url = "github:input-output-hk/nixpkgs/21.11-patch";
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixpkgs-unstable";
 
     nix.url = "github:nixos/nix/2.8.1";
