@@ -25,6 +25,7 @@ in {
     cookie.domain = ".${domain}";
   };
 
+  users.extraUsers.oauth2_proxy.group = "oauth2_proxy";
   users.extraGroups.keys.members = [ "oauth2_proxy" ];
 
   secrets.install.oauth.script = lib.mkIf isSops ''
