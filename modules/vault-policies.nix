@@ -83,7 +83,7 @@ in {
         inherit (config.environment.variables)
           VAULT_CACERT VAULT_ADDR VAULT_FORMAT NOMAD_ADDR;
         AWS_DEFAULT_REGION = lib.mkIf (deployType == "aws")
-                             config.environment.variables.AWS_DEFAULT_REGION;
+                            config.environment.variables.AWS_DEFAULT_REGION;
       };
 
       path = with pkgs; [ vault-bin sops rage jq nomad curl cacert ];

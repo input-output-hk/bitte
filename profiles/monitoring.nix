@@ -132,7 +132,7 @@ in {
       };
 
       security.adminPasswordFile = if isSops then "/var/lib/grafana/password"
-                                   else config.age.secrets.grafana-password.path;
+                                  else config.age.secrets.grafana-password.path;
     };
 
     services.prometheus = {

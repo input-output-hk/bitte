@@ -1,11 +1,11 @@
-({ lib, ... }: {
+({lib, ...}: {
   _file = ./warnings.nix;
   options = {
     warnings = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       internal = true;
       default = [];
-      example = [ "The `foo' service is deprecated and will go away soon!" ];
+      example = ["The `foo' service is deprecated and will go away soon!"];
       description = ''
         This option allows (sub-)modules to show warnings to users during
         the evaluation of the system configuration.
@@ -15,7 +15,12 @@
       type = lib.types.listOf lib.types.unspecified;
       internal = true;
       default = [];
-      example = [ { assertion = false; message = "you can't enable this for that reason"; } ];
+      example = [
+        {
+          assertion = false;
+          message = "you can't enable this for that reason";
+        }
+      ];
       description = ''
         This option allows modules to express conditions that must
         hold for the evaluation of the system configuration to

@@ -18,7 +18,7 @@
       # if we use aws and consul depends on vault bootstrapping (get a token)
       # then we cannot depend on consul to access vault, obviously
       vaultAddress = if deployType == "aws" then "https://vault.${domain}"
-                     else "https://core.vault.service.consul:8200";
+                    else "https://core.vault.service.consul:8200";
       cache.useAutoAuthToken = true;
       # Commit 248791a: Binds vault agent to docker bridge for bridge net access
       listener = [{

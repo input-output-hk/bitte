@@ -1,11 +1,11 @@
-*.swp
-/secrets
-/.terraform
-/terraform.*
-/*.plan
-/encrypted
-/config.tf.json
-/result*
-/.lego
-.direnv
+# numtide/devshell
+.data
+
+# direnv/direnv + divnix/std
+.std
+
+# nixos/nix
+result*
+
+# cargo
 cli/target

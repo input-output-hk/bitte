@@ -1,6 +1,6 @@
 /* Policies
-   Related to roles that are impersonated by humans.
-   -> Machine roles best have a different venue.
+  Related to roles that are impersonated by humans.
+  -> Machine roles best have a different venue.
 */
 { terralib, config, lib, ... }:
 let
@@ -20,7 +20,7 @@ let
   localsAwsPolicy = __fromTOML (__readFile ./policies-aws.toml);
 
   localsPolicy = if infraType == "prem" then localsBasePolicy
-                 else lib.recursiveUpdate localsBasePolicy localsAwsPolicy;
+                else lib.recursiveUpdate localsBasePolicy localsAwsPolicy;
 
 in {
   tf.hydrate-cluster.configuration = {
@@ -65,9 +65,9 @@ in {
     }) consulPolicies;
     # ... also create associated vault consul roles
     resource.vault_consul_secret_backend_role = __mapAttrs (name: v: {
-     inherit name;
-     backend = "consul";
-     policies = [ name ];
+    inherit name;
+    backend = "consul";
+    policies = [ name ];
     }) consulPolicies;
 
     # PKI for vault and consul roles

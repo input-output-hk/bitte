@@ -13,9 +13,9 @@ index 8427068d708..ad7f7efa174 100644
 --- a/agent/local/state.go
 +++ b/agent/local/state.go
 @@ -1287,6 +1287,13 @@ func (l *State) deleteService(key structs.ServiceID) error {
- 		EnterpriseMeta: key.EnterpriseMeta,
- 		WriteRequest:   structs.WriteRequest{Token: st},
- 	}
+    EnterpriseMeta: key.EnterpriseMeta,
+    WriteRequest:   structs.WriteRequest{Token: st},
+  }
 +	fallback_req := structs.DeregisterRequest{
 +		Datacenter:     l.config.Datacenter,
 +		Node:           l.config.NodeName,
@@ -23,13 +23,13 @@ index 8427068d708..ad7f7efa174 100644
 +		EnterpriseMeta: key.EnterpriseMeta,
 +		WriteRequest:   structs.WriteRequest{Token: l.tokens.AgentToken()},
 +	}
- 	var out struct{}
- 	err := l.Delegate.RPC("Catalog.Deregister", &req, &out)
- 	switch {
+  var out struct{}
+  err := l.Delegate.RPC("Catalog.Deregister", &req, &out)
+  switch {
 @@ -1303,8 +1310,32 @@ func (l *State) deleteService(key structs.ServiceID) error {
- 		}
- 		l.logger.Info("Deregistered service", "service", key.ID)
- 		return nil
+    }
+    l.logger.Info("Deregistered service", "service", key.ID)
+    return nil
 -
 -	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
 +	case acl.IsErrNotFound(err):
@@ -58,13 +58,13 @@ index 8427068d708..ad7f7efa174 100644
 +        		return err
 +        	}
 +	case acl.IsErrPermissionDenied(err):
- 		// todo(fs): mark the service to be in sync to prevent excessive retrying before next full sync
- 		// todo(fs): some backoff strategy might be a better solution
- 		l.services[key].InSync = true
+    // todo(fs): mark the service to be in sync to prevent excessive retrying before next full sync
+    // todo(fs): some backoff strategy might be a better solution
+    l.services[key].InSync = true
 @@ -1468,12 +1499,26 @@ func (l *State) syncCheck(key structs.CheckID) error {
- 		SkipNodeUpdate:  l.nodeInfoInSync,
- 	}
- 
+    SkipNodeUpdate:  l.nodeInfoInSync,
+  }
+
 +	fallback_req := structs.RegisterRequest{
 +		Datacenter:      l.config.Datacenter,
 +		ID:              l.config.NodeID,
@@ -78,20 +78,20 @@ index 8427068d708..ad7f7efa174 100644
 +		SkipNodeUpdate:  l.nodeInfoInSync,
 +	}
 +
- 	serviceKey := structs.NewServiceID(c.Check.ServiceID, &key.EnterpriseMeta)
- 
- 	// Pull in the associated service if any
- 	s := l.services[serviceKey]
- 	if s != nil && !s.Deleted {
- 		req.Service = s.Service
+  serviceKey := structs.NewServiceID(c.Check.ServiceID, &key.EnterpriseMeta)
+
+  // Pull in the associated service if any
+  s := l.services[serviceKey]
+  if s != nil && !s.Deleted {
+    req.Service = s.Service
 +		fallback_req.Service = s.Service
- 	}
- 
- 	var out struct{}
+  }
+
+  var out struct{}
 @@ -1487,6 +1532,26 @@ func (l *State) syncCheck(key structs.CheckID) error {
- 		l.logger.Info("Synced check", "check", key.String())
- 		return nil
- 
+    l.logger.Info("Synced check", "check", key.String())
+    return nil
+
 +	case acl.IsErrNotFound(err):
 +    		// token might have sunken already, fallback to the default token
 +        	var out struct{}
@@ -112,9 +112,9 @@ index 8427068d708..ad7f7efa174 100644
 +        		return err
 +        	}
 +
- 	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
- 		// todo(fs): mark the check to be in sync to prevent excessive retrying before next full sync
- 		// todo(fs): some backoff strategy might be a better solution
+  case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
+    // todo(fs): mark the check to be in sync to prevent excessive retrying before next full sync
+    // todo(fs): some backoff strategy might be a better solution
 
 From 15bc463a87dd7a13ca3b5681ba67cabb1654dd7a Mon Sep 17 00:00:00 2001
 From: "John A. Lotoski" <39752197+johnalotoski@users.noreply.github.com>
@@ -131,9 +131,9 @@ index ad7f7efa174..888e8b58d77 100644
 --- a/agent/local/state.go
 +++ b/agent/local/state.go
 @@ -1311,30 +1311,39 @@ func (l *State) deleteService(key structs.ServiceID) error {
- 		l.logger.Info("Deregistered service", "service", key.ID)
- 		return nil
- 	case acl.IsErrNotFound(err):
+    l.logger.Info("Deregistered service", "service", key.ID)
+    return nil
+  case acl.IsErrNotFound(err):
 -    		// token might have sunken already, fallback to the default token
 -        	var out struct{}
 -        	err := l.Delegate.RPC("Catalog.Deregister", &fallback_req, &out)
@@ -191,13 +191,13 @@ index ad7f7efa174..888e8b58d77 100644
 +			)
 +			return err
 +		}
- 	case acl.IsErrPermissionDenied(err):
- 		// todo(fs): mark the service to be in sync to prevent excessive retrying before next full sync
- 		// todo(fs): some backoff strategy might be a better solution
+  case acl.IsErrPermissionDenied(err):
+    // todo(fs): mark the service to be in sync to prevent excessive retrying before next full sync
+    // todo(fs): some backoff strategy might be a better solution
 @@ -1533,26 +1542,34 @@ func (l *State) syncCheck(key structs.CheckID) error {
- 		return nil
- 
- 	case acl.IsErrNotFound(err):
+    return nil
+
+  case acl.IsErrNotFound(err):
 -    		// token might have sunken already, fallback to the default token
 -        	var out struct{}
 -	 	err := l.Delegate.RPC("Catalog.Register", &fallback_req, &out)
@@ -242,9 +242,9 @@ index ad7f7efa174..888e8b58d77 100644
 +			)
 +			return err
 +		}
- 
+
 -	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
 +	case acl.IsErrPermissionDenied(err):
- 		// todo(fs): mark the check to be in sync to prevent excessive retrying before next full sync
- 		// todo(fs): some backoff strategy might be a better solution
- 		l.checks[key].InSync = true
+    // todo(fs): mark the check to be in sync to prevent excessive retrying before next full sync
+    // todo(fs): some backoff strategy might be a better solution
+    l.checks[key].InSync = true

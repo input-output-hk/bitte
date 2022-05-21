@@ -1,32 +1,35 @@
 # One CLI to format the code tree - https://github.com/numtide/treefmt
-
 [formatter.nix]
-command = "nixfmt"
+command = "alejandra"
 includes = ["*.nix"]
+excludes = ["profiles/**", "modules/**", "pkgs/**"]
 
 [formatter.prettier]
 command = "prettier"
-options = ["--write"]
+options = ["--plugin", "prettier-plugin-toml", "--write"]
 includes = [
-    "*.css",
-    "*.html",
-    "*.js",
-    "*.json",
-    "*.jsx",
-    "*.md",
-    "*.mdx",
-    "*.scss",
-    "*.ts",
-    "*.yaml",
+  "*.css",
+  "*.html",
+  "*.js",
+  "*.json",
+  "*.jsx",
+  "*.md",
+  "*.mdx",
+  "*.scss",
+  "*.ts",
+  "*.yaml",
+  "*.toml",
 ]
-excludes = ["CHANGELOG.md"]
+excludes = ["profiles/**", "modules/**", "pkgs/**"]
 
 [formatter.shell]
 command = "shfmt"
 options = [
-    "-i",
-    "2",  # indent 2
-    "-s",  # simplify the code
-    "-w",  # write back to the file
+  "-i",
+  "2", # indent 2
+  "-s", # simplify the code
+  "-w", # write back to the file
+
 ]
 includes = ["*.sh"]
+excludes = ["profiles/**", "modules/**", "pkgs/**"]

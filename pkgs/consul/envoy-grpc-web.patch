@@ -3,24 +3,24 @@ index cd462feb1..13098c007 100644
 --- a/agent/xds/listeners.go
 +++ b/agent/xds/listeners.go
 @@ -921,6 +921,9 @@ func makeHTTPFilter(
- 		StatPrefix: makeStatPrefix(proto, statPrefix, filterName),
- 		CodecType:  envoyhttp.AUTO,
- 		HttpFilters: []*envoyhttp.HttpFilter{
+    StatPrefix: makeStatPrefix(proto, statPrefix, filterName),
+    CodecType:  envoyhttp.AUTO,
+    HttpFilters: []*envoyhttp.HttpFilter{
 +			&envoyhttp.HttpFilter{
 +				Name: "envoy.grpc_web",
 +			},
- 			&envoyhttp.HttpFilter{
- 				Name: "envoy.router",
- 			},
+      &envoyhttp.HttpFilter{
+        Name: "envoy.router",
+      },
 @@ -998,10 +1001,7 @@ func makeHTTPFilter(
- 
- 	if grpc {
- 		// Add grpc bridge before router
+
+  if grpc {
+    // Add grpc bridge before router
 -		cfg.HttpFilters = append([]*envoyhttp.HttpFilter{{
 -			Name:       "envoy.grpc_http1_bridge",
 -			ConfigType: &envoyhttp.HttpFilter_Config{Config: &types.Struct{}},
 -		}}, cfg.HttpFilters...)
 +		cfg.HttpFilters = append([]*envoyhttp.HttpFilter{}, cfg.HttpFilters...)
- 	}
- 
- 	return makeFilter("envoy.http_connection_manager", cfg)
+  }
+
+  return makeFilter("envoy.http_connection_manager", cfg)

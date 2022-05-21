@@ -1,7 +1,13 @@
-{ config, ... }:
-let
+{config, ...}: let
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
-  domain = config.${if deployType == "aws" then "cluster" else "currentCoreNode"}.domain;
+  domain =
+    config
+    .${
+      if deployType == "aws"
+      then "cluster"
+      else "currentCoreNode"
+    }
+    .domain;
 in {
   _module.args = {
     etcEncrypted = "/etc/encrypted";

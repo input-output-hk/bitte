@@ -191,8 +191,8 @@ let
         -i ./secrets/ssh-${cfg.name} \
         root@${ip} \
         "if [ \"$(cat /proc/sys/kernel/osrelease)\" != \"${newKernelVersion}\" ]; then \
-         ${pkgs.systemd}/bin/systemctl kexec \
-         || (echo Rebooting instead ... && ${pkgs.systemd}/bin/systemctl reboot) ; fi" \
+        ${pkgs.systemd}/bin/systemctl kexec \
+        || (echo Rebooting instead ... && ${pkgs.systemd}/bin/systemctl reboot) ; fi" \
       || true
     '';
 
@@ -1106,8 +1106,8 @@ in {
               name) v)) [ ] names;
       in builtins.deepSeq combinedNames
       (cfg.coreNodes."${nodeName}" or
-       cfg.premNodes."${nodeName}" or
-       cfg.premSimNodes."${nodeName}" or
+      cfg.premNodes."${nodeName}" or
+      cfg.premSimNodes."${nodeName}" or
       null);
     };
 

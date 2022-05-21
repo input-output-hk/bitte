@@ -318,7 +318,7 @@ in {
       environment = {
         inherit (config.environment.variables) NOMAD_ADDR;
         CURL_CA_BUNDLE = if deployType == "aws" then pkiFiles.certChainFile
-                         else pkiFiles.serverCertChainFile;
+                        else pkiFiles.serverCertChainFile;
       } // (lib.optionalAttrs (config.environment.variables ? "AWS_DEFAULT_REGION") {
         inherit (config.environment.variables) AWS_DEFAULT_REGION;
       });

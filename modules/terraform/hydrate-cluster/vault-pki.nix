@@ -1,6 +1,6 @@
 /* Bootstrap vault intermediate pki endpoint
-   with local root CA from well-known encrypted
-   locations.
+  with local root CA from well-known encrypted
+  locations.
 */
 { terralib, lib, config, ... }:
 let

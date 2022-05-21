@@ -371,7 +371,7 @@ in {
               insecureSkipVerify = true;
               rootCAs = let
                 certChainFile = if deployType == "aws" then pkiFiles.certChainFile
-                                                       else pkiFiles.serverCertChainFile;
+                                                      else pkiFiles.serverCertChainFile;
               in [ certChainFile ];
             };
           };

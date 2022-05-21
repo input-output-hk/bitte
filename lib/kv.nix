@@ -1,5 +1,6 @@
-{ lib
-, terralib
+{
+  lib,
+  terralib,
 }: let
   inherit (terralib) var;
 in rec {
@@ -19,23 +20,27 @@ in rec {
     (lib.filesystem.listFilesRecursive dir);
 
   # Like traverseFiles, but will only retain files ending in `.enc{,.yaml,.json}`
-  sopsFiles = dir: lib.filter (name: let
+  sopsFiles = dir:
+    lib.filter (name: let
       isJSON = lib.hasSuffix ".enc.json" name;
       isYAML = lib.hasSuffix ".enc.yaml" name;
       isRaw = lib.hasSuffix ".enc" name;
-    in isJSON || isYAML || isRaw)
+    in
+      isJSON || isYAML || isRaw)
     (traverseFiles dir);
 
   # Like traverseFiles, but will only retain files ending in `{,.toml,.json}`
-  dataFiles = dir: lib.filter (name: let
+  dataFiles = dir:
+    lib.filter (name: let
       isJSON = lib.hasSuffix ".json" name;
       isTOML = lib.hasSuffix ".toml" name;
-    in isJSON || isTOML)
+    in
+      isJSON || isTOML)
     (traverseFiles dir);
 
   # normalizeTfName :: String -> String
   # Replaces all instances of "/", "-", "." with an underscore
-  normalizeTfName = lib.replaceStrings [ "/" "-" "." ] [ "_" "_" "_" ];
+  normalizeTfName = lib.replaceStrings ["/" "-" "."] ["_" "_" "_"];
 
   # Sanitize names for usage with tf resource names
   #
@@ -109,7 +114,10 @@ in rec {
   #  Then run as:
   #  $ nix run .#clusters.<cluster>.tf.hydrate-app.plan
   #  $ nix run .#clusters.<cluster>.tf.hydrate-app.apply
-  mkVaultResources = { dir, prefix }: let
+  mkVaultResources = {
+    dir,
+    prefix,
+  }: let
     sopsFileList = sopsFiles dir;
     mkDataJson = path: resourceName:
       if lib.hasSuffix ".enc.yaml" path
@@ -118,49 +126,58 @@ in rec {
       then var "data.sops_file.${resourceName}.raw"
       else var "jsonencode(data.sops_file.${resourceName})";
   in {
-    sops_file = lib.listToAttrs
+    sops_file =
+      lib.listToAttrs
       (builtins.map
-      (path: lib.nameValuePair (sanitizeFile path) (
-        { source_file = builtins.toPath "${dir}/${path}";}
-        // lib.optionalAttrs (lib.hasSuffix ".enc" path) {
-          input_type = "raw";
-        }
-      ))
-      sopsFileList);
-    vault_generic_secret = lib.listToAttrs
+        (path:
+          lib.nameValuePair (sanitizeFile path) (
+            {source_file = builtins.toPath "${dir}/${path}";}
+            // lib.optionalAttrs (lib.hasSuffix ".enc" path) {
+              input_type = "raw";
+            }
+          ))
+        sopsFileList);
+    vault_generic_secret =
+      lib.listToAttrs
       (builtins.map
         (path: let
           resourceName = sanitizeFile path;
-        in lib.nameValuePair resourceName {
+        in
+          lib.nameValuePair resourceName {
             path = ''${prefix}/${sanitizeKvPath path}'';
             data_json = mkDataJson path resourceName;
           })
-      sopsFileList);
+        sopsFileList);
   };
-  mkConsulResources = { dir, prefix }: let
+  mkConsulResources = {
+    dir,
+    prefix,
+  }: let
     dataFileList = dataFiles dir;
     mkDataJson = path:
       if lib.hasSuffix ".toml" path
       then builtins.toJSON (builtins.fromTOML (builtins.readFile (dir + "/${path}")))
       else if lib.hasSuffix ".json" path
       then builtins.readFile (dir + "/${path}")
-      else throw ''
+      else
+        throw ''
 
-        bitte/lib.nix:mkConsulResources:
-        - only .toml or .json supported
-        - got: ${path}
-      '';
+          bitte/lib.nix:mkConsulResources:
+          - only .toml or .json supported
+          - got: ${path}
+        '';
   in {
-    consul_keys = lib.listToAttrs
+    consul_keys =
+      lib.listToAttrs
       (builtins.map
         (path: let
           resourceName = sanitizeFile path;
-        in lib.nameValuePair resourceName {
+        in
+          lib.nameValuePair resourceName {
             key.path = ''${prefix}/${sanitizeKvPath path}'';
             key.value = mkDataJson path;
             key.delete = true;
           })
-      dataFileList);
+        dataFileList);
   };
 }
-

@@ -76,7 +76,7 @@
         vaultServers =
           lib.filterAttrs (k: v: lib.elem k vcfg.serverNodeNames) nodes;
         vaultAddress = k: v: if config.services.vault.serverNameAddressing
-                       then "${k}.internal" else v.privateIP;
+                      then "${k}.internal" else v.privateIP;
       in lib.mkDefault {
         retryJoin = lib.mapAttrsToList (_: vaultServer: {
           leaderApiAddr = "https://${vaultAddress _ vaultServer}:8200";
@@ -98,4 +98,3 @@ in Imports // lib.mkMerge [
   Switches
   Config
 ]
-

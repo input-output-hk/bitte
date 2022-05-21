@@ -1,18 +1,18 @@
 package ci
 
 ci: steps: [
-	{
-		label: "nixfmt"
-		flakes: [
-			"github:NixOS/nixpkgs/nixos-21.05#bashInteractive",
-			"github:NixOS/nixpkgs/nixos-21.05#coreutils",
-			"github:NixOS/nixpkgs/nixos-21.05#git",
-			"github:NixOS/nixpkgs/nixos-21.05#cacert",
-			"github:NixOS/nixpkgs/nixos-21.05#gnugrep",
-			"github:NixOS/nixpkgs/nixos-21.05#nixfmt",
-		]
-		command: ["/bin/bash", "pkgs/check_nixfmt.sh"]
-	},
+  {
+    label: "nixfmt"
+    flakes: [
+      "github:NixOS/nixpkgs/nixos-21.05#bashInteractive",
+      "github:NixOS/nixpkgs/nixos-21.05#coreutils",
+      "github:NixOS/nixpkgs/nixos-21.05#git",
+      "github:NixOS/nixpkgs/nixos-21.05#cacert",
+      "github:NixOS/nixpkgs/nixos-21.05#gnugrep",
+      "github:NixOS/nixpkgs/nixos-21.05#nixfmt",
+    ]
+    command: ["/bin/bash", "pkgs/check_nixfmt.sh"]
+  },
 ]
 
 isMaster: pull_request.base.ref == "master"

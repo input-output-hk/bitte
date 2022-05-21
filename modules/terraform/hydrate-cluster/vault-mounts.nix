@@ -1,5 +1,5 @@
 /* Vault Mounts
-   Mounts that are not _already_ necessary for bootstrapping.
+  Mounts that are not _already_ necessary for bootstrapping.
 */
 { terralib, config, ... }:
 let

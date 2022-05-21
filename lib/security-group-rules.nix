@@ -1,4 +1,7 @@
-{terralib, lib}: config: let
+{
+  terralib,
+  lib,
+}: config: let
   inherit (terralib) cidrsOf;
   inherit (config.cluster.vpc) subnets;
   awsAsgVpcs = terralib.aws.asgVpcs config.cluster;

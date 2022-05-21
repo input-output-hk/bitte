@@ -42,8 +42,8 @@ buildGoModule rec {
   preBuild = ''
     buildFlagsArray+=("-ldflags"
                       "-X github.com/hashicorp/consul/version.GitDescribe=v${version}
-                       -X github.com/hashicorp/consul/version.Version=${version}
-                       -X github.com/hashicorp/consul/version.VersionPrerelease=")
+                      -X github.com/hashicorp/consul/version.Version=${version}
+                      -X github.com/hashicorp/consul/version.VersionPrerelease=")
   '';
 
   meta = with lib; {
