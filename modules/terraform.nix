@@ -776,7 +776,16 @@ let
         };
 
         modules = lib.mkOption {
-          type = with lib.types; listOf anything;
+          # Required due to types.anything not being intended for arbitrary modules.
+          # types.anything usage broken by:
+          #   https://github.com/NixOS/nixpkgs/commit/48293bd6b6b791b9af745e9b7b94a6856e279fa0
+          # Ref: https://github.com/NixOS/nixpkgs/issues/140879
+          # TODO: use types.raw on next nixpkgs bump (>= 22.05)
+          type = with lib.types; listOf (mkOptionType {
+            name = "submodule";
+            inherit (submodule { }) check;
+            merge = lib.options.mergeOneOption;
+          });
           default = [ ];
         };
 
