@@ -50,7 +50,6 @@ in
       haproxy-cors = prev.callPackage ./pkgs/haproxy-cors.nix {};
       devShell = final.callPackage ./pkgs/dev-shell.nix {};
       consulRegister = prev.callPackage ./pkgs/consul-register.nix {};
-      boundary = prev.callPackage ./pkgs/boundary.nix {};
       grpcdump = prev.callPackage ./pkgs/grpcdump.nix {};
       glusterfs = final.callPackage ./pkgs/glusterfs.nix {};
       victoriametrics = prev.callPackage ./pkgs/victoriametrics.nix {};

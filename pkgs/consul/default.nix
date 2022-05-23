@@ -39,12 +39,11 @@ buildGoModule rec {
 
   vendorSha256 = "sha256-PDj0NP0gswJOENrB8jbPU5Gy6jf2DQhjHQofQ9AibrY=";
 
-  preBuild = ''
-    buildFlagsArray+=("-ldflags"
-                      "-X github.com/hashicorp/consul/version.GitDescribe=v${version}
-                      -X github.com/hashicorp/consul/version.Version=${version}
-                      -X github.com/hashicorp/consul/version.VersionPrerelease=")
-  '';
+  ldflags = [
+    "-X github.com/hashicorp/consul/version.GitDescribe=v${version}"
+    "-X github.com/hashicorp/consul/version.Version=${version}"
+    "-X github.com/hashicorp/consul/version.VersionPrerelease="
+  ];
 
   meta = with lib; {
     description = "Tool for service discovery, monitoring and configuration";
