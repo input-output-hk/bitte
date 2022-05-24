@@ -4,56 +4,56 @@ index a4cc143f0..696025015 100644
 +++ b/api/agent.go
 @@ -288,7 +288,7 @@ type AgentCheckRegistration struct {
  type AgentServiceCheck struct {
-  CheckID                string              `json:",omitempty"`
-  Name                   string              `json:",omitempty"`
+ 	CheckID                string              `json:",omitempty"`
+ 	Name                   string              `json:",omitempty"`
 -	Args                   []string            `json:"ScriptArgs,omitempty"`
 +	ScriptArgs             []string            `json:",omitempty"`
-  DockerContainerID      string              `json:",omitempty"`
-  Shell                  string              `json:",omitempty"` // Only supported for Docker.
-  Interval               string              `json:",omitempty"`
+ 	DockerContainerID      string              `json:",omitempty"`
+ 	Shell                  string              `json:",omitempty"` // Only supported for Docker.
+ 	Interval               string              `json:",omitempty"`
 diff --git a/api/agent_test.go b/api/agent_test.go
 index 6bcd7868c..77cd4f9a1 100644
 --- a/api/agent_test.go
 +++ b/api/agent_test.go
 @@ -905,8 +905,8 @@ func TestAPI_AgentScriptCheck(t *testing.T) {
-    reg := &AgentCheckRegistration{
-      Name: "foo",
-      AgentServiceCheck: AgentServiceCheck{
+ 		reg := &AgentCheckRegistration{
+ 			Name: "foo",
+ 			AgentServiceCheck: AgentServiceCheck{
 -				Interval: "10s",
 -				Args:     []string{"sh", "-c", "false"},
 +				Interval:   "10s",
 +				ScriptArgs: []string{"sh", "-c", "false"},
-      },
-    }
-    if err := agent.CheckRegister(reg); err != nil {
+ 			},
+ 		}
+ 		if err := agent.CheckRegister(reg); err != nil {
 @@ -928,8 +928,8 @@ func TestAPI_AgentScriptCheck(t *testing.T) {
-      Port: 1234,
-      Checks: AgentServiceChecks{
-        &AgentServiceCheck{
+ 			Port: 1234,
+ 			Checks: AgentServiceChecks{
+ 				&AgentServiceCheck{
 -					Interval: "10s",
 -					Args:     []string{"sh", "-c", "false"},
 +					Interval:   "10s",
 +					ScriptArgs: []string{"sh", "-c", "false"},
-        },
-      },
-    }
+ 				},
+ 			},
+ 		}
 @@ -1063,7 +1063,7 @@ func TestAPI_AgentChecks_Docker(t *testing.T) {
-    ServiceID: "redis",
-    AgentServiceCheck: AgentServiceCheck{
-      DockerContainerID: "f972c95ebf0e",
+ 		ServiceID: "redis",
+ 		AgentServiceCheck: AgentServiceCheck{
+ 			DockerContainerID: "f972c95ebf0e",
 -			Args:              []string{"/bin/true"},
 +			ScriptArgs:        []string{"/bin/true"},
-      Shell:             "/bin/bash",
-      Interval:          "10s",
-    },
+ 			Shell:             "/bin/bash",
+ 			Interval:          "10s",
+ 		},
 diff --git a/command/services/config_test.go b/command/services/config_test.go
 index 71cdd96e8..4b2b7e3f2 100644
 --- a/command/services/config_test.go
 +++ b/command/services/config_test.go
 @@ -150,6 +150,27 @@ func TestStructsToAgentService(t *testing.T) {
-        },
-      },
-    },
+ 				},
+ 			},
+ 		},
 +		{
 +			"Service with scriptcheck",
 +			&structs.ServiceDefinition{
@@ -75,6 +75,6 @@ index 71cdd96e8..4b2b7e3f2 100644
 +				},
 +			},
 +		},
-  }
-
-  for _, tt := range cases {
+ 	}
+ 
+ 	for _, tt := range cases {
