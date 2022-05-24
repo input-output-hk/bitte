@@ -320,9 +320,9 @@ let
         s3Bucket = lib.mkOption { type = with lib.types; str; };
 
         s3Cache = lib.mkOption {
-          type = with lib.types; str;
-          default =
-            "s3://${cfg.s3Bucket}/infra/binary-cache/?region=${cfg.region}";
+          type = with lib.types; nullOr str;
+          default = if cfg.region == null then null
+            else "s3://${cfg.s3Bucket}/infra/binary-cache/?region=${cfg.region}";
         };
 
         s3CachePubKey = lib.mkOption { type = with lib.types; str; };
