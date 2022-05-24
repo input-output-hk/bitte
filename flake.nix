@@ -1,7 +1,7 @@
 {
   description = "Flake containing Bitte clusters";
   inputs.std.url = "github:divnix/std";
-  # 21.05 doesn't yet fullfill all contracts that std consumes
+  # 21.11 doesn't yet fullfill all contracts that std consumes
   # inputs.std.inputs.nixpkgs.follows = "nixpkgs";
   inputs.n2c.url = "github:nlewo/nix2container";
   inputs.data-merge.url = "github:divnix/data-merge";
