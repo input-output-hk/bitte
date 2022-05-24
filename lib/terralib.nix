@@ -18,7 +18,6 @@
     gateway_id = null;
     vpc_endpoint_id = null;
     carrier_gateway_id = null;
-    core_network_arn = null;
     destination_prefix_list_id = null;
   };
 in rec {
