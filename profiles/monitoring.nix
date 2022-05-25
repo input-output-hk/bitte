@@ -12,7 +12,6 @@ in {
     ./consul/client.nix
     ./vault/aux.nix
 
-    ./auxiliaries/docker-registry.nix
     ./auxiliaries/loki.nix
 
     ../modules/vault-backend.nix
@@ -23,7 +22,7 @@ in {
       type = lib.types.bool;
       default = true;
       description = ''
-        Utilize oauth auth headers provided from traefik on routing.
+        Utilize oauth auth headers provided from traefik on routing for grafana.
         One, but not both, of `useOauth2Proxy` or `useDigestAuth` options must be true.
       '';
     };
@@ -32,16 +31,26 @@ in {
       type = lib.types.bool;
       default = false;
       description = ''
-        Utilize digest auth headers provided from traefik on routing.
+        Utilize digest auth headers provided from traefik on routing for grafana.
         One, but not both, of `useOauth2Proxy` or `useDigestAuth` options must be true.
       '';
     };
 
     useDockerRegistry = lib.mkOption {
       type = lib.types.bool;
-      default = true;
+      default = lib.warn ''
+        DEPRECATED: -- this option is now a no-op.
+        To enable a docker registry, apply the following
+        bitte profile to the target docker registry host machine:
+
+        profiles/auxiliaries/docker-registry.nix
+      '' false;
       description = ''
-        Enable use of a docker registry backend with a service hosted on the monitoring server.
+        DEPRECATED: -- this option is now a no-op.
+        To enable a docker registry, apply the following
+        bitte profile to the target docker registry host machine:
+
+        profiles/auxiliaries/docker-registry.nix
       '';
     };
 
@@ -71,8 +80,6 @@ in {
       config.services.grafana.port
       8428  # victoriaMetrics
       9000  # minio
-    ] ++ lib.optionals cfg.useDockerRegistry [
-      config.services.dockerRegistry.port  # dockerRegistry
     ];
 
     services.consul.ui = true;
@@ -82,7 +89,6 @@ in {
     services.loki.enable = true;
     services.grafana.enable = true;
     services.prometheus.enable = false;
-    services.dockerRegistry.enable = cfg.useDockerRegistry;
     services.vault-backend.enable = cfg.useVaultBackend;
     # services.vulnix.enable = true;
     # services.vulnix.scanClosure = true;
