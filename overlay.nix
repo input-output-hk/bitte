@@ -61,6 +61,23 @@ rec {
   spire-server = spire.server;
   spiffe-helper = prev.callPackage ./pkgs/spiffe-helper.nix { };
   spire-systemd-attestor = prev.callPackage ./pkgs/spire-systemd-attestor.nix { };
+  zfs = zfsStable;
+  zfsStable = prev.zfsStable.overrideAttrs (o: {
+    src = prev.fetchFromGitHub {
+      owner = "openzfs";
+      repo = "zfs";
+      rev = "5cdca5b1da7884c54260db473f892354bc79951b";
+      sha256 = "zLPIn7a2Mo5cnGtc8CzSVQ/lAGW8awc+O61rDtzZY80=";
+    };
+  });
+  zfsUnstable = prev.zfsUnstable.overrideAttrs (o: {
+    src = prev.fetchFromGitHub {
+      owner = "openzfs";
+      repo = "zfs";
+      rev = "5cdca5b1da7884c54260db473f892354bc79951b";
+      sha256 = "zLPIn7a2Mo5cnGtc8CzSVQ/lAGW8awc+O61rDtzZY80=";
+    };
+  });
 
   # XXX remove (also flake input) after nixpkgs bump that has vulnix 1.10.1
   vulnix = import inputs.vulnix {
