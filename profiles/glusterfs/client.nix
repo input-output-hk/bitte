@@ -2,7 +2,7 @@
 let
   cfg = config.services.glusterfs;
 in {
-  services.glusterfs.enable = true;
+  services.glusterfs.enable = lib.mkDefault true;
 
   systemd.services.glusterd = lib.mkIf cfg.enable {
     path = with pkgs; [ nettools ];
