@@ -398,12 +398,8 @@ in {
 
           name = group.uid;
 
-          vpc_zone_identifier = if group.vpcZoneIdentifierSuffix != null then
-            (lib.flip map group.vpcZoneIdentifierSuffix
-            (suffix: id "aws_subnet.${group.region}-${suffix}"))
-            else
-            (lib.flip lib.mapAttrsToList group.vpc.subnets
-            (suffix: _: id "aws_subnet.${group.region}-${suffix}"));
+          vpc_zone_identifier = lib.flip lib.mapAttrsToList group.vpc.subnets
+            (suffix: _: id "aws_subnet.${group.region}-${suffix}");
 
           min_size = group.minSize;
           max_size = group.maxSize;
