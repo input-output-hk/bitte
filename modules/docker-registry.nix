@@ -7,6 +7,7 @@ let
   cfg = config.services.docker-registry;
 in {
   options.services.docker-registry = {
+    enable = lib.mkEnableOption "Docker registry";
     registryFqdn = lib.mkOption {
       type = lib.types.str;
       default = "registry.${domain}";
@@ -28,13 +29,14 @@ in {
       ];
       description = ''
         Sets the traefik tags for the docker registry to use.
-        With the default tags, traefik routing server requires a basic-auth file for registry authentication.
+        With the default module option traefik tags, traefik routing server requires
+        a basic-auth file for registry authentication.
       '';
     };
 
   };
 
-  config = {
+  config = lib.mkIf cfg.enable {
     networking.firewall.allowedTCPPorts = [
       config.services.dockerRegistry.port
     ];

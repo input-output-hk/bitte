@@ -61,16 +61,18 @@ in {
       default = lib.warn ''
         DEPRECATED: -- this option is now a no-op.
         To enable a docker registry, apply the following
-        bitte profile to the target docker registry host machine:
+        bitte module to the target docker registry host machine,
+        and set module options appropriately:
 
-        profiles/auxiliaries/docker-registry.nix
+        modules/docker-registry.nix
       '' false;
       description = ''
         DEPRECATED: -- this option is now a no-op.
         To enable a docker registry, apply the following
-        bitte profile to the target docker registry host machine:
+        bitte module to the target docker registry host machine,
+        and set module options appropriately:
 
-        profiles/auxiliaries/docker-registry.nix
+        modules/docker-registry.nix
       '';
     };
 
