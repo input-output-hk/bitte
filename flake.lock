@@ -1741,16 +1741,17 @@
         "utils": "utils_10"
       },
       "locked": {
-        "lastModified": 1649836589,
-        "narHash": "sha256-0mKWIfF7RtkwiJv2NlWKisdyivsSlHMTAQ3P72RSD3k=",
+        "lastModified": 1652806053,
+        "narHash": "sha256-l/uQCpNCLv1oCvLlWrpe6ed7kyLFhjKoh2tbchgl+Ac=",
         "owner": "input-output-hk",
         "repo": "nomad-follower",
-        "rev": "18cafe87df773e61a6ce300d9ff91dee4aeae053",
+        "rev": "20cd9681568586df43ecd1d5b1a476b16b9b1789",
         "type": "github"
       },
       "original": {
         "owner": "input-output-hk",
         "repo": "nomad-follower",
+        "rev": "20cd9681568586df43ecd1d5b1a476b16b9b1789",
         "type": "github"
       }
     },
