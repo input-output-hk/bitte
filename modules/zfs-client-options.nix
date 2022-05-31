@@ -81,6 +81,14 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
+
+    boot.kernelPackages = lib.mkForce (pkgs.linuxKernel.packages.linux_5_10.extend (self: super: {
+      zfs = pkgs.zfs.override {
+        configFile = "kernel";
+        inherit (pkgs.linuxKernel.packages.linux_5_10) kernel;
+      };
+    }));
+
     services.zfs = {
       autoSnapshot.enable = lib.mkIf cfg.enableZfsSnapshots true;
       autoSnapshot.monthly = 1;
