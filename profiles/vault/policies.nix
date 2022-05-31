@@ -18,6 +18,7 @@ in {
       path = caps {
         "auth/token/create" = [ c r u d l s ];
         "consul/creds/nomad-server" = [ r ];
+        "consul/creds/consul-register" = [ r ];
         "consul/creds/consul-server-default" = [ r ];
         "consul/creds/consul-server-agent" = [ r ];
         "nomad/creds/*" = [ r ];

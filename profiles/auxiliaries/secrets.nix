@@ -5,7 +5,10 @@ let
   # TODO: Unify the AWS vs. prem/premSim approaches.
 
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+  roleType = config.currentCoreNode.role or config.currentAwsAutoScalingGroup.role;
+
   isSops = deployType == "aws";
+  isClient = roleType == "client";
 
   sopsEncrypt =
     "${pkgs.sops}/bin/sops --encrypt --input-type json --kms '${config.cluster.kms}' /dev/stdin";
@@ -230,6 +233,23 @@ in {
       echo "$cert" | jq -r -e .ca  > "${pkiFiles.caCertFile}"
       echo "$cert" | jq -r -e .full  > "${pkiFiles.certChainFile}"
     '';
+  };
+
+  age.secrets.docker-login = lib.mkIf (isClient && !isSops) {
+    file = config.age.encryptedRoot + "/docker/docker-passwords.age";
+    path = dockerAuth;
+    /*
+      {
+        "auths": {
+          "docker.infra.aws.iohkdev.io": {
+            "auth": "ffffffffffffffffffffff"
+          }
+        },
+        "HttpHeaders": {
+          "User-Agent": "Docker-Client/19.03.12 (linux)"
+        }
+      }
+    */
   };
 
   age.secrets.consul-token-master = lib.mkIf (config.services.consul.server && !isSops) {
