@@ -13,8 +13,8 @@ buildGoPackage rec {
 
   goPackagePath = "github.com/VictoriaMetrics/VictoriaMetrics";
 
-  buildFlagsArray =
-    [ "-ldflags=-s -w -X ${goPackagePath}/lib/buildinfo.Version=${version}" ];
+  ldflags =
+    [ "-s" "-w" "-X ${goPackagePath}/lib/buildinfo.Version=${version}" ];
 
   # Avoid building the vmui component for now which requires a docker build
   preBuild = ''

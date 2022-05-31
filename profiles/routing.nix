@@ -59,11 +59,20 @@ in {
     useDockerRegistry = lib.mkOption {
       type = lib.types.bool;
       default = lib.warn ''
-        CAUTION: -- default will change soon to:
-        services.traefik.useDockerRegistry = false;
-      '' true;
+        DEPRECATED: -- this option is now a no-op.
+        To enable a docker registry, apply the following
+        bitte module to the target docker registry host machine,
+        and set module options appropriately:
+
+        modules/docker-registry.nix
+      '' false;
       description = ''
-        Enable use of a docker registry backend with a service hosted on the monitoring server.
+        DEPRECATED: -- this option is now a no-op.
+        To enable a docker registry, apply the following
+        bitte module to the target docker registry host machine,
+        and set module options appropriately:
+
+        modules/docker-registry.nix
       '';
     };
 
@@ -297,15 +306,7 @@ in {
               service = "api@internal";
               tls = tlsCfg;
             };
-          } // (lib.optionalAttrs cfg.useDockerRegistry {
-            docker-registry = {
-              entrypoints = "https";
-              middlewares = [ ];
-              rule = "Host(`docker.${domain}`) && PathPrefix(`/`)";
-              service = "docker-registry";
-              tls = tlsCfg;
-            };
-          }) // (lib.optionalAttrs cfg.useOauth2Proxy {
+          } // (lib.optionalAttrs cfg.useOauth2Proxy {
             oauth2-route = {
               entrypoints = "https";
               middlewares = [ "auth-headers" ];
@@ -349,10 +350,6 @@ in {
             vault.loadBalancer = {
               servers = [{ url = "https://active.vault.service.consul:8200"; }];
               serversTransport = "cert-transport";
-            };
-          } // lib.optionalAttrs cfg.useDockerRegistry {
-            docker-registry.loadBalancer = {
-              servers = [{ url = "http://monitoring:5000"; }];
             };
           } // lib.optionalAttrs cfg.useOauth2Proxy {
             oauth-backend = {

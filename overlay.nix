@@ -19,7 +19,7 @@ in
       inherit (inputs.agenix-cli.packages."${final.system}") agenix-cli;
 
       # We need at least Traefik 2.5.3 for Consul Connect
-      inherit (inputs.nixpkgs-unstable.legacyPackages."${final.system}") traefik complete-alias;
+      inherit (inputs.nixpkgs-unstable.legacyPackages."${final.system}") traefik complete-alias docker-distribution vector docker podman;
 
       ragenix = inputs.ragenix.defaultPackage."${final.system}";
 
@@ -50,7 +50,6 @@ in
       haproxy-cors = prev.callPackage ./pkgs/haproxy-cors.nix {};
       devShell = final.callPackage ./pkgs/dev-shell.nix {};
       consulRegister = prev.callPackage ./pkgs/consul-register.nix {};
-      boundary = prev.callPackage ./pkgs/boundary.nix {};
       grpcdump = prev.callPackage ./pkgs/grpcdump.nix {};
       glusterfs = final.callPackage ./pkgs/glusterfs.nix {};
       victoriametrics = prev.callPackage ./pkgs/victoriametrics.nix {};

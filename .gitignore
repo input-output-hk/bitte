@@ -9,3 +9,7 @@ result*
 
 # cargo
 cli/target
+
+# misc
+*.swp
+/.direnv

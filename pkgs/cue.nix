@@ -16,8 +16,7 @@ buildGoModule rec {
 
   subPackages = [ "cmd/cue" ];
 
-  buildFlagsArray =
-    [ "-ldflags=-X cuelang.org/go/cmd/cue/cmd.version=${version}" ];
+  ldflags = [ "-X cuelang.org/go/cmd/cue/cmd.version=${version}" ];
 
   meta = {
     description =

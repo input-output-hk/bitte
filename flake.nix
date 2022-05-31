@@ -1,16 +1,16 @@
 {
   description = "Flake containing Bitte clusters";
   inputs.std.url = "github:divnix/std";
-  # 21.05 doesn't yet fullfill all contracts that std consumes
+  # 21.11 doesn't yet fullfill all contracts that std consumes
   # inputs.std.inputs.nixpkgs.follows = "nixpkgs";
   inputs.n2c.url = "github:nlewo/nix2container";
   inputs.data-merge.url = "github:divnix/data-merge";
   inputs.capsules.url = "github:input-output-hk/devshell-capsules";
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/43cdc5b364511eabdcad9fde639777ffd9e5bab1"; # nixos-21.05
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-21.11";
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixpkgs-unstable";
 
-    nix.url = "github:kreisys/nix/goodnix-maybe-dont-functor";
+    nix.url = "github:nixos/nix/2.8.1";
     agenix.url = "github:ryantm/agenix";
     agenix-cli.url = "github:cole-h/agenix-cli";
     ragenix.url = "github:yaxitech/ragenix";
@@ -24,7 +24,9 @@
 
     nomad.url = "github:input-output-hk/nomad/release-1.2.6";
     nomad-driver-nix.url = "github:input-output-hk/nomad-driver-nix";
-    nomad-follower.url = "github:input-output-hk/nomad-follower";
+
+    # Vector >= 0.20.0 versions require nomad-follower watch-config format fix
+    nomad-follower.url = "github:input-output-hk/nomad-follower/20cd9681568586df43ecd1d5b1a476b16b9b1789";
 
     fenix = {
       url = "github:nix-community/fenix";

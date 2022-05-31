@@ -41,7 +41,7 @@ in {
       consul = "/etc/consul.d/secrets.json";
     };
 
-    dockerAuth = "/var/lib/nomad/.docker/config.json";
+    dockerAuth = "/root/.docker/config.json";
     netrcFile = "/etc/nix/netrc";
 
     hashiTokens = {

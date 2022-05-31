@@ -1,4 +1,6 @@
-{ pkgs, config, self, ... }: {
+{ pkgs, lib, config, self, ... }: let
+  deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+in {
   nix = {
     gc.automatic = true;
     gc.options = "--max-freed $((10 * 1024 * 1024))";
@@ -21,11 +23,10 @@
 
     binaryCaches = [
       "https://hydra.iohk.io"
-      "${config.cluster.s3Cache}"
-    ];
+    ] ++ lib.optional (deployType == "aws") "${config.cluster.s3Cache}";
+
     binaryCachePublicKeys = [
       "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
-      "${config.cluster.s3CachePubKey}"
-    ];
+    ] ++ lib.optional (deployType == "aws") "${config.cluster.s3CachePubKey}";
   };
 }
