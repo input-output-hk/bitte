@@ -141,7 +141,9 @@
 
         # Set cache and security
         cache-size=65536
-        local-service
+        ${if (role == "router" && config.services.headscale.enable == true) then ''
+          # Allow local-service for tailscale queries
+          # local-service'' else "local-service"}
 
         # Append additional extraConfig from the ops repo as needed
       '';
