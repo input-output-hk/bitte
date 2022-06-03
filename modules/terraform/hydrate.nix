@@ -24,9 +24,6 @@ let
   } // extraConfig;
 
 in {
-  tf.backup-transit-keys.configuration = tfConfig { key = "backup-transit-keys"; };
-  tf.restore-transit-keys.configuration = tfConfig { key = "restore-transit-keys"; };
-
   # preconfigure hydrate-secrets
   tf.hydrate-secrets.configuration = tfConfig { key = "hydrate-secrets"; };
 

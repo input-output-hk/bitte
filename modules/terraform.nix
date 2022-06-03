@@ -213,8 +213,6 @@ let
 
         secrets = lib.mkOption { type = with lib.types; path; };
 
-        vaultWardenTransitBackupItemId = lib.mkOption { type = with lib.types; str; };
-
         requiredInstanceTypes = lib.mkOption {
           internal = true;
           readOnly = true;
