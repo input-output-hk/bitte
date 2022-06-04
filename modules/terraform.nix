@@ -1140,7 +1140,7 @@ in {
             coreNode = if cfg.infraType == "prem" then "${cfg.name}-core-1" else "core-1";
             coreNodeCmd = if cfg.infraType == "prem" then "ssh" else "${pkgs.bitte}/bin/bitte ssh";
 
-            copy = ''
+            copyTfCfg = ''
               export PATH="${
                 lib.makeBinPath [ pkgs.coreutils pkgs.terraform-with-plugins ]
               }"
@@ -1196,7 +1196,8 @@ in {
                 esac
               done
 
-              ${copy}
+              ${copyTfCfg}
+
               if [ -z "''${GITHUB_TOKEN:-}" ]; then
                 echo
                 echo -----------------------------------------------------
@@ -1256,7 +1257,7 @@ in {
 
             config = lib.mkOption {
               type = lib.mkOptionType { name = "${name}-config"; };
-              apply = v: pkgs.writeBashBinChecked "${name}-config" copy;
+              apply = v: pkgs.writeBashBinChecked "${name}-config" copyTfCfg;
             };
 
             plan = lib.mkOption {
@@ -1286,6 +1287,88 @@ in {
                   ${prepare}
 
                   terraform "$@"
+                '';
+            };
+
+            migrateLocal = lib.mkOption {
+              type = lib.mkOptionType { name = "${name}-migrate"; };
+              apply = v:
+                pkgs.writeBashBinChecked "${name}-apply" ''
+                  warn () {
+                    printf '*%.0s' $(seq 1 ''${#1})
+                    echo -e "\n$1"
+                    printf '*%.0s' $(seq 1 ''${#1})
+                    echo
+                  }
+
+                  gate () {
+                    [ "$1" = "pass" ] || { echo; echo -e "FAIL: $2"; exit 1; }
+                  }
+
+                  # Possibly get rid of this:
+                  ${prepare}
+
+                  warn "TERRAFORM VBK MIGRATION TO LOCAL STATE FOR ${name}:"
+                  echo
+                  echo "Important environment variables"
+                  echo "  config.cluster.name            = ${cfg.name}"
+                  echo "  BITTE_CLUSTER env parameter    = $BITTE_CLUSTER"
+                  echo
+                  echo "Important migration variables:"
+                  echo "  vaultBackend                   = ${cfg.vaultBackend}"
+                  echo "  vbkBackend                     = ${cfg.vbkBackend}"
+                  echo "  vbkBackendSkipCertVerification = ${lib.boolToString cfg.vbkBackendSkipCertVerification}"
+                  echo
+
+                  TOP="$(${pkgs.gitMinimal}/bin/git rev-parse --show-toplevel)"
+                  PWD="$(pwd)"
+                  echo "Important path variables:"
+                  echo "  gitTopLevelDir                 = $TOP"
+                  echo "  currentWorkingDir              = $PWD"
+                  echo "  relEncryptedFolder             = ${relEncryptedFolder}"
+                  echo
+
+                  warn "PRE-MIGRATION CHECKS:"
+                  echo
+                  echo "Status:"
+
+                  TMPDIR="$(mktemp -d -t tf-${name}-migrate-XXXXXX)"
+                  echo "$TMPDIR"
+
+                  # Ensure there is nothing strange with environment and cluster name mismatch that may cause unexpected issues
+                  NAME_STATUS="$([ "${cfg.name}" = "$BITTE_CLUSTER" ] && echo "pass" || echo "FAIL")"
+                  echo "  Cluster name check:            = $NAME_STATUS"
+                  gate "$NAME_STATUS" "The nix configured name of the cluster does not match the BITTE_CLUSTER env var."
+
+                  # Ensure the migration is being run from the top level of the git repo
+                  TOP_STATUS="$([ "$PWD" = "$TOP" ] && echo "pass" || echo "FAIL")"
+                  echo "  Current pwd check:             = $TOP_STATUS"
+                  gate "$TOP_STATUS" "The vbk migration to local state needs to be run from the top level dir of the git repo."
+
+                  # Ensure terraform config for workspace ${name} exists and has file size greater than zero bytes
+                  CFG_STATUS="$([ -s "config.tf.json" ] && echo "pass" || echo "FAIL")"
+                  echo "  Terraform config check:        = $CFG_STATUS"
+                  gate "$CFG_STATUS" "The terraform config.tf.json file for workspace ${name} does not exist or is zero bytes in size."
+
+                  # Check for existing local ${name} terraform state
+                  # LOCAL_STATUS=
+
+                  # mkdir -p nix/metal/encrypted
+
+                  terraform state pull > "terraform-${name}.tfstate"
+                  ${pkgs.jq}/bin/jq 'del(.terraform.backend)' < config.tf.json | ${pkgs.moreutils}/bin/sponge "config.tf.json"
+
+                  echo "Terraform init:"
+                  echo
+                  rm -rf .terraform
+                  terraform init -reconfigure 1>&2
+                  echo
+                  echo
+                  echo "Terraform plan against local state:"
+                  echo
+                  terraform plan -state="terraform-${name}.tfstate" -out "${name}-local.plan"
+                  echo
+                  echo
                 '';
             };
           };
