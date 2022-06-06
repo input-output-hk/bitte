@@ -131,10 +131,11 @@ in {
         } // cfg.remoteBuilder.buildMachine)
       ];
     };
-
-    users.extraUsers = lib.mkIf isRemoteBuilder {
-      builder = {
+    users = lib.mkIf isRemoteBuilder {
+      groups.builder = {};
+      users.builder = {
         isSystemUser = true;
+        group = "builder";
         openssh.authorizedKeys.keyFiles = let
           builderKey = if isSops then
             "${toString config.secrets.encryptedRoot}/nix-builder-key.pub"
@@ -143,6 +144,5 @@ in {
         in [ builderKey ];
         shell = pkgs.bashInteractive;
       };
-    };
   };
 }
