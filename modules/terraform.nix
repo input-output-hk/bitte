@@ -1157,17 +1157,32 @@ in {
             coreNode = if cfg.infraType == "prem" then "${cfg.name}-core-1" else "core-1";
             coreNodeCmd = if cfg.infraType == "prem" then "ssh" else "${pkgs.bitte}/bin/bitte ssh";
 
-            copyTfCfg = ''
+            exportPath = ''
               export PATH="${
-                lib.makeBinPath [ pkgs.coreutils pkgs.terraform-with-plugins ]
+                with pkgs; lib.makeBinPath [
+                  coreutils
+                  curl
+                  gitMinimal
+                  jq
+                  terraform-with-plugins
+                ]
               }"
+            '';
+
+            # Generate declarative TF configuration and copy it to the top level repo dir
+            copyTfCfg = ''
               set -euo pipefail
+              ${exportPath}
 
               rm -f config.tf.json
               cp "${this.config.output}" config.tf.json
               chmod u+rw config.tf.json
             '';
 
+            # Encrypt local state to the encrypted folder.
+            # Use binary encryption instead of json for more compact representation
+            # and to reduce information leakage via many unencrypted json keys.
+            # TODO: Add prem use case
             localStateEncrypt = ''
               # shellcheck disable=SC2050
               if [ "${cfg.vbkBackend}" = "local" ]; then
@@ -1175,27 +1190,37 @@ in {
                 ${sopsEncrypt "binary" "binary" "terraform.tfstate"} > "${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc"
 
                 echo "Git adding state changes"
-                ${pkgs.gitMinimal}/bin/git add ${if name == "hydrate-secrets" then "-f" else ""} "${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc"
+                git add ${if name == "hydrate-secrets" then "-f" else ""} "${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc"
 
                 echo
                 warn "Please commit these TF state changes ASAP to avoid loss of state or state divergence!"
               fi
             '';
 
+            # Local plaintext state should be uncommitted and cleaned up routinely
+            # as some workspaces contain secrets, ex: hydrate-app
             localStateCleanup = ''
               # shellcheck disable=SC2050
               if [ "${cfg.vbkBackend}" = "local" ]; then
                 echo
-                echo "Removing plaintext TF state files in current directory"
-                rm -vf terraform.tfstate
-                rm -vf terraform.tfstate.backup
+                echo "Removing plaintext TF state files in the repo top level directory"
+                echo "(alternatively, see the encrypted-committed TF state files as needed)"
+                rm -vf terraform-${name}.tfstate
+                rm -vf terraform-${name}.tfstate.backup
               fi
             '';
 
             prepare = ''
+              set -euo pipefail
+              ${exportPath}
+
               warn () {
+                # Star header len matching the input str len
                 printf '*%.0s' $(seq 1 ''${#1})
+
                 echo -e "\n$1"
+
+                # Star footer len matching the input str len
                 printf '*%.0s' $(seq 1 ''${#1})
                 echo
               }
@@ -1204,26 +1229,31 @@ in {
                 [ "$1" = "pass" ] || { echo; echo -e "FAIL: $2"; exit 1; }
               }
 
-              TOP="$(${pkgs.gitMinimal}/bin/git rev-parse --show-toplevel)"
+              TOP="$(git rev-parse --show-toplevel)"
               PWD="$(pwd)"
 
               # Ensure this TF operation is being run from the top level of the git repo
-              [ "$PWD" != "$TOP" ] && {
-                echo "The TF attrs need to be run from the top level directory of the repo: $TOP"
-                echo "Current working directory is: $PWD"
-                exit 1
-              }
+              STATUS="$([ "$PWD" = "$TOP" ] && echo "pass" || echo "FAIL")"
+              MSG=(
+                "The TF attrs need to be run from the top level directory of the repo:"
+                " * Top level repo directory is:"
+                "   $TOP"
+                " * Current working directory is:"
+                "   $PWD"
+              )
+              # shellcheck disable=SC2116
+              gate "$STATUS" "$(echo "''${MSG[@]}")"
 
               # shellcheck disable=SC2050
               if [ "${name}" == "hydrate-cluster" ]; then
                 declare NOMAD_TOKEN
-                NOMAD_TOKEN="$(${sopsDecrypt "json" "${relEncryptedFolder}/nomad.bootstrap.enc.json"}|${pkgs.jq}/bin/jq -r '.token')"
+                NOMAD_TOKEN="$(${sopsDecrypt "json" "${relEncryptedFolder}/nomad.bootstrap.enc.json"} | jq -r '.token')"
                 export NOMAD_TOKEN
                 declare VAULT_TOKEN
-                VAULT_TOKEN="$(${sopsDecrypt "json" "${relEncryptedFolder}/vault.enc.json"}|${pkgs.jq}/bin/jq -r '.root_token')"
+                VAULT_TOKEN="$(${sopsDecrypt "json" "${relEncryptedFolder}/vault.enc.json"} | jq -r '.root_token')"
                 export VAULT_TOKEN
                 declare CONSUL_HTTP_TOKEN
-                CONSUL_HTTP_TOKEN="$(${sopsDecrypt "json" "${relEncryptedFolder}/consul-core.json"}|${pkgs.jq}/bin/jq -r '.acl.tokens.master')"
+                CONSUL_HTTP_TOKEN="$(${sopsDecrypt "json" "${relEncryptedFolder}/consul-core.json"} | jq -r '.acl.tokens.master')"
                 export CONSUL_HTTP_TOKEN
               fi
 
@@ -1250,14 +1280,12 @@ in {
                     echo -----------------------------------------------------
                     echo
                     read -p "Do you want to continue this operation? [y/n] " -n 1 -r
-                    if [[ ! "$REPLY" =~ ^[Yy]$ ]]
-                    then
-                      exit
-                    fi
+                    [[ ! "$REPLY" =~ ^[Yy]$ ]] && exit 0
                     ;;
                 esac
               done
 
+              # Generate and copy declarative TF state locally for TF to compare to
               ${copyTfCfg}
 
               # shellcheck disable=SC2050
@@ -1277,9 +1305,9 @@ in {
 
                 user="''${TF_HTTP_USERNAME:-TOKEN}"
                 pass="''${TF_HTTP_PASSWORD:-$( \
-                  ${pkgs.curl}/bin/curl -s -d "{\"token\": \"$GITHUB_TOKEN\"}" \
+                  curl -s -d "{\"token\": \"$GITHUB_TOKEN\"}" \
                   ${backend}/auth/github-terraform/login \
-                  | ${pkgs.jq}/bin/jq -r '.auth.client_token' \
+                  | jq -r '.auth.client_token' \
                 )}"
 
                 if [ -z "''${TF_HTTP_PASSWORD:-}" ]; then
@@ -1301,32 +1329,57 @@ in {
 
                 echo "Using remote TF state for workspace \"${name}\"..."
                 terraform init -reconfigure 1>&2
+                STATE_ARG=""
               else
                 echo "Using local TF state for workspace \"${name}\"..."
 
                 # Ensure there is no unknown terraform state in the current directory
-                for STATE in "terraform.tfstate" "terraform.tfstate.backup"; do
+                for STATE in terraform*.tfstate terraform*.tfstate.backup; do
                   [ -f "$STATE" ] && {
                     echo
-                    echo "Terraform local state exists in the top level repo directory at:"
+                    echo "Leftover terraform local state exists in the top level repo directory at:"
                     echo "  ''${TOP}/$STATE"
                     echo
-                    echo "Please ensure you have committed all TF state changes from the encrypted TF directory:"
-                    echo "  ${relEncryptedFolder}/tf"
+                    echo "This may be due to a failed terraform command."
+                    echo "Diff may be used to compare leftover state against encrypted-committed state."
                     echo
-                    echo "Then delete this $STATE file and try again."
+                    echo "When all expected state is confirmed to reside in the encrypted-committed state,"
+                    echo "then delete this $STATE file and try again."
+                    echo
+                    echo "A diff example command for sops encrypted-commited state is:"
+                    echo
+                    echo "  icdiff $STATE \\"
+                    echo "  <(sops -d \"${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc\")"
+                    echo
+                    echo "Leftover plaintext TF state should not be committed and should be removed as"
+                    echo "soon as possible since it may contain secrets."
                     exit 1
                   }
                 done
 
-                # Removing existing tfstate avoids a backend reconfigure failure.
+                # Check if uncommitted changes to local state already exist
+                [ -z "$(git status --porcelain=2 "${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc")" ] || {
+                  echo
+                  warn "WARNING: Uncommitted TF state changes already exist for workspace \"${name}\" at encrypted file:"
+                  echo
+                  echo "  ${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc"
+                  echo
+                  echo "Any new changes to TF state will be automatically git added to changes that already exist."
+                  read -p "Do you want to continue this operation? [y/n] " -n 1 -r
+                  [[ ! "$REPLY" =~ ^[Yy]$ ]] && exit 0
+                }
+
+                # Removing existing .terraform/terraform.tfstate avoids a backend reconfigure failure
+                # or a remote state migration pull which has already been done via the migrateLocal attr.
+                #
                 # Our deployments do not currently store anything but backend
                 # or local state information in this hidden directory tfstate file.
                 #
                 # Ref: https://stackoverflow.com/questions/70636974/side-effects-of-removing-terraform-folder
-                rm -f .terraform/terraform.tfstate
-                ${sopsDecrypt "binary" "${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc"} > terraform.tfstate
+                rm -vf .terraform/terraform.tfstate
+                ${sopsDecrypt "binary" "${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc"} > terraform-${name}.tfstate
                 terraform init -reconfigure 1>&2
+                STATE_ARG="-state=terraform-${name}.tfstate"
               fi
             '';
           in {
@@ -1358,7 +1411,7 @@ in {
                 pkgs.writeBashBinChecked "${name}-plan" ''
                   ${prepare}
 
-                  terraform plan -out ${name}.plan "$@" && {
+                  terraform plan ''${STATE_ARG:-} -out ${name}.plan "$@" && {
                     ${localStateCleanup}
                   }
                 '';
@@ -1370,7 +1423,7 @@ in {
                 pkgs.writeBashBinChecked "${name}-apply" ''
                   ${prepare}
 
-                  terraform apply ${name}.plan "$@" && {
+                  terraform apply ''${STATE_ARG:-} ${name}.plan "$@" && {
                     ${localStateEncrypt}
                     ${localStateCleanup}
                   }
@@ -1382,6 +1435,19 @@ in {
               apply = v:
                 pkgs.writeBashBinChecked "${name}-apply" ''
                   ${prepare}
+
+                  # shellcheck disable=SC2050
+                  [ "${cfg.vbkBackend}" = "local" ] && {
+                    warn "Nix custom terraform command usage note for local state:"
+                    echo
+                    echo "Depending on the terraform command you are running,"
+                    echo "the state file argument may need to be provided:"
+                    echo
+                    echo "  $STATE_ARG"
+                    echo
+                    echo "********************************************************"
+                    echo
+                  }
 
                   terraform "$@" && {
                     ${localStateEncrypt}
@@ -1457,7 +1523,7 @@ in {
                   gate "$STATUS" "The terraform config.tf.json file for workspace ${name} does not exist or is zero bytes in size."
 
                   # Ensure terraform config for workspace ${name} has expected remote backend state set properly
-                  STATUS="$([ "$(${pkgs.jq}/bin/jq -e -r .terraform.backend.http.address < config.tf.json)" = "${cfg.vbkBackend}/state/${cfg.name}/${name}" ] && echo "pass" || echo "FAIL")"
+                  STATUS="$([ "$(jq -e -r .terraform.backend.http.address < config.tf.json)" = "${cfg.vbkBackend}/state/${cfg.name}/${name}" ] && echo "pass" || echo "FAIL")"
                   echo "  Terraform remote address check:  = $STATUS"
                   gate "$STATUS" "The TF generated remote address does not match the expected declarative address."
 
@@ -1498,33 +1564,18 @@ in {
                   # Git add encrypted state
                   # In the case of hydrate-secrets, force add to avoid git exclusion in some ops/world repos based on the filename containing the word secret
                   echo -n "  Adding encrypted state to git    "
-                  ${pkgs.gitMinimal}/bin/git add ${if name == "hydrate-secrets" then "-f" else ""} "${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc"
+                  git add ${if name == "hydrate-secrets" then "-f" else ""} "${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc"
                   echo "...done"
                   echo
 
                   warn "FINISHED MIGRATION TO LOCAL FOR TF WORKSPACE ${name}"
                   echo
-                  echo "  * The local state file is found at:   ${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc"
+                  echo "  * The encrypted local state file is found at:   ${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc"
                   echo "  * Decrypt and review with:"
-                  echo "    ${sopsDecrypt "binary" "${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc"}"
+                  echo "    sops -d \"${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc\""
                   echo
                   echo "NOTE: binary sops encryption is used on the TF state files both for more compact representation"
-                  echo "      and to avoid all the unencrypted keys from contributing to an information attack vector."
-
-                  # This is only required as a hack from the generated config to remove remote backend state for comparison against the state file
-                  # ${pkgs.jq}/bin/jq 'del(.terraform.backend)' < config.tf.json | ${pkgs.moreutils}/bin/sponge "config.tf.json"
-
-                  # echo "Terraform init:"
-                  # echo
-                  # rm -rf .terraform
-                  # terraform init -reconfigure 1>&2
-                  # echo
-                  # echo
-                  # echo "Terraform plan against local state:"
-                  # echo
-                  # terraform plan -state="terraform-${name}.tfstate" -out "${name}-local.plan"
-                  # echo
-                  # echo
+                  echo "      and to avoid unencrypted keys from contributing to an information attack vector."
                 '';
             };
           };
