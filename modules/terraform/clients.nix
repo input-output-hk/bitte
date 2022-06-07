@@ -47,14 +47,16 @@ let
   '');
 in {
   tf.clients.configuration = lib.mkIf infraTypeCheck {
-    terraform.backend.http = let
-      vbk =
-        "${vbkBackend}/state/${config.cluster.name}/clients";
-    in {
-      address = vbk;
-      lock_address = vbk;
-      unlock_address = vbk;
-      skip_cert_verification = vbkBackendSkipCertVerification;
+    terraform.backend = lib.mkIf (vbkBackend != "local") {
+      http = let
+        vbk =
+          "${vbkBackend}/state/${config.cluster.name}/clients";
+      in {
+        address = vbk;
+        lock_address = vbk;
+        unlock_address = vbk;
+        skip_cert_verification = vbkBackendSkipCertVerification;
+      };
     };
 
     terraform.required_providers = pkgs.terraform-provider-versions;

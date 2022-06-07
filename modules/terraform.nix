@@ -7,10 +7,14 @@ let
 
   merge = lib.foldl' lib.recursiveUpdate { };
 
-  sopsDecrypt = path:
+  sopsDecrypt = inputType: path:
     # NB: we can't work on store paths that don't yet exist before they are generated
     assert lib.assertMsg (builtins.isString path) "sopsDecrypt: path must be a string ${toString path}";
-    "${pkgs.sops}/bin/sops --decrypt --input-type json ${path}";
+    "${pkgs.sops}/bin/sops --decrypt --input-type ${inputType} ${path}";
+
+  sopsEncrypt = inputType: outputType: path:
+    assert lib.assertMsg (builtins.isString path) "sopsDecrypt: path must be a string ${toString path}";
+    "${pkgs.sops}/bin/sops --encrypt --kms ${cfg.kms} --input-type ${inputType} --output-type ${outputType} ${path}";
 
   relEncryptedFolder = lib.last (builtins.split "-" (toString config.secrets.encryptedRoot));
 
@@ -414,11 +418,24 @@ let
         vaultBackend = lib.mkOption {
           type = with lib.types; str;
           default = "https://vault.infra.aws.iohkdev.io";
+          description = ''
+            The vault URL to utilize to obtain remote VBK vault credentials.
+          '';
         };
 
         vbkBackend = lib.mkOption {
           type = with lib.types; str;
-          default = "https://vbk.infra.aws.iohkdev.io";
+          default = lib.warn ''
+            CAUTION: -- TF proto level cluster option vbkBackend default will change soon to:
+            cluster.vbkBackend = "local";
+
+            To migrate from remote state to local state usage, use:
+            nix run .#clusters.$BITTE_CLUSTER.tf.<TF_WORKSPACE>.migrateLocal
+          '' "https://vbk.infra.aws.iohkdev.io";
+          description = ''
+            The vault remote backend URL to utilize.
+            Set this to "local" to utilize local state instead of remote state.
+          '';
         };
 
         vbkBackendSkipCertVerification = lib.mkOption {
@@ -1151,17 +1168,62 @@ in {
               chmod u+rw config.tf.json
             '';
 
+            localStateEncrypt = ''
+              # shellcheck disable=SC2050
+              if [ "${cfg.vbkBackend}" = "local" ]; then
+                echo "Encrypting TF state changes to: ${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc"
+                ${sopsEncrypt "binary" "binary" "terraform.tfstate"} > "${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc"
+
+                echo "Git adding state changes"
+                ${pkgs.gitMinimal}/bin/git add ${if name == "hydrate-secrets" then "-f" else ""} "${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc"
+
+                echo
+                warn "Please commit these TF state changes ASAP to avoid loss of state or state divergence!"
+              fi
+            '';
+
+            localStateCleanup = ''
+              # shellcheck disable=SC2050
+              if [ "${cfg.vbkBackend}" = "local" ]; then
+                echo
+                echo "Removing plaintext TF state files in current directory"
+                rm -vf terraform.tfstate
+                rm -vf terraform.tfstate.backup
+              fi
+            '';
+
             prepare = ''
+              warn () {
+                printf '*%.0s' $(seq 1 ''${#1})
+                echo -e "\n$1"
+                printf '*%.0s' $(seq 1 ''${#1})
+                echo
+              }
+
+              gate () {
+                [ "$1" = "pass" ] || { echo; echo -e "FAIL: $2"; exit 1; }
+              }
+
+              TOP="$(${pkgs.gitMinimal}/bin/git rev-parse --show-toplevel)"
+              PWD="$(pwd)"
+
+              # Ensure this TF operation is being run from the top level of the git repo
+              [ "$PWD" != "$TOP" ] && {
+                echo "The TF attrs need to be run from the top level directory of the repo: $TOP"
+                echo "Current working directory is: $PWD"
+                exit 1
+              }
+
               # shellcheck disable=SC2050
               if [ "${name}" == "hydrate-cluster" ]; then
                 declare NOMAD_TOKEN
-                NOMAD_TOKEN="$(${sopsDecrypt "${relEncryptedFolder}/nomad.bootstrap.enc.json"}|${pkgs.jq}/bin/jq -r '.token')"
+                NOMAD_TOKEN="$(${sopsDecrypt "json" "${relEncryptedFolder}/nomad.bootstrap.enc.json"}|${pkgs.jq}/bin/jq -r '.token')"
                 export NOMAD_TOKEN
                 declare VAULT_TOKEN
-                VAULT_TOKEN="$(${sopsDecrypt "${relEncryptedFolder}/vault.enc.json"}|${pkgs.jq}/bin/jq -r '.root_token')"
+                VAULT_TOKEN="$(${sopsDecrypt "json" "${relEncryptedFolder}/vault.enc.json"}|${pkgs.jq}/bin/jq -r '.root_token')"
                 export VAULT_TOKEN
                 declare CONSUL_HTTP_TOKEN
-                CONSUL_HTTP_TOKEN="$(${sopsDecrypt "${relEncryptedFolder}/consul-core.json"}|${pkgs.jq}/bin/jq -r '.acl.tokens.master')"
+                CONSUL_HTTP_TOKEN="$(${sopsDecrypt "json" "${relEncryptedFolder}/consul-core.json"}|${pkgs.jq}/bin/jq -r '.acl.tokens.master')"
                 export CONSUL_HTTP_TOKEN
               fi
 
@@ -1198,44 +1260,74 @@ in {
 
               ${copyTfCfg}
 
-              if [ -z "''${GITHUB_TOKEN:-}" ]; then
-                echo
-                echo -----------------------------------------------------
-                echo ERROR: env variable GITHUB_TOKEN is not set or empty.
-                echo Yet, it is required to authenticate before the
-                echo utilizing the cluster vault terraform backend.
-                echo -----------------------------------------------------
-                echo "Please 'export GITHUB_TOKEN=ghp_hhhhhhhh...' using"
-                echo your appropriate personal github access token.
-                echo -----------------------------------------------------
-                exit 1
+              # shellcheck disable=SC2050
+              if [ "${cfg.vbkBackend}" != "local" ]; then
+                if [ -z "''${GITHUB_TOKEN:-}" ]; then
+                  echo
+                  echo -----------------------------------------------------
+                  echo ERROR: env variable GITHUB_TOKEN is not set or empty.
+                  echo Yet, it is required to authenticate before the
+                  echo utilizing the cluster vault terraform backend.
+                  echo -----------------------------------------------------
+                  echo "Please 'export GITHUB_TOKEN=ghp_hhhhhhhh...' using"
+                  echo your appropriate personal github access token.
+                  echo -----------------------------------------------------
+                  exit 1
+                fi
+
+                user="''${TF_HTTP_USERNAME:-TOKEN}"
+                pass="''${TF_HTTP_PASSWORD:-$( \
+                  ${pkgs.curl}/bin/curl -s -d "{\"token\": \"$GITHUB_TOKEN\"}" \
+                  ${backend}/auth/github-terraform/login \
+                  | ${pkgs.jq}/bin/jq -r '.auth.client_token' \
+                )}"
+
+                if [ -z "''${TF_HTTP_PASSWORD:-}" ]; then
+                  echo
+                  echo -----------------------------------------------------
+                  echo TIP: you can avoid repetitive calls to the infra auth
+                  echo api by exporting the following env variables as is.
+                  echo
+                  echo The current vault backend in use for TF is:
+                  echo ${cfg.vaultBackend}
+                  echo -----------------------------------------------------
+                  echo "export TF_HTTP_USERNAME=\"$user\""
+                  echo "export TF_HTTP_PASSWORD=\"$pass\""
+                  echo -----------------------------------------------------
+                fi
+
+                export TF_HTTP_USERNAME="$user"
+                export TF_HTTP_PASSWORD="$pass"
+
+                echo "Using remote TF state for workspace \"${name}\"..."
+                terraform init -reconfigure 1>&2
+              else
+                echo "Using local TF state for workspace \"${name}\"..."
+
+                # Ensure there is no unknown terraform state in the current directory
+                for STATE in "terraform.tfstate" "terraform.tfstate.backup"; do
+                  [ -f "$STATE" ] && {
+                    echo
+                    echo "Terraform local state exists in the top level repo directory at:"
+                    echo "  ''${TOP}/$STATE"
+                    echo
+                    echo "Please ensure you have committed all TF state changes from the encrypted TF directory:"
+                    echo "  ${relEncryptedFolder}/tf"
+                    echo
+                    echo "Then delete this $STATE file and try again."
+                    exit 1
+                  }
+                done
+
+                # Removing existing tfstate avoids a backend reconfigure failure.
+                # Our deployments do not currently store anything but backend
+                # or local state information in this hidden directory tfstate file.
+                #
+                # Ref: https://stackoverflow.com/questions/70636974/side-effects-of-removing-terraform-folder
+                rm -f .terraform/terraform.tfstate
+                ${sopsDecrypt "binary" "${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc"} > terraform.tfstate
+                terraform init -reconfigure 1>&2
               fi
-
-              user="''${TF_HTTP_USERNAME:-TOKEN}"
-              pass="''${TF_HTTP_PASSWORD:-$( \
-                ${pkgs.curl}/bin/curl -s -d "{\"token\": \"$GITHUB_TOKEN\"}" \
-                ${backend}/auth/github-terraform/login \
-                | ${pkgs.jq}/bin/jq -r '.auth.client_token' \
-              )}"
-
-              if [ -z "''${TF_HTTP_PASSWORD:-}" ]; then
-                echo
-                echo -----------------------------------------------------
-                echo TIP: you can avoid repetitive calls to the infra auth
-                echo api by exporting the following env variables as is.
-                echo
-                echo The current vault backend in use for TF is:
-                echo ${cfg.vaultBackend}
-                echo -----------------------------------------------------
-                echo "export TF_HTTP_USERNAME=\"$user\""
-                echo "export TF_HTTP_PASSWORD=\"$pass\""
-                echo -----------------------------------------------------
-              fi
-
-              export TF_HTTP_USERNAME="$user"
-              export TF_HTTP_PASSWORD="$pass"
-
-              terraform init -reconfigure 1>&2
             '';
           in {
             configuration = lib.mkOption {
@@ -1266,7 +1358,9 @@ in {
                 pkgs.writeBashBinChecked "${name}-plan" ''
                   ${prepare}
 
-                  terraform plan -out ${name}.plan "$@"
+                  terraform plan -out ${name}.plan "$@" && {
+                    ${localStateCleanup}
+                  }
                 '';
             };
 
@@ -1276,7 +1370,10 @@ in {
                 pkgs.writeBashBinChecked "${name}-apply" ''
                   ${prepare}
 
-                  terraform apply ${name}.plan "$@"
+                  terraform apply ${name}.plan "$@" && {
+                    ${localStateEncrypt}
+                    ${localStateCleanup}
+                  }
                 '';
             };
 
@@ -1286,7 +1383,10 @@ in {
                 pkgs.writeBashBinChecked "${name}-apply" ''
                   ${prepare}
 
-                  terraform "$@"
+                  terraform "$@" && {
+                    ${localStateEncrypt}
+                    ${localStateCleanup}
+                  }
                 '';
             };
 
@@ -1294,81 +1394,137 @@ in {
               type = lib.mkOptionType { name = "${name}-migrate"; };
               apply = v:
                 pkgs.writeBashBinChecked "${name}-apply" ''
-                  warn () {
-                    printf '*%.0s' $(seq 1 ''${#1})
-                    echo -e "\n$1"
-                    printf '*%.0s' $(seq 1 ''${#1})
-                    echo
-                  }
-
-                  gate () {
-                    [ "$1" = "pass" ] || { echo; echo -e "FAIL: $2"; exit 1; }
-                  }
-
-                  # Possibly get rid of this:
+                  # Copy declarative state for comparison against remote or local recorded state.
                   ${prepare}
 
                   warn "TERRAFORM VBK MIGRATION TO LOCAL STATE FOR ${name}:"
                   echo
                   echo "Important environment variables"
-                  echo "  config.cluster.name            = ${cfg.name}"
-                  echo "  BITTE_CLUSTER env parameter    = $BITTE_CLUSTER"
+                  echo "  config.cluster.name              = ${cfg.name}"
+                  echo "  BITTE_CLUSTER env parameter      = $BITTE_CLUSTER"
                   echo
                   echo "Important migration variables:"
-                  echo "  vaultBackend                   = ${cfg.vaultBackend}"
-                  echo "  vbkBackend                     = ${cfg.vbkBackend}"
-                  echo "  vbkBackendSkipCertVerification = ${lib.boolToString cfg.vbkBackendSkipCertVerification}"
+                  echo "  infraType                        = ${cfg.infraType}"
+                  echo "  vaultBackend                     = ${cfg.vaultBackend}"
+                  echo "  vbkBackend                       = ${cfg.vbkBackend}"
+                  echo "  vbkBackendSkipCertVerification   = ${lib.boolToString cfg.vbkBackendSkipCertVerification}"
                   echo
 
-                  TOP="$(${pkgs.gitMinimal}/bin/git rev-parse --show-toplevel)"
-                  PWD="$(pwd)"
                   echo "Important path variables:"
-                  echo "  gitTopLevelDir                 = $TOP"
-                  echo "  currentWorkingDir              = $PWD"
-                  echo "  relEncryptedFolder             = ${relEncryptedFolder}"
+                  echo "  gitTopLevelDir                   = $TOP"
+                  echo "  currentWorkingDir                = $PWD"
+                  echo "  relEncryptedFolder               = ${relEncryptedFolder}"
                   echo
 
                   warn "PRE-MIGRATION CHECKS:"
                   echo
                   echo "Status:"
 
-                  TMPDIR="$(mktemp -d -t tf-${name}-migrate-XXXXXX)"
-                  echo "$TMPDIR"
+                  # Ensure the TF workspace is available for the given infraType
+                  # shellcheck disable=SC2050
+                  STATUS="$([ "${cfg.infraType}" = "prem" ] && [[ "${name}" =~ ^core$|^clients$|^prem-sim$ ]] && echo "FAIL" || echo "pass")"
+                  echo "  Infra type workspace check:      = $STATUS"
+                  gate "$STATUS" "The cluster infraType of \"prem\" cannot use the \"${name}\" TF workspace."
 
                   # Ensure there is nothing strange with environment and cluster name mismatch that may cause unexpected issues
-                  NAME_STATUS="$([ "${cfg.name}" = "$BITTE_CLUSTER" ] && echo "pass" || echo "FAIL")"
-                  echo "  Cluster name check:            = $NAME_STATUS"
-                  gate "$NAME_STATUS" "The nix configured name of the cluster does not match the BITTE_CLUSTER env var."
+                  STATUS="$([ "${cfg.name}" = "$BITTE_CLUSTER" ] && echo "pass" || echo "FAIL")"
+                  echo "  Cluster name check:              = $STATUS"
+                  gate "$STATUS" "The nix configured name of the cluster does not match the BITTE_CLUSTER env var."
 
                   # Ensure the migration is being run from the top level of the git repo
-                  TOP_STATUS="$([ "$PWD" = "$TOP" ] && echo "pass" || echo "FAIL")"
-                  echo "  Current pwd check:             = $TOP_STATUS"
-                  gate "$TOP_STATUS" "The vbk migration to local state needs to be run from the top level dir of the git repo."
+                  STATUS="$([ "$PWD" = "$TOP" ] && echo "pass" || echo "FAIL")"
+                  echo "  Current pwd check:               = $STATUS"
+                  gate "$STATUS" "The vbk migration to local state needs to be run from the top level dir of the git repo."
+
+                  # Ensure the vbk status is not already local
+                  # shellcheck disable=SC2050
+                  STATUS="$([ "${cfg.vbkBackend}" != "local" ] && echo "pass" || echo "FAIL")"
+                  echo "  Terraform backend check:         = $STATUS"
+                  MSG=(
+                    "The nix vbkBackend option is already set to \"local\".\n"
+                    "If all TF workspaces are not yet migrated to local, then:\n"
+                    " * Set the config.vbkBackend option back to the existing remote backend\n"
+                    " * Run the following against each TF workspace that is not yet migrated to local state:\n"
+                    "   nix run .#clusters.$BITTE_CLUSTER.tf.<TF_WORKSPACE>.migrateLocal\n"
+                    " * Finally, set the cluster.vbkBackend option to \"local\""
+                  )
+                  # shellcheck disable=SC2116
+                  gate "$STATUS" "$(echo "''${MSG[@]}")"
 
                   # Ensure terraform config for workspace ${name} exists and has file size greater than zero bytes
-                  CFG_STATUS="$([ -s "config.tf.json" ] && echo "pass" || echo "FAIL")"
-                  echo "  Terraform config check:        = $CFG_STATUS"
-                  gate "$CFG_STATUS" "The terraform config.tf.json file for workspace ${name} does not exist or is zero bytes in size."
+                  STATUS="$([ -s "config.tf.json" ] && echo "pass" || echo "FAIL")"
+                  echo "  Terraform config check:          = $STATUS"
+                  gate "$STATUS" "The terraform config.tf.json file for workspace ${name} does not exist or is zero bytes in size."
 
-                  # Check for existing local ${name} terraform state
-                  # LOCAL_STATUS=
+                  # Ensure terraform config for workspace ${name} has expected remote backend state set properly
+                  STATUS="$([ "$(${pkgs.jq}/bin/jq -e -r .terraform.backend.http.address < config.tf.json)" = "${cfg.vbkBackend}/state/${cfg.name}/${name}" ] && echo "pass" || echo "FAIL")"
+                  echo "  Terraform remote address check:  = $STATUS"
+                  gate "$STATUS" "The TF generated remote address does not match the expected declarative address."
 
-                  # mkdir -p nix/metal/encrypted
+                  # TODO: Add for the prem rage case
+                  # Ensure that local terraform state for workspace ${name} does not already exist
+                  STATUS="$([ ! -f "${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc" ] && echo "pass" || echo "FAIL")"
+                  echo "  Terraform local state presence:  = $STATUS"
+                  gate "$STATUS" "Terraform local state for workspace \"${name}\" appears to already exist at: ${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc"
+                  echo
 
-                  terraform state pull > "terraform-${name}.tfstate"
-                  ${pkgs.jq}/bin/jq 'del(.terraform.backend)' < config.tf.json | ${pkgs.moreutils}/bin/sponge "config.tf.json"
+                  warn "STARTING MIGRATION FOR TF WORKSPACE ${name}"
+                  echo
+                  echo "Status:"
 
-                  echo "Terraform init:"
+                  # Ensure the target state encrypted directory path exists
+                  echo -n "  Creating target state path       "
+                  mkdir -p "${relEncryptedFolder}/tf"
+                  echo "...done"
+
+                  # Set up a tmp work dir
+                  echo -n "  Create a tmp work dir            "
+                  TMPDIR="$(mktemp -d -t tf-${name}-migrate-XXXXXX)"
+                  trap 'rm -rf -- "$TMPDIR"' EXIT
+                  echo "...done"
+
+                  # Pull remote state for ${name} to the tmp work dir
+                  echo -n "  Fetching remote state            "
+                  terraform state pull > "$TMPDIR/terraform-${name}.tfstate"
+                  echo "...done"
+
+                  # TODO: Add for the prem rage case
+                  # Encrypt the file
+                  echo -n "  Encrypting locally               "
+                  ${sopsEncrypt "binary" "binary" "\"$TMPDIR/terraform-${name}.tfstate\""} > "${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc"
+                  echo "...done"
                   echo
-                  rm -rf .terraform
-                  terraform init -reconfigure 1>&2
+
+                  # Git add encrypted state
+                  # In the case of hydrate-secrets, force add to avoid git exclusion in some ops/world repos based on the filename containing the word secret
+                  echo -n "  Adding encrypted state to git    "
+                  ${pkgs.gitMinimal}/bin/git add ${if name == "hydrate-secrets" then "-f" else ""} "${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc"
+                  echo "...done"
                   echo
+
+                  warn "FINISHED MIGRATION TO LOCAL FOR TF WORKSPACE ${name}"
                   echo
-                  echo "Terraform plan against local state:"
+                  echo "  * The local state file is found at:   ${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc"
+                  echo "  * Decrypt and review with:"
+                  echo "    ${sopsDecrypt "binary" "${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc"}"
                   echo
-                  terraform plan -state="terraform-${name}.tfstate" -out "${name}-local.plan"
-                  echo
-                  echo
+                  echo "NOTE: binary sops encryption is used on the TF state files both for more compact representation"
+                  echo "      and to avoid all the unencrypted keys from contributing to an information attack vector."
+
+                  # This is only required as a hack from the generated config to remove remote backend state for comparison against the state file
+                  # ${pkgs.jq}/bin/jq 'del(.terraform.backend)' < config.tf.json | ${pkgs.moreutils}/bin/sponge "config.tf.json"
+
+                  # echo "Terraform init:"
+                  # echo
+                  # rm -rf .terraform
+                  # terraform init -reconfigure 1>&2
+                  # echo
+                  # echo
+                  # echo "Terraform plan against local state:"
+                  # echo
+                  # terraform plan -state="terraform-${name}.tfstate" -out "${name}-local.plan"
+                  # echo
+                  # echo
                 '';
             };
           };

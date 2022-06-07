@@ -13,11 +13,13 @@ let
   vbkStub = "${vbkBackend}/state/${config.cluster.name}";
 
   tfConfig = { key, extraConfig ? { } }: {
-    terraform.backend.http = {
-      address = "${vbkStub}/${key}";
-      lock_address = "${vbkStub}/${key}";
-      unlock_address = "${vbkStub}/${key}";
-      skip_cert_verification = vbkBackendSkipCertVerification;
+    terraform.backend = lib.mkIf (vbkBackend != "local") {
+      http = {
+        address = "${vbkStub}/${key}";
+        lock_address = "${vbkStub}/${key}";
+        unlock_address = "${vbkStub}/${key}";
+        skip_cert_verification = vbkBackendSkipCertVerification;
+      };
     };
     terraform.required_providers = pkgs.terraform-provider-versions;
     provider.vault = { };
