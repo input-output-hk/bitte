@@ -10,13 +10,18 @@ let
   sopsDecrypt = inputType: path:
     # NB: we can't work on store paths that don't yet exist before they are generated
     assert lib.assertMsg (builtins.isString path) "sopsDecrypt: path must be a string ${toString path}";
-    "${pkgs.sops}/bin/sops --decrypt --input-type ${inputType} ${path}";
+    "sops --decrypt --input-type ${inputType} ${path}";
 
   sopsEncrypt = inputType: outputType: path:
     assert lib.assertMsg (builtins.isString path) "sopsDecrypt: path must be a string ${toString path}";
-    "${pkgs.sops}/bin/sops --encrypt --kms ${cfg.kms} --input-type ${inputType} --output-type ${outputType} ${path}";
+    "sops --encrypt --kms ${cfg.kms} --input-type ${inputType} --output-type ${outputType} ${path}";
 
-  relEncryptedFolder = lib.last (builtins.split "-" (toString config.secrets.encryptedRoot));
+  isPrem = cfg.infraType == "prem";
+
+  # encryptedRoot attrs must be declared at the config.* _proto level in the ops/world repos to be accessible here
+  relEncryptedFolder = let
+    extract = path: lib.last (builtins.split "/nix/store/.{32}-" (toString path));
+  in if isPrem then extract config.age.encryptedRoot else extract config.secrets.encryptedRoot;
 
   # without zfs
   coreAMIs = lib.pipe supportedRegions [
@@ -1152,10 +1157,9 @@ in {
         attrsOf (submodule ({ name, ... }@this: {
           options = let
             backend = "${cfg.vaultBackend}/v1";
-
-            # If no kms cluster key is present, use prem deploy-rs equivalent commands
-            coreNode = if cfg.infraType == "prem" then "${cfg.name}-core-1" else "core-1";
-            coreNodeCmd = if cfg.infraType == "prem" then "ssh" else "${pkgs.bitte}/bin/bitte ssh";
+            coreNode = if isPrem then "${cfg.name}-core-1" else "core-1";
+            coreNodeCmd = if isPrem then "ssh" else "${pkgs.bitte}/bin/bitte ssh";
+            encState = "${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc";
 
             exportPath = ''
               export PATH="${
@@ -1164,6 +1168,8 @@ in {
                   curl
                   gitMinimal
                   jq
+                  rage
+                  sops
                   terraform-with-plugins
                 ]
               }"
@@ -1182,15 +1188,18 @@ in {
             # Encrypt local state to the encrypted folder.
             # Use binary encryption instead of json for more compact representation
             # and to reduce information leakage via many unencrypted json keys.
-            # TODO: Add prem use case
             localStateEncrypt = ''
               # shellcheck disable=SC2050
               if [ "${cfg.vbkBackend}" = "local" ]; then
-                echo "Encrypting TF state changes to: ${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc"
-                ${sopsEncrypt "binary" "binary" "terraform.tfstate"} > "${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc"
+                echo "Encrypting TF state changes to: ${encState}"
+                if [ "${cfg.infraType}" = "prem" ]; then
+                  rage -i secrets-prem/age-bootstrap -a -e "terraform.tfstate" > "${encState}"
+                else
+                  ${sopsEncrypt "binary" "binary" "terraform.tfstate"} > "${encState}"
+                fi
 
                 echo "Git adding state changes"
-                git add ${if name == "hydrate-secrets" then "-f" else ""} "${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc"
+                git add ${if name == "hydrate-secrets" then "-f" else ""} "${encState}"
 
                 echo
                 warn "Please commit these TF state changes ASAP to avoid loss of state or state divergence!"
@@ -1245,15 +1254,19 @@ in {
               gate "$STATUS" "$(echo "''${MSG[@]}")"
 
               # shellcheck disable=SC2050
-              if [ "${name}" == "hydrate-cluster" ]; then
-                declare NOMAD_TOKEN
-                NOMAD_TOKEN="$(${sopsDecrypt "json" "${relEncryptedFolder}/nomad.bootstrap.enc.json"} | jq -r '.token')"
+              if [ "${name}" = "hydrate-cluster" ]; then
+                if [ "${cfg.infraType}" = "prem" ]; then
+                  NOMAD_TOKEN="$(rage -i secrets-prem/age-bootstrap -d "${relEncryptedFolder}/nomad/nomad.bootstrap.enc.json" | jq -r '.token')"
+                  VAULT_TOKEN="$(rage -i secrets-prem/age-bootstrap -d "${relEncryptedFolder}/vault/vault.enc.json" | jq -r '.root_token')"
+                  CONSUL_HTTP_TOKEN="$(rage -i secrets-prem/age-bootstrap -d "${relEncryptedFolder}/consul/token-master.age")"
+                else
+                  NOMAD_TOKEN="$(${sopsDecrypt "json" "${relEncryptedFolder}/nomad.bootstrap.enc.json"} | jq -r '.token')"
+                  VAULT_TOKEN="$(${sopsDecrypt "json" "${relEncryptedFolder}/vault.enc.json"} | jq -r '.root_token')"
+                  CONSUL_HTTP_TOKEN="$(${sopsDecrypt "json" "${relEncryptedFolder}/consul-core.json"} | jq -r '.acl.tokens.master')"
+                fi
+
                 export NOMAD_TOKEN
-                declare VAULT_TOKEN
-                VAULT_TOKEN="$(${sopsDecrypt "json" "${relEncryptedFolder}/vault.enc.json"} | jq -r '.root_token')"
                 export VAULT_TOKEN
-                declare CONSUL_HTTP_TOKEN
-                CONSUL_HTTP_TOKEN="$(${sopsDecrypt "json" "${relEncryptedFolder}/consul-core.json"} | jq -r '.acl.tokens.master')"
                 export CONSUL_HTTP_TOKEN
               fi
 
@@ -1349,7 +1362,11 @@ in {
                     echo "A diff example command for sops encrypted-commited state is:"
                     echo
                     echo "  icdiff $STATE \\"
-                    echo "  <(sops -d \"${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc\")"
+                    if [ "${cfg.infraType}" = "prem" ]; then
+                      echo "  <(rage -i secrets-prem/age-bootstrap -d \"${encState}\")"
+                    else
+                      echo "  <(sops -d \"${encState}\")"
+                    fi
                     echo
                     echo "Leftover plaintext TF state should not be committed and should be removed as"
                     echo "soon as possible since it may contain secrets."
@@ -1358,11 +1375,11 @@ in {
                 done
 
                 # Check if uncommitted changes to local state already exist
-                [ -z "$(git status --porcelain=2 "${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc")" ] || {
+                [ -z "$(git status --porcelain=2 "${encState}")" ] || {
                   echo
                   warn "WARNING: Uncommitted TF state changes already exist for workspace \"${name}\" at encrypted file:"
                   echo
-                  echo "  ${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc"
+                  echo "  ${encState}"
                   echo
                   echo "Any new changes to TF state will be automatically git added to changes that already exist."
                   read -p "Do you want to continue this operation? [y/n] " -n 1 -r
@@ -1377,7 +1394,12 @@ in {
                 #
                 # Ref: https://stackoverflow.com/questions/70636974/side-effects-of-removing-terraform-folder
                 rm -vf .terraform/terraform.tfstate
-                ${sopsDecrypt "binary" "${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc"} > terraform-${name}.tfstate
+                if [ "${cfg.infraType}" = "prem" ]; then
+                  rage -i secrets-prem/age-bootstrap -d "${encState}" > terraform-${name}.tfstate
+                else
+                  ${sopsDecrypt "binary" "${encState}"} > terraform-${name}.tfstate
+                fi
+
                 terraform init -reconfigure 1>&2
                 STATE_ARG="-state=terraform-${name}.tfstate"
               fi
@@ -1529,9 +1551,9 @@ in {
 
                   # TODO: Add for the prem rage case
                   # Ensure that local terraform state for workspace ${name} does not already exist
-                  STATUS="$([ ! -f "${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc" ] && echo "pass" || echo "FAIL")"
+                  STATUS="$([ ! -f "${encState}" ] && echo "pass" || echo "FAIL")"
                   echo "  Terraform local state presence:  = $STATUS"
-                  gate "$STATUS" "Terraform local state for workspace \"${name}\" appears to already exist at: ${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc"
+                  gate "$STATUS" "Terraform local state for workspace \"${name}\" appears to already exist at: ${encState}"
                   echo
 
                   warn "STARTING MIGRATION FOR TF WORKSPACE ${name}"
@@ -1557,25 +1579,30 @@ in {
                   # TODO: Add for the prem rage case
                   # Encrypt the file
                   echo -n "  Encrypting locally               "
-                  ${sopsEncrypt "binary" "binary" "\"$TMPDIR/terraform-${name}.tfstate\""} > "${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc"
+                  ${sopsEncrypt "binary" "binary" "\"$TMPDIR/terraform-${name}.tfstate\""} > "${encState}"
                   echo "...done"
                   echo
 
                   # Git add encrypted state
                   # In the case of hydrate-secrets, force add to avoid git exclusion in some ops/world repos based on the filename containing the word secret
                   echo -n "  Adding encrypted state to git    "
-                  git add ${if name == "hydrate-secrets" then "-f" else ""} "${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc"
+                  git add ${if name == "hydrate-secrets" then "-f" else ""} "${encState}"
                   echo "...done"
                   echo
 
                   warn "FINISHED MIGRATION TO LOCAL FOR TF WORKSPACE ${name}"
                   echo
-                  echo "  * The encrypted local state file is found at:   ${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc"
+                  echo "  * The encrypted local state file is found at:   ${encState}"
                   echo "  * Decrypt and review with:"
-                  echo "    sops -d \"${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc\""
+                  if [ "${cfg.infraType}" = "prem" ]; then
+                    echo "    rage -i secrets-prem/age-bootstrap -d "${encState}"
+                  else
+                    echo "    sops -d \"${encState}\""
+                    echo
+                    echo "NOTE: binary sops encryption is used on the TF state files both for more compact representation"
+                    echo "      and to avoid unencrypted keys from contributing to an information attack vector."
+                  fi
                   echo
-                  echo "NOTE: binary sops encryption is used on the TF state files both for more compact representation"
-                  echo "      and to avoid unencrypted keys from contributing to an information attack vector."
                 '';
             };
           };
