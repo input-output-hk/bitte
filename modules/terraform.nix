@@ -14,7 +14,7 @@ let
 
   sopsEncrypt = inputType: outputType: path:
     assert lib.assertMsg (builtins.isString path) "sopsDecrypt: path must be a string ${toString path}";
-    "sops --encrypt --kms ${cfg.kms} --input-type ${inputType} --output-type ${outputType} ${path}";
+    "sops --encrypt --kms ${toString cfg.kms} --input-type ${inputType} --output-type ${outputType} ${path}";
 
   isPrem = cfg.infraType == "prem";
 
@@ -1189,13 +1189,12 @@ in {
             # Use binary encryption instead of json for more compact representation
             # and to reduce information leakage via many unencrypted json keys.
             localStateEncrypt = ''
-              # shellcheck disable=SC2050
               if [ "${cfg.vbkBackend}" = "local" ]; then
                 echo "Encrypting TF state changes to: ${encState}"
                 if [ "${cfg.infraType}" = "prem" ]; then
-                  rage -i secrets-prem/age-bootstrap -a -e "terraform.tfstate" > "${encState}"
+                  rage -i secrets-prem/age-bootstrap -a -e "terraform-${name}.tfstate" > "${encState}"
                 else
-                  ${sopsEncrypt "binary" "binary" "terraform.tfstate"} > "${encState}"
+                  ${sopsEncrypt "binary" "binary" "terraform-${name}.tfstate"} > "${encState}"
                 fi
 
                 echo "Git adding state changes"
@@ -1209,7 +1208,6 @@ in {
             # Local plaintext state should be uncommitted and cleaned up routinely
             # as some workspaces contain secrets, ex: hydrate-app
             localStateCleanup = ''
-              # shellcheck disable=SC2050
               if [ "${cfg.vbkBackend}" = "local" ]; then
                 echo
                 echo "Removing plaintext TF state files in the repo top level directory"
@@ -1220,6 +1218,7 @@ in {
             '';
 
             prepare = ''
+              # shellcheck disable=SC2050
               set -euo pipefail
               ${exportPath}
 
@@ -1244,16 +1243,15 @@ in {
               # Ensure this TF operation is being run from the top level of the git repo
               STATUS="$([ "$PWD" = "$TOP" ] && echo "pass" || echo "FAIL")"
               MSG=(
-                "The TF attrs need to be run from the top level directory of the repo:"
-                " * Top level repo directory is:"
-                "   $TOP"
-                " * Current working directory is:"
+                "The TF attrs need to be run from the top level directory of the repo:\n"
+                " * Top level repo directory is:\n"
+                "   $TOP\n"
+                " * Current working directory is:\n"
                 "   $PWD"
               )
               # shellcheck disable=SC2116
               gate "$STATUS" "$(echo "''${MSG[@]}")"
 
-              # shellcheck disable=SC2050
               if [ "${name}" = "hydrate-cluster" ]; then
                 if [ "${cfg.infraType}" = "prem" ]; then
                   NOMAD_TOKEN="$(rage -i secrets-prem/age-bootstrap -d "${relEncryptedFolder}/nomad/nomad.bootstrap.enc.json" | jq -r '.token')"
@@ -1301,7 +1299,6 @@ in {
               # Generate and copy declarative TF state locally for TF to compare to
               ${copyTfCfg}
 
-              # shellcheck disable=SC2050
               if [ "${cfg.vbkBackend}" != "local" ]; then
                 if [ -z "''${GITHUB_TOKEN:-}" ]; then
                   echo
@@ -1345,6 +1342,22 @@ in {
                 STATE_ARG=""
               else
                 echo "Using local TF state for workspace \"${name}\"..."
+
+                # Ensure that local terraform state for workspace ${name} exists
+                STATUS="$([ -f "${encState}" ] && echo "pass" || echo "FAIL")"
+                MSG=(
+                  "The nix _proto level cluster.vbkBackend option is set to \"local\", however\n"
+                  " terraform local state for workspace \"${name}\" does not exist at:\n\n"
+                  "   ${encState}\n\n"
+                  "If all TF workspaces are not yet migrated to local, then:\n"
+                  " * Set the cluster.vbkBackend option back to the existing remote backend\n"
+                  " * Run the following against each TF workspace that is not yet migrated to local state:\n"
+                  "   nix run .#clusters.$BITTE_CLUSTER.tf.<TF_WORKSPACE>.migrateLocal\n"
+                  " * Finally, set the cluster.vbkBackend option to \"local\""
+                )
+                # shellcheck disable=SC2116
+                gate "$STATUS" "$(echo "''${MSG[@]}")"
+
 
                 # Ensure there is no unknown terraform state in the current directory
                 for STATE in terraform*.tfstate terraform*.tfstate.backup; do
@@ -1458,7 +1471,6 @@ in {
                 pkgs.writeBashBinChecked "${name}-apply" ''
                   ${prepare}
 
-                  # shellcheck disable=SC2050
                   [ "${cfg.vbkBackend}" = "local" ] && {
                     warn "Nix custom terraform command usage note for local state:"
                     echo
@@ -1482,7 +1494,6 @@ in {
               type = lib.mkOptionType { name = "${name}-migrate"; };
               apply = v:
                 pkgs.writeBashBinChecked "${name}-apply" ''
-                  # Copy declarative state for comparison against remote or local recorded state.
                   ${prepare}
 
                   warn "TERRAFORM VBK MIGRATION TO LOCAL STATE FOR ${name}:"
@@ -1496,8 +1507,8 @@ in {
                   echo "  vaultBackend                     = ${cfg.vaultBackend}"
                   echo "  vbkBackend                       = ${cfg.vbkBackend}"
                   echo "  vbkBackendSkipCertVerification   = ${lib.boolToString cfg.vbkBackendSkipCertVerification}"
+                  echo "  script STATE_ARG                 = ''${STATE_ARG:-remote}"
                   echo
-
                   echo "Important path variables:"
                   echo "  gitTopLevelDir                   = $TOP"
                   echo "  currentWorkingDir                = $PWD"
@@ -1509,7 +1520,6 @@ in {
                   echo "Status:"
 
                   # Ensure the TF workspace is available for the given infraType
-                  # shellcheck disable=SC2050
                   STATUS="$([ "${cfg.infraType}" = "prem" ] && [[ "${name}" =~ ^core$|^clients$|^prem-sim$ ]] && echo "FAIL" || echo "pass")"
                   echo "  Infra type workspace check:      = $STATUS"
                   gate "$STATUS" "The cluster infraType of \"prem\" cannot use the \"${name}\" TF workspace."
@@ -1525,13 +1535,12 @@ in {
                   gate "$STATUS" "The vbk migration to local state needs to be run from the top level dir of the git repo."
 
                   # Ensure the vbk status is not already local
-                  # shellcheck disable=SC2050
                   STATUS="$([ "${cfg.vbkBackend}" != "local" ] && echo "pass" || echo "FAIL")"
                   echo "  Terraform backend check:         = $STATUS"
                   MSG=(
-                    "The nix vbkBackend option is already set to \"local\".\n"
+                    "The nix _proto level cluster.vbkBackend option is already set to \"local\".\n"
                     "If all TF workspaces are not yet migrated to local, then:\n"
-                    " * Set the config.vbkBackend option back to the existing remote backend\n"
+                    " * Set the cluster.vbkBackend option back to the existing remote backend\n"
                     " * Run the following against each TF workspace that is not yet migrated to local state:\n"
                     "   nix run .#clusters.$BITTE_CLUSTER.tf.<TF_WORKSPACE>.migrateLocal\n"
                     " * Finally, set the cluster.vbkBackend option to \"local\""
@@ -1549,7 +1558,6 @@ in {
                   echo "  Terraform remote address check:  = $STATUS"
                   gate "$STATUS" "The TF generated remote address does not match the expected declarative address."
 
-                  # TODO: Add for the prem rage case
                   # Ensure that local terraform state for workspace ${name} does not already exist
                   STATUS="$([ ! -f "${encState}" ] && echo "pass" || echo "FAIL")"
                   echo "  Terraform local state presence:  = $STATUS"
@@ -1576,10 +1584,13 @@ in {
                   terraform state pull > "$TMPDIR/terraform-${name}.tfstate"
                   echo "...done"
 
-                  # TODO: Add for the prem rage case
                   # Encrypt the file
                   echo -n "  Encrypting locally               "
-                  ${sopsEncrypt "binary" "binary" "\"$TMPDIR/terraform-${name}.tfstate\""} > "${encState}"
+                  if [ "${cfg.infraType}" = "prem" ]; then
+                    rage -i secrets-prem/age-bootstrap -a -e "$TMPDIR/terraform-${name}.tfstate" > "${encState}"
+                  else
+                    ${sopsEncrypt "binary" "binary" "\"$TMPDIR/terraform-${name}.tfstate\""} > "${encState}"
+                  fi
                   echo "...done"
                   echo
 
@@ -1595,7 +1606,7 @@ in {
                   echo "  * The encrypted local state file is found at:   ${encState}"
                   echo "  * Decrypt and review with:"
                   if [ "${cfg.infraType}" = "prem" ]; then
-                    echo "    rage -i secrets-prem/age-bootstrap -d "${encState}"
+                    echo "    rage -i secrets-prem/age-bootstrap -d \"${encState}\""
                   else
                     echo "    sops -d \"${encState}\""
                     echo
