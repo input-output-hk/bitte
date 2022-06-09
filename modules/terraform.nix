@@ -1217,6 +1217,57 @@ in {
               fi
             '';
 
+            migStartStatus = ''
+              echo
+              echo "Important environment variables"
+              echo "  config.cluster.name              = ${cfg.name}"
+              echo "  BITTE_CLUSTER env parameter      = $BITTE_CLUSTER"
+              echo
+              echo "Important migration variables:"
+              echo "  infraType                        = ${cfg.infraType}"
+              echo "  vaultBackend                     = ${cfg.vaultBackend}"
+              echo "  vbkBackend                       = ${cfg.vbkBackend}"
+              echo "  vbkBackendSkipCertVerification   = ${lib.boolToString cfg.vbkBackendSkipCertVerification}"
+              echo "  script STATE_ARG                 = ''${STATE_ARG:-remote}"
+              echo
+              echo "Important path variables:"
+              echo "  gitTopLevelDir                   = $TOP"
+              echo "  currentWorkingDir                = $PWD"
+              echo "  relEncryptedFolder               = ${relEncryptedFolder}"
+              echo
+            '';
+
+            migCommonChecks = ''
+              warn "PRE-MIGRATION CHECKS:"
+              echo
+              echo "Status:"
+
+              # Ensure the TF workspace is available for the given infraType
+              STATUS="$([ "${cfg.infraType}" = "prem" ] && [[ "${name}" =~ ^core$|^clients$|^prem-sim$ ]] && echo "FAIL" || echo "pass")"
+              echo "  Infra type workspace check:      = $STATUS"
+              gate "$STATUS" "The cluster infraType of \"prem\" cannot use the \"${name}\" TF workspace."
+
+              # Ensure there is nothing strange with environment and cluster name mismatch that may cause unexpected issues
+              STATUS="$([ "${cfg.name}" = "$BITTE_CLUSTER" ] && echo "pass" || echo "FAIL")"
+              echo "  Cluster name check:              = $STATUS"
+              gate "$STATUS" "The nix configured name of the cluster does not match the BITTE_CLUSTER env var."
+
+              # Ensure the migration is being run from the top level of the git repo
+              STATUS="$([ "$PWD" = "$TOP" ] && echo "pass" || echo "FAIL")"
+              echo "  Current pwd check:               = $STATUS"
+              gate "$STATUS" "The vbk migration to local state needs to be run from the top level dir of the git repo."
+
+              # Ensure terraform config for workspace ${name} exists and has file size greater than zero bytes
+              STATUS="$([ -s "config.tf.json" ] && echo "pass" || echo "FAIL")"
+              echo "  Terraform config check:          = $STATUS"
+              gate "$STATUS" "The terraform config.tf.json file for workspace ${name} does not exist or is zero bytes in size."
+
+              # Ensure terraform config for workspace ${name} has expected remote backend state set properly
+              STATUS="$([ "$(jq -e -r .terraform.backend.http.address < config.tf.json)" = "${cfg.vbkBackend}/state/${cfg.name}/${name}" ] && echo "pass" || echo "FAIL")"
+              echo "  Terraform remote address check:  = $STATUS"
+              gate "$STATUS" "The TF generated remote address does not match the expected declarative address."
+            '';
+
             prepare = ''
               # shellcheck disable=SC2050
               set -euo pipefail
@@ -1291,6 +1342,7 @@ in {
                     echo -----------------------------------------------------
                     echo
                     read -p "Do you want to continue this operation? [y/n] " -n 1 -r
+                    echo
                     [[ ! "$REPLY" =~ ^[Yy]$ ]] && exit 0
                     ;;
                 esac
@@ -1396,6 +1448,7 @@ in {
                   echo
                   echo "Any new changes to TF state will be automatically git added to changes that already exist."
                   read -p "Do you want to continue this operation? [y/n] " -n 1 -r
+                  echo
                   [[ ! "$REPLY" =~ ^[Yy]$ ]] && exit 0
                 }
 
@@ -1466,9 +1519,9 @@ in {
             };
 
             terraform = lib.mkOption {
-              type = lib.mkOptionType { name = "${name}-apply"; };
+              type = lib.mkOptionType { name = "${name}-custom"; };
               apply = v:
-                pkgs.writeBashBinChecked "${name}-apply" ''
+                pkgs.writeBashBinChecked "${name}-custom" ''
                   ${prepare}
 
                   [ "${cfg.vbkBackend}" = "local" ] && {
@@ -1491,48 +1544,15 @@ in {
             };
 
             migrateLocal = lib.mkOption {
-              type = lib.mkOptionType { name = "${name}-migrate"; };
+              type = lib.mkOptionType { name = "${name}-migrateLocal"; };
               apply = v:
-                pkgs.writeBashBinChecked "${name}-apply" ''
+                pkgs.writeBashBinChecked "${name}-migrateLocal" ''
                   ${prepare}
 
-                  warn "TERRAFORM VBK MIGRATION TO LOCAL STATE FOR ${name}:"
-                  echo
-                  echo "Important environment variables"
-                  echo "  config.cluster.name              = ${cfg.name}"
-                  echo "  BITTE_CLUSTER env parameter      = $BITTE_CLUSTER"
-                  echo
-                  echo "Important migration variables:"
-                  echo "  infraType                        = ${cfg.infraType}"
-                  echo "  vaultBackend                     = ${cfg.vaultBackend}"
-                  echo "  vbkBackend                       = ${cfg.vbkBackend}"
-                  echo "  vbkBackendSkipCertVerification   = ${lib.boolToString cfg.vbkBackendSkipCertVerification}"
-                  echo "  script STATE_ARG                 = ''${STATE_ARG:-remote}"
-                  echo
-                  echo "Important path variables:"
-                  echo "  gitTopLevelDir                   = $TOP"
-                  echo "  currentWorkingDir                = $PWD"
-                  echo "  relEncryptedFolder               = ${relEncryptedFolder}"
-                  echo
+                  warn "TERRAFORM VBK MIGRATION TO *** LOCAL STATE *** FOR ${name}:"
 
-                  warn "PRE-MIGRATION CHECKS:"
-                  echo
-                  echo "Status:"
-
-                  # Ensure the TF workspace is available for the given infraType
-                  STATUS="$([ "${cfg.infraType}" = "prem" ] && [[ "${name}" =~ ^core$|^clients$|^prem-sim$ ]] && echo "FAIL" || echo "pass")"
-                  echo "  Infra type workspace check:      = $STATUS"
-                  gate "$STATUS" "The cluster infraType of \"prem\" cannot use the \"${name}\" TF workspace."
-
-                  # Ensure there is nothing strange with environment and cluster name mismatch that may cause unexpected issues
-                  STATUS="$([ "${cfg.name}" = "$BITTE_CLUSTER" ] && echo "pass" || echo "FAIL")"
-                  echo "  Cluster name check:              = $STATUS"
-                  gate "$STATUS" "The nix configured name of the cluster does not match the BITTE_CLUSTER env var."
-
-                  # Ensure the migration is being run from the top level of the git repo
-                  STATUS="$([ "$PWD" = "$TOP" ] && echo "pass" || echo "FAIL")"
-                  echo "  Current pwd check:               = $STATUS"
-                  gate "$STATUS" "The vbk migration to local state needs to be run from the top level dir of the git repo."
+                  ${migStartStatus}
+                  ${migCommonChecks}
 
                   # Ensure the vbk status is not already local
                   STATUS="$([ "${cfg.vbkBackend}" != "local" ] && echo "pass" || echo "FAIL")"
@@ -1543,20 +1563,10 @@ in {
                     " * Set the cluster.vbkBackend option back to the existing remote backend\n"
                     " * Run the following against each TF workspace that is not yet migrated to local state:\n"
                     "   nix run .#clusters.$BITTE_CLUSTER.tf.<TF_WORKSPACE>.migrateLocal\n"
-                    " * Finally, set the cluster.vbkBackend option to \"local\""
+                    " * Finally, set the cluster.vbkBackend option to \"local\"\n"
                   )
                   # shellcheck disable=SC2116
                   gate "$STATUS" "$(echo "''${MSG[@]}")"
-
-                  # Ensure terraform config for workspace ${name} exists and has file size greater than zero bytes
-                  STATUS="$([ -s "config.tf.json" ] && echo "pass" || echo "FAIL")"
-                  echo "  Terraform config check:          = $STATUS"
-                  gate "$STATUS" "The terraform config.tf.json file for workspace ${name} does not exist or is zero bytes in size."
-
-                  # Ensure terraform config for workspace ${name} has expected remote backend state set properly
-                  STATUS="$([ "$(jq -e -r .terraform.backend.http.address < config.tf.json)" = "${cfg.vbkBackend}/state/${cfg.name}/${name}" ] && echo "pass" || echo "FAIL")"
-                  echo "  Terraform remote address check:  = $STATUS"
-                  gate "$STATUS" "The TF generated remote address does not match the expected declarative address."
 
                   # Ensure that local terraform state for workspace ${name} does not already exist
                   STATUS="$([ ! -f "${encState}" ] && echo "pass" || echo "FAIL")"
@@ -1575,7 +1585,7 @@ in {
 
                   # Set up a tmp work dir
                   echo -n "  Create a tmp work dir            "
-                  TMPDIR="$(mktemp -d -t tf-${name}-migrate-XXXXXX)"
+                  TMPDIR="$(mktemp -d -t tf-${name}-migrate-local-XXXXXX)"
                   trap 'rm -rf -- "$TMPDIR"' EXIT
                   echo "...done"
 
@@ -1584,7 +1594,7 @@ in {
                   terraform state pull > "$TMPDIR/terraform-${name}.tfstate"
                   echo "...done"
 
-                  # Encrypt the file
+                  # Encrypt the plaintext TF state file
                   echo -n "  Encrypting locally               "
                   if [ "${cfg.infraType}" = "prem" ]; then
                     rage -i secrets-prem/age-bootstrap -a -e "$TMPDIR/terraform-${name}.tfstate" > "${encState}"
@@ -1603,7 +1613,9 @@ in {
 
                   warn "FINISHED MIGRATION TO LOCAL FOR TF WORKSPACE ${name}"
                   echo
-                  echo "  * The encrypted local state file is found at:   ${encState}"
+                  echo "  * The encrypted local state file is found at:"
+                  echo "    ${encState}"
+                  echo
                   echo "  * Decrypt and review with:"
                   if [ "${cfg.infraType}" = "prem" ]; then
                     echo "    rage -i secrets-prem/age-bootstrap -d \"${encState}\""
@@ -1613,6 +1625,110 @@ in {
                     echo "NOTE: binary sops encryption is used on the TF state files both for more compact representation"
                     echo "      and to avoid unencrypted keys from contributing to an information attack vector."
                   fi
+                  echo "  * Once the local state is confirmed working as expected, the corresponding remote state no longer in use may be deleted:"
+                  echo "    ${cfg.vbkBackend}/state/${cfg.name}/${name}"
+                  echo
+                '';
+            };
+
+            migrateRemote = lib.mkOption {
+              type = lib.mkOptionType { name = "${name}-migrateRemote"; };
+              apply = v:
+                pkgs.writeBashBinChecked "${name}-migrateRemote" ''
+                  ${prepare}
+
+                  warn "TERRAFORM VBK MIGRATION TO *** REMOTE STATE *** FOR ${name}:"
+
+                  ${migStartStatus}
+                  ${migCommonChecks}
+
+                  # Ensure the vbk status is already remote as the target vbkBackend remote parameter is required
+                  STATUS="$([ "${cfg.vbkBackend}" != "local" ] && echo "pass" || echo "FAIL")"
+                  echo "  Terraform backend check:         = $STATUS"
+                  MSG=(
+                    "The nix _proto level cluster.vbkBackend option is already set to \"local\".\n"
+                    "If all TF workspaces are not yet migrated to remote, then:\n"
+                    " * Set the cluster.vbkBackend option to the target migration remote backend, example:\n"
+                    "   https://vbk.\$FQDN\n"
+                    " * Run the following against each TF workspace that is not yet migrated to remote state:\n"
+                    "   nix run .#clusters.$BITTE_CLUSTER.tf.<TF_WORKSPACE>.migrateRemote\n"
+                    " * Remove the TF local state which is no longer in use at your convienence"
+                  )
+                  # shellcheck disable=SC2116
+                  gate "$STATUS" "$(echo "''${MSG[@]}")"
+
+                  # Ensure that local terraform state for workspace ${name} does already exist
+                  STATUS="$([ -f "${encState}" ] && echo "pass" || echo "FAIL")"
+                  echo "  Terraform local state presence:  = $STATUS"
+                  gate "$STATUS" "Terraform local state for workspace \"${name}\" appears to not already exist at: ${encState}"
+
+                  # Ensure that remote terraform state for workspace ${name} does not already exist
+                  STATUS="$(terraform state list &> /dev/null && echo "FAIL" || echo "pass")"
+                  echo "  Terraform remote state presence: = $STATUS"
+                  MSG=(
+                    "Terraform remote state for workspace \"${name}\" appears to already exist at backend vbk path: ${cfg.vbkBackend}/state/${cfg.name}/${name}\n"
+                    " * Pushing local TF state to remote will reset the lineage and serial number of the remote state by default\n"
+                    " * If this local state still needs to be pushed to this remote:\n"
+                    "   * Ensure remote state is not needed\n"
+                    "   * Back it up if desired\n"
+                    "   * Clear this particular vbk remote state path key\n"
+                    "   * Try again\n"
+                    " * This will ensure lineage conflicts, serial state conflicts, and otherwise unexpected state data loss are not encountered"
+                  )
+                  # shellcheck disable=SC2116
+                  gate "$STATUS" "$(echo "''${MSG[@]}")"
+                  echo
+
+                  warn "STARTING MIGRATION FOR TF WORKSPACE ${name}"
+                  echo
+                  echo "Status:"
+
+                  # Set up a tmp work dir
+                  echo -n "  Create a tmp work dir            "
+                  TMPDIR="$(mktemp -d -t tf-${name}-migrate-remote-XXXXXX)"
+                  trap 'rm -rf -- "$TMPDIR"' EXIT
+                  echo "...done"
+
+                  # Decrypt the pre-existing TF state file
+                  echo -n "  Decrypting locally               "
+                  if [ "${cfg.infraType}" = "prem" ]; then
+                    rage -i secrets-prem/age-bootstrap -d "${encState}" > "$TMPDIR/terraform-${name}.tfstate"
+                  else
+                    ${sopsDecrypt "binary" "${encState}"} > "$TMPDIR/terraform-${name}.tfstate"
+                  fi
+                  echo "...done"
+                  echo
+
+                  # Copy the config with generated remote
+                  echo -n "  Setting up config.tf.json        "
+                  cp config.tf.json "$TMPDIR/config.tf.json"
+                  echo "...done"
+                  echo
+
+                  # Initialize a new TF state dir with remote backend
+                  echo "  Initializing remote config       "
+                  echo
+                  pushd "$TMPDIR"
+                  terraform init -reconfigure
+                  echo "...done"
+                  echo
+
+                  # Push the local state to the remote
+                  echo "  Pushing local state to remote    "
+                  echo
+                  terraform state push terraform-${name}.tfstate
+                  echo "...done"
+                  echo
+                  popd
+                  echo
+
+                  warn "FINISHED MIGRATION TO REMOTE FOR TF WORKSPACE ${name}"
+                  echo
+                  echo "  * The new remote state file is found at vbk path:"
+                  echo "    ${cfg.vbkBackend}/state/${cfg.name}/${name}"
+                  echo
+                  echo "  * The associated encrypted local state no longer in use may now be deleted:"
+                  echo "    ${encState}"
                   echo
                 '';
             };
