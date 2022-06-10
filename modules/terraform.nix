@@ -1296,7 +1296,7 @@ in {
               MSG=(
                 "The TF attrs need to be run from the top level directory of the repo:\n"
                 " * Top level repo directory is:\n"
-                "   $TOP\n"
+                "   $TOP\n\n"
                 " * Current working directory is:\n"
                 "   $PWD"
               )
@@ -1562,7 +1562,7 @@ in {
                     "If all TF workspaces are not yet migrated to local, then:\n"
                     " * Set the cluster.vbkBackend option back to the existing remote backend\n"
                     " * Run the following against each TF workspace that is not yet migrated to local state:\n"
-                    "   nix run .#clusters.$BITTE_CLUSTER.tf.<TF_WORKSPACE>.migrateLocal\n"
+                    "   nix run .#clusters.$BITTE_CLUSTER.tf.<TF_WORKSPACE>.migrateLocal\n\n"
                     " * Finally, set the cluster.vbkBackend option to \"local\"\n"
                   )
                   # shellcheck disable=SC2116
@@ -1625,6 +1625,7 @@ in {
                     echo "NOTE: binary sops encryption is used on the TF state files both for more compact representation"
                     echo "      and to avoid unencrypted keys from contributing to an information attack vector."
                   fi
+                  echo
                   echo "  * Once the local state is confirmed working as expected, the corresponding remote state no longer in use may be deleted:"
                   echo "    ${cfg.vbkBackend}/state/${cfg.name}/${name}"
                   echo
@@ -1649,9 +1650,9 @@ in {
                     "The nix _proto level cluster.vbkBackend option is already set to \"local\".\n"
                     "If all TF workspaces are not yet migrated to remote, then:\n"
                     " * Set the cluster.vbkBackend option to the target migration remote backend, example:\n"
-                    "   https://vbk.\$FQDN\n"
+                    "   https://vbk.\$FQDN\n\n"
                     " * Run the following against each TF workspace that is not yet migrated to remote state:\n"
-                    "   nix run .#clusters.$BITTE_CLUSTER.tf.<TF_WORKSPACE>.migrateRemote\n"
+                    "   nix run .#clusters.$BITTE_CLUSTER.tf.<TF_WORKSPACE>.migrateRemote\n\n"
                     " * Remove the TF local state which is no longer in use at your convienence"
                   )
                   # shellcheck disable=SC2116
