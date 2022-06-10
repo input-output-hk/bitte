@@ -1190,18 +1190,23 @@ in {
             # and to reduce information leakage via many unencrypted json keys.
             localStateEncrypt = ''
               if [ "${cfg.vbkBackend}" = "local" ]; then
-                echo "Encrypting TF state changes to: ${encState}"
-                if [ "${cfg.infraType}" = "prem" ]; then
-                  rage -i secrets-prem/age-bootstrap -a -e "terraform-${name}.tfstate" > "${encState}"
-                else
-                  ${sopsEncrypt "binary" "binary" "terraform-${name}.tfstate"} > "${encState}"
+                # Only encrypt and git add state if the sha256sums are different indicating a state change
+                STATE_SHA256_POST="$(sha256sum terraform-${name}.tfstate)"
+
+                if [ "''${STATE_SHA256_PRE%% *}" != "''${STATE_SHA256_POST%% *}" ]; then
+                  echo "Encrypting TF state changes to: ${encState}"
+                  if [ "${cfg.infraType}" = "prem" ]; then
+                    rage -i secrets-prem/age-bootstrap -a -e "terraform-${name}.tfstate" > "${encState}"
+                  else
+                    ${sopsEncrypt "binary" "binary" "terraform-${name}.tfstate"} > "${encState}"
+                  fi
+
+                  echo "Git adding state changes"
+                  git add ${if name == "hydrate-secrets" then "-f" else ""} "${encState}"
+
+                  echo
+                  warn "Please commit these TF state changes ASAP to avoid loss of state or state divergence!"
                 fi
-
-                echo "Git adding state changes"
-                git add ${if name == "hydrate-secrets" then "-f" else ""} "${encState}"
-
-                echo
-                warn "Please commit these TF state changes ASAP to avoid loss of state or state divergence!"
               fi
             '';
 
@@ -1446,7 +1451,12 @@ in {
                   echo
                   echo "  ${encState}"
                   echo
-                  echo "Any new changes to TF state will be automatically git added to changes that already exist."
+                  echo "This script will not keep any TF made state plaintext backup files since changes to"
+                  echo "local state are intended to be encrypted and committed to VCS immediately after being made."
+                  echo "This practice serves as both a TF history and backup set."
+                  echo
+                  echo "However, uncommitted TF state changes are detected.  By running this command,"
+                  echo "any new changes to TF state will be automatically git added to these existing uncomitted changes."
                   read -p "Do you want to continue this operation? [y/n] " -n 1 -r
                   echo
                   [[ ! "$REPLY" =~ ^[Yy]$ ]] && exit 0
@@ -1468,6 +1478,8 @@ in {
 
                 terraform init -reconfigure 1>&2
                 STATE_ARG="-state=terraform-${name}.tfstate"
+                # shellcheck disable=2034
+                STATE_SHA256_PRE="$(sha256sum terraform-${name}.tfstate)"
               fi
             '';
           in {
@@ -1499,9 +1511,8 @@ in {
                 pkgs.writeBashBinChecked "${name}-plan" ''
                   ${prepare}
 
-                  terraform plan ''${STATE_ARG:-} -out ${name}.plan "$@" && {
-                    ${localStateCleanup}
-                  }
+                  terraform plan ''${STATE_ARG:-} -out ${name}.plan "$@"
+                  ${localStateCleanup}
                 '';
             };
 
@@ -1511,10 +1522,9 @@ in {
                 pkgs.writeBashBinChecked "${name}-apply" ''
                   ${prepare}
 
-                  terraform apply ''${STATE_ARG:-} ${name}.plan "$@" && {
-                    ${localStateEncrypt}
-                    ${localStateCleanup}
-                  }
+                  terraform apply ''${STATE_ARG:-} ${name}.plan "$@"
+                  ${localStateEncrypt}
+                  ${localStateCleanup}
                 '';
             };
 
@@ -1536,10 +1546,9 @@ in {
                     echo
                   }
 
-                  terraform "$@" && {
-                    ${localStateEncrypt}
-                    ${localStateCleanup}
-                  }
+                  terraform "$@"
+                  ${localStateEncrypt}
+                  ${localStateCleanup}
                 '';
             };
 
