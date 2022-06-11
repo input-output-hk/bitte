@@ -19,7 +19,7 @@ in
       inherit (inputs.agenix-cli.packages."${final.system}") agenix-cli;
 
       # We need at least Traefik 2.5.3 for Consul Connect
-      inherit (inputs.nixpkgs-unstable.legacyPackages."${final.system}") traefik complete-alias docker-distribution vector docker podman;
+      inherit (inputs.nixpkgs-unstable.legacyPackages."${final.system}") traefik complete-alias vector docker podman;
 
       ragenix = inputs.ragenix.defaultPackage."${final.system}";
 
@@ -62,6 +62,7 @@ in
       spire-server = spire.server;
       spiffe-helper = prev.callPackage ./pkgs/spiffe-helper.nix {};
       spire-systemd-attestor = prev.callPackage ./pkgs/spire-systemd-attestor.nix {};
+      docker-distribution = prev.callPackage ./pkgs/docker-distribution.nix {};
 
       # XXX remove (also flake input) after nixpkgs bump that has vulnix 1.10.1
       vulnix = import inputs.vulnix {
