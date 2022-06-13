@@ -105,7 +105,10 @@ in {
           # This indirectly consumes "module.instance_types_to_azs"
           availability_zone = subnet.availabilityZone;
 
-          lifecycle = [{ create_before_destroy = true; }];
+          lifecycle = [{
+            create_before_destroy = true;
+            ignore_changes = [ "availability_zone" ];
+          }];
 
           tags = {
             Cluster = config.cluster.name;
