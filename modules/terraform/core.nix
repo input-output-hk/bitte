@@ -419,6 +419,9 @@ in {
         (lib.mkIf config.cluster.generateSSHKey {
           key_name = var "aws_key_pair.core.key_name";
         })
+        {
+          lifecycle = [{ ignore_changes = [ "ami" ]; }];
+        }
       ]) config.cluster.coreNodes;
 
     # ---------------------------------------------------------------
