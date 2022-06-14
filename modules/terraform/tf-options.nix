@@ -9,6 +9,7 @@
 }: let
   cfg = _protoConfig.cluster;
   isPrem = cfg.infraType == "prem";
+  tfBranch = "tf";
 
   # encryptedRoot attrs must be declared at the config.* _proto level in the ops/world repos to be accessible here
   relEncryptedFolder = let
@@ -113,6 +114,7 @@
     echo "  vbkBackend                       = ${cfg.vbkBackend}"
     echo "  vbkBackendSkipCertVerification   = ${lib.boolToString cfg.vbkBackendSkipCertVerification}"
     echo "  script STATE_ARG                 = ''${STATE_ARG:-remote}"
+    echo "  tfBranch                         = ${tfBranch}"
     echo
     echo "Important path variables:"
     echo "  gitTopLevelDir                   = $TOP"
@@ -280,11 +282,33 @@
       echo "Using local TF state for workspace \"${name}\"..."
 
       # Ensure that local terraform state for workspace ${name} exists
-      STATUS="$([ -f "${encState}" ] && echo "pass" || echo "FAIL")"
+      # Pull all remote updates as we don't know yet which remote we might be using; it might not be origin
+      # The time for updating all remote branches seems about the same as updating a single remote branch
+      git remote update
+
+      # Get the current branch and remote via: $BRANCH/$ORIGIN
+      # shellcheck disable=SC1083
+      CMD="$(git rev-parse --abbrev-ref @{upstream})"
+
+      # Set git variables used only when vbkBackend is "local"
+      # shellcheck disable=SC2034
+      BRANCH="''${CMD##*/}"
+      # shellcheck disable=SC2034
+      ORIGIN="''${CMD%%/*}"
+
+      # Assume we DO want to use the tfBranch on the same remote as the current branch
+      # shellcheck disable=SC2034
+      ENC_STATE_REF="''${ORIGIN}/${tfBranch}:${encState}"
+
+      # Assume the tfBranch is only used for storing TF state and nothing else
+      STATUS="$([ "$BRANCH" != "${tfBranch}" ] && echo "pass" || echo "FAIL")"
+      gate "$STATUS" "Terraform local state is stored exclusively in branch ${tfBranch}.  Please switch to another working branch."
+
+      STATUS="$(git cat-file -e "$ENC_STATE_REF" &> /dev/null && echo "pass" || echo "FAIL")"
       MSG=(
         "The nix _proto level cluster.vbkBackend option is set to \"local\", however\n"
         " terraform local state for workspace \"${name}\" does not exist at:\n\n"
-        "   ${encState}\n\n"
+        "   $ENC_STATE_REF\n\n"
         "If all TF workspaces are not yet migrated to local, then:\n"
         " * Set the cluster.vbkBackend option back to the existing remote backend\n"
         " * Run the following against each TF workspace that is not yet migrated to local state:\n"
@@ -293,7 +317,6 @@
       )
       # shellcheck disable=SC2116
       gate "$STATUS" "$(echo "''${MSG[@]}")"
-
 
       # Ensure there is no unknown terraform state in the current directory
       for STATE in terraform*.tfstate terraform*.tfstate.backup; do
@@ -312,9 +335,9 @@
           echo
           echo "  icdiff $STATE \\"
           if [ "${cfg.infraType}" = "prem" ]; then
-            echo "  <(rage -i secrets-prem/age-bootstrap -d \"${encState}\")"
+            echo "  <(git cat-file blob \"$ENC_STATE_REF\" | rage -i secrets-prem/age-bootstrap -d)"
           else
-            echo "  <(sops -d \"${encState}\")"
+            echo "  <(git cat-file blob \"$ENC_STATE_REF\" | sops -d /dev/stdin)"
           fi
           echo
           echo "Leftover plaintext TF state should not be committed and should be removed as"
@@ -323,23 +346,28 @@
         }
       done
 
+      # UNEEDED?
+      #  * If we can't be in tfBranch, then there can't be uncommitted changes here
+      #  * If tfBranch doesn't have any code other than TF state, then even if it's checked out somewhere,
+      #    it's unlikely to have uncommitted changes
+      #
       # Check if uncommitted changes to local state already exist
-      [ -z "$(git status --porcelain=2 "${encState}")" ] || {
-        echo
-        warn "WARNING: Uncommitted TF state changes already exist for workspace \"${name}\" at encrypted file:"
-        echo
-        echo "  ${encState}"
-        echo
-        echo "This script will not keep any TF made state plaintext backup files since changes to"
-        echo "local state are intended to be encrypted and committed to VCS immediately after being made."
-        echo "This practice serves as both a TF history and backup set."
-        echo
-        echo "However, uncommitted TF state changes are detected.  By running this command,"
-        echo "any new changes to TF state will be automatically git added to these existing uncomitted changes."
-        read -p "Do you want to continue this operation? [y/n] " -n 1 -r
-        echo
-        [[ ! "$REPLY" =~ ^[Yy]$ ]] && exit 0
-      }
+      # [ -z "$(git status --porcelain=2 "${encState}")" ] || {
+      #   echo
+      #   warn "WARNING: Uncommitted TF state changes already exist for workspace \"${name}\" at encrypted file:"
+      #   echo
+      #   echo "  ${encState}"
+      #   echo
+      #   echo "This script will not keep any TF made state plaintext backup files since changes to"
+      #   echo "local state are intended to be encrypted and committed to VCS immediately after being made."
+      #   echo "This practice serves as both a TF history and backup set."
+      #   echo
+      #   echo "However, uncommitted TF state changes are detected.  By running this command,"
+      #   echo "any new changes to TF state will be automatically git added to these existing uncomitted changes."
+      #   read -p "Do you want to continue this operation? [y/n] " -n 1 -r
+      #   echo
+      #   [[ ! "$REPLY" =~ ^[Yy]$ ]] && exit 0
+      # }
 
       # Removing existing .terraform/terraform.tfstate avoids a backend reconfigure failure
       # or a remote state migration pull which has already been done via the migrateLocal attr.
@@ -350,14 +378,16 @@
       # Ref: https://stackoverflow.com/questions/70636974/side-effects-of-removing-terraform-folder
       rm -vf .terraform/terraform.tfstate
       if [ "${cfg.infraType}" = "prem" ]; then
-        rage -i secrets-prem/age-bootstrap -d "${encState}" > terraform-${name}.tfstate
+        git cat-file blob "$ENC_STATE_REF" \
+        | rage -i secrets-prem/age-bootstrap -d > terraform-${name}.tfstate
       else
-        ${sopsDecrypt "binary" "${encState}"} > terraform-${name}.tfstate
+        git cat-file blob "$ENC_STATE_REF" \
+        | ${sopsDecrypt "binary" "/dev/stdin"} > terraform-${name}.tfstate
       fi
 
       terraform init -reconfigure 1>&2
       STATE_ARG="-state=terraform-${name}.tfstate"
-      # shellcheck disable=2034
+      # shellcheck disable=SC2034
       STATE_SHA256_PRE="$(sha256sum terraform-${name}.tfstate)"
     fi
   '';
@@ -457,6 +487,7 @@ in {
           # shellcheck disable=SC2116
           gate "$STATUS" "$(echo "''${MSG[@]}")"
 
+          # UPDATE
           # Ensure that local terraform state for workspace ${name} does not already exist
           STATUS="$([ ! -f "${encState}" ] && echo "pass" || echo "FAIL")"
           echo "  Terraform local state presence:  = $STATUS"
@@ -467,6 +498,7 @@ in {
           echo
           echo "Status:"
 
+          # UPDATE
           # Ensure the target state encrypted directory path exists
           echo -n "  Creating target state path       "
           mkdir -p "${relEncryptedFolder}/tf"
@@ -500,6 +532,7 @@ in {
           echo "...done"
           echo
 
+          # UPDATE
           warn "FINISHED MIGRATION TO LOCAL FOR TF WORKSPACE ${name}"
           echo
           echo "  * The encrypted local state file is found at:"
