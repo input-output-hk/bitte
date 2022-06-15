@@ -211,18 +211,59 @@
       STATE_SHA256_POST="$(sha256sum "terraform-$TF_NAME.tfstate")"
 
       if [ "''${STATE_SHA256_PRE%% *}" != "''${STATE_SHA256_POST%% *}" ]; then
-        echo "Encrypting TF state changes to: $ENC_STATE_PATH"
-        if [ "$INFRA_TYPE" = "prem" ]; then
-          rage -i secrets-prem/age-bootstrap -a -e "terraform-$TF_NAME.tfstate" > "$ENC_STATE_PATH"
-        else
-          ${sopsEncrypt "binary" "binary" "terraform-$TF_NAME.tfstate"} > "$ENC_STATE_PATH"
+        echo "State hash change detected..."
+        echo "Extracting state change details..."
+        STATE_SERIAL="$(jq -r '.serial' < "terraform-$TF_NAME.tfstate")"
+        STATE_DETAIL="$(jq -r '. | "* serial: \(.serial)\n* lineage: \(.lineage)\n* version: \(.version)\n* terraform_version: \(.terraform_version)"' < "terraform-$TF_NAME.tfstate")"
+        MSG=(
+          "$TF_NAME: tf state updated to serial $STATE_SERIAL\n\n\n"
+          "State parameters in this commit:\n"
+          "$STATE_DETAIL"
+        )
+
+        # Set up a tmp git worktree on the TF_BRANCH
+        echo -n -e "  Create a tmp git worktree        ...\n\n"
+        WORKTREE="$(mktemp -u -d -t tf-$TF_NAME-$BITTE_NAME-XXXXXX)"
+        if [ "$TF_LOC_BRANCH_EXISTS" = "TRUE" ]; then
+          git worktree add --checkout "$WORKTREE" "$REMOTE/$TF_BRANCH"
+          git -C "$WORKTREE" switch "$TF_BRANCH"
+          git -C "$WORKTREE" merge --ff
+
+        elif [ "$TF_LOC_BRANCH_EXISTS" = "FALSE" ]; then
+          git worktree add -b "$TF_BRANCH" "$WORKTREE" "$REMOTE/$TF_BRANCH"
+
         fi
+        echo -n -e "                                   ...done\n\n"
 
-        echo "Git adding state changes"
-        git add ${if name == "hydrate-secrets" then "-f" else ""} "$ENC_STATE_PATH"
+        # Encrypt the plaintext TF state file
+        # echo -n -e "  Encrypting locally               ...\n"
+        echo "Encrypting TF state changes to: $WORKTREE/$ENC_STATE_PATH"
+        if [ "$INFRA_TYPE" = "prem" ]; then
+          rage -i secrets-prem/age-bootstrap -a -e "terraform-$TF_NAME.tfstate" > "$WORKTREE/$ENC_STATE_PATH"
+        else
+          ${sopsEncrypt "binary" "binary" "\"terraform-$TF_NAME.tfstate\""} > "$WORKTREE/$ENC_STATE_PATH"
+        fi
+        echo -n -e "                                   ...done\n\n"
 
+        # Git commit encrypted state
+        # In the case of hydrate-secrets, force add to avoid git exclusion in some ops/world repos based on the filename containing the word secret
+        # echo "Git adding state changes"
+        echo -n -e "  Committing encrypted state       ...\n"
         echo
-        warn "Please commit these TF state changes ASAP to avoid loss of state or state divergence!"
+        git -C "$WORKTREE" add ${if name == "hydrate-secrets" then "-f" else ""} "$WORKTREE/$ENC_STATE_PATH"
+        git -C "$WORKTREE" commit --no-verify -m "$(echo -e "$(printf '%s' "''${MSG[@]}")")"
+        git -C "$WORKTREE" push -u "$REMOTE" "$TF_BRANCH"
+        echo -n -e "                                   ...done\n\n"
+
+        # Git cleanup plaintext TF state and worktree
+        echo -n -e "  Cleaning up git state            ...\n\n"
+        rm -vf "$WORKTREE/terraform-$TF_NAME.tfstate"
+        git worktree remove "$WORKTREE"
+        echo -n -e "                                   ...done\n\n"
+
+        # warn "Please commit these TF state changes ASAP to avoid loss of state or state divergence!"
+      else
+        echo "State hash change not detected..."
       fi
     fi
   '';
@@ -246,24 +287,27 @@
     echo "  BITTE_CLUSTER env parameter      = $BITTE_CLUSTER"
     echo
     echo "Important migration variables:"
-    echo "  infraType                        = $INFRA_TYPE"
-    echo "  vaultBackend                     = $VAULT_BACKEND"
-    echo "  vbkBackend                       = $VBK_BACKEND"
-    echo "  vbkBackendSkipCertVerification   = ${lib.boolToString cfg.vbkBackendSkipCertVerification}"
-    echo "  script STATE_ARG                 = ''${STATE_ARG:-remote}"
+    echo "  INFRA_TYPE                       = $INFRA_TYPE"
+    echo "  VAULT_BACKEND                    = $VAULT_BACKEND"
+    echo "  VBK_BACKEND                      = $VBK_BACKEND"
+    echo "  VBK_BACKEND_LOG_SIG              = $VBK_BACKEND_LOG_SIG"
+    echo "  STATE_ARG                        = ''${STATE_ARG:-remote}"
     echo
     echo "Important path variables:"
-    echo "  gitTopLevelDir                   = $TOP"
-    echo "  currentWorkingDir                = $PWD"
-    echo "  relEncryptedFolder               = $REL_ENCRYPTED_FOLDER"
+    echo "  TOP (gitTopLevelDir)             = $TOP"
+    echo "  PWD (currentWorkingDir)          = $PWD"
+    echo "  REL_ENCRYPTED_FOLDER             = $REL_ENCRYPTED_FOLDER"
     echo
     echo "Important git variables:"
     echo "  REMOTE                           = $REMOTE"
     echo "  BRANCH                           = $BRANCH"
+    echo "  ENC_STATE_EXISTS                 = $ENC_STATE_EXISTS"
+    echo "  ENC_STATE_DIR                    = $ENC_STATE_DIR"
+    echo "  ENC_STATE_PATH                   = $ENC_STATE_PATH"
     echo "  TF_BRANCH                        = $TF_BRANCH"
+    echo "  TF_NAME                          = $TF_NAME"
     echo "  TF_REM_BRANCH_EXISTS             = $TF_REM_BRANCH_EXISTS"
     echo "  TF_LOC_BRANCH_EXISTS             = $TF_LOC_BRANCH_EXISTS"
-    echo "  ENC_STATE_EXISTS                 = $ENC_STATE_EXISTS"
     echo
   '';
 
@@ -306,14 +350,14 @@
     # Export to satisfy shell check on the non-local codepath for var usage.
     export BITTE_NAME="${cfg.name}"
     export ENC_STATE_DIR="${encStateDir}"
-    export ENC_STATE_PATH="${encStatePath}"
-    export INFRA_TYPE="${cfg.infraType}"
-    export REL_ENCRYPTED_FOLDER="${relEncryptedFolder}"
-    export TF_BRANCH="${tfBranch}"
-    export TF_NAME="${name}"
-    export VBK_BACKEND="${cfg.vbkBackend}"
-    export VBK_BACKEND_LOG_SIG="${vbkBackendLogSig}"
-    export VAULT_BACKEND="${cfg.vaultBackend}"
+    ENC_STATE_PATH="${encStatePath}"
+    INFRA_TYPE="${cfg.infraType}"
+    REL_ENCRYPTED_FOLDER="${relEncryptedFolder}"
+    TF_BRANCH="${tfBranch}"
+    TF_NAME="${name}"
+    VBK_BACKEND="${cfg.vbkBackend}"
+    VBK_BACKEND_LOG_SIG="${vbkBackendLogSig}"
+    VAULT_BACKEND="${cfg.vaultBackend}"
 
     warn () {
       # Star header len matching the input str len
@@ -485,29 +529,6 @@
         }
       done
 
-      # UNEEDED?
-      #  * If we can't be in TF_BRANCH, then there can't be uncommitted changes here
-      #  * If TF_BRANCH doesn't have any code other than TF state, then even if it's checked out somewhere,
-      #    it's unlikely to have uncommitted changes
-      #
-      # Check if uncommitted changes to local state already exist
-      # [ -z "$(git status --porcelain=2 "$ENC_STATE_PATH")" ] || {
-      #   echo
-      #   warn "WARNING: Uncommitted TF state changes already exist for workspace \"$TF_NAME\" at encrypted file:"
-      #   echo
-      #   echo "  $ENC_STATE_PATH"
-      #   echo
-      #   echo "This script will not keep any TF made state plaintext backup files since changes to"
-      #   echo "local state are intended to be encrypted and committed to VCS immediately after being made."
-      #   echo "This practice serves as both a TF history and backup set."
-      #   echo
-      #   echo "However, uncommitted TF state changes are detected.  By running this command,"
-      #   echo "any new changes to TF state will be automatically git added to these existing uncomitted changes."
-      #   read -p "Do you want to continue this operation? [y/n] " -n 1 -r
-      #   echo
-      #   [[ ! "$REPLY" =~ ^[Yy]$ ]] && exit 0
-      # }
-
       # Removing existing .terraform/terraform.tfstate avoids a backend reconfigure failure
       # or a remote state migration pull which has already been done via the migrateLocal attr.
       #
@@ -651,20 +672,37 @@ in {
           if [ "$TF_REM_BRANCH_EXISTS" = "FALSE" ]; then
             git worktree add "$WORKTREE" HEAD
             git -C "$WORKTREE" switch --orphan "$TF_BRANCH"
-            echo 'terraform*.tfstate' > "$WORKTREE/.gitignore"
-            echo 'terraform*.tfstate.backup' >> "$WORKTREE/.gitignore"
+
+            {
+              echo 'terraform*.tfstate'
+              echo 'terraform*.tfstate.backup'
+            } > "$WORKTREE/.gitignore"
             git -C "$WORKTREE" add "$WORKTREE/.gitignore"
+
+            {
+              echo 'This branch is used for repo global encrypted terraform state'
+              echo '* Do NOT commit plaintext terraform state to this branch'
+              echo '* Do NOT commit unrelated files to this branch'
+              echo '* Do NOT delete this branch'
+              echo '* Branch protection rules should be applied to this branch'
+            } > "$WORKTREE/README.md"
+            git -C "$WORKTREE" add "$WORKTREE/README.md"
+
             mkdir -p "$WORKTREE/$ENC_STATE_DIR"
             touch "$WORKTREE/$ENC_STATE_DIR/.gitkeep"
             git -C "$WORKTREE" add "$WORKTREE/$ENC_STATE_DIR/.gitkeep"
+
             git -C "$WORKTREE" commit --no-verify -m "$VBK_BACKEND_LOG_SIG"
             git -C "$WORKTREE" push -u "$REMOTE" "$TF_BRANCH"
+
           elif [ "$TF_LOC_BRANCH_EXISTS" = "TRUE" ]; then
             git worktree add --checkout "$WORKTREE" "$REMOTE/$TF_BRANCH"
             git -C "$WORKTREE" switch "$TF_BRANCH"
             git -C "$WORKTREE" merge --ff
+
           elif [ "$TF_LOC_BRANCH_EXISTS" = "FALSE" ]; then
             git worktree add -b "$TF_BRANCH" "$WORKTREE" "$REMOTE/$TF_BRANCH"
+
           fi
           echo -n -e "                                   ...done\n\n"
 
@@ -672,6 +710,16 @@ in {
           echo -n -e "  Fetching remote state            "
           terraform state pull > "$WORKTREE/terraform-$TF_NAME.tfstate"
           echo -n -e "...done\n\n"
+
+          echo "Extracting state change details..."
+          STATE_SERIAL="$(jq -r '.serial' < "$WORKTREE/terraform-$TF_NAME.tfstate")"
+          STATE_DETAIL="$(jq -r '. | "* serial: \(.serial)\n* lineage: \(.lineage)\n* version: \(.version)\n* terraform_version: \(.terraform_version)"' < "$WORKTREE/terraform-$TF_NAME.tfstate")"
+          MSG=(
+            "$TF_NAME: tf state migrated to local at serial $STATE_SERIAL\n\n\n"
+            "Migrated from remote backend: $VBK_BACKEND\n\n"
+            "State parameters in this commit:\n"
+            "$STATE_DETAIL"
+          )
 
           # Encrypt the plaintext TF state file
           echo -n -e "  Encrypting locally               ...\n"
@@ -687,7 +735,7 @@ in {
           echo -n -e "  Committing encrypted state       ...\n"
           echo
           git -C "$WORKTREE" add ${if name == "hydrate-secrets" then "-f" else ""} "$WORKTREE/$ENC_STATE_PATH"
-          git -C "$WORKTREE" commit --no-verify -m "migrate: tf $TF_NAME from $VBK_BACKEND"
+          git -C "$WORKTREE" commit --no-verify -m "$(echo -e "$(printf '%s' "''${MSG[@]}")")"
           git -C "$WORKTREE" push -u "$REMOTE" "$TF_BRANCH"
           echo -n -e "                                   ...done\n\n"
 
