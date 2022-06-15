@@ -3,8 +3,6 @@ inputs: let
   inherit (nixpkgs) lib;
 in
   final: prev: {
-    inherit (prev) terraform_0_13 terraform_0_14;
-
     terraform-provider-names = ["acme" "aws" "consul" "local" "nomad" "null" "sops" "tls" "vault" "rabbitmq" "postgresql" "bitwarden"];
 
     terraform-provider-versions = lib.listToAttrs (map (name: let
