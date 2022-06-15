@@ -9,7 +9,26 @@
 }: let
   cfg = _protoConfig.cluster;
   isPrem = cfg.infraType == "prem";
+
+  ### Terraform cfg.vbkBackend = "local" parameters:
+  #
+  # Repo global terraform state branch to use:
   tfBranch = "tf";
+  #
+  # Encrypted state dir path and file path to use in the repo global terraform state branch.
+  # We'll opt to use a `tf` sub-directory so there is clearer separation between
+  # the actual terraform state encrypted files which should be committed versus
+  # top level branch files which may exist temporarily during terraform operations
+  # and should not be committed, such as debug logs, temp plaintext terraform state
+  # and other files.  Ideally, these top level dir temp files will be cleaned up
+  # by script on each terraform operation, but may remain if a script command breaks.
+  encStateDir = "tf/";
+  encStatePath = "tf/terraform-${name}.tfstate.enc";
+  #
+  # A fixed initial commit log msg which will be used to identify terraform branch ownership
+  vbkBackendLogSig = "init: Repo global terraform state branch";
+  #
+  ###
 
   # encryptedRoot attrs must be declared at the config.* _proto level in the ops/world repos to be accessible here
   relEncryptedFolder = let
@@ -31,8 +50,6 @@
     assert lib.assertMsg (builtins.isString path) "sopsDecrypt: path must be a string ${toString path}";
     "{ sops --encrypt --kms ${toString cfg.kms} --input-type ${inputType} --output-type ${outputType} ${path} || ${credentialHint}; }";
 
-  backend = "${cfg.vaultBackend}/v1";
-
   coreNode =
     if isPrem
     then "${cfg.name}-core-1"
@@ -42,10 +59,6 @@
     if isPrem
     then "ssh"
     else "${pkgs.bitte}/bin/bitte ssh";
-
-  vbkBackendLogSig = "init: Repo global terraform state branch";
-
-  encState = "${relEncryptedFolder}/tf/terraform-${name}.tfstate.enc";
 
   exportPath = ''
     export PATH="${
@@ -76,115 +89,106 @@
 
   # Local git startup checks
   localGitStartup = ''
-    # Ensure that local terraform state for workspace ${name} exists
+    # Ensure that local terraform state for workspace $TF_NAME exists
     # Pull all remote updates as we don't know yet which remote we might be using; it might not be origin
     # The time for updating all remote branches seems about the same as updating a single remote branch
     git remote update
 
     # Get the current branch and remote via: $BRANCH/$REMOTE
-    # shellcheck disable=SC1083
-    CMD="$(git rev-parse --abbrev-ref @{upstream})"
+    CMD="$(git rev-parse --abbrev-ref "@{upstream}")"
 
     # Set git variables used only when vbkBackend is "local"
-    # shellcheck disable=SC2034
     BRANCH="''${CMD##*/}"
-    # shellcheck disable=SC2034
     REMOTE="''${CMD%%/*}"
 
-    # Assume we DO want to use the tfBranch on the same remote as the current branch
-    # shellcheck disable=SC2034
-    ENC_STATE_REF="''${REMOTE}/${tfBranch}:${encState}"
+    # Assume we DO want to use the TF_BRANCH on the same remote as the current branch
+    ENC_STATE_REF="$REMOTE/$TF_BRANCH:$ENC_STATE_PATH"
 
-    # Check if the tfBranch exists using the updated remote information obtained in the command above
-    # shellcheck disable=SC2034
-    TF_REM_BRANCH_EXISTS="$(git show-branch "remotes/''${REMOTE}/${tfBranch}" &> /dev/null && echo "TRUE" || echo "FALSE" )"
+    # Check if the TF_BRANCH exists using the updated remote information obtained in the command above
+    TF_REM_BRANCH_EXISTS="$(git show-branch "remotes/$REMOTE/$TF_BRANCH" &> /dev/null && echo "TRUE" || echo "FALSE" )"
 
-    # Check if the tfBranch exists locally already, as this will modify the worktree commands
-    # shellcheck disable=SC2034
-    TF_LOC_BRANCH_EXISTS="$(git show-ref -q --verify "refs/heads/${tfBranch}" && echo "TRUE" || echo "FALSE" )"
+    # Check if the TF_BRANCH exists locally already, as this will modify the worktree commands
+    TF_LOC_BRANCH_EXISTS="$(git show-ref -q --verify "refs/heads/$TF_BRANCH" && echo "TRUE" || echo "FALSE" )"
 
     # Check if the git encrypted state exists
-    # shellcheck disable=SC2034
     ENC_STATE_EXISTS="$(git cat-file -e "$ENC_STATE_REF" &> /dev/null && echo "TRUE" || echo "FALSE")"
   '';
 
   localGitCommonChecks = ''
-    # Check the current branch is not tfBranch.
-    # Assume the tfBranch is only used for storing TF state and nothing else.
-    STATUS="$([ "$BRANCH" != "${tfBranch}" ] && echo "pass" || echo "FAIL")"
-    gate "$STATUS" "Terraform local state is stored exclusively in branch ${tfBranch}.  Please switch to another working branch."
+    # Check the current branch is not TF_BRANCH.
+    # Assume the TF_BRANCH is only used for storing TF state and nothing else.
+    STATUS="$([ "$BRANCH" != "$TF_BRANCH" ] && echo "pass" || echo "FAIL")"
+    gate "$STATUS" "Terraform local state is stored exclusively in branch $TF_BRANCH.  Please switch to another working branch."
 
-    # Check that a local tfBranch, if it exists, is tracking the expected remote
+    # Check that a local TF_BRANCH, if it exists, is tracking the expected remote
     if [ "$TF_LOC_BRANCH_EXISTS" = "TRUE" ]; then
-      STATUS="$(git branch -avv | grep -q -E "[ +]{1} ${tfBranch}[ ]+.*[$REMOTE/${tfBranch}]" && echo "pass" || echo "FAIL")"
+      STATUS="$(git branch -avv | grep -q -E "[ +]{1} ''${TF_BRANCH}[ ]+.*[$REMOTE/$TF_BRANCH]" && echo "pass" || echo "FAIL")"
     else
       STATUS="pass"
     fi
     MSG=(
-      "Terraform local state uses a checkout of branch \"${tfBranch}\", but a branch by this name already exists and is tracking an unexpected remote:\n\n"
-      " $(git branch -avv | grep -E "[ +]{1} ${tfBranch}[ ]+.*" || true)"
+      "Terraform local state uses a checkout of branch \"$TF_BRANCH\", but a branch by this name already exists and is tracking an unexpected remote:\n\n"
+      "  $(git branch -avv | grep -E "[ +]{1} ''${TF_BRANCH}[ ]+.*" || true)"
     )
-    # shellcheck disable=SC2116
-    gate "$STATUS" "$(echo "''${MSG[@]}")"
+    gate "$STATUS" "$(printf '%s' "''${MSG[@]}")"
 
-    # Check that the tfBranch is not already checked out.
+    # Check that the TF_BRANCH is not already checked out.
     #
     # For performance, worktrees are utilized using already remote updated local repos.
-    # This requires we don't already have the tfBranch checkout out somewhere.
-    # Enforcing that no tfBranch is checked out elsewhere prior to TF state operations
+    # This requires we don't already have the TF_BRANCH checkout out somewhere.
+    # Enforcing that no TF_BRANCH is checked out elsewhere prior to TF state operations
     # is probably wise anyway to avoid local state scatter confusion.
     #
-    # Since we already know from the check above that we are not currently in the tfBranch,
+    # Since we already know from the check above that we are not currently in the TF_BRANCH,
     # the only other source of checkout would be a worktree.
-    STATUS="$(git branch -avv | grep -q -E "\+ ${tfBranch}[ ]+.*[$REMOTE/${tfBranch}]" && echo "FAIL" || echo "pass")"
+    STATUS="$(git branch -avv | grep -q -E "\+ ''${TF_BRANCH}[ ]+.*[$REMOTE/$TF_BRANCH]" && echo "FAIL" || echo "pass")"
     MSG=(
-      "Terraform local state uses exclusive checkout of branch \"${tfBranch}\", but this is already checked out in a worktree at:\n\n"
-      " $(git branch -avv | grep -E "\+ ${tfBranch}[ ]+.*[$REMOTE/${tfBranch}]" || true)"
+      "Terraform local state uses exclusive checkout of branch \"$TF_BRANCH\", but this is already checked out in a worktree at:\n\n"
+      "  $(git branch -avv | grep -E "\+ ''${TF_BRANCH}[ ]+.*[$REMOTE/$TF_BRANCH]" || true)"
     )
-    # shellcheck disable=SC2116
-    gate "$STATUS" "$(echo "''${MSG[@]}")"
+    gate "$STATUS" "$(printf '%s' "''${MSG[@]}")"
 
-    # Check that the remote tfBranch, if it exists, contains the expected TF state signature in init tfBranch commit
+    # Check that the remote TF_BRANCH, if it exists, contains the expected TF state signature in init TF_BRANCH commit
     if [ "$TF_REM_BRANCH_EXISTS" = "TRUE" ]; then
-      STATUS="$([ "$(git log --reverse --pretty=format:%s "remotes/''${REMOTE}/${tfBranch}" | head -n 1)" = "${vbkBackendLogSig}" ] && echo "pass" || echo "FAIL")"
+      STATUS="$([ "$(git log --reverse --pretty=format:%s "remotes/$REMOTE/$TF_BRANCH" | head -n 1)" = "$VBK_BACKEND_LOG_SIG" ] && echo "pass" || echo "FAIL")"
     else
       STATUS="pass"
     fi
-    gate "$STATUS" "The remote terraform state branch, \"${tfBranch}\", does not contain the expected log signature.  This branch may be in conflict with TF usage."
+    gate "$STATUS" "The remote terraform state branch, \"$TF_BRANCH\", does not contain the expected log signature.  This branch may be in conflict with TF usage."
 
     if [ "$TF_REM_BRANCH_EXISTS" = "TRUE" ] && [ "$TF_LOC_BRANCH_EXISTS" = "TRUE" ]; then
-      # Check if local tfBranch is ahead of remote tfBranch
-      COMMITS_AHEAD="$(git rev-list --count "remotes/''${REMOTE}/${tfBranch}..refs/heads/${tfBranch}")"
+      # Check if local TF_BRANCH is ahead of remote TF_BRANCH
+      COMMITS_AHEAD="$(git rev-list --count "remotes/$REMOTE/$TF_BRANCH..refs/heads/$TF_BRANCH")"
       STATUS="$([ "$COMMITS_AHEAD" = "0" ] && echo "pass" || echo "FAIL")"
-      gate "$STATUS" "The local terraform state branch, \"${tfBranch}\", is ahead of the remote by $COMMITS_AHEAD commits.  Please review the commit diff and resolve."
+      gate "$STATUS" "The local terraform state branch, \"$TF_BRANCH\", is ahead of the remote by $COMMITS_AHEAD commits.  Please review the commit diff and resolve."
 
-      # Check if remote tfBranch is ahead of local tfBranch and if so, ensure local can fast-forward
-      COMMITS_BEHIND="$(git rev-list --count "refs/heads/${tfBranch}..remotes/''${REMOTE}/${tfBranch}")"
+      # Check if remote TF_BRANCH is ahead of local TF_BRANCH and if so, ensure local can fast-forward
+      COMMITS_BEHIND="$(git rev-list --count "refs/heads/$TF_BRANCH..remotes/$REMOTE/$TF_BRANCH")"
       if [ "$COMMITS_BEHIND" != "0" ]; then
-        STATUS="$(git merge-base --is-ancestor "refs/heads/${tfBranch}" "remotes/''${REMOTE}/${tfBranch}" && echo "pass" || echo "FAIL")"
+        STATUS="$(git merge-base --is-ancestor "refs/heads/$TF_BRANCH" "remotes/$REMOTE/$TF_BRANCH" && echo "pass" || echo "FAIL")"
       else
         STATUS="pass"
       fi
-      gate "$STATUS" "The local terraform state branch, \"${tfBranch}\", is behind the remote by $COMMITS_BEHIND commits and cannot fast-forward.  Please review the commit diff and resolve."
+      gate "$STATUS" "The local terraform state branch, \"$TF_BRANCH\", is behind the remote by $COMMITS_BEHIND commits and cannot fast-forward.  Please review the commit diff and resolve."
 
-      # Check that the local tfBranch does not have uncommitted changes
-      STATUS="$([ -z "$(git status --porcelain "refs/head/${tfBranch}")" ] && echo "pass" || echo "FAIL")"
-      gate "$STATUS" "The local terraform state branch, \"${tfBranch}\", has uncommitted changed.  Please review the commit diff and resolve."
+      # Check that the local TF_BRANCH does not have uncommitted changes
+      STATUS="$([ -z "$(git status --porcelain "refs/head/$TF_BRANCH")" ] && echo "pass" || echo "FAIL")"
+      gate "$STATUS" "The local terraform state branch, \"$TF_BRANCH\", has uncommitted changed.  Please review the commit diff and resolve."
 
     elif [ "$TF_REM_BRANCH_EXISTS" = "FALSE" ] && [ "$TF_LOC_BRANCH_EXISTS" = "TRUE" ]; then
-      # Check that local tfBranch doesn't exist without remote, which may indicate a failed migration
+      # Check that local TF_BRANCH doesn't exist without remote, which may indicate a failed migration
       STATUS="FAIL"
-      gate "$STATUS" "The local terraform state branch, \"${tfBranch}\", exists, but the remote does not.  Please review any diff and resolve."
+      gate "$STATUS" "The local terraform state branch, \"$TF_BRANCH\", exists, but the remote does not.  Please review any diff and resolve."
     fi
 
     # TODO:
-    # Check that the local tfBranch matches state of the remote tfBranch, if they exist
+    # Check that the local TF_BRANCH matches state of the remote TF_BRANCH, if they exist
     # Check if uncommitted changes to local state already exist
-    # [ -z "$(git status --porcelain=2 "${encState}")" ] || {
+    # [ -z "$(git status --porcelain=2 "$ENC_STATE_PATH")" ] || {
     #   echo
-    #   warn "WARNING: Uncommitted TF state changes already exist for workspace \"${name}\" at encrypted file:"
+    #   warn "WARNING: Uncommitted TF state changes already exist for workspace \"$TF_NAME\" at encrypted file:"
     #   echo
-    #   echo "  ${encState}"
+    #   echo "  $ENC_STATE_PATH"
     #   echo
     #   echo "This script will not keep any TF made state plaintext backup files since changes to"
     #   echo "local state are intended to be encrypted and committed to VCS immediately after being made."
@@ -202,20 +206,20 @@
   # Use binary encryption instead of json for more compact representation
   # and to reduce information leakage via many unencrypted json keys.
   localStateEncrypt = ''
-    if [ "${cfg.vbkBackend}" = "local" ]; then
+    if [ "$VBK_BACKEND" = "local" ]; then
       # Only encrypt and git add state if the sha256sums are different indicating a state change
-      STATE_SHA256_POST="$(sha256sum terraform-${name}.tfstate)"
+      STATE_SHA256_POST="$(sha256sum "terraform-$TF_NAME.tfstate")"
 
       if [ "''${STATE_SHA256_PRE%% *}" != "''${STATE_SHA256_POST%% *}" ]; then
-        echo "Encrypting TF state changes to: ${encState}"
-        if [ "${cfg.infraType}" = "prem" ]; then
-          rage -i secrets-prem/age-bootstrap -a -e "terraform-${name}.tfstate" > "${encState}"
+        echo "Encrypting TF state changes to: $ENC_STATE_PATH"
+        if [ "$INFRA_TYPE" = "prem" ]; then
+          rage -i secrets-prem/age-bootstrap -a -e "terraform-$TF_NAME.tfstate" > "$ENC_STATE_PATH"
         else
-          ${sopsEncrypt "binary" "binary" "terraform-${name}.tfstate"} > "${encState}"
+          ${sopsEncrypt "binary" "binary" "terraform-$TF_NAME.tfstate"} > "$ENC_STATE_PATH"
         fi
 
         echo "Git adding state changes"
-        git add ${if name == "hydrate-secrets" then "-f" else ""} "${encState}"
+        git add ${if name == "hydrate-secrets" then "-f" else ""} "$ENC_STATE_PATH"
 
         echo
         warn "Please commit these TF state changes ASAP to avoid loss of state or state divergence!"
@@ -226,37 +230,37 @@
   # Local plaintext state should be uncommitted and cleaned up routinely
   # as some workspaces contain secrets, ex: hydrate-app
   localStateCleanup = ''
-    if [ "${cfg.vbkBackend}" = "local" ]; then
+    if [ "$VBK_BACKEND" = "local" ]; then
       echo
       echo "Removing plaintext TF state files in the repo top level directory"
       echo "(alternatively, see the encrypted-committed TF state files as needed)"
-      rm -vf terraform-${name}.tfstate
-      rm -vf terraform-${name}.tfstate.backup
+      rm -vf "terraform-$TF_NAME.tfstate"
+      rm -vf "terraform-$TF_NAME.tfstate.backup"
     fi
   '';
 
   migStartStatus = ''
     echo
     echo "Important environment variables"
-    echo "  config.cluster.name              = ${cfg.name}"
+    echo "  config.cluster.name              = $BITTE_NAME"
     echo "  BITTE_CLUSTER env parameter      = $BITTE_CLUSTER"
     echo
     echo "Important migration variables:"
-    echo "  infraType                        = ${cfg.infraType}"
-    echo "  vaultBackend                     = ${cfg.vaultBackend}"
-    echo "  vbkBackend                       = ${cfg.vbkBackend}"
+    echo "  infraType                        = $INFRA_TYPE"
+    echo "  vaultBackend                     = $VAULT_BACKEND"
+    echo "  vbkBackend                       = $VBK_BACKEND"
     echo "  vbkBackendSkipCertVerification   = ${lib.boolToString cfg.vbkBackendSkipCertVerification}"
     echo "  script STATE_ARG                 = ''${STATE_ARG:-remote}"
     echo
     echo "Important path variables:"
     echo "  gitTopLevelDir                   = $TOP"
     echo "  currentWorkingDir                = $PWD"
-    echo "  relEncryptedFolder               = ${relEncryptedFolder}"
+    echo "  relEncryptedFolder               = $REL_ENCRYPTED_FOLDER"
     echo
     echo "Important git variables:"
     echo "  REMOTE                           = $REMOTE"
     echo "  BRANCH                           = $BRANCH"
-    echo "  tfBranch                         = ${tfBranch}"
+    echo "  TF_BRANCH                        = $TF_BRANCH"
     echo "  TF_REM_BRANCH_EXISTS             = $TF_REM_BRANCH_EXISTS"
     echo "  TF_LOC_BRANCH_EXISTS             = $TF_LOC_BRANCH_EXISTS"
     echo "  ENC_STATE_EXISTS                 = $ENC_STATE_EXISTS"
@@ -269,12 +273,12 @@
     echo "Status:"
 
     # Ensure the TF workspace is available for the given infraType
-    STATUS="$([ "${cfg.infraType}" = "prem" ] && [[ "${name}" =~ ^core$|^clients$|^prem-sim$ ]] && echo "FAIL" || echo "pass")"
+    STATUS="$([ "$INFRA_TYPE" = "prem" ] && [[ "$TF_NAME" =~ ^core$|^clients$|^prem-sim$ ]] && echo "FAIL" || echo "pass")"
     echo "  Infra type workspace check:      = $STATUS"
-    gate "$STATUS" "The cluster infraType of \"prem\" cannot use the \"${name}\" TF workspace."
+    gate "$STATUS" "The cluster infraType of \"prem\" cannot use the \"$TF_NAME\" TF workspace."
 
     # Ensure there is nothing strange with environment and cluster name mismatch that may cause unexpected issues
-    STATUS="$([ "${cfg.name}" = "$BITTE_CLUSTER" ] && echo "pass" || echo "FAIL")"
+    STATUS="$([ "$BITTE_NAME" = "$BITTE_CLUSTER" ] && echo "pass" || echo "FAIL")"
     echo "  Cluster name check:              = $STATUS"
     gate "$STATUS" "The nix configured name of the cluster does not match the BITTE_CLUSTER env var."
 
@@ -283,21 +287,33 @@
     echo "  Current pwd check:               = $STATUS"
     gate "$STATUS" "The vbk migration to local state needs to be run from the top level dir of the git repo."
 
-    # Ensure terraform config for workspace ${name} exists and has file size greater than zero bytes
+    # Ensure terraform config for workspace $TF_NAME exists and has file size greater than zero bytes
     STATUS="$([ -s "config.tf.json" ] && echo "pass" || echo "FAIL")"
     echo "  Terraform config check:          = $STATUS"
-    gate "$STATUS" "The terraform config.tf.json file for workspace ${name} does not exist or is zero bytes in size."
+    gate "$STATUS" "The terraform config.tf.json file for workspace $TF_NAME does not exist or is zero bytes in size."
 
-    # Ensure terraform config for workspace ${name} has expected remote backend state set properly
-    STATUS="$([ "$(jq -e -r .terraform.backend.http.address < config.tf.json)" = "${cfg.vbkBackend}/state/${cfg.name}/${name}" ] && echo "pass" || echo "FAIL")"
+    # Ensure terraform config for workspace $TF_NAME has expected remote backend state set properly
+    STATUS="$([ "$(jq -e -r .terraform.backend.http.address < config.tf.json)" = "$VBK_BACKEND/state/$BITTE_NAME/$TF_NAME" ] && echo "pass" || echo "FAIL")"
     echo "  Terraform remote address check:  = $STATUS"
     gate "$STATUS" "The TF generated remote address does not match the expected declarative address."
   '';
 
   prepare = ''
-    # shellcheck disable=SC2050
     set -euo pipefail
     ${exportPath}
+
+    # Nix interpolated common vars
+    # Export to satisfy shell check on the non-local codepath for var usage.
+    export BITTE_NAME="${cfg.name}"
+    export ENC_STATE_DIR="${encStateDir}"
+    export ENC_STATE_PATH="${encStatePath}"
+    export INFRA_TYPE="${cfg.infraType}"
+    export REL_ENCRYPTED_FOLDER="${relEncryptedFolder}"
+    export TF_BRANCH="${tfBranch}"
+    export TF_NAME="${name}"
+    export VBK_BACKEND="${cfg.vbkBackend}"
+    export VBK_BACKEND_LOG_SIG="${vbkBackendLogSig}"
+    export VAULT_BACKEND="${cfg.vaultBackend}"
 
     warn () {
       # Star header len matching the input str len
@@ -321,23 +337,22 @@
     STATUS="$([ "$PWD" = "$TOP" ] && echo "pass" || echo "FAIL")"
     MSG=(
       "The TF attrs need to be run from the top level directory of the repo:\n"
-      " * Top level repo directory is:\n"
-      "   $TOP\n\n"
-      " * Current working directory is:\n"
-      "   $PWD"
+      "  * Top level repo directory is:\n"
+      "    $TOP\n\n"
+      "  * Current working directory is:\n"
+      "    $PWD"
     )
-    # shellcheck disable=SC2116
-    gate "$STATUS" "$(echo "''${MSG[@]}")"
+    gate "$STATUS" "$(printf '%s' "''${MSG[@]}")"
 
-    if [ "${name}" = "hydrate-cluster" ]; then
-      if [ "${cfg.infraType}" = "prem" ]; then
-        NOMAD_TOKEN="$(rage -i secrets-prem/age-bootstrap -d "${relEncryptedFolder}/nomad/nomad.bootstrap.enc.json" | jq -r '.token')"
-        VAULT_TOKEN="$(rage -i secrets-prem/age-bootstrap -d "${relEncryptedFolder}/vault/vault.enc.json" | jq -r '.root_token')"
-        CONSUL_HTTP_TOKEN="$(rage -i secrets-prem/age-bootstrap -d "${relEncryptedFolder}/consul/token-master.age")"
+    if [ "$TF_NAME" = "hydrate-cluster" ]; then
+      if [ "$INFRA_TYPE" = "prem" ]; then
+        NOMAD_TOKEN="$(rage -i secrets-prem/age-bootstrap -d "$REL_ENCRYPTED_FOLDER/nomad/nomad.bootstrap.enc.json" | jq -r '.token')"
+        VAULT_TOKEN="$(rage -i secrets-prem/age-bootstrap -d "$REL_ENCRYPTED_FOLDER/vault/vault.enc.json" | jq -r '.root_token')"
+        CONSUL_HTTP_TOKEN="$(rage -i secrets-prem/age-bootstrap -d "$REL_ENCRYPTED_FOLDER/consul/token-master.age")"
       else
-        NOMAD_TOKEN="$(${sopsDecrypt "json" "${relEncryptedFolder}/nomad.bootstrap.enc.json"} | jq -r '.token')"
-        VAULT_TOKEN="$(${sopsDecrypt "json" "${relEncryptedFolder}/vault.enc.json"} | jq -r '.root_token')"
-        CONSUL_HTTP_TOKEN="$(${sopsDecrypt "json" "${relEncryptedFolder}/consul-core.json"} | jq -r '.acl.tokens.master')"
+        NOMAD_TOKEN="$(${sopsDecrypt "json" "$REL_ENCRYPTED_FOLDER/nomad.bootstrap.enc.json"} | jq -r '.token')"
+        VAULT_TOKEN="$(${sopsDecrypt "json" "$REL_ENCRYPTED_FOLDER/vault.enc.json"} | jq -r '.root_token')"
+        CONSUL_HTTP_TOKEN="$(${sopsDecrypt "json" "$REL_ENCRYPTED_FOLDER/consul-core.json"} | jq -r '.acl.tokens.master')"
       fi
 
       export NOMAD_TOKEN
@@ -377,7 +392,7 @@
     # Generate and copy declarative TF state locally for TF to compare to
     ${copyTfCfg}
 
-    if [ "${cfg.vbkBackend}" != "local" ]; then
+    if [ "$VBK_BACKEND" != "local" ]; then
       if [ -z "''${GITHUB_TOKEN:-}" ]; then
         echo
         echo -----------------------------------------------------
@@ -394,7 +409,7 @@
       user="''${TF_HTTP_USERNAME:-TOKEN}"
       pass="''${TF_HTTP_PASSWORD:-$( \
         curl -s -d "{\"token\": \"$GITHUB_TOKEN\"}" \
-        ${backend}/auth/github-terraform/login \
+        $VAULT_BACKEND/v1/auth/github-terraform/login \
         | jq -r '.auth.client_token' \
       )}"
 
@@ -405,7 +420,7 @@
         echo api by exporting the following env variables as is.
         echo
         echo The current vault backend in use for TF is:
-        echo ${cfg.vaultBackend}
+        echo $VAULT_BACKEND
         echo -----------------------------------------------------
         echo "export TF_HTTP_USERNAME=\"$user\""
         echo "export TF_HTTP_PASSWORD=\"$pass\""
@@ -415,41 +430,39 @@
       export TF_HTTP_USERNAME="$user"
       export TF_HTTP_PASSWORD="$pass"
 
-      echo "Using remote TF state for workspace \"${name}\"..."
+      echo "Using remote TF state for workspace \"$TF_NAME\"..."
       terraform init -reconfigure 1>&2
       STATE_ARG=""
     else
-      echo "Using local TF state for workspace \"${name}\"..."
+      echo "Using local TF state for workspace \"$TF_NAME\"..."
 
       ${localGitStartup}
       ${localGitCommonChecks}
 
-      # Ensure that tfBranch exists before proceeding
+      # Ensure that TF_BRANCH exists before proceeding
       STATUS="$([ "$TF_REM_BRANCH_EXISTS" = "TRUE" ] && echo "pass" || echo "FAIL")"
       MSG=(
         "The nix _proto level cluster.vbkBackend option is set to \"local\", however\n"
-        " terraform local state for workspace \"${name}\" does not exist at:\n\n"
-        "   $ENC_STATE_REF\n\n"
+        "  terraform local state for workspace \"$TF_NAME\" does not exist at:\n\n"
+        "    $ENC_STATE_REF\n\n"
         "If all TF workspaces are not yet migrated to local, then:\n"
-        " * Set the cluster.vbkBackend option back to the existing remote backend\n"
-        " * Run the following against each TF workspace that is not yet migrated to local state:\n"
-        "   nix run .#clusters.$BITTE_CLUSTER.tf.<TF_WORKSPACE>.migrateLocal\n"
-        " * Finally, set the cluster.vbkBackend option to \"local\""
+        "  * Set the cluster.vbkBackend option back to the existing remote backend\n"
+        "  * Run the following against each TF workspace that is not yet migrated to local state:\n"
+        "    nix run .#clusters.$BITTE_CLUSTER.tf.<TF_WORKSPACE>.migrateLocal\n"
+        "  * Finally, set the cluster.vbkBackend option to \"local\""
       )
-      # shellcheck disable=SC2116
-      gate "$STATUS" "$(echo "''${MSG[@]}")"
+      gate "$STATUS" "$(printf '%s' "''${MSG[@]}")"
 
       # Ensure that local state exists before proceeding, re-use the same message as above
       STATUS="$([ "$ENC_STATE_EXISTS" = "TRUE" ] && echo "pass" || echo "FAIL")"
-      # shellcheck disable=SC2116
-      gate "$STATUS" "$(echo "''${MSG[@]}")"
+      gate "$STATUS" "$(printf '%s' "''${MSG[@]}")"
 
       # Ensure there is no unknown terraform state in the current directory
       for STATE in terraform*.tfstate terraform*.tfstate.backup; do
         [ -f "$STATE" ] && {
           echo
           echo "Leftover terraform local state exists in the top level repo directory at:"
-          echo "  ''${TOP}/$STATE"
+          echo "  $TOP/$STATE"
           echo
           echo "This may be due to a failed terraform command."
           echo "Diff may be used to compare leftover state against encrypted-committed state."
@@ -460,7 +473,7 @@
           echo "A diff example command for sops encrypted-commited state is:"
           echo
           echo "  icdiff $STATE \\"
-          if [ "${cfg.infraType}" = "prem" ]; then
+          if [ "$INFRA_TYPE" = "prem" ]; then
             echo "  <(git cat-file blob \"$ENC_STATE_REF\" | rage -i secrets-prem/age-bootstrap -d)"
           else
             echo "  <(git cat-file blob \"$ENC_STATE_REF\" | sops -d /dev/stdin)"
@@ -473,16 +486,16 @@
       done
 
       # UNEEDED?
-      #  * If we can't be in tfBranch, then there can't be uncommitted changes here
-      #  * If tfBranch doesn't have any code other than TF state, then even if it's checked out somewhere,
+      #  * If we can't be in TF_BRANCH, then there can't be uncommitted changes here
+      #  * If TF_BRANCH doesn't have any code other than TF state, then even if it's checked out somewhere,
       #    it's unlikely to have uncommitted changes
       #
       # Check if uncommitted changes to local state already exist
-      # [ -z "$(git status --porcelain=2 "${encState}")" ] || {
+      # [ -z "$(git status --porcelain=2 "$ENC_STATE_PATH")" ] || {
       #   echo
-      #   warn "WARNING: Uncommitted TF state changes already exist for workspace \"${name}\" at encrypted file:"
+      #   warn "WARNING: Uncommitted TF state changes already exist for workspace \"$TF_NAME\" at encrypted file:"
       #   echo
-      #   echo "  ${encState}"
+      #   echo "  $ENC_STATE_PATH"
       #   echo
       #   echo "This script will not keep any TF made state plaintext backup files since changes to"
       #   echo "local state are intended to be encrypted and committed to VCS immediately after being made."
@@ -503,18 +516,21 @@
       #
       # Ref: https://stackoverflow.com/questions/70636974/side-effects-of-removing-terraform-folder
       rm -vf .terraform/terraform.tfstate
-      if [ "${cfg.infraType}" = "prem" ]; then
+      if [ "$INFRA_TYPE" = "prem" ]; then
         git cat-file blob "$ENC_STATE_REF" \
-        | rage -i secrets-prem/age-bootstrap -d > terraform-${name}.tfstate
+        | rage -i secrets-prem/age-bootstrap -d > "terraform-$TF_NAME.tfstate"
       else
         git cat-file blob "$ENC_STATE_REF" \
-        | ${sopsDecrypt "binary" "/dev/stdin"} > terraform-${name}.tfstate
+        | ${sopsDecrypt "binary" "/dev/stdin"} > "terraform-$TF_NAME.tfstate"
       fi
 
       terraform init -reconfigure 1>&2
-      STATE_ARG="-state=terraform-${name}.tfstate"
-      # shellcheck disable=SC2034
-      STATE_SHA256_PRE="$(sha256sum terraform-${name}.tfstate)"
+      STATE_ARG="-state=terraform-$TF_NAME.tfstate"
+      STATE_SHA256_PRE="$(sha256sum "terraform-$TF_NAME.tfstate")"
+
+      # Export to satisfy shell check for non-local codepath var usage.
+      export STATE_ARG
+      export STATE_SHA256_PRE
     fi
   '';
 in {
@@ -547,7 +563,7 @@ in {
         pkgs.writeBashBinChecked "${name}-plan" ''
           ${prepare}
 
-          terraform plan ''${STATE_ARG:-} -out ${name}.plan "$@"
+          terraform plan ''${STATE_ARG:-} -out $TF_NAME.plan "$@"
           ${localStateCleanup}
         '';
     };
@@ -558,7 +574,7 @@ in {
         pkgs.writeBashBinChecked "${name}-apply" ''
           ${prepare}
 
-          terraform apply ''${STATE_ARG:-} ${name}.plan "$@"
+          terraform apply ''${STATE_ARG:-} $TF_NAME.plan "$@"
           ${localStateEncrypt}
           ${localStateCleanup}
         '';
@@ -570,7 +586,7 @@ in {
         pkgs.writeBashBinChecked "${name}-custom" ''
           ${prepare}
 
-          [ "${cfg.vbkBackend}" = "local" ] && {
+          [ "$VBK_BACKEND" = "local" ] && {
             warn "Nix custom terraform command usage note for local state:"
             echo
             echo "Depending on the terraform command you are running,"
@@ -594,7 +610,7 @@ in {
         pkgs.writeBashBinChecked "${name}-migrateLocal" ''
           ${prepare}
 
-          warn "TERRAFORM VBK MIGRATION TO *** LOCAL STATE *** FOR ${name}:"
+          warn "TERRAFORM VBK MIGRATION TO *** LOCAL STATE *** FOR $TF_NAME:"
 
           ${localGitStartup}
           ${localGitCommonChecks}
@@ -603,68 +619,66 @@ in {
           ${migCommonChecks}
 
           # Ensure the vbk status is not already local
-          STATUS="$([ "${cfg.vbkBackend}" != "local" ] && echo "pass" || echo "FAIL")"
+          STATUS="$([ "$VBK_BACKEND" != "local" ] && echo "pass" || echo "FAIL")"
           echo "  Terraform backend check:         = $STATUS"
           MSG=(
             "The nix _proto level cluster.vbkBackend option is already set to \"local\".\n"
             "If all TF workspaces are not yet migrated to local, then:\n"
-            " * Set the cluster.vbkBackend option back to the existing remote backend\n"
-            " * Run the following against each TF workspace that is not yet migrated to local state:\n"
-            "   nix run .#clusters.$BITTE_CLUSTER.tf.<TF_WORKSPACE>.migrateLocal\n\n"
-            " * Finally, set the cluster.vbkBackend option to \"local\"\n"
+            "  * Set the cluster.vbkBackend option back to the existing remote backend\n"
+            "  * Run the following against each TF workspace that is not yet migrated to local state:\n"
+            "    nix run .#clusters.$BITTE_CLUSTER.tf.<TF_WORKSPACE>.migrateLocal\n\n"
+            "  * Finally, set the cluster.vbkBackend option to \"local\"\n"
           )
-          # shellcheck disable=SC2116
-          gate "$STATUS" "$(echo "''${MSG[@]}")"
+          gate "$STATUS" "$(printf '%s' "''${MSG[@]}")"
 
-          # Ensure that local terraform state for workspace ${name} does not already exist
+          # Ensure that local terraform state for workspace $TF_NAME does not already exist
           STATUS="$([ "$ENC_STATE_EXISTS" = "FALSE" ] && echo "pass" || echo "FAIL")"
           echo "  Terraform local state presence:  = $STATUS"
           MSG=(
-            "Terraform local state for workspace \"${name}\" appears to already exist at:\n"
-            " $ENC_STATE_REF\n"
+            "Terraform local state for workspace \"$TF_NAME\" appears to already exist at:\n"
+            "  $ENC_STATE_REF\n"
           )
-          # shellcheck disable=SC2116
-          gate "$STATUS" "$(echo "''${MSG[@]}")"
+          gate "$STATUS" "$(printf '%s' "''${MSG[@]}")"
           echo
 
-          warn "STARTING MIGRATION FOR TF WORKSPACE ${name}"
+          warn "STARTING MIGRATION FOR TF WORKSPACE $TF_NAME"
           echo
           echo "Status:"
 
-          # Set up a tmp git worktree on the tfBranch
+          # Set up a tmp git worktree on the TF_BRANCH
           echo -n -e "  Create a tmp git worktree        ...\n\n"
-          WORKTREE="$(mktemp -u -d -t tf-${name}-${cfg.name}-migrate-local-XXXXXX)"
+          WORKTREE="$(mktemp -u -d -t tf-$TF_NAME-$BITTE_NAME-migrate-local-XXXXXX)"
           if [ "$TF_REM_BRANCH_EXISTS" = "FALSE" ]; then
             git worktree add "$WORKTREE" HEAD
-            git -C "$WORKTREE" switch --orphan "${tfBranch}"
+            git -C "$WORKTREE" switch --orphan "$TF_BRANCH"
             echo 'terraform*.tfstate' > "$WORKTREE/.gitignore"
             echo 'terraform*.tfstate.backup' >> "$WORKTREE/.gitignore"
             git -C "$WORKTREE" add "$WORKTREE/.gitignore"
-            mkdir -p "$WORKTREE/${relEncryptedFolder}/tf"
-            touch "$WORKTREE/${relEncryptedFolder}/tf/.gitkeep"
-            git -C "$WORKTREE" add "$WORKTREE/${relEncryptedFolder}/tf/.gitkeep"
-            git -C "$WORKTREE" commit --no-verify -m "${vbkBackendLogSig}"
-            git -C "$WORKTREE" push -u "$REMOTE" "${tfBranch}"
+            mkdir -p "$WORKTREE/$ENC_STATE_DIR"
+            touch "$WORKTREE/$ENC_STATE_DIR/.gitkeep"
+            git -C "$WORKTREE" add "$WORKTREE/$ENC_STATE_DIR/.gitkeep"
+            git -C "$WORKTREE" commit --no-verify -m "$VBK_BACKEND_LOG_SIG"
+            git -C "$WORKTREE" push -u "$REMOTE" "$TF_BRANCH"
           elif [ "$TF_LOC_BRANCH_EXISTS" = "TRUE" ]; then
-            git worktree add --checkout "$WORKTREE" "''${REMOTE}/${tfBranch}"
-            git -C "$WORKTREE" switch "${tfBranch}"
+            git worktree add --checkout "$WORKTREE" "$REMOTE/$TF_BRANCH"
+            git -C "$WORKTREE" switch "$TF_BRANCH"
             git -C "$WORKTREE" merge --ff
           elif [ "$TF_LOC_BRANCH_EXISTS" = "FALSE" ]; then
-            git worktree add -b "${tfBranch}" "$WORKTREE" "''${REMOTE}/${tfBranch}"
+            git worktree add -b "$TF_BRANCH" "$WORKTREE" "$REMOTE/$TF_BRANCH"
           fi
           echo -n -e "                                   ...done\n\n"
 
-          # Pull remote state for ${name} to the tmp git worktree
+          # Pull remote state for $TF_NAME to the tmp git worktree
           echo -n -e "  Fetching remote state            "
-          terraform state pull > "$WORKTREE/terraform-${name}.tfstate"
+          terraform state pull > "$WORKTREE/terraform-$TF_NAME.tfstate"
           echo -n -e "...done\n\n"
 
           # Encrypt the plaintext TF state file
           echo -n -e "  Encrypting locally               ...\n"
-          if [ "${cfg.infraType}" = "prem" ]; then
-            rage -i secrets-prem/age-bootstrap -a -e "''${WORKTREE}/terraform-${name}.tfstate" > "''${WORKTREE}/${encState}"
+          if [ "$INFRA_TYPE" = "prem" ]; then
+            rage -i secrets-prem/age-bootstrap -a -e "$WORKTREE/terraform-$TF_NAME.tfstate" > "$WORKTREE/$ENC_STATE_PATH"
           else
-            ${sopsEncrypt "binary" "binary" "\"\${WORKTREE}/terraform-${name}.tfstate\""} > "''${WORKTREE}/${encState}"
+            ${sopsEncrypt "binary" "binary" "\"\${WORKTREE}/terraform-$TF_NAME.tfstate\""} > "$WORKTREE/$ENC_STATE_PATH"
           fi
           echo -n -e "                                   ...done\n\n"
 
@@ -672,24 +686,24 @@ in {
           # In the case of hydrate-secrets, force add to avoid git exclusion in some ops/world repos based on the filename containing the word secret
           echo -n -e "  Committing encrypted state       ...\n"
           echo
-          git -C "$WORKTREE" add ${if name == "hydrate-secrets" then "-f" else ""} "''${WORKTREE}/${encState}"
-          git -C "$WORKTREE" commit --no-verify -m "migrate: tf ${name} from ${cfg.vbkBackend}"
-          git -C "$WORKTREE" push -u "$REMOTE" "${tfBranch}"
+          git -C "$WORKTREE" add ${if name == "hydrate-secrets" then "-f" else ""} "$WORKTREE/$ENC_STATE_PATH"
+          git -C "$WORKTREE" commit --no-verify -m "migrate: tf $TF_NAME from $VBK_BACKEND"
+          git -C "$WORKTREE" push -u "$REMOTE" "$TF_BRANCH"
           echo -n -e "                                   ...done\n\n"
 
           # Git cleanup plaintext TF state and worktree
           echo -n -e "  Cleaning up git state            ...\n\n"
-          rm -vf "$WORKTREE/terraform-${name}.tfstate"
+          rm -vf "$WORKTREE/terraform-$TF_NAME.tfstate"
           git worktree remove "$WORKTREE"
           echo -n -e "                                   ...done\n\n"
 
-          warn "FINISHED MIGRATION TO LOCAL FOR TF WORKSPACE ${name}"
+          warn "FINISHED MIGRATION TO LOCAL FOR TF WORKSPACE $TF_NAME"
           echo
           echo "  * The encrypted local state file is found at:"
           echo "    $ENC_STATE_REF"
           echo
           echo "  * Decrypt and review with:"
-          if [ "${cfg.infraType}" = "prem" ]; then
+          if [ "$INFRA_TYPE" = "prem" ]; then
             echo "    git cat-file blob \"$ENC_STATE_REF\" | rage -i secrets-prem/age-bootstrap -d"
           else
             echo "    git cat-file blob \"$ENC_STATE_REF\" | sops -d /dev/stdin"
@@ -699,7 +713,7 @@ in {
           fi
           echo
           echo "  * Once the local state is confirmed working as expected, the corresponding remote state no longer in use may be deleted:"
-          echo "    ${cfg.vbkBackend}/state/${cfg.name}/${name}"
+          echo "    $VBK_BACKEND/state/$BITTE_NAME/$TF_NAME"
           echo
         '';
     };
@@ -710,64 +724,62 @@ in {
         pkgs.writeBashBinChecked "${name}-migrateRemote" ''
           ${prepare}
 
-          warn "TERRAFORM VBK MIGRATION TO *** REMOTE STATE *** FOR ${name}:"
+          warn "TERRAFORM VBK MIGRATION TO *** REMOTE STATE *** FOR $TF_NAME:"
 
           ${migStartStatus}
           ${migCommonChecks}
 
           # Ensure the vbk status is already remote as the target vbkBackend remote parameter is required
-          STATUS="$([ "${cfg.vbkBackend}" != "local" ] && echo "pass" || echo "FAIL")"
+          STATUS="$([ "$VBK_BACKEND" != "local" ] && echo "pass" || echo "FAIL")"
           echo "  Terraform backend check:         = $STATUS"
           MSG=(
             "The nix _proto level cluster.vbkBackend option is already set to \"local\".\n"
             "If all TF workspaces are not yet migrated to remote, then:\n"
-            " * Set the cluster.vbkBackend option to the target migration remote backend, example:\n"
-            "   https://vbk.\$FQDN\n\n"
-            " * Run the following against each TF workspace that is not yet migrated to remote state:\n"
-            "   nix run .#clusters.$BITTE_CLUSTER.tf.<TF_WORKSPACE>.migrateRemote\n\n"
-            " * Remove the TF local state which is no longer in use at your convienence"
+            "  * Set the cluster.vbkBackend option to the target migration remote backend, example:\n"
+            "    https://vbk.\$FQDN\n\n"
+            "  * Run the following against each TF workspace that is not yet migrated to remote state:\n"
+            "    nix run .#clusters.$BITTE_CLUSTER.tf.<TF_WORKSPACE>.migrateRemote\n\n"
+            "  * Remove the TF local state which is no longer in use at your convienence"
           )
-          # shellcheck disable=SC2116
-          gate "$STATUS" "$(echo "''${MSG[@]}")"
+          gate "$STATUS" "$(printf '%s' "''${MSG[@]}")"
 
-          # Ensure that local terraform state for workspace ${name} does already exist
-          STATUS="$([ -f "${encState}" ] && echo "pass" || echo "FAIL")"
+          # Ensure that local terraform state for workspace $TF_NAME does already exist
+          STATUS="$([ -f "$ENC_STATE_PATH" ] && echo "pass" || echo "FAIL")"
           echo "  Terraform local state presence:  = $STATUS"
-          gate "$STATUS" "Terraform local state for workspace \"${name}\" appears to not already exist at: ${encState}"
+          gate "$STATUS" "Terraform local state for workspace \"$TF_NAME\" appears to not already exist at: $ENC_STATE_PATH"
 
-          # Ensure that remote terraform state for workspace ${name} does not already exist
+          # Ensure that remote terraform state for workspace $TF_NAME does not already exist
           STATUS="$(terraform state list &> /dev/null && echo "FAIL" || echo "pass")"
           echo "  Terraform remote state presence: = $STATUS"
           MSG=(
-            "Terraform remote state for workspace \"${name}\" appears to already exist at backend vbk path: ${cfg.vbkBackend}/state/${cfg.name}/${name}\n"
-            " * Pushing local TF state to remote will reset the lineage and serial number of the remote state by default\n"
-            " * If this local state still needs to be pushed to this remote:\n"
-            "   * Ensure remote state is not needed\n"
-            "   * Back it up if desired\n"
-            "   * Clear this particular vbk remote state path key\n"
-            "   * Try again\n"
-            " * This will ensure lineage conflicts, serial state conflicts, and otherwise unexpected state data loss are not encountered"
+            "Terraform remote state for workspace \"$TF_NAME\" appears to already exist at backend vbk path: $VBK_BACKEND/state/$BITTE_NAME/$TF_NAME\n"
+            "  * Pushing local TF state to remote will reset the lineage and serial number of the remote state by default\n"
+            "  * If this local state still needs to be pushed to this remote:\n"
+            "    * Ensure remote state is not needed\n"
+            "    * Back it up if desired\n"
+            "    * Clear this particular vbk remote state path key\n"
+            "    * Try again\n"
+            "  * This will ensure lineage conflicts, serial state conflicts, and otherwise unexpected state data loss are not encountered"
           )
-          # shellcheck disable=SC2116
-          gate "$STATUS" "$(echo "''${MSG[@]}")"
+          gate "$STATUS" "$(printf '%s' "''${MSG[@]}")"
           echo
 
-          warn "STARTING MIGRATION FOR TF WORKSPACE ${name}"
+          warn "STARTING MIGRATION FOR TF WORKSPACE $TF_NAME"
           echo
           echo "Status:"
 
           # Set up a tmp work dir
           echo -n "  Create a tmp work dir            "
-          TMPDIR="$(mktemp -d -t tf-${name}-migrate-remote-XXXXXX)"
+          TMPDIR="$(mktemp -d -t "tf-$TF_NAME-migrate-remote-XXXXXX")"
           trap 'rm -rf -- "$TMPDIR"' EXIT
           echo "                                      ...done"
 
           # Decrypt the pre-existing TF state file
           echo -n "  Decrypting locally               "
-          if [ "${cfg.infraType}" = "prem" ]; then
-            rage -i secrets-prem/age-bootstrap -d "${encState}" > "$TMPDIR/terraform-${name}.tfstate"
+          if [ "$INFRA_TYPE" = "prem" ]; then
+            rage -i secrets-prem/age-bootstrap -d "$ENC_STATE_PATH" > "$TMPDIR/terraform-$TF_NAME.tfstate"
           else
-            ${sopsDecrypt "binary" "${encState}"} > "$TMPDIR/terraform-${name}.tfstate"
+            ${sopsDecrypt "binary" "$ENC_STATE_PATH"} > "$TMPDIR/terraform-$TF_NAME.tfstate"
           fi
           echo "                                      ...done"
           echo
@@ -789,19 +801,19 @@ in {
           # Push the local state to the remote
           echo "  Pushing local state to remote    "
           echo
-          terraform state push terraform-${name}.tfstate
+          terraform state push "terraform-$TF_NAME.tfstate"
           echo "                                      ...done"
           echo
           popd
           echo
 
-          warn "FINISHED MIGRATION TO REMOTE FOR TF WORKSPACE ${name}"
+          warn "FINISHED MIGRATION TO REMOTE FOR TF WORKSPACE $TF_NAME"
           echo
           echo "  * The new remote state file is found at vbk path:"
-          echo "    ${cfg.vbkBackend}/state/${cfg.name}/${name}"
+          echo "    $VBK_BACKEND/state/$BITTE_NAME/$TF_NAME"
           echo
           echo "  * The associated encrypted local state no longer in use may now be deleted:"
-          echo "    ${encState}"
+          echo "    $ENC_STATE_PATH"
           echo
         '';
     };
