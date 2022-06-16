@@ -181,26 +181,6 @@
       STATUS="FAIL"
       gate "$STATUS" "The local terraform state branch, \"$TF_BRANCH\", exists, but the remote does not.  Please review any diff and resolve."
     fi
-
-    # TODO:
-    # Check that the local TF_BRANCH matches state of the remote TF_BRANCH, if they exist
-    # Check if uncommitted changes to local state already exist
-    # [ -z "$(git status --porcelain=2 "$ENC_STATE_PATH")" ] || {
-    #   echo
-    #   warn "WARNING: Uncommitted TF state changes already exist for workspace \"$TF_NAME\" at encrypted file:"
-    #   echo
-    #   echo "  $ENC_STATE_PATH"
-    #   echo
-    #   echo "This script will not keep any TF made state plaintext backup files since changes to"
-    #   echo "local state are intended to be encrypted and committed to VCS immediately after being made."
-    #   echo "This practice serves as both a TF history and backup set."
-    #   echo
-    #   echo "However, uncommitted TF state changes are detected.  By running this command,"
-    #   echo "any new changes to TF state will be automatically git added to these existing uncomitted changes."
-    #   read -p "Do you want to continue this operation? [y/n] " -n 1 -r
-    #   echo
-    #   [[ ! "$REPLY" =~ ^[Yy]$ ]] && exit 0
-    # }
   '';
 
   localWorkLog = ''
@@ -331,10 +311,9 @@
   # Local plaintext state should be uncommitted and cleaned up routinely
   # as some workspaces contain secrets, ex: hydrate-app
   localStateCleanup = ''
-    if [ "$VBK_BACKEND" = "local" ]; then
+    if [ "$VBK_BACKEND" = "local" ] || [ "$ACTION" = "migrateRemote" ]; then
       echo
       echo "Removing plaintext TF state files in the repo top level directory"
-      echo "(alternatively, see the encrypted-committed TF state files as needed)"
       rm -vf "terraform-$TF_NAME.tfstate"
       rm -vf "terraform-$TF_NAME.tfstate.backup"
     fi
@@ -364,6 +343,7 @@
     echo "  ENC_STATE_EXISTS                 = $ENC_STATE_EXISTS"
     echo "  ENC_STATE_DIR                    = $ENC_STATE_DIR"
     echo "  ENC_STATE_PATH                   = $ENC_STATE_PATH"
+    echo "  ENC_STATE_REF                    = $ENC_STATE_REF"
     echo "  TF_BRANCH                        = $TF_BRANCH"
     echo "  TF_NAME                          = $TF_NAME"
     echo "  TF_REM_BRANCH_EXISTS             = $TF_REM_BRANCH_EXISTS"
@@ -400,6 +380,67 @@
     STATUS="$([ "$(jq -e -r .terraform.backend.http.address < config.tf.json)" = "$VBK_BACKEND/state/$BITTE_NAME/$TF_NAME" ] && echo "pass" || echo "FAIL")"
     echo "  Terraform remote address check:  = $STATUS"
     gate "$STATUS" "The TF generated remote address does not match the expected declarative address."
+  '';
+
+  localPreexistingStateCheck = ''
+    # Ensure there is no unknown terraform state in the current directory
+    for STATE in terraform*.tfstate terraform*.tfstate.backup; do
+      [ -f "$STATE" ] && {
+        echo
+        warn "Leftover terraform local state exists in the top level repo directory at:"
+        echo
+        echo "  $TOP/$STATE"
+        echo
+        echo "* This may be due to a failed terraform command."
+        echo "* Diff may be used to compare leftover state against encrypted-committed state."
+        echo "* A diff example command to compare leftover state against encrypted-commited state is:"
+        echo
+        echo "  icdiff $STATE \\"
+        if [ "$INFRA_TYPE" = "prem" ]; then
+          echo "  <(git cat-file blob \"$ENC_STATE_REF\" | rage -i secrets-prem/age-bootstrap -d)"
+        else
+          echo "  <(git cat-file blob \"$ENC_STATE_REF\" | sops -d /dev/stdin)"
+        fi
+        echo
+        echo "* If it is determined that this leftover terraform local state should be commited,"
+        echo "  example commands to do so are:"
+        echo
+        echo "  <TODO>"
+        echo
+        echo "* After all necessary state is confirmed to reside in the encrypted-committed state,"
+        echo "  then delete this $STATE file and try again."
+        echo
+        warn "Leftover plaintext TF state should not be committed and should be removed ASAP is it may contain plaintext secrets"
+        exit 1
+      }
+    done
+  '';
+
+  localStatePrep = ''
+    # Removing existing .terraform/terraform.tfstate avoids a backend reconfigure failure
+    # or a remote state migration pull which has already been done via the migrateLocal attr.
+    #
+    # Our deployments do not currently store anything but backend
+    # or local state information in this hidden directory tfstate file.
+    #
+    # Ref: https://stackoverflow.com/questions/70636974/side-effects-of-removing-terraform-folder
+    rm -vf .terraform/terraform.tfstate
+
+    if [ "$INFRA_TYPE" = "prem" ]; then
+      git cat-file blob "$ENC_STATE_REF" \
+      | rage -i secrets-prem/age-bootstrap -d > "terraform-$TF_NAME.tfstate"
+    else
+      git cat-file blob "$ENC_STATE_REF" \
+      | ${sopsDecrypt "binary" "/dev/stdin"} > "terraform-$TF_NAME.tfstate"
+    fi
+
+    terraform init -reconfigure 1>&2
+    STATE_ARG="-state=terraform-$TF_NAME.tfstate"
+    STATE_SHA256_PRE="$(sha256sum "terraform-$TF_NAME.tfstate")"
+
+    # Export to satisfy shell check for non-local codepath var usage.
+    export STATE_ARG
+    export STATE_SHA256_PRE
   '';
 
   prepare = ''
@@ -562,61 +603,8 @@
       STATUS="$([ "$ENC_STATE_EXISTS" = "TRUE" ] && echo "pass" || echo "FAIL")"
       gate "$STATUS" "$(printf '%s' "''${MSG[@]}")"
 
-      # Ensure there is no unknown terraform state in the current directory
-      for STATE in terraform*.tfstate terraform*.tfstate.backup; do
-        [ -f "$STATE" ] && {
-          echo
-          warn "Leftover terraform local state exists in the top level repo directory at:"
-          echo
-          echo "  $TOP/$STATE"
-          echo
-          echo "* This may be due to a failed terraform command."
-          echo "* Diff may be used to compare leftover state against encrypted-committed state."
-          echo "* A diff example command to compare leftover state against encrypted-commited state is:"
-          echo
-          echo "  icdiff $STATE \\"
-          if [ "$INFRA_TYPE" = "prem" ]; then
-            echo "  <(git cat-file blob \"$ENC_STATE_REF\" | rage -i secrets-prem/age-bootstrap -d)"
-          else
-            echo "  <(git cat-file blob \"$ENC_STATE_REF\" | sops -d /dev/stdin)"
-          fi
-          echo
-          echo "* If it is determined that this leftover terraform local state should be commited,"
-          echo "  example commands to do so are:"
-          echo
-          echo "  <TODO>"
-          echo
-          echo "* After all necessary state is confirmed to reside in the encrypted-committed state,"
-          echo "  then delete this $STATE file and try again."
-          echo
-          warn "Leftover plaintext TF state should not be committed and should be removed ASAP is it may contain plaintext secrets"
-          exit 1
-        }
-      done
-
-      # Removing existing .terraform/terraform.tfstate avoids a backend reconfigure failure
-      # or a remote state migration pull which has already been done via the migrateLocal attr.
-      #
-      # Our deployments do not currently store anything but backend
-      # or local state information in this hidden directory tfstate file.
-      #
-      # Ref: https://stackoverflow.com/questions/70636974/side-effects-of-removing-terraform-folder
-      rm -vf .terraform/terraform.tfstate
-      if [ "$INFRA_TYPE" = "prem" ]; then
-        git cat-file blob "$ENC_STATE_REF" \
-        | rage -i secrets-prem/age-bootstrap -d > "terraform-$TF_NAME.tfstate"
-      else
-        git cat-file blob "$ENC_STATE_REF" \
-        | ${sopsDecrypt "binary" "/dev/stdin"} > "terraform-$TF_NAME.tfstate"
-      fi
-
-      terraform init -reconfigure 1>&2
-      STATE_ARG="-state=terraform-$TF_NAME.tfstate"
-      STATE_SHA256_PRE="$(sha256sum "terraform-$TF_NAME.tfstate")"
-
-      # Export to satisfy shell check for non-local codepath var usage.
-      export STATE_ARG
-      export STATE_SHA256_PRE
+      ${localPreexistingStateCheck}
+      ${localStatePrep}
     fi
   '';
 in {
@@ -648,6 +636,7 @@ in {
       apply = v:
         pkgs.writeBashBinChecked "${name}-plan" ''
           ${prepare}
+          ACTION="plan"
 
           terraform plan ''${STATE_ARG:-} -out $TF_NAME.plan "$@"
           ${localStateCleanup}
@@ -659,6 +648,7 @@ in {
       apply = v:
         pkgs.writeBashBinChecked "${name}-apply" ''
           ${prepare}
+          ACTION="apply"
 
           terraform apply ''${STATE_ARG:-} $TF_NAME.plan "$@"
           ${localStateEncrypt}
@@ -667,10 +657,11 @@ in {
     };
 
     terraform = lib.mkOption {
-      type = lib.mkOptionType {name = "${name}-custom";};
+      type = lib.mkOptionType {name = "${name}-terraform";};
       apply = v:
-        pkgs.writeBashBinChecked "${name}-custom" ''
+        pkgs.writeBashBinChecked "${name}-terraform" ''
           ${prepare}
+          ACTION="terraform"
 
           if [ "$VBK_BACKEND" = "local" ]; then
             ARGS=( "$@" )
@@ -716,12 +707,16 @@ in {
                   echo "    $STATE_ARG"
                   echo
                   echo "  * Otherwise, if you run a terraform command accepting or requiring state and do not provide the local state as an argument, you may lose important state"
+                  echo
+                  echo "ABORTED"
                   SAFETY_SKIP="true"
+                  break
                 fi
               fi
             done;
           fi
 
+          # If local plaintext state should have been provided but wasn't, don't run the command to avoid loss of state
           if [ -z "''${SAFETY_SKIP:-}" ]; then
             terraform "$@"
             ${localStateEncrypt}
@@ -735,6 +730,7 @@ in {
       apply = v:
         pkgs.writeBashBinChecked "${name}-migrateLocal" ''
           ${prepare}
+          export ACTION="migrateLocal"
 
           warn "TERRAFORM VBK MIGRATION TO *** LOCAL STATE *** FOR $TF_NAME:"
 
@@ -890,8 +886,12 @@ in {
       apply = v:
         pkgs.writeBashBinChecked "${name}-migrateRemote" ''
           ${prepare}
+          ACTION="migrateRemote"
 
           warn "TERRAFORM VBK MIGRATION TO *** REMOTE STATE *** FOR $TF_NAME:"
+
+          ${localGitStartup}
+          ${localGitCommonChecks}
 
           ${migStartStatus}
           ${migCommonChecks}
@@ -911,9 +911,13 @@ in {
           gate "$STATUS" "$(printf '%s' "''${MSG[@]}")"
 
           # Ensure that local terraform state for workspace $TF_NAME does already exist
-          STATUS="$([ -f "$ENC_STATE_PATH" ] && echo "pass" || echo "FAIL")"
+          STATUS="$([ "$ENC_STATE_EXISTS" = "TRUE" ] && echo "pass" || echo "FAIL")"
           echo "  Terraform local state presence:  = $STATUS"
-          gate "$STATUS" "Terraform local state for workspace \"$TF_NAME\" appears to not already exist at: $ENC_STATE_PATH"
+          MSG=(
+            "Terraform local state for workspace \"$TF_NAME\" appears to not already exist at:\n"
+            "  $ENC_STATE_REF\n"
+          )
+          gate "$STATUS" "$(printf '%s' "''${MSG[@]}")"
 
           # Ensure that remote terraform state for workspace $TF_NAME does not already exist
           STATUS="$(terraform state list &> /dev/null && echo "FAIL" || echo "pass")"
@@ -931,56 +935,31 @@ in {
           gate "$STATUS" "$(printf '%s' "''${MSG[@]}")"
           echo
 
+          ${localPreexistingStateCheck}
+          ${localStatePrep}
+          ${localWorkLog}
+
           warn "STARTING MIGRATION FOR TF WORKSPACE $TF_NAME"
           echo
           echo "Status:"
 
-          # Set up a tmp work dir
-          echo -n "  Create a tmp work dir            "
-          TMPDIR="$(mktemp -d -t "tf-$TF_NAME-migrate-remote-XXXXXX")"
-          trap 'rm -rf -- "$TMPDIR"' EXIT
-          echo "                                      ...done"
-
-          # Decrypt the pre-existing TF state file
-          echo -n "  Decrypting locally               "
-          if [ "$INFRA_TYPE" = "prem" ]; then
-            rage -i secrets-prem/age-bootstrap -d "$ENC_STATE_PATH" > "$TMPDIR/terraform-$TF_NAME.tfstate"
-          else
-            ${sopsDecrypt "binary" "$ENC_STATE_PATH"} > "$TMPDIR/terraform-$TF_NAME.tfstate"
-          fi
-          echo "                                      ...done"
-          echo
-
-          # Copy the config with generated remote
-          echo -n "  Setting up config.tf.json        "
-          cp config.tf.json "$TMPDIR/config.tf.json"
-          echo "                                      ...done"
-          echo
-
-          # Initialize a new TF state dir with remote backend
-          echo "  Initializing remote config       "
-          echo
-          pushd "$TMPDIR"
-          terraform init -reconfigure
-          echo "                                      ...done"
-          echo
-
           # Push the local state to the remote
-          echo "  Pushing local state to remote    "
-          echo
-          terraform state push "terraform-$TF_NAME.tfstate"
-          echo "                                      ...done"
-          echo
-          popd
-          echo
+          echo -n "  Pushing local state to remote    ..."
+          terraform state push "terraform-$TF_NAME.tfstate" &>> "$WORKLOG"
+          echo "done"
 
+          ${localStateCleanup}
+
+          echo
           warn "FINISHED MIGRATION TO REMOTE FOR TF WORKSPACE $TF_NAME"
           echo
           echo "  * The new remote state file is found at vbk path:"
           echo "    $VBK_BACKEND/state/$BITTE_NAME/$TF_NAME"
           echo
+          echo "  * By default, in this new remote state, terraform will have started a new lineage and reset the serial number"
+          echo
           echo "  * The associated encrypted local state no longer in use may now be deleted:"
-          echo "    $ENC_STATE_PATH"
+          echo "    $ENC_STATE_REF"
           echo
         '';
     };
