@@ -1,0 +1,20 @@
+{
+  "bitwarden": {
+    "owner": "maxlaverse",
+    "provider-source-address": "registry.terraform.io/maxlaverse/bitwarden",
+    "repo": "terraform-provider-bitwarden",
+    "rev": "v0.2.0",
+    "sha256": "sha256-gcB/Fv3fs4Zj+dGStK8OOE7sHNeEdiBmqTjsq6N+hck=",
+    "vendorSha256": "sha256-sWPlXEHOJFEkeM/IscbrVxqkQTBfwIDICzTXCxWZRZI=",
+    "version": "0.2.0"
+  },
+  "rabbitmq": {
+    "owner": "cyrilgdn",
+    "provider-source-address": "registry.terraform.io/cyrilgdn/rabbitmq",
+    "repo": "terraform-provider-rabbitmq",
+    "rev": "v1.6.0",
+    "sha256": "sha256-gtqH+/Yg5dCovdDlg/JrDqOKfxTKPwfCvnV8MUAjLGs=",
+    "vendorSha256": "sha256-wbnjAM2PYocAtRuY4fjLPGFPJfzsKih6Q0YCvFyMulQ=",
+    "version": "1.6.0"
+  }
+}
