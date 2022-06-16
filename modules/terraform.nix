@@ -1104,26 +1104,13 @@ in {
     currentCoreNode = lib.mkOption {
       internal = true;
       type = with lib.types; nullOr attrs;
-      default = let
-        names =
-          map builtins.attrNames [ cfg.coreNodes cfg.premNodes cfg.premSimNodes ];
-        combinedNames = builtins.foldl' (s: v:
-          s ++ (map (name:
-            if (builtins.elem name s) then
-              throw "Duplicate node name: ${name}"
-            else
-              name) v)) [ ] names;
-      in builtins.deepSeq combinedNames
-      (cfg.coreNodes."${nodeName}" or
-      cfg.premNodes."${nodeName}" or
-      cfg.premSimNodes."${nodeName}" or
-      null);
+      default = null;
     };
 
     currentAwsAutoScalingGroup = lib.mkOption {
       internal = true;
       type = with lib.types; nullOr attrs;
-      default = cfg.awsAutoScalingGroups."${nodeName}" or null;
+      default = null;
     };
 
     cluster = lib.mkOption {
@@ -1236,7 +1223,7 @@ in {
               export TF_HTTP_USERNAME="$user"
               export TF_HTTP_PASSWORD="$pass"
 
-              terraform init -reconfigure 1>&2
+              terraform init -reconfigure -upgrade 1>&2
             '';
           in {
             configuration = lib.mkOption {
@@ -1293,5 +1280,27 @@ in {
           };
         }));
     };
+  };
+
+  config = {
+    currentCoreNode =
+      let
+        names =
+          map builtins.attrNames [ cfg.coreNodes cfg.premNodes cfg.premSimNodes ];
+        combinedNames = builtins.foldl' (s: v:
+          s ++ (map (name:
+            if (builtins.elem name s) then
+              throw "Duplicate node name: ${name}"
+            else
+              name) v)) [ ] names;
+      in lib.mkIf (nodeName != null) (
+        builtins.deepSeq combinedNames
+          (cfg.coreNodes."${nodeName}" or
+            cfg.premNodes."${nodeName}" or
+            cfg.premSimNodes."${nodeName}" or
+            null)
+      );
+
+    currentAwsAutoScalingGroup = lib.mkIf (nodeName != null) (cfg.awsAutoScalingGroups."${nodeName}" or null);
   };
 }
