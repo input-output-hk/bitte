@@ -127,6 +127,6 @@ in
       });
 
     terraform-with-plugins =
-      final.terraform_0_13.withPlugins
+      final.terraform.withPlugins
       (lib.attrVals final.terraform-provider-names);
   }
