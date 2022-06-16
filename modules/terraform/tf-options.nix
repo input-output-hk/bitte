@@ -73,6 +73,7 @@
           rage
           sops
           terraform-with-plugins
+          util-linux
         ]
     }"
   '';
@@ -202,6 +203,56 @@
     # }
   '';
 
+  localWorkLog = ''
+    # Create a worklog file and add trap handling
+    WORKLOG="$(mktemp -t tf-wrapper-logs-XXXXXX)"
+    touch "$WORKLOG"
+
+    TRAP_MSG() {
+      echo >&2
+      echo >&2
+      echo >&2 "FAIL: Error or signal detected"
+      echo >&2 "      Debug log output may be found at:"
+      echo >&2
+      echo >&2 "      $WORKLOG"
+    }
+
+    # Traps based on:
+    # https://unix.stackexchange.com/questions/79648/how-to-trigger-error-using-trap-command
+
+    unset KILLED_BY
+
+    # Set traps for signals, passing the signal through to the final trap handler
+    for SIGNAL in INT QUIT TERM HUP; do
+      # shellcheck disable=SC2064
+      trap "KILLED_BY=$SIGNAL; exit $((128 + $(kill -l "$SIGNAL")))" "$SIGNAL"
+    done
+
+    trap '
+      RC="$?"
+
+      # If exiting due to an error RC or KILLED_BY signal, print the trap msg
+      if [ "$RC" != "0" ] || [ -n "''${KILLED_BY:-}" ]; then
+        TRAP_MSG
+      fi
+
+      # If a signal was the source of exit and was intercepted by the above signal traps,
+      # re-issue the signal now that the trap msg has been shown, so process parents can
+      # also handle the signal appropriately.
+      if [ -n "''${KILLED_BY:-}" ]; then
+        trap - "$KILLED_BY"
+        kill -s "$KILLED_BY" "$$"
+      fi
+
+      # If just an otherwise unhealthy exit, exit with the given return code
+      [ "$RC" != "0" ] && exit "$RC"
+
+      # Otherwise, no reason to retain the worklog, so clean up and exit cleanly
+      rm -f "$WORKLOG"
+      exit "$RC"
+    ' EXIT
+  '';
+
   # Encrypt local state to the encrypted folder.
   # Use binary encryption instead of json for more compact representation
   # and to reduce information leakage via many unencrypted json keys.
@@ -211,8 +262,12 @@
       STATE_SHA256_POST="$(sha256sum "terraform-$TF_NAME.tfstate")"
 
       if [ "''${STATE_SHA256_PRE%% *}" != "''${STATE_SHA256_POST%% *}" ]; then
-        echo "State hash change detected..."
-        echo "Extracting state change details..."
+        echo "State hash: change detected..."
+        echo
+        warn "STARTING STATE COMMIT FOR TF WORKSPACE $TF_NAME"
+        echo
+        echo "Status:"
+        echo -n "  Extracting state change details  ..."
         STATE_SERIAL="$(jq -r '.serial' < "terraform-$TF_NAME.tfstate")"
         STATE_DETAIL="$(jq -r '. | "* serial: \(.serial)\n* lineage: \(.lineage)\n* version: \(.version)\n* terraform_version: \(.terraform_version)"' < "terraform-$TF_NAME.tfstate")"
         MSG=(
@@ -220,50 +275,55 @@
           "State parameters in this commit:\n"
           "$STATE_DETAIL"
         )
+        echo "done"
+
+        ${localWorkLog}
 
         # Set up a tmp git worktree on the TF_BRANCH
-        echo -n -e "  Create a tmp git worktree        ...\n\n"
+        echo -n "  Create a tmp git worktree        ..."
         WORKTREE="$(mktemp -u -d -t tf-$TF_NAME-$BITTE_NAME-XXXXXX)"
         if [ "$TF_LOC_BRANCH_EXISTS" = "TRUE" ]; then
-          git worktree add --checkout "$WORKTREE" "$REMOTE/$TF_BRANCH"
-          git -C "$WORKTREE" switch "$TF_BRANCH"
-          git -C "$WORKTREE" merge --ff
+          {
+            git worktree add --checkout "$WORKTREE" "$REMOTE/$TF_BRANCH"
+            git -C "$WORKTREE" switch "$TF_BRANCH"
+            git -C "$WORKTREE" merge --ff
+          } &>> "$WORKLOG"
 
         elif [ "$TF_LOC_BRANCH_EXISTS" = "FALSE" ]; then
-          git worktree add -b "$TF_BRANCH" "$WORKTREE" "$REMOTE/$TF_BRANCH"
+          git worktree add -b "$TF_BRANCH" "$WORKTREE" "$REMOTE/$TF_BRANCH" &>> "$WORKLOG"
 
         fi
-        echo -n -e "                                   ...done\n\n"
+        echo "done"
 
         # Encrypt the plaintext TF state file
-        # echo -n -e "  Encrypting locally               ...\n"
-        echo "Encrypting TF state changes to: $WORKTREE/$ENC_STATE_PATH"
+        echo -n "  Encrypting locally               ..."
         if [ "$INFRA_TYPE" = "prem" ]; then
           rage -i secrets-prem/age-bootstrap -a -e "terraform-$TF_NAME.tfstate" > "$WORKTREE/$ENC_STATE_PATH"
         else
-          ${sopsEncrypt "binary" "binary" "\"terraform-$TF_NAME.tfstate\""} > "$WORKTREE/$ENC_STATE_PATH"
+          ${sopsEncrypt "binary" "binary" "terraform-$TF_NAME.tfstate"} > "$WORKTREE/$ENC_STATE_PATH"
         fi
-        echo -n -e "                                   ...done\n\n"
+        echo "done"
 
         # Git commit encrypted state
         # In the case of hydrate-secrets, force add to avoid git exclusion in some ops/world repos based on the filename containing the word secret
         # echo "Git adding state changes"
-        echo -n -e "  Committing encrypted state       ...\n"
-        echo
-        git -C "$WORKTREE" add ${if name == "hydrate-secrets" then "-f" else ""} "$WORKTREE/$ENC_STATE_PATH"
-        git -C "$WORKTREE" commit --no-verify -m "$(echo -e "$(printf '%s' "''${MSG[@]}")")"
-        git -C "$WORKTREE" push -u "$REMOTE" "$TF_BRANCH"
-        echo -n -e "                                   ...done\n\n"
+        echo -n "  Committing encrypted state       ..."
+        {
+          git -C "$WORKTREE" add ${if name == "hydrate-secrets" then "-f" else ""} "$WORKTREE/$ENC_STATE_PATH"
+          git -C "$WORKTREE" commit --no-verify -m "$(echo -e "$(printf '%s' "''${MSG[@]}")")"
+          git -C "$WORKTREE" push -u "$REMOTE" "$TF_BRANCH"
+        } &>> "$WORKLOG"
+        echo "done"
 
         # Git cleanup plaintext TF state and worktree
-        echo -n -e "  Cleaning up git state            ...\n\n"
-        rm -vf "$WORKTREE/terraform-$TF_NAME.tfstate"
-        git worktree remove "$WORKTREE"
-        echo -n -e "                                   ...done\n\n"
-
-        # warn "Please commit these TF state changes ASAP to avoid loss of state or state divergence!"
+        echo -n "  Cleaning up git state            ..."
+        {
+          rm -vf "$WORKTREE/terraform-$TF_NAME.tfstate"
+          git worktree remove "$WORKTREE"
+        } &>> "$WORKLOG"
+        echo "done"
       else
-        echo "State hash change not detected..."
+        echo "State hash: change not detected..."
       fi
     fi
   '';
@@ -344,6 +404,7 @@
 
   prepare = ''
     set -euo pipefail
+    [ -n "''${TF_DEBUG:-}" ] && set -x
     ${exportPath}
 
     # Nix interpolated common vars
@@ -505,16 +566,13 @@
       for STATE in terraform*.tfstate terraform*.tfstate.backup; do
         [ -f "$STATE" ] && {
           echo
-          echo "Leftover terraform local state exists in the top level repo directory at:"
+          warn "Leftover terraform local state exists in the top level repo directory at:"
+          echo
           echo "  $TOP/$STATE"
           echo
-          echo "This may be due to a failed terraform command."
-          echo "Diff may be used to compare leftover state against encrypted-committed state."
-          echo
-          echo "When all expected state is confirmed to reside in the encrypted-committed state,"
-          echo "then delete this $STATE file and try again."
-          echo
-          echo "A diff example command for sops encrypted-commited state is:"
+          echo "* This may be due to a failed terraform command."
+          echo "* Diff may be used to compare leftover state against encrypted-committed state."
+          echo "* A diff example command to compare leftover state against encrypted-commited state is:"
           echo
           echo "  icdiff $STATE \\"
           if [ "$INFRA_TYPE" = "prem" ]; then
@@ -523,8 +581,15 @@
             echo "  <(git cat-file blob \"$ENC_STATE_REF\" | sops -d /dev/stdin)"
           fi
           echo
-          echo "Leftover plaintext TF state should not be committed and should be removed as"
-          echo "soon as possible since it may contain secrets."
+          echo "* If it is determined that this leftover terraform local state should be commited,"
+          echo "  example commands to do so are:"
+          echo
+          echo "  <TODO>"
+          echo
+          echo "* After all necessary state is confirmed to reside in the encrypted-committed state,"
+          echo "  then delete this $STATE file and try again."
+          echo
+          warn "Leftover plaintext TF state should not be committed and should be removed ASAP is it may contain plaintext secrets"
           exit 1
         }
       done
@@ -662,22 +727,26 @@ in {
           gate "$STATUS" "$(printf '%s' "''${MSG[@]}")"
           echo
 
+          ${localWorkLog}
+
           warn "STARTING MIGRATION FOR TF WORKSPACE $TF_NAME"
           echo
           echo "Status:"
 
           # Set up a tmp git worktree on the TF_BRANCH
-          echo -n -e "  Create a tmp git worktree        ...\n\n"
           WORKTREE="$(mktemp -u -d -t tf-$TF_NAME-$BITTE_NAME-migrate-local-XXXXXX)"
+          echo -n "  Create a tmp git worktree        ..."
           if [ "$TF_REM_BRANCH_EXISTS" = "FALSE" ]; then
-            git worktree add "$WORKTREE" HEAD
-            git -C "$WORKTREE" switch --orphan "$TF_BRANCH"
+            {
+              git worktree add "$WORKTREE" HEAD
+              git -C "$WORKTREE" switch --orphan "$TF_BRANCH"
+            } &>> "$WORKLOG"
 
             {
               echo 'terraform*.tfstate'
               echo 'terraform*.tfstate.backup'
             } > "$WORKTREE/.gitignore"
-            git -C "$WORKTREE" add "$WORKTREE/.gitignore"
+            git -C "$WORKTREE" add "$WORKTREE/.gitignore" &>> "$WORKLOG"
 
             {
               echo 'This branch is used for repo global encrypted terraform state'
@@ -686,32 +755,37 @@ in {
               echo '* Do NOT delete this branch'
               echo '* Branch protection rules should be applied to this branch'
             } > "$WORKTREE/README.md"
-            git -C "$WORKTREE" add "$WORKTREE/README.md"
 
-            mkdir -p "$WORKTREE/$ENC_STATE_DIR"
-            touch "$WORKTREE/$ENC_STATE_DIR/.gitkeep"
-            git -C "$WORKTREE" add "$WORKTREE/$ENC_STATE_DIR/.gitkeep"
+            {
+              git -C "$WORKTREE" add "$WORKTREE/README.md"
 
-            git -C "$WORKTREE" commit --no-verify -m "$VBK_BACKEND_LOG_SIG"
-            git -C "$WORKTREE" push -u "$REMOTE" "$TF_BRANCH"
+              mkdir -p "$WORKTREE/$ENC_STATE_DIR"
+              touch "$WORKTREE/$ENC_STATE_DIR/.gitkeep"
+              git -C "$WORKTREE" add "$WORKTREE/$ENC_STATE_DIR/.gitkeep"
+
+              git -C "$WORKTREE" commit --no-verify -m "$VBK_BACKEND_LOG_SIG"
+              git -C "$WORKTREE" push -u "$REMOTE" "$TF_BRANCH"
+            } &>> "$WORKLOG"
 
           elif [ "$TF_LOC_BRANCH_EXISTS" = "TRUE" ]; then
-            git worktree add --checkout "$WORKTREE" "$REMOTE/$TF_BRANCH"
-            git -C "$WORKTREE" switch "$TF_BRANCH"
-            git -C "$WORKTREE" merge --ff
+            {
+              git worktree add --checkout "$WORKTREE" "$REMOTE/$TF_BRANCH"
+              git -C "$WORKTREE" switch "$TF_BRANCH"
+              git -C "$WORKTREE" merge --ff
+            } &>> "$WORKLOG"
 
           elif [ "$TF_LOC_BRANCH_EXISTS" = "FALSE" ]; then
-            git worktree add -b "$TF_BRANCH" "$WORKTREE" "$REMOTE/$TF_BRANCH"
+            git worktree add -b "$TF_BRANCH" "$WORKTREE" "$REMOTE/$TF_BRANCH" &>> "$WORKLOG"
 
           fi
-          echo -n -e "                                   ...done\n\n"
+          echo "done"
 
           # Pull remote state for $TF_NAME to the tmp git worktree
-          echo -n -e "  Fetching remote state            "
+          echo -n "  Fetching remote state            ..."
           terraform state pull > "$WORKTREE/terraform-$TF_NAME.tfstate"
-          echo -n -e "...done\n\n"
+          echo "done"
 
-          echo "Extracting state change details..."
+          echo -n "  Extracting state details         ..."
           STATE_SERIAL="$(jq -r '.serial' < "$WORKTREE/terraform-$TF_NAME.tfstate")"
           STATE_DETAIL="$(jq -r '. | "* serial: \(.serial)\n* lineage: \(.lineage)\n* version: \(.version)\n* terraform_version: \(.terraform_version)"' < "$WORKTREE/terraform-$TF_NAME.tfstate")"
           MSG=(
@@ -720,35 +794,43 @@ in {
             "State parameters in this commit:\n"
             "$STATE_DETAIL"
           )
+          echo "done"
 
           # Encrypt the plaintext TF state file
-          echo -n -e "  Encrypting locally               ...\n"
+          echo -n "  Encrypting locally               ..."
           if [ "$INFRA_TYPE" = "prem" ]; then
             rage -i secrets-prem/age-bootstrap -a -e "$WORKTREE/terraform-$TF_NAME.tfstate" > "$WORKTREE/$ENC_STATE_PATH"
           else
-            ${sopsEncrypt "binary" "binary" "\"\${WORKTREE}/terraform-$TF_NAME.tfstate\""} > "$WORKTREE/$ENC_STATE_PATH"
+            ${sopsEncrypt "binary" "binary" "$WORKTREE/terraform-$TF_NAME.tfstate"} > "$WORKTREE/$ENC_STATE_PATH"
           fi
-          echo -n -e "                                   ...done\n\n"
+          echo "done"
 
           # Git commit encrypted state
           # In the case of hydrate-secrets, force add to avoid git exclusion in some ops/world repos based on the filename containing the word secret
-          echo -n -e "  Committing encrypted state       ...\n"
-          echo
-          git -C "$WORKTREE" add ${if name == "hydrate-secrets" then "-f" else ""} "$WORKTREE/$ENC_STATE_PATH"
-          git -C "$WORKTREE" commit --no-verify -m "$(echo -e "$(printf '%s' "''${MSG[@]}")")"
-          git -C "$WORKTREE" push -u "$REMOTE" "$TF_BRANCH"
-          echo -n -e "                                   ...done\n\n"
+          echo -n "  Committing encrypted state       ..."
+          {
+            git -C "$WORKTREE" add ${if name == "hydrate-secrets" then "-f" else ""} "$WORKTREE/$ENC_STATE_PATH"
+            git -C "$WORKTREE" commit --no-verify -m "$(echo -e "$(printf '%s' "''${MSG[@]}")")"
+            git -C "$WORKTREE" push -u "$REMOTE" "$TF_BRANCH"
+          } &>> "$WORKLOG"
+          echo "done"
 
           # Git cleanup plaintext TF state and worktree
-          echo -n -e "  Cleaning up git state            ...\n\n"
-          rm -vf "$WORKTREE/terraform-$TF_NAME.tfstate"
-          git worktree remove "$WORKTREE"
-          echo -n -e "                                   ...done\n\n"
+          echo -n "  Cleaning up git state            ..."
+          {
+            rm -vf "$WORKTREE/terraform-$TF_NAME.tfstate"
+            git worktree remove "$WORKTREE"
+          } &>> "$WORKLOG"
+          echo "done"
+          echo
 
           warn "FINISHED MIGRATION TO LOCAL FOR TF WORKSPACE $TF_NAME"
           echo
           echo "  * The encrypted local state file is found at:"
           echo "    $ENC_STATE_REF"
+          echo
+          echo "  * Once the local state is confirmed working as expected, the corresponding remote state no longer in use may be deleted:"
+          echo "    $VBK_BACKEND/state/$BITTE_NAME/$TF_NAME"
           echo
           echo "  * Decrypt and review with:"
           if [ "$INFRA_TYPE" = "prem" ]; then
@@ -759,9 +841,6 @@ in {
             echo "NOTE: binary sops encryption is used on the TF state files both for more compact representation"
             echo "      and to avoid unencrypted keys from contributing to an information attack vector."
           fi
-          echo
-          echo "  * Once the local state is confirmed working as expected, the corresponding remote state no longer in use may be deleted:"
-          echo "    $VBK_BACKEND/state/$BITTE_NAME/$TF_NAME"
           echo
         '';
     };
