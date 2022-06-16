@@ -44,11 +44,11 @@
   sopsDecrypt = inputType: path:
   # NB: we can't work on store paths that don't yet exist before they are generated
     assert lib.assertMsg (builtins.isString path) "sopsDecrypt: path must be a string ${toString path}";
-    "{ sops --decrypt --input-type ${inputType} ${path} || ${credentialHint}; }";
+    "{ sops --decrypt --input-type ${inputType} \"${path}\" || ${credentialHint}; }";
 
   sopsEncrypt = inputType: outputType: path:
     assert lib.assertMsg (builtins.isString path) "sopsDecrypt: path must be a string ${toString path}";
-    "{ sops --encrypt --kms ${toString cfg.kms} --input-type ${inputType} --output-type ${outputType} ${path} || ${credentialHint}; }";
+    "{ sops --encrypt --kms ${toString cfg.kms} --input-type ${inputType} --output-type ${outputType} \"${path}\" || ${credentialHint}; }";
 
   coreNode =
     if isPrem
@@ -672,20 +672,60 @@ in {
         pkgs.writeBashBinChecked "${name}-custom" ''
           ${prepare}
 
-          [ "$VBK_BACKEND" = "local" ] && {
-            warn "Nix custom terraform command usage note for local state:"
-            echo
-            echo "Depending on the terraform command you are running,"
-            echo "the state file argument may need to be provided:"
-            echo
-            echo "  $STATE_ARG"
-            echo
-            echo "********************************************************"
-            echo
-          }
+          if [ "$VBK_BACKEND" = "local" ]; then
+            ARGS=( "$@" )
 
-          terraform "$@"
-          ${localStateEncrypt}
+            # TF command invocations accepting or requiring local state as indicated by sub-command --help
+            TF_SUBCMDS_REQ_LOCAL_STATE=(
+              "apply"
+              "console"
+              "destroy"
+              "env"
+              "import"
+              "output"
+              "plan"
+              "refresh"
+              "taint"
+              "untaint"
+              "workspace"
+              "state"
+            )
+
+            # Check if any provided args require or accept local state
+            unset SAFETY_SKIP
+            for ARG in "''${ARGS[@]}"; do
+              if [[ " ''${TF_SUBCMDS_REQ_LOCAL_STATE[*]} " == *" $ARG "* ]]; then
+
+                # If a subcommand accepting or requiring local state is present, check for local state declaration
+                if [[ ! " ''${ARGS[*]} " =~ terraform-$TF_NAME.tfstate ]]; then
+
+                  # Warn and exit if local state has not been passed but should be
+                  warn "Custom terraform command issued accepts or requires local state declaration"
+                  echo
+                  echo "  * The custom terraform command issued contains an argument accepting or requiring local state:"
+                  echo
+                  echo "    terraform $*"
+                  echo
+                  echo "  * The argument sub-command accepting or requiring local state is: \"$ARG\""
+                  echo "  * However, the local decrypted state file for this TF workspace, $TF_NAME, was not passed to the sub-command as an arg:"
+                  echo
+                  echo "    terraform-$TF_NAME.tfstate"
+                  echo
+                  echo "  * For most terraform sub-commands accepting or requiring local state, the state declaration is in the following form:"
+                  echo
+                  echo "    $STATE_ARG"
+                  echo
+                  echo "  * Otherwise, if you run a terraform command accepting or requiring state and do not provide the local state as an argument, you may lose important state"
+                  SAFETY_SKIP="true"
+                fi
+              fi
+            done;
+          fi
+
+          if [ -z "''${SAFETY_SKIP:-}" ]; then
+            terraform "$@"
+            ${localStateEncrypt}
+          fi
           ${localStateCleanup}
         '';
     };
