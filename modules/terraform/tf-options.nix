@@ -183,8 +183,10 @@
     fi
   '';
 
+  # Create a worklog file and add trap handling
+  # Traps based on:
+  # https://unix.stackexchange.com/questions/79648/how-to-trigger-error-using-trap-command
   localWorkLog = ''
-    # Create a worklog file and add trap handling
     WORKLOG="$(mktemp -t tf-wrapper-logs-XXXXXX)"
     touch "$WORKLOG"
 
@@ -196,9 +198,6 @@
       echo >&2
       echo >&2 "      $WORKLOG"
     }
-
-    # Traps based on:
-    # https://unix.stackexchange.com/questions/79648/how-to-trigger-error-using-trap-command
 
     unset KILLED_BY
 
@@ -393,7 +392,7 @@
         echo
         echo "* This may be due to a failed terraform command."
         echo "* Diff may be used to compare leftover state against encrypted-committed state."
-        echo "* A diff example command to compare leftover state against encrypted-commited state is:"
+        echo "* A diff example command to compare leftover state against encrypted-committed state is:"
         echo
         echo "  icdiff $STATE \\"
         if [ "$INFRA_TYPE" = "prem" ]; then
@@ -402,10 +401,54 @@
           echo "  <(git cat-file blob \"$ENC_STATE_REF\" | sops -d /dev/stdin)"
         fi
         echo
-        echo "* If it is determined that this leftover terraform local state should be commited,"
+        echo "* If it is determined that this leftover terraform local state should be committed,"
         echo "  example commands to do so are:"
         echo
-        echo "  <TODO>"
+        echo "  * First, extract state details and form a default commit message (subtitute this with a different message if needed):"
+        echo
+        echo "  STATE_SERIAL=\"\$(jq -r '.serial' < \"$STATE\")\""
+        printf "%s\n" "  STATE_DETAIL=\"\$(jq -r '. | \"* serial: \(.serial)\\n* lineage: \(.lineage)\\n* version: \(.version)\\n* terraform_version: \(.terraform_version)\"' < \"$STATE\")\""
+        echo "  MSG=("
+        printf "%s\n" "    \"$TF_NAME: tf state updated to serial \$STATE_SERIAL\\n\\n\\n\""
+        printf "%s\n" "    \"State parameters in this commit:\\n\""
+        echo "    \"\$STATE_DETAIL\""
+        echo "  )"
+        echo
+        echo "  * Create an env to encrypt plaintext state to and commit from there."
+        echo "  * In reaching this error message, you are in the top level repo dir, git remote state has already"
+        echo "    been updated, remote terraform branch state has been found to exist, local terraform branch state"
+        echo "    (if it exists) is fast-forwardable to the git remote, and is not checked out.  In this case,"
+        echo "    a temporary worktree is convienent to use without disrupting current branch activity:"
+        echo
+        echo "  WORKTREE=\"\$(mktemp -u -d -t tf-$TF_NAME-$BITTE_NAME-XXXXXX)\""
+        echo
+        echo "  * If a \"$TF_BRANCH\" branch already exists locally (check with: git branch -avv), then:"
+        echo
+        echo "  git worktree add --checkout \"\$WORKTREE\" \"$REMOTE/$TF_BRANCH\""
+        echo "  git -C \"\$WORKTREE\" switch \"$TF_BRANCH\""
+        echo "  git -C \"\$WORKTREE\" merge --ff"
+        echo
+        echo "  * Otherwise, if a \"$TF_BRANCH\" branch does NOT already exist locally:"
+        echo
+        echo "  git worktree add -b \"$TF_BRANCH\" \"\$WORKTREE\" \"$REMOTE/$TF_BRANCH\""
+        echo
+        echo "  * Now encrypt the plaintext state and save it to the worktree:"
+        echo
+        if [ "$INFRA_TYPE" = "prem" ]; then
+          echo "    rage -i secrets-prem/age-bootstrap -a -e \"$STATE\" > \"\$WORKTREE/$ENC_STATE_PATH\""
+        else
+          echo "    sops --encrypt --kms \"${toString cfg.kms}\" \\"
+          echo "         --input-type binary --output-type binary \\"
+          echo "         \"$STATE\" > \"\$WORKTREE/$ENC_STATE_PATH\""
+        fi
+        echo
+        echo "  * Git add, commit, push and clean up:"
+        echo
+        echo "  git -C \"\$WORKTREE\" add ${if name == "hydrate-secrets" then "-f" else ""} \"\$WORKTREE/$ENC_STATE_PATH\""
+        echo "  git -C \"\$WORKTREE\" commit --no-verify -m \"\$(echo -e \"\$(printf '%s' \"\''${MSG[@]}\")\")\""
+        echo "  git -C \"\$WORKTREE\" push -u \"$REMOTE\" \"$TF_BRANCH\""
+        echo "  git worktree remove \"\$WORKTREE\""
+        echo "  rm -vf \"$STATE\""
         echo
         echo "* After all necessary state is confirmed to reside in the encrypted-committed state,"
         echo "  then delete this $STATE file and try again."
