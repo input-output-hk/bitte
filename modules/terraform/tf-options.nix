@@ -93,7 +93,8 @@
     # Ensure that local terraform state for workspace $TF_NAME exists
     # Pull all remote updates as we don't know yet which remote we might be using; it might not be origin
     # The time for updating all remote branches seems about the same as updating a single remote branch
-    git remote update
+    echo "Fetching remote updates..."
+    git remote update &> /dev/null
 
     # Get the current branch and remote via: $BRANCH/$REMOTE
     CMD="$(git rev-parse --abbrev-ref "@{upstream}")"
@@ -301,6 +302,18 @@
           git worktree remove "$WORKTREE"
         } &>> "$WORKLOG"
         echo "done"
+
+        echo
+        echo " The diff between the last commit and this one may be viewed with:"
+        echo
+        echo "  icdiff \\"
+        if [ "$INFRA_TYPE" = "prem" ]; then
+          echo "  <(git cat-file blob \"$REMOTE/$TF_BRANCH~:$ENC_STATE_PATH\" | rage -i secrets-prem/age-bootstrap -d)"
+          echo "  <(git cat-file blob \"$ENC_STATE_REF\" | rage -i secrets-prem/age-bootstrap -d) \\"
+        else
+          echo "  <(git cat-file blob \"$REMOTE/$TF_BRANCH~:$ENC_STATE_PATH\" | sops -d /dev/stdin)"
+          echo "  <(git cat-file blob \"$ENC_STATE_REF\" | sops -d /dev/stdin) \\"
+        fi
       else
         echo "State hash: change not detected..."
       fi
