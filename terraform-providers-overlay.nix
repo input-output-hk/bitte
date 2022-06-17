@@ -17,7 +17,8 @@ in
       lib.nameValuePair name {
         inherit source;
         version = "= ${provider.version}";
-      }) final.terraform-provider-names);
+      })
+    final.terraform-provider-names);
 
     terraform-providers =
       prev.terraform-providers

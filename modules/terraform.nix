@@ -412,6 +412,7 @@ let
           '';
         };
 
+        # sic: reference to "Vault BacKend Backend"
         vbkBackend = lib.mkOption {
           type = with lib.types; str;
           default = lib.warn ''
