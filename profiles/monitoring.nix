@@ -184,6 +184,8 @@ in {
       grafana-password = {
         file = config.age.encryptedRoot + "/grafana/password.age";
         path = "/var/lib/grafana/grafana-password";
+        owner = "grafana";
+        group = "grafana";
         mode = "0600";
       };
     };

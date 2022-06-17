@@ -1,4 +1,4 @@
-{ self, config, pkgs, lib, nodeName, terralib, terranix, bittelib, ... }:
+{ self, config, pkgs, lib, nodeName, terralib, terranix, bittelib, ... }@_protoArgs:
 let
   inherit (terralib) var id regions awsProviderFor amis;
   inherit (bittelib) net;
@@ -6,13 +6,6 @@ let
   kms2region = kms: if kms == null then null else builtins.elemAt (lib.splitString ":" kms) 3;
 
   merge = lib.foldl' lib.recursiveUpdate { };
-
-  sopsDecrypt = path:
-    # NB: we can't work on store paths that don't yet exist before they are generated
-    assert lib.assertMsg (builtins.isString path) "sopsDecrypt: path must be a string ${toString path}";
-    "${pkgs.sops}/bin/sops --decrypt --input-type json ${path}";
-
-  relEncryptedFolder = lib.last (builtins.split "-" (toString config.secrets.encryptedRoot));
 
   # without zfs
   coreAMIs = lib.pipe supportedRegions [
@@ -212,8 +205,6 @@ let
         domain = lib.mkOption { type = with lib.types; str; };
 
         secrets = lib.mkOption { type = with lib.types; path; };
-
-        vaultWardenTransitBackupItemId = lib.mkOption { type = with lib.types; str; };
 
         requiredInstanceTypes = lib.mkOption {
           internal = true;
@@ -416,11 +407,25 @@ let
         vaultBackend = lib.mkOption {
           type = with lib.types; str;
           default = "https://vault.infra.aws.iohkdev.io";
+          description = ''
+            The vault URL to utilize to obtain remote VBK vault credentials.
+          '';
         };
 
+        # sic: reference to "Vault BacKend Backend"
         vbkBackend = lib.mkOption {
           type = with lib.types; str;
-          default = "https://vbk.infra.aws.iohkdev.io";
+          default = lib.warn ''
+            CAUTION: -- TF proto level cluster option vbkBackend default will change soon to:
+            cluster.vbkBackend = "local";
+
+            To migrate from remote state to local state usage, use:
+            nix run .#clusters.$BITTE_CLUSTER.tf.<TF_WORKSPACE>.migrateLocal
+          '' "https://vbk.infra.aws.iohkdev.io";
+          description = ''
+            The vault remote backend URL to utilize.
+            Set this to "local" to utilize local state instead of remote state.
+          '';
         };
 
         vbkBackendSkipCertVerification = lib.mkOption {
@@ -1134,164 +1139,21 @@ in {
     tf = lib.mkOption {
       default = { };
       type = with lib.types;
-        attrsOf (submodule ({ name, ... }@this: {
-          options = let
-            backend = "${cfg.vaultBackend}/v1";
+        attrsOf (submodule (
+          { config, name, ... }: {
+            imports = [
+              ((import ./terraform/tf-options.nix) {
+                # _proto level args
+                _protoConfig = _protoArgs.config;
+                inherit (_protoArgs) pkgs terranix;
+                inherit (pkgs) lib;
 
-            # If no kms cluster key is present, use prem deploy-rs equivalent commands
-            coreNode = if cfg.infraType == "prem" then "${cfg.name}-core-1" else "core-1";
-            coreNodeCmd = if cfg.infraType == "prem" then "ssh" else "${pkgs.bitte}/bin/bitte ssh";
-
-            copy = ''
-              export PATH="${
-                lib.makeBinPath [ pkgs.coreutils pkgs.terraform-with-plugins ]
-              }"
-              set -euo pipefail
-
-              rm -f config.tf.json
-              cp "${this.config.output}" config.tf.json
-              chmod u+rw config.tf.json
-            '';
-
-            prepare = ''
-              # shellcheck disable=SC2050
-              if [ "${name}" == "hydrate-cluster" ]; then
-                declare NOMAD_TOKEN
-                NOMAD_TOKEN="$(${sopsDecrypt "${relEncryptedFolder}/nomad.bootstrap.enc.json"}|${pkgs.jq}/bin/jq -r '.token')"
-                export NOMAD_TOKEN
-                declare VAULT_TOKEN
-                VAULT_TOKEN="$(${sopsDecrypt "${relEncryptedFolder}/vault.enc.json"}|${pkgs.jq}/bin/jq -r '.root_token')"
-                export VAULT_TOKEN
-                declare CONSUL_HTTP_TOKEN
-                CONSUL_HTTP_TOKEN="$(${sopsDecrypt "${relEncryptedFolder}/consul-core.json"}|${pkgs.jq}/bin/jq -r '.acl.tokens.master')"
-                export CONSUL_HTTP_TOKEN
-              fi
-
-              for arg in "$@"
-              do
-                case "$arg" in
-                  *routing*)
-                    echo
-                    echo -----------------------------------------------------
-                    echo CAUTION: It appears that you are indulging on a
-                    echo terraform operation specifically involving routing.
-                    echo Are you redeploying routing?
-                    echo -----------------------------------------------------
-                    echo You MUST know that a redeploy of routing will
-                    echo necesarily re-trigger the bootstrapping of the ACME
-                    echo service.
-                    echo -----------------------------------------------------
-                    echo You MUST also know that LetsEncrypt enforces a non-
-                    echo recoverable rate limit of 5 generations per week.
-                    echo That means: only ever redeploy routing max 5 times
-                    echo per week on a rolling basis. Switch to the LetsEncrypt
-                    echo staging envirenment if you plan on deploying routing
-                    echo more often!
-                    echo -----------------------------------------------------
-                    echo
-                    read -p "Do you want to continue this operation? [y/n] " -n 1 -r
-                    if [[ ! "$REPLY" =~ ^[Yy]$ ]]
-                    then
-                      exit
-                    fi
-                    ;;
-                esac
-              done
-
-              ${copy}
-              if [ -z "''${GITHUB_TOKEN:-}" ]; then
-                echo
-                echo -----------------------------------------------------
-                echo ERROR: env variable GITHUB_TOKEN is not set or empty.
-                echo Yet, it is required to authenticate before the
-                echo utilizing the cluster vault terraform backend.
-                echo -----------------------------------------------------
-                echo "Please 'export GITHUB_TOKEN=ghp_hhhhhhhh...' using"
-                echo your appropriate personal github access token.
-                echo -----------------------------------------------------
-                exit 1
-              fi
-
-              user="''${TF_HTTP_USERNAME:-TOKEN}"
-              pass="''${TF_HTTP_PASSWORD:-$( \
-                ${pkgs.curl}/bin/curl -s -d "{\"token\": \"$GITHUB_TOKEN\"}" \
-                ${backend}/auth/github-terraform/login \
-                | ${pkgs.jq}/bin/jq -r '.auth.client_token' \
-              )}"
-
-              if [ -z "''${TF_HTTP_PASSWORD:-}" ]; then
-                echo
-                echo -----------------------------------------------------
-                echo TIP: you can avoid repetitive calls to the infra auth
-                echo api by exporting the following env variables as is.
-                echo
-                echo The current vault backend in use for TF is:
-                echo ${cfg.vaultBackend}
-                echo -----------------------------------------------------
-                echo "export TF_HTTP_USERNAME=\"$user\""
-                echo "export TF_HTTP_PASSWORD=\"$pass\""
-                echo -----------------------------------------------------
-              fi
-
-              export TF_HTTP_USERNAME="$user"
-              export TF_HTTP_PASSWORD="$pass"
-
-              terraform init -reconfigure 1>&2
-            '';
-          in {
-            configuration = lib.mkOption {
-              type = with lib.types;
-                submodule {
-                  imports = [ (terranix + "/core/terraform-options.nix") ];
-                };
-            };
-
-            output = lib.mkOption {
-              type = lib.mkOptionType { name = "${name}_config.tf.json"; };
-              apply = v:
-                terranix.lib.terranixConfiguration {
-                  inherit pkgs;
-                  modules = [ this.config.configuration ];
-                  strip_nulls = false;
-                };
-            };
-
-            config = lib.mkOption {
-              type = lib.mkOptionType { name = "${name}-config"; };
-              apply = v: pkgs.writeBashBinChecked "${name}-config" copy;
-            };
-
-            plan = lib.mkOption {
-              type = lib.mkOptionType { name = "${name}-plan"; };
-              apply = v:
-                pkgs.writeBashBinChecked "${name}-plan" ''
-                  ${prepare}
-
-                  terraform plan -out ${name}.plan "$@"
-                '';
-            };
-
-            apply = lib.mkOption {
-              type = lib.mkOptionType { name = "${name}-apply"; };
-              apply = v:
-                pkgs.writeBashBinChecked "${name}-apply" ''
-                  ${prepare}
-
-                  terraform apply ${name}.plan "$@"
-                '';
-            };
-
-            terraform = lib.mkOption {
-              type = lib.mkOptionType { name = "${name}-apply"; };
-              apply = v:
-                pkgs.writeBashBinChecked "${name}-apply" ''
-                  ${prepare}
-
-                  terraform "$@"
-                '';
-            };
-          };
-        }));
+                # Submodule level args
+                inherit config name;
+              })
+            ];
+          }
+        ));
     };
   };
 }
