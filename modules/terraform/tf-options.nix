@@ -680,7 +680,7 @@ in {
           ${prepare}
           ACTION="plan"
 
-          terraform plan "''${STATE_ARG:-}" -out "$TF_NAME.plan" "$@"
+          terraform plan ''${STATE_ARG:+$STATE_ARG} -out "$TF_NAME.plan" "$@"
           ${localStateCleanup}
         '';
     };
@@ -692,7 +692,7 @@ in {
           ${prepare}
           ACTION="apply"
 
-          terraform apply "''${STATE_ARG:-}" "$TF_NAME.plan" "$@"
+          terraform apply ''${STATE_ARG:+$STATE_ARG} "$TF_NAME.plan" "$@"
           ${localStateEncrypt}
           ${localStateCleanup}
         '';
