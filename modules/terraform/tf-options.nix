@@ -431,11 +431,14 @@
           echo "    \"\$STATE_DETAIL\""
           echo "  )"
           echo
-          echo "  * Create an env to encrypt plaintext state to and commit from there."
+          echo "  * Create or utilize an existing env to encrypt plaintext state to and commit from there."
           echo "  * In reaching this error message, you are in the top level repo dir, git remote state has already"
-          echo "    been updated, remote terraform branch state has been found to exist, local terraform branch state"
-          echo "    (if it exists) is fast-forwardable to the git remote, and is not checked out.  In this case,"
-          echo "    a temporary worktree is convienent to use without disrupting current branch activity:"
+          echo "    been updated and remote terraform branch state has been found to exist."
+          echo "  * Local terraform branch state (if it exists) may or may not be fast-forwardable to the git remote,"
+          echo "    and may or may not be not checked out."
+          echo "  * As an example, for the case that the local branch is already up to date with the remote, is not"
+          echo "    checked out, and for which a worktree does not already exist, a temporary worktree is"
+          echo "    convienent to use without disrupting current branch activity:"
           echo
           echo "  WORKTREE=\"\$(mktemp -u -d -t tf-$TF_NAME-$BITTE_NAME-XXXXXX)\""
           echo
@@ -528,8 +531,8 @@
 
     # Re-usable functions
     ${localGitStartup}
-    ${localGitCommonChecks}
     ${localPreexistingStateCheck}
+    ${localGitCommonChecks}
     ${localStatePrep}
 
     warn () {
@@ -584,7 +587,6 @@
       echo "Using local TF state for workspace \"$TF_NAME\"..."
 
       localGitStartup
-      localGitCommonChecks
 
       # Ensure that TF_BRANCH exists before proceeding
       STATUS="$([ "$TF_REM_BRANCH_EXISTS" = "TRUE" ] && echo "pass" || echo "FAIL")"
@@ -600,11 +602,17 @@
       )
       gate "$STATUS" "$(printf '%s' "''${MSG[@]}")"
 
-      # Ensure that local state exists before proceeding, re-use the same message as above
+      # Ensure that encrypted state exists before proceeding, re-use the same message as above
       STATUS="$([ "$ENC_STATE_EXISTS" = "TRUE" ] && echo "pass" || echo "FAIL")"
       gate "$STATUS" "$(printf '%s' "''${MSG[@]}")"
 
+      # Check for the most common failure first and provide useful example commands if needed
       localPreexistingStateCheck
+
+      # Check for less common failure modes
+      localGitCommonChecks
+
+      # Prepare plaintext state
       localStatePrep
     else
       if [ -z "''${GITHUB_TOKEN:-}" ]; then
@@ -795,7 +803,7 @@ in {
           )
           gate "$STATUS" "$(printf '%s' "''${MSG[@]}")"
 
-          # Ensure that local terraform state for workspace $TF_NAME does not already exist
+          # Ensure that encrypted terraform state for workspace $TF_NAME does not already exist
           STATUS="$([ "$ENC_STATE_EXISTS" = "FALSE" ] && echo "pass" || echo "FAIL")"
           echo "  Terraform local state presence:  = $STATUS"
           MSG=(
@@ -932,7 +940,6 @@ in {
           warn "TERRAFORM VBK MIGRATION TO *** REMOTE STATE *** FOR $TF_NAME:"
 
           localGitStartup
-          localGitCommonChecks
 
           ${migStartStatus}
           ${migCommonChecks}
@@ -951,7 +958,7 @@ in {
           )
           gate "$STATUS" "$(printf '%s' "''${MSG[@]}")"
 
-          # Ensure that local terraform state for workspace $TF_NAME does already exist
+          # Ensure that encrypted terraform state for workspace $TF_NAME does already exist
           STATUS="$([ "$ENC_STATE_EXISTS" = "TRUE" ] && echo "pass" || echo "FAIL")"
           echo "  Terraform local state presence:  = $STATUS"
           MSG=(
@@ -976,7 +983,13 @@ in {
           gate "$STATUS" "$(printf '%s' "''${MSG[@]}")"
           echo
 
+          # Check for the most common failure first and provide useful example commands if needed
           localPreexistingStateCheck
+
+          # Check for less common failure modes
+          localGitCommonChecks
+
+          # Prepare plaintext state
           localStatePrep
           ${localWorkLog}
 
