@@ -287,12 +287,13 @@
         echo "done"
 
         # Git commit encrypted state
-        # echo "Git adding state changes"
-        echo -n "  Committing encrypted state       ..."
+        echo "  Committing encrypted state       ..."
         git -C "$WORKTREE" add "$WORKTREE/$ENC_STATE_PATH" &>> "$WORKLOG"
+        commitPrompt
         git -C "$WORKTREE" commit --no-verify -m "$(echo -e "$(printf '%s' "''${MSG[@]}")")" &>> "$WORKLOG"
         git -C "$WORKTREE" push -u "$REMOTE" "$TF_BRANCH" &>> "$WORKLOG"
-        echo "done"
+        echo "  ...done"
+        echo
 
         # Git cleanup plaintext TF state and worktree
         echo -n "  Cleaning up git state            ..."
@@ -305,11 +306,11 @@
         echo
         echo "  icdiff \\"
         if [ "$INFRA_TYPE" = "prem" ]; then
-          echo "  <(git cat-file blob \"$REMOTE/$TF_BRANCH~:$ENC_STATE_PATH\" | rage -i secrets-prem/age-bootstrap -d)"
-          echo "  <(git cat-file blob \"$ENC_STATE_REF\" | rage -i secrets-prem/age-bootstrap -d) \\"
+          echo "  <(git cat-file blob \"$REMOTE/$TF_BRANCH~:$ENC_STATE_PATH\" | rage -i secrets-prem/age-bootstrap -d) \\"
+          echo "  <(git cat-file blob \"$ENC_STATE_REF\" | rage -i secrets-prem/age-bootstrap -d)"
         else
-          echo "  <(git cat-file blob \"$REMOTE/$TF_BRANCH~:$ENC_STATE_PATH\" | sops -d /dev/stdin)"
-          echo "  <(git cat-file blob \"$ENC_STATE_REF\" | sops -d /dev/stdin) \\"
+          echo "  <(git cat-file blob \"$REMOTE/$TF_BRANCH~:$ENC_STATE_PATH\" | sops -d /dev/stdin) \\"
+          echo "  <(git cat-file blob \"$ENC_STATE_REF\" | sops -d /dev/stdin)"
         fi
       else
         echo "State hash: change not detected..."
@@ -543,6 +544,11 @@
 
     gate () {
       [ "$1" = "pass" ] || { echo; echo -e "FAIL: $2"; exit 1; }
+    }
+
+    commitPrompt () {
+      read -p "  Press any key when you are ready to commit (you may be password/pin prompted with a timeout) " -n 1 -r -s
+      echo
     }
 
     TOP="$(git rev-parse --show-toplevel)"
@@ -841,19 +847,23 @@ in {
             touch "$WORKTREE/$ENC_STATE_DIR/.gitkeep" &>> "$WORKLOG"
             git -C "$WORKTREE" add "$WORKTREE/$ENC_STATE_DIR/.gitkeep" &>> "$WORKLOG"
 
+            echo
+            commitPrompt
             git -C "$WORKTREE" commit --no-verify -m "$VBK_BACKEND_LOG_SIG" &>> "$WORKLOG"
             git -C "$WORKTREE" push -u "$REMOTE" "$TF_BRANCH" &>> "$WORKLOG"
+            echo "  ...done"
+            echo
 
           elif [ "$TF_LOC_BRANCH_EXISTS" = "TRUE" ]; then
             git worktree add --checkout "$WORKTREE" "$REMOTE/$TF_BRANCH" &>> "$WORKLOG"
             git -C "$WORKTREE" switch "$TF_BRANCH" &>> "$WORKLOG"
             git -C "$WORKTREE" merge --ff &>> "$WORKLOG"
+            echo "done"
 
           elif [ "$TF_LOC_BRANCH_EXISTS" = "FALSE" ]; then
             git worktree add -b "$TF_BRANCH" "$WORKTREE" "$REMOTE/$TF_BRANCH" &>> "$WORKLOG"
-
+            echo "done"
           fi
-          echo "done"
 
           # Pull remote state for $TF_NAME to the tmp git worktree
           echo -n "  Fetching remote state            ..."
@@ -881,11 +891,13 @@ in {
           echo "done"
 
           # Git commit encrypted state
-          echo -n "  Committing encrypted state       ..."
+          echo "  Committing encrypted state       ..."
           git -C "$WORKTREE" add "$WORKTREE/$ENC_STATE_PATH" &>> "$WORKLOG"
+          commitPrompt
           git -C "$WORKTREE" commit --no-verify -m "$(echo -e "$(printf '%s' "''${MSG[@]}")")" &>> "$WORKLOG"
           git -C "$WORKTREE" push -u "$REMOTE" "$TF_BRANCH" &>> "$WORKLOG"
-          echo "done"
+          echo "  ...done"
+          echo
 
           # Git cleanup plaintext TF state and worktree
           echo -n "  Cleaning up git state            ..."
