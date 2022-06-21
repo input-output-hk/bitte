@@ -267,11 +267,9 @@
         echo -n "  Create a tmp git worktree        ..."
         WORKTREE="$(mktemp -u -d -t tf-$TF_NAME-$BITTE_NAME-XXXXXX)"
         if [ "$TF_LOC_BRANCH_EXISTS" = "TRUE" ]; then
-          {
-            git worktree add --checkout "$WORKTREE" "$REMOTE/$TF_BRANCH"
-            git -C "$WORKTREE" switch "$TF_BRANCH"
-            git -C "$WORKTREE" merge --ff
-          } &>> "$WORKLOG"
+          git worktree add --checkout "$WORKTREE" "$REMOTE/$TF_BRANCH" &>> "$WORKLOG"
+          git -C "$WORKTREE" switch "$TF_BRANCH" &>> "$WORKLOG"
+          git -C "$WORKTREE" merge --ff &>> "$WORKLOG"
 
         elif [ "$TF_LOC_BRANCH_EXISTS" = "FALSE" ]; then
           git worktree add -b "$TF_BRANCH" "$WORKTREE" "$REMOTE/$TF_BRANCH" &>> "$WORKLOG"
@@ -291,19 +289,15 @@
         # Git commit encrypted state
         # echo "Git adding state changes"
         echo -n "  Committing encrypted state       ..."
-        {
-          git -C "$WORKTREE" add "$WORKTREE/$ENC_STATE_PATH"
-          git -C "$WORKTREE" commit --no-verify -m "$(echo -e "$(printf '%s' "''${MSG[@]}")")"
-          git -C "$WORKTREE" push -u "$REMOTE" "$TF_BRANCH"
-        } &>> "$WORKLOG"
+        git -C "$WORKTREE" add "$WORKTREE/$ENC_STATE_PATH" &>> "$WORKLOG"
+        git -C "$WORKTREE" commit --no-verify -m "$(echo -e "$(printf '%s' "''${MSG[@]}")")" &>> "$WORKLOG"
+        git -C "$WORKTREE" push -u "$REMOTE" "$TF_BRANCH" &>> "$WORKLOG"
         echo "done"
 
         # Git cleanup plaintext TF state and worktree
         echo -n "  Cleaning up git state            ..."
-        {
-          rm -vf "$WORKTREE/terraform-$TF_NAME.tfstate"
-          git worktree remove "$WORKTREE"
-        } &>> "$WORKLOG"
+        rm -vf "$WORKTREE/terraform-$TF_NAME.tfstate" &>> "$WORKLOG"
+        git worktree remove "$WORKTREE" &>> "$WORKLOG"
         echo "done"
 
         echo
@@ -512,6 +506,7 @@
   '';
 
   prepare = ''
+    # shellcheck disable=SC2129
     set -euo pipefail
     [ -n "''${TF_DEBUG:-}" ] && set -x
     ${exportPath}
@@ -823,10 +818,8 @@ in {
           WORKTREE="$(mktemp -u -d -t tf-$TF_NAME-$BITTE_NAME-migrate-local-XXXXXX)"
           echo -n "  Create a tmp git worktree        ..."
           if [ "$TF_REM_BRANCH_EXISTS" = "FALSE" ]; then
-            {
-              git worktree add "$WORKTREE" HEAD
-              git -C "$WORKTREE" switch --orphan "$TF_BRANCH"
-            } &>> "$WORKLOG"
+            git worktree add "$WORKTREE" HEAD &>> "$WORKLOG"
+            git -C "$WORKTREE" switch --orphan "$TF_BRANCH" &>> "$WORKLOG"
 
             {
               echo 'terraform*.tfstate'
@@ -842,23 +835,19 @@ in {
               echo '* Branch protection rules should be applied to this branch'
             } > "$WORKTREE/README.md"
 
-            {
-              git -C "$WORKTREE" add "$WORKTREE/README.md"
+            git -C "$WORKTREE" add "$WORKTREE/README.md" &>> "$WORKLOG"
 
-              mkdir -p "$WORKTREE/$ENC_STATE_DIR"
-              touch "$WORKTREE/$ENC_STATE_DIR/.gitkeep"
-              git -C "$WORKTREE" add "$WORKTREE/$ENC_STATE_DIR/.gitkeep"
+            mkdir -p "$WORKTREE/$ENC_STATE_DIR" &>> "$WORKLOG"
+            touch "$WORKTREE/$ENC_STATE_DIR/.gitkeep" &>> "$WORKLOG"
+            git -C "$WORKTREE" add "$WORKTREE/$ENC_STATE_DIR/.gitkeep" &>> "$WORKLOG"
 
-              git -C "$WORKTREE" commit --no-verify -m "$VBK_BACKEND_LOG_SIG"
-              git -C "$WORKTREE" push -u "$REMOTE" "$TF_BRANCH"
-            } &>> "$WORKLOG"
+            git -C "$WORKTREE" commit --no-verify -m "$VBK_BACKEND_LOG_SIG" &>> "$WORKLOG"
+            git -C "$WORKTREE" push -u "$REMOTE" "$TF_BRANCH" &>> "$WORKLOG"
 
           elif [ "$TF_LOC_BRANCH_EXISTS" = "TRUE" ]; then
-            {
-              git worktree add --checkout "$WORKTREE" "$REMOTE/$TF_BRANCH"
-              git -C "$WORKTREE" switch "$TF_BRANCH"
-              git -C "$WORKTREE" merge --ff
-            } &>> "$WORKLOG"
+            git worktree add --checkout "$WORKTREE" "$REMOTE/$TF_BRANCH" &>> "$WORKLOG"
+            git -C "$WORKTREE" switch "$TF_BRANCH" &>> "$WORKLOG"
+            git -C "$WORKTREE" merge --ff &>> "$WORKLOG"
 
           elif [ "$TF_LOC_BRANCH_EXISTS" = "FALSE" ]; then
             git worktree add -b "$TF_BRANCH" "$WORKTREE" "$REMOTE/$TF_BRANCH" &>> "$WORKLOG"
@@ -893,19 +882,15 @@ in {
 
           # Git commit encrypted state
           echo -n "  Committing encrypted state       ..."
-          {
-            git -C "$WORKTREE" add "$WORKTREE/$ENC_STATE_PATH"
-            git -C "$WORKTREE" commit --no-verify -m "$(echo -e "$(printf '%s' "''${MSG[@]}")")"
-            git -C "$WORKTREE" push -u "$REMOTE" "$TF_BRANCH"
-          } &>> "$WORKLOG"
+          git -C "$WORKTREE" add "$WORKTREE/$ENC_STATE_PATH" &>> "$WORKLOG"
+          git -C "$WORKTREE" commit --no-verify -m "$(echo -e "$(printf '%s' "''${MSG[@]}")")" &>> "$WORKLOG"
+          git -C "$WORKTREE" push -u "$REMOTE" "$TF_BRANCH" &>> "$WORKLOG"
           echo "done"
 
           # Git cleanup plaintext TF state and worktree
           echo -n "  Cleaning up git state            ..."
-          {
-            rm -vf "$WORKTREE/terraform-$TF_NAME.tfstate"
-            git worktree remove "$WORKTREE"
-          } &>> "$WORKLOG"
+          rm -vf "$WORKTREE/terraform-$TF_NAME.tfstate" &>> "$WORKLOG"
+          git worktree remove "$WORKTREE" &>> "$WORKLOG"
           echo "done"
           echo
 
