@@ -1215,8 +1215,10 @@ in {
           export PATH="${lib.makeBinPath (with pkgs; [ fd coreutils ])}:$PATH"
         '' + (builtins.concatStringsSep "\n" (
           lib.mapAttrsToList (k: v: ''
-            mkdir -p "${v.path}"
-            chown nobody:nogroup "$_"
+            if [ ! -d "${v.path}" ]; then
+              mkdir -p "${v.path}"
+              chown nobody:nogroup "$_"
+            fi
           ''
           ) config.services.nomad.client.host_volume
         )));
