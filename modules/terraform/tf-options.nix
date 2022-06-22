@@ -769,7 +769,7 @@ in {
           ACTION="plan"
           ${prepare}
 
-          terraform plan ''${STATE_ARG:+$STATE_ARG} -out "$TF_NAME.plan" "$@"
+          terraform plan ''${STATE_ARG:+$STATE_ARG} -out "$TF_NAME.plan" "$@" || true
           ${localStateCleanup}
         '';
     };
@@ -782,7 +782,7 @@ in {
           ACTION="apply"
           ${prepare}
 
-          terraform apply ''${STATE_ARG:+$STATE_ARG} "$TF_NAME.plan" "$@"
+          terraform apply ''${STATE_ARG:+$STATE_ARG} "$TF_NAME.plan" "$@" || true
           ${localStateEncrypt}
           ${localStateCleanup}
         '';
@@ -851,7 +851,7 @@ in {
 
           # If local plaintext state should have been provided but wasn't, don't run the command to avoid loss of state
           if [ -z "''${SAFETY_SKIP:-}" ]; then
-            terraform "$@"
+            terraform "$@" || true
             ${localStateEncrypt}
           fi
           ${localStateCleanup}
