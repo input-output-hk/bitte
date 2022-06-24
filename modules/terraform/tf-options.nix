@@ -347,8 +347,8 @@
     echo "  STATE_ARG                        = ''${STATE_ARG:-remote}"
     echo
     echo "Important path variables:"
-    echo "  TOP (gitTopLevelDir)             = $TOP"
-    echo "  PWD (currentWorkingDir)          = $PWD"
+    echo "  TOP (physical gitTopLevelDir)    = $TOP"
+    echo "  PWD (physical currentWorkingDir) = $PWD"
     echo "  REL_ENCRYPTED_FOLDER             = $REL_ENCRYPTED_FOLDER"
     echo
     echo "Important git variables:"
@@ -629,15 +629,15 @@
     }
 
     TOP="$(git rev-parse --show-toplevel)"
-    PWD="$(pwd)"
+    PWD="$(pwd -P)"
 
     # Ensure this TF operation is being run from the top level of the git repo
     STATUS="$([ "$PWD" = "$TOP" ] && echo "pass" || echo "FAIL")"
     MSG=(
       "The TF attrs need to be run from the top level directory of the repo:\n"
-      "  * Top level repo directory is:\n"
+      "  * Top level physical repo directory is:\n"
       "    $TOP\n\n"
-      "  * Current working directory is:\n"
+      "  * Current physical working directory is:\n"
       "    $PWD"
     )
     gate "$STATUS" "$(printf '%s' "''${MSG[@]}")"
