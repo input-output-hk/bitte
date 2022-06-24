@@ -241,92 +241,96 @@
   # Use binary encryption instead of json for more compact representation
   # and to reduce information leakage via many unencrypted json keys.
   localStateEncrypt = ''
-    if [ "$VBK_BACKEND" = "local" ]; then
-      # Only encrypt and git add state if the sha256sums are different indicating a state change
-      STATE_SHA256_POST="$(sha256sum "terraform-$TF_NAME.tfstate")"
+    localStateEncrypt () {
+      if [ "$VBK_BACKEND" = "local" ]; then
+        # Only encrypt and git add state if the sha256sums are different indicating a state change
+        STATE_SHA256_POST="$(sha256sum "terraform-$TF_NAME.tfstate")"
 
-      if [ "''${STATE_SHA256_PRE%% *}" != "''${STATE_SHA256_POST%% *}" ]; then
-        echo "State hash: change detected..."
-        echo
-        warn "STARTING STATE COMMIT FOR TF WORKSPACE $TF_NAME"
-        echo
-        echo "Status:"
-        echo -n "  Extracting state change details  ..."
-        STATE_SERIAL="$(jq -r '.serial' < "terraform-$TF_NAME.tfstate")"
-        STATE_DETAIL="$(jq -r '. | "* serial: \(.serial)\n* lineage: \(.lineage)\n* version: \(.version)\n* terraform_version: \(.terraform_version)"' < "terraform-$TF_NAME.tfstate")"
-        MSG=(
-          "$TF_NAME: tf state updated to serial $STATE_SERIAL\n\n\n"
-          "State parameters in this commit:\n"
-          "$STATE_DETAIL"
-        )
-        echo "done"
+        if [ "''${STATE_SHA256_PRE%% *}" != "''${STATE_SHA256_POST%% *}" ]; then
+          echo "State hash: change detected..."
+          echo
+          warn "STARTING STATE COMMIT FOR TF WORKSPACE $TF_NAME"
+          echo
+          echo "Status:"
+          echo -n "  Extracting state change details  ..."
+          STATE_SERIAL="$(jq -r '.serial' < "terraform-$TF_NAME.tfstate")"
+          STATE_DETAIL="$(jq -r '. | "* serial: \(.serial)\n* lineage: \(.lineage)\n* version: \(.version)\n* terraform_version: \(.terraform_version)"' < "terraform-$TF_NAME.tfstate")"
+          MSG=(
+            "$TF_NAME: tf state updated to serial $STATE_SERIAL\n\n\n"
+            "State parameters in this commit:\n"
+            "$STATE_DETAIL"
+          )
+          echo "done"
 
-        ${localWorkLog}
+          ${localWorkLog}
 
-        # Set up a tmp git worktree on the TF_BRANCH
-        echo -n "  Create a tmp git worktree        ..."
-        WORKTREE="$(mktemp -u -d -t tf-$TF_NAME-$BITTE_NAME-XXXXXX)"
-        if [ "$TF_LOC_BRANCH_EXISTS" = "TRUE" ]; then
-          git worktree add --checkout "$WORKTREE" "$REMOTE/$TF_BRANCH" &>> "$WORKLOG"
-          git -C "$WORKTREE" switch "$TF_BRANCH" &>> "$WORKLOG"
-          git -C "$WORKTREE" merge --ff &>> "$WORKLOG"
+          # Set up a tmp git worktree on the TF_BRANCH
+          echo -n "  Create a tmp git worktree        ..."
+          WORKTREE="$(mktemp -u -d -t tf-$TF_NAME-$BITTE_NAME-XXXXXX)"
+          if [ "$TF_LOC_BRANCH_EXISTS" = "TRUE" ]; then
+            git worktree add --checkout "$WORKTREE" "$REMOTE/$TF_BRANCH" &>> "$WORKLOG"
+            git -C "$WORKTREE" switch "$TF_BRANCH" &>> "$WORKLOG"
+            git -C "$WORKTREE" merge --ff &>> "$WORKLOG"
 
-        elif [ "$TF_LOC_BRANCH_EXISTS" = "FALSE" ]; then
-          git worktree add -b "$TF_BRANCH" "$WORKTREE" "$REMOTE/$TF_BRANCH" &>> "$WORKLOG"
+          elif [ "$TF_LOC_BRANCH_EXISTS" = "FALSE" ]; then
+            git worktree add -b "$TF_BRANCH" "$WORKTREE" "$REMOTE/$TF_BRANCH" &>> "$WORKLOG"
 
-        fi
-        echo "done"
+          fi
+          echo "done"
 
-        # Encrypt the plaintext TF state file
-        echo -n "  Encrypting locally               ..."
-        if [ "$INFRA_TYPE" = "prem" ]; then
-          rage -i secrets-prem/age-bootstrap -a -e "terraform-$TF_NAME.tfstate" > "$WORKTREE/$ENC_STATE_PATH"
+          # Encrypt the plaintext TF state file
+          echo -n "  Encrypting locally               ..."
+          if [ "$INFRA_TYPE" = "prem" ]; then
+            rage -i secrets-prem/age-bootstrap -a -e "terraform-$TF_NAME.tfstate" > "$WORKTREE/$ENC_STATE_PATH"
+          else
+            ${sopsEncrypt "binary" "binary" "terraform-$TF_NAME.tfstate"} > "$WORKTREE/$ENC_STATE_PATH"
+          fi
+          echo "done"
+
+          # Git commit encrypted state
+          echo "  Committing encrypted state       ..."
+          git -C "$WORKTREE" add "$WORKTREE/$ENC_STATE_PATH" &>> "$WORKLOG"
+          commitPrompt
+          git -C "$WORKTREE" commit --no-verify -m "$(echo -e "$(printf '%s' "''${MSG[@]}")")" &>> "$WORKLOG"
+          git -C "$WORKTREE" push -u "$REMOTE" "$TF_BRANCH" &>> "$WORKLOG"
+          echo "  ...done"
+          echo
+
+          # Git cleanup plaintext TF state and worktree
+          echo -n "  Cleaning up git state            ..."
+          rm -vf "$WORKTREE/terraform-$TF_NAME.tfstate" &>> "$WORKLOG"
+          git worktree remove "$WORKTREE" &>> "$WORKLOG"
+          echo "done"
+
+          echo
+          echo " The diff between the last commit and this one may be viewed with:"
+          echo
+          echo "  icdiff \\"
+          if [ "$INFRA_TYPE" = "prem" ]; then
+            echo "  <(git cat-file blob \"$REMOTE/$TF_BRANCH~:$ENC_STATE_PATH\" | rage -i secrets-prem/age-bootstrap -d) \\"
+            echo "  <(git cat-file blob \"$ENC_STATE_REF\" | rage -i secrets-prem/age-bootstrap -d)"
+          else
+            echo "  <(git cat-file blob \"$REMOTE/$TF_BRANCH~:$ENC_STATE_PATH\" | sops -d /dev/stdin) \\"
+            echo "  <(git cat-file blob \"$ENC_STATE_REF\" | sops -d /dev/stdin)"
+          fi
         else
-          ${sopsEncrypt "binary" "binary" "terraform-$TF_NAME.tfstate"} > "$WORKTREE/$ENC_STATE_PATH"
+          echo "State hash: change not detected..."
         fi
-        echo "done"
-
-        # Git commit encrypted state
-        echo "  Committing encrypted state       ..."
-        git -C "$WORKTREE" add "$WORKTREE/$ENC_STATE_PATH" &>> "$WORKLOG"
-        commitPrompt
-        git -C "$WORKTREE" commit --no-verify -m "$(echo -e "$(printf '%s' "''${MSG[@]}")")" &>> "$WORKLOG"
-        git -C "$WORKTREE" push -u "$REMOTE" "$TF_BRANCH" &>> "$WORKLOG"
-        echo "  ...done"
-        echo
-
-        # Git cleanup plaintext TF state and worktree
-        echo -n "  Cleaning up git state            ..."
-        rm -vf "$WORKTREE/terraform-$TF_NAME.tfstate" &>> "$WORKLOG"
-        git worktree remove "$WORKTREE" &>> "$WORKLOG"
-        echo "done"
-
-        echo
-        echo " The diff between the last commit and this one may be viewed with:"
-        echo
-        echo "  icdiff \\"
-        if [ "$INFRA_TYPE" = "prem" ]; then
-          echo "  <(git cat-file blob \"$REMOTE/$TF_BRANCH~:$ENC_STATE_PATH\" | rage -i secrets-prem/age-bootstrap -d) \\"
-          echo "  <(git cat-file blob \"$ENC_STATE_REF\" | rage -i secrets-prem/age-bootstrap -d)"
-        else
-          echo "  <(git cat-file blob \"$REMOTE/$TF_BRANCH~:$ENC_STATE_PATH\" | sops -d /dev/stdin) \\"
-          echo "  <(git cat-file blob \"$ENC_STATE_REF\" | sops -d /dev/stdin)"
-        fi
-      else
-        echo "State hash: change not detected..."
       fi
-    fi
+    }
   '';
 
   # Local plaintext state should be uncommitted and cleaned up routinely
   # as some workspaces contain secrets, ex: hydrate-app
   localStateCleanup = ''
-    if [ "$VBK_BACKEND" = "local" ] || [ "$ACTION" = "migrateRemote" ]; then
-      echo
-      echo "Removing plaintext TF state files in the repo top level directory"
-      rm -vf "terraform-$TF_NAME.tfstate"
-      rm -vf "terraform-$TF_NAME.tfstate.backup"
-    fi
+    localStateCleanup () {
+      if [ "$VBK_BACKEND" = "local" ] || [ "$ACTION" = "migrateRemote" ]; then
+        echo
+        echo "Removing plaintext TF state files in the repo top level directory"
+        rm -vf "terraform-$TF_NAME.tfstate"
+        rm -vf "terraform-$TF_NAME.tfstate.backup"
+      fi
+    }
   '';
 
   stateStartStatus = ''
@@ -601,6 +605,8 @@
     ${localPreexistingStateCheck}
     ${localGitCommonChecks}
     ${localStatePrep}
+    ${localStateEncrypt}
+    ${localStateCleanup}
 
     warn () {
       # Star header len matching the input str len
@@ -769,8 +775,13 @@ in {
           ACTION="plan"
           ${prepare}
 
-          terraform plan ''${STATE_ARG:+$STATE_ARG} -out "$TF_NAME.plan" "$@" || true
-          ${localStateCleanup}
+          if terraform plan ''${STATE_ARG:+$STATE_ARG} -out "$TF_NAME.plan" "$@"; then
+            localStateCleanup
+          else
+            TF_RC="$?"
+            localStateCleanup
+            exit "$TF_RC"
+          fi
         '';
     };
 
@@ -782,9 +793,15 @@ in {
           ACTION="apply"
           ${prepare}
 
-          terraform apply ''${STATE_ARG:+$STATE_ARG} "$TF_NAME.plan" "$@" || true
-          ${localStateEncrypt}
-          ${localStateCleanup}
+          if terraform apply ''${STATE_ARG:+$STATE_ARG} "$TF_NAME.plan" "$@"; then
+            localStateEncrypt
+            localStateCleanup
+          else
+            TF_RC="$?"
+            localStateEncrypt
+            localStateCleanup
+            exit "$TF_RC"
+          fi
         '';
     };
 
@@ -851,10 +868,18 @@ in {
 
           # If local plaintext state should have been provided but wasn't, don't run the command to avoid loss of state
           if [ -z "''${SAFETY_SKIP:-}" ]; then
-            terraform "$@" || true
-            ${localStateEncrypt}
+            if terraform "$@"; then
+              localStateEncrypt
+              localStateCleanup
+            else
+              TF_RC="$?"
+              localStateEncrypt
+              localStateCleanup
+              exit "$TF_RC"
+            fi
+          else
+            localStateCleanup
           fi
-          ${localStateCleanup}
         '';
     };
 
@@ -1146,7 +1171,7 @@ in {
           terraform state push "terraform-$TF_NAME.tfstate" &>> "$WORKLOG"
           echo "done"
 
-          ${localStateCleanup}
+          localStateCleanup
 
           echo
           warn "FINISHED MIGRATION TO REMOTE FOR TF WORKSPACE $TF_NAME"
