@@ -311,11 +311,11 @@
         echo
         echo "  icdiff \\"
         if [ "$INFRA_TYPE" = "prem" ]; then
-          echo "  <(git cat-file blob \"$REMOTE/$TF_BRANCH~:$ENC_STATE_PATH\" | rage -i secrets-prem/age-bootstrap -d)"
-          echo "  <(git cat-file blob \"$ENC_STATE_REF\" | rage -i secrets-prem/age-bootstrap -d) \\"
+          echo "  <(git cat-file blob \"$REMOTE/$TF_BRANCH~:$ENC_STATE_PATH\" | rage -i secrets-prem/age-bootstrap -d) \\"
+          echo "  <(git cat-file blob \"$ENC_STATE_REF\" | rage -i secrets-prem/age-bootstrap -d)"
         else
-          echo "  <(git cat-file blob \"$REMOTE/$TF_BRANCH~:$ENC_STATE_PATH\" | sops -d /dev/stdin)"
-          echo "  <(git cat-file blob \"$ENC_STATE_REF\" | sops -d /dev/stdin) \\"
+          echo "  <(git cat-file blob \"$REMOTE/$TF_BRANCH~:$ENC_STATE_PATH\" | sops -d /dev/stdin) \\"
+          echo "  <(git cat-file blob \"$ENC_STATE_REF\" | sops -d /dev/stdin)"
         fi
       else
         echo "State hash: change not detected..."
