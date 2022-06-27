@@ -18,6 +18,7 @@ let
 
   # with zfs
   clientAMIs = {
+    ca-central-1.x86_64-linux = "ami-0c00d841dac47a1fd";
     eu-central-1.x86_64-linux = "ami-06924f74c403bc518";
     eu-west-1.x86_64-linux = "ami-0c38ecafe1b467389";
     us-east-1.x86_64-linux = "ami-0227fb009752240fa";
