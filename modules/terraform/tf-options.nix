@@ -559,7 +559,7 @@
       git -C "$WORKTREE" add "$WORKTREE/$ENC_STATE_DIR/.gitkeep" &>> "$WORKLOG"
 
       echo
-      echo -n "  Committing initial local state   ..."
+      echo "  Committing initial local state   ..."
       commitPrompt
       git -C "$WORKTREE" commit --no-verify -m "$VBK_BACKEND_LOG_SIG" &>> "$WORKLOG"
       git -C "$WORKTREE" push -u "$REMOTE" "$TF_BRANCH" &>> "$WORKLOG"
@@ -679,11 +679,15 @@
           "The nix _proto level cluster.vbkBackend option is set to \"local\", however\n"
           "  terraform local state for workspace \"$TF_NAME\" does not exist at:\n\n"
           "    $ENC_STATE_REF\n\n"
-          "If all TF workspaces are not yet migrated to local, then:\n"
+          "If all TF workspaces are not yet migrated to local from a TF vbk remote, then:\n"
           "  * Set the cluster.vbkBackend option back to the existing remote backend\n"
           "  * Run the following against each TF workspace that is not yet migrated to local state:\n"
           "    nix run .#clusters.$BITTE_CLUSTER.tf.<TF_WORKSPACE>.migrateLocal\n"
-          "  * Finally, set the cluster.vbkBackend option to \"local\""
+          "  * Finally, set the cluster.vbkBackend option to \"local\"\n\n"
+          "Alternatively, if there is no remote state to migrate from and new local state is required:\n"
+          "  * Ensure the repo you are working from has already been pushed to git remote\n"
+          "  * Then, new TF workspace state can be initialized by running the following against each new TF workspace required:\n"
+          "    nix run .#clusters.$BITTE_CLUSTER.tf.<TF_WORKSPACE>.initLocal\n"
         )
         gate "$STATUS" "$(printf '%s' "''${MSG[@]}")"
 
