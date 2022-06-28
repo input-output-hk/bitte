@@ -113,13 +113,15 @@
     # For available packages, see or modify /profiles/slim.nix
   in ''
     #!
+    cat <<'EOF' > /etc/finish-bootstrap.sh
+    #!/bin/sh
     export NIX_CONFIG="${nixConf}"
     export PATH="/run/current-system/sw/bin:$PATH"
     set -exuo pipefail
     pushd /run/keys
     err_code=0
     aws s3 cp \
-      "s3://${cfg.s3Bucket}/infra/secrets/${cfg.name}/${cfg.kms}/source/${awsAsg}-source.tar.xz" \
+      "s3://${cfg.s3Bucket}/${var "aws_s3_bucket_object.${awsAsg}-flake.id"}" \
       source.tar.xz || err_code=$?
     if test $err_code -eq 0
     then # automated provisioning
@@ -128,6 +130,9 @@
       nix build ./source#nixosConfigurations.${cfg.name}-${awsAsg}.config.system.build.toplevel
       nixos-rebuild --flake ./source#${cfg.name}-${awsAsg} switch
     fi # manual provisioning
+    EOF
+    chmod +x /etc/finish-bootstrap.sh
+    systemd-run --unit=nixos-init $_
   '';
 
   sshArgs = "-C -oConnectTimeout=5 -oUserKnownHostsFile=/dev/null -oNumberOfPasswordPrompts=0 -oServerAliveInterval=60 -oControlPersist=600 -oStrictHostKeyChecking=no -i ./secrets/ssh-${cfg.name}";
@@ -412,7 +417,7 @@
                   cidr = net.cidr.subnet 8 idx cidr;
                   availabilityZone =
                     var
-                    "module.instance_types_to_azs.availability_zones[${toString idx}]";
+                      "element(module.instance_types_to_azs.availability_zones, ${toString idx})";
                 }))
               lib.listToAttrs
             ];
@@ -1115,7 +1120,7 @@
                   cidr = net.cidr.subnet 2 idx cidr;
                   availabilityZone =
                     var
-                    "module.instance_types_to_azs_${region}.availability_zones[${toString idx}]";
+                    "element(module.instance_types_to_azs_${region}.availability_zones, ${toString idx})";
                 }))
               lib.listToAttrs
             ];

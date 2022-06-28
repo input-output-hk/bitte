@@ -19,7 +19,6 @@ in {
     ./auxiliaries/reaper.nix
   ];
 
-  services.s3-upload-flake.enable = deployType == "aws";
   services.zfs-client-options.enable = deployType == "aws";
 
   services.telegraf.extraConfig.global_tags.role = "consul-client";
