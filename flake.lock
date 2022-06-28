@@ -1211,11 +1211,11 @@
     },
     "nixpkgs-unstable_2": {
       "locked": {
-        "lastModified": 1652739558,
-        "narHash": "sha256-znGkjGugajqF/sFS+H4+ENmGTaVPFE0uu1JjQZJLEaQ=",
-        "owner": "NixOS",
+        "lastModified": 1656338871,
+        "narHash": "sha256-+LOvZFt3MpWtrxXLH4igQtRVzyD43VnuTJjDVbt7phY=",
+        "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "ff691ed9ba21528c1b4e034f36a04027e4522c58",
+        "rev": "819e4d63fc7f337a822a049fd055cd7615a5e0d6",
         "type": "github"
       },
       "original": {
@@ -1892,8 +1892,7 @@
         "ragenix": "ragenix_3",
         "std": "std",
         "terranix": "terranix_2",
-        "utils": "utils_11",
-        "vulnix": "vulnix_2"
+        "utils": "utils_11"
       }
     },
     "rust-analyzer-src": {
@@ -2386,23 +2385,6 @@
       }
     },
     "vulnix": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1632431644,
-        "narHash": "sha256-iePIr+z/YxrST5pLKnhF666cAMme90dAOS5vgAiwmxg=",
-        "owner": "dermetfan",
-        "repo": "vulnix",
-        "rev": "cea4e8973a39377aa42541b9dbf3a13ab46d51db",
-        "type": "github"
-      },
-      "original": {
-        "owner": "dermetfan",
-        "ref": "runtime-deps",
-        "repo": "vulnix",
-        "type": "github"
-      }
-    },
-    "vulnix_2": {
       "flake": false,
       "locked": {
         "lastModified": 1632431644,
