@@ -371,7 +371,7 @@ let
                 cidr = net.cidr.subnet 8 idx cidr;
                 availabilityZone =
                   var
-                    "module.instance_types_to_azs.availability_zones[${toString idx}]";
+                    "element(module.instance_types_to_azs.availability_zones, ${toString idx})";
               }))
               lib.listToAttrs
             ];
@@ -1016,7 +1016,7 @@ let
                   cidr = net.cidr.subnet 2 idx cidr;
                   availabilityZone =
                     var
-                      "module.instance_types_to_azs_${region}.availability_zones[${toString idx}]";
+                      "element(module.instance_types_to_azs_${region}.availability_zones, ${toString idx})";
                 }))
               lib.listToAttrs
             ];
