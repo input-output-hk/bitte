@@ -91,6 +91,7 @@ let
       # but does not actually execve the script:
       # interpreter fixed to pkgs.runtimeShell.
       # For available packages, see or modify /profiles/slim.nix
+      # "s3://${cfg.s3Bucket}/infra/secrets/${cfg.name}/${cfg.kms}/source/${awsAsg}-source.tar.xz" \
     in ''
       #!
       export NIX_CONFIG="${nixConf}"
@@ -99,7 +100,7 @@ let
       pushd /run/keys
       err_code=0
       aws s3 cp \
-        "s3://${cfg.s3Bucket}/infra/secrets/${cfg.name}/${cfg.kms}/source/${awsAsg}-source.tar.xz" \
+        "s3://${cfg.s3Bucket}/${var "aws_s3_bucket_object.${awsAsg}-flake.id"}" \
         source.tar.xz || err_code=$?
       if test $err_code -eq 0
       then # automated provisioning

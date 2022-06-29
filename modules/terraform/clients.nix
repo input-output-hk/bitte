@@ -158,6 +158,16 @@ in {
           id "aws_vpc_peering_connection.${vpc.region}";
       }));
 
+    resource.aws_s3_bucket_object = lib.flip lib.mapAttrs' config.cluster.awsAutoScalingGroups (name: group:
+      lib.nameValuePair "${name}-flake" rec {
+        bucket = config.cluster.s3Bucket;
+        key    = with config; "infra/secrets/${cluster.name}/${cluster.kms}/source/${name}-source.tar.xz";
+        etag  = var ''filemd5("${source}")'';
+        source = "${pkgs.runCommand "source.tar.xz" {} ''
+          tar cvf $out -C ${config.cluster.flakePath} .
+        ''}";
+      });
+
     resource.aws_subnet = mapAwsAsgVpcs (vpc:
       lib.flip lib.mapAttrsToList vpc.subnets (suffix: subnet:
         lib.nameValuePair "${vpc.region}-${suffix}" {
