@@ -5,8 +5,12 @@ let
     config.${if deployType == "aws" then "cluster" else "currentCoreNode"}.domain;
   isSops = deployType == "aws";
   cfg = config.services.monitoring;
-  relEncryptedFolder = lib.last (builtins.split "-" (toString config.secrets.encryptedRoot));
-    alertmanagerYml = if config.services.prometheus.alertmanager.configText != null then
+
+  relEncryptedFolder = let
+    encPathStr = if isSops then (toString config.secrets.encryptedRoot) else (toString config.age.encryptedRoot);
+  in lib.last (builtins.split "/nix/store/.{32}-" encPathStr);
+
+  alertmanagerYml = if config.services.prometheus.alertmanager.configText != null then
     pkgs.writeText "alertmanager.yml" config.services.prometheus.alertmanager.configText
     else pkgs.writeText "alertmanager.yml" (builtins.toJSON config.services.prometheus.alertmanager.configuration);
 in {
@@ -19,21 +23,6 @@ in {
 
     ../modules/vault-backend.nix
   ];
-
-  # Nix alertmanager module requires group rule syntax checking,
-  # but env substitution through services.prometheus.alertmanager.environmentFile
-  # requires bash variables in the group rules which will not pass syntax validation
-  # in some fields, such as a url field.  This works around the problem.
-  systemd.services.alertmanager.preStart = let
-    cfg = config.services.prometheus.alertmanager;
-    alertmanagerYml = if cfg.configText != null then
-    pkgs.writeText "alertmanager.yml" cfg.configText
-    else pkgs.writeText "alertmanager.yml" (builtins.toJSON cfg.configuration);
-  in lib.mkForce ''
-    ${pkgs.gnused}/bin/sed 's|https://deadmanssnitch.com|$DEADMANSSNITCH|g' "${alertmanagerYml}" > "/tmp/alert-manager-sed.yaml"
-    ${lib.getBin pkgs.envsubst}/bin/envsubst -o "/tmp/alert-manager-substituted.yaml" \
-                                             -i "/tmp/alert-manager-sed.yaml"
-  '';
 
   options.services.monitoring = {
     useOauth2Proxy = lib.mkOption {
@@ -106,6 +95,7 @@ in {
     services.nomad.enable = false;
     services.minio.enable = true;
     services.victoriametrics.enable = true;
+    services.victoriametrics.enableVmalertProxy = true;
     services.loki.enable = true;
     services.grafana.enable = true;
     services.prometheus.enable = false;
@@ -113,44 +103,27 @@ in {
     # services.vulnix.enable = true;
     # services.vulnix.scanClosure = true;
 
+    # Nix alertmanager module requires group rule syntax checking,
+    # but env substitution through services.prometheus.alertmanager.environmentFile
+    # requires bash variables in the group rules which will not pass syntax validation
+    # in some fields, such as a url field.  This works around the problem.
+    systemd.services.alertmanager.preStart = let
+      cfg = config.services.prometheus.alertmanager;
+      alertmanagerYml = if cfg.configText != null then
+      pkgs.writeText "alertmanager.yml" cfg.configText
+      else pkgs.writeText "alertmanager.yml" (builtins.toJSON cfg.configuration);
+    in lib.mkForce ''
+      ${pkgs.gnused}/bin/sed 's|https://deadmanssnitch.com|$DEADMANSSNITCH|g' "${alertmanagerYml}" > "/tmp/alert-manager-sed.yaml"
+      ${lib.getBin pkgs.envsubst}/bin/envsubst -o "/tmp/alert-manager-substituted.yaml" \
+                                               -i "/tmp/alert-manager-sed.yaml"
+    '';
+
     services.victoriametrics = {
       retentionPeriod = 12; # months
     };
 
     # Avoid monitor alerting failures due to default service nofile limit of 1024
     systemd.services.victoriametrics.serviceConfig.LimitNOFILE = 65535;
-    service.vmagent = {
-      enable = true;
-      httpPathPrefix = "/vmagent";
-      promscrapeConfig = [
-        (lib.mkIf config.services.vmagent.enable {
-          job_name = "vmagent";
-          scrape_interval = "60s";
-          metrics_path = "${config.services.vmagent.httpPathPrefix}/metrics";
-          static_configs = [{
-            targets = [ "${config.services.vmagent.httpListenAddr}" ];
-            labels = { alias = "vmagent"; };
-          }];
-        })
-        (lib.mkIf config.services.vmalert.enable {
-          job_name = "vmalert";
-          scrape_interval = "60s";
-          metrics_path = "${config.services.vmalert.httpPathPrefix}/metrics";
-          static_configs = [{
-            targets = [ "${config.services.vmalert.httpListenAddr}" ];
-            labels = { alias = "vmalert"; };
-          }];
-        })
-      ];
-    };
-    services.vmalert = {
-      enable = true;
-      externalUrl = "https://monitoring.${domain}/vmalert";
-      httpPathPrefix = "/vmalert";
-      rules = (import ./monitoring/alerts/alerts.nix "https://monitoring.${domain}").groups;
-    };
-
-    loki = { enable = true; };
 
     services.grafana = {
       auth.anonymous.enable = false;
@@ -197,6 +170,21 @@ in {
     };
 
     services.prometheus = {
+      exporters = {
+        blackbox = {
+          enable = true;
+          configFile = pkgs.toPrettyJSON "blackbox-exporter" {
+            modules = {
+              https_2xx = {
+                prober = "http";
+                timeout = "5s";
+                http = { fail_if_not_ssl = true; };
+              };
+            };
+          };
+        };
+      };
+
       alertmanagers = [{
         scheme = "http";
         path_prefix = "/";
@@ -206,7 +194,7 @@ in {
       alertmanager = {
         enable = true;
         environmentFile = "/run/keys/alertmanager";
-        listenAddress = "localhost";
+        listenAddress = "0.0.0.0";
         webExternalUrl = "https://monitoring.${domain}/alertmanager";
         configuration = {
           route = {
@@ -247,46 +235,94 @@ in {
           ];
         };
       };
-
-      exporters = {
-        blackbox = {
-          enable = true;
-          configFile = pkgs.toPrettyJSON "blackbox-exporter" {
-            modules = {
-              https_2xx = {
-                prober = "http";
-                timeout = "5s";
-                http = { fail_if_not_ssl = true; };
-              };
-            };
-          };
-        };
-      };
     };
 
-    secrets.generate.grafana-password = lib.mkIf isSops ''
-      export PATH="${lib.makeBinPath (with pkgs; [ coreutils sops xkcdpass ])}"
+    # Vmagent is used to scrape itself as well as vmalert service, provide a domain
+    # specific interactive webUI and is already a part of the victoriametrics package.
+    services.vmagent = {
+      enable = true;
+      httpListenAddr = "0.0.0.0:8429";
+      httpPathPrefix = "/vmagent";
+      promscrapeConfig = [
+        (lib.mkIf config.services.vmagent.enable {
+          job_name = "vmagent";
+          scrape_interval = "60s";
+          metrics_path = "${config.services.vmagent.httpPathPrefix}/metrics";
+          static_configs = [{
+            targets = [ "${config.services.vmagent.httpListenAddr}" ];
+            labels = { alias = "vmagent"; };
+          }];
+        })
+        (lib.mkIf config.services.vmalert.enable {
+          job_name = "vmalert";
+          scrape_interval = "60s";
+          metrics_path = "${config.services.vmalert.httpPathPrefix}/metrics";
+          static_configs = [{
+            targets = [ "${config.services.vmalert.httpListenAddr}" ];
+            labels = { alias = "vmalert"; };
+          }];
+        })
+      ];
+    };
 
-      if [ ! -s ${relEncryptedFolder}/grafana-password.json ]; then
-        xkcdpass \
-        | sops --encrypt --kms '${config.cluster.kms}' /dev/stdin \
-        > ${relEncryptedFolder}/grafana-password.json
-      fi
-    '';
+    services.vmalert = {
+      enable = true;
+      httpListenAddr = "0.0.0.0:8880";
+      externalUrl = "https://monitoring.${domain}/vmalert";
+      httpPathPrefix = "/vmalert";
+      rules = (import ./monitoring/alerts/alerts.nix "https://monitoring.${domain}").groups;
+    };
 
-    secrets.install.grafana-password.script = lib.mkIf isSops ''
-      export PATH="${lib.makeBinPath (with pkgs; [ sops coreutils ])}"
+    secrets = lib.mkIf isSops {
+      generate.grafana-password = ''
+        export PATH="${lib.makeBinPath (with pkgs; [ coreutils sops xkcdpass ])}"
 
-      mkdir -p /var/lib/grafana
+        if [ ! -s ${relEncryptedFolder}/grafana-password.json ]; then
+          xkcdpass \
+          | sops --encrypt --kms '${config.cluster.kms}' /dev/stdin \
+          > ${relEncryptedFolder}/grafana-password.json
+        fi
+      '';
 
-      cat ${etcEncrypted}/grafana-password.json \
-        | sops -d /dev/stdin \
-        > /var/lib/grafana/password
-    '';
+      install.alertmanager = {
+        inputType = "binary";
+        outputType = "binary";
+        source = config.secrets.encryptedRoot + "/alertmanager";
+        target = /run/keys/alertmanager;
+        script = ''
+          chmod 0600 /run/keys/alertmanager
+          chown alertmanager:alertmanager /run/keys/alertmanager
+        '';
+        #  # File format for alertmanager secret file
+        #  DEADMANSSNITCH="$SECRET_ENDPOINT"
+        #  PAGERDUTY="$SECRET_KEY"
+      };
+
+      install.grafana-password.script = ''
+        export PATH="${lib.makeBinPath (with pkgs; [ sops coreutils ])}"
+
+        mkdir -p /var/lib/grafana
+
+        cat ${etcEncrypted}/grafana-password.json \
+          | sops -d /dev/stdin \
+          > /var/lib/grafana/password
+      '';
+    };
 
     age.secrets = lib.mkIf (deployType != "aws") {
+      alertmanager = {
+        file = config.age.encryptedRoot + "/monitoring/alertmanager.age";
+        path = "/run/keys/alertmanager";
+        owner = "alertmanager";
+        group = "alertmanager";
+        mode = "0600";
+        #  # File format for alertmanager secret file
+        #  DEADMANSSNITCH="$SECRET_ENDPOINT"
+        #  PAGERDUTY="$SECRET_KEY"
+      };
+
       grafana-password = {
-        file = config.age.encryptedRoot + "/grafana/password.age";
+        file = config.age.encryptedRoot + "/monitoring/grafana.age";
         path = "/var/lib/grafana/grafana-password";
         owner = "grafana";
         group = "grafana";

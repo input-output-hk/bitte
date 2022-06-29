@@ -7,6 +7,7 @@ in with lib; {
   disabledModules = [ "services/databases/victoriametrics.nix" ];
   options.services.victoriametrics = {
     enable = mkEnableOption "victoriametrics";
+    enableVmalertProxy = mkEnableOption "vmalertProxy";
     package = mkOption {
       type = types.package;
       default = pkgs.victoriametrics;
@@ -185,6 +186,20 @@ in with lib; {
         included here.
       '';
     };
+    remoteReadUrl = mkOption {
+      default = "http://localhost:8428";
+      type = types.str;
+      description = ''
+        VM-single addr for restoring alerts state after restart.
+      '';
+    };
+    remoteWriteUrl = mkOption {
+      default = "http://localhost:8428";
+      type = types.str;
+      description = ''
+        VM-single addr to persist alerts state and recording rules results.
+      '';
+    };
     rules = mkOption {
       default = [];
       type = types.listOf types.attrs;
@@ -215,12 +230,15 @@ in with lib; {
         StartLimitBurst = 5;
         StateDirectory = "victoriametrics";
         DynamicUser = true;
-        ExecStart = ''
+        ExecStart = let
+          proxyUrl = "http://${cfgVmalert.httpListenAddr}${cfgVmalert.httpPathPrefix}";
+        in ''
           ${cfg.package}/bin/victoria-metrics \
             -storageDataPath=/var/lib/victoriametrics \
             -httpListenAddr=${cfg.httpListenAddr} \
             -retentionPeriod=${toString cfg.retentionPeriod} \
             -selfScrapeInterval=${cfg.selfScrapeInterval} \
+            ${if cfg.enableVmalertProxy && cfgVmalert.enable then "-vmalert.proxyURL=${proxyUrl} \\" else "\\"}
             ${escapeShellArgs cfg.extraOptions}
         '';
       };
@@ -276,6 +294,8 @@ in with lib; {
             -external.url=${cfgVmalert.externalUrl} \
             -http.pathPrefix=${cfgVmalert.httpPathPrefix} \
             -httpListenAddr=${cfgVmalert.httpListenAddr} \
+            -remoteRead.url=${cfgVmalert.remoteReadUrl} \
+            -remoteWrite.url=${cfgVmalert.remoteWriteUrl} \
             -notifier.url=${cfgVmalert.notifierUrl} \
             -rule=${pkgs.writeText "vmalert-rules.json" (builtins.toJSON { groups = cfgVmalert.rules; })}
         '';

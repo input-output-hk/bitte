@@ -268,7 +268,26 @@ in {
               tls = tlsCfg;
             };
           in lib.mkDefault ({
+            alertmanager = {
+              entrypoints = "https";
+              middlewares = [ ];
+              rule = "Host(`monitoring.${domain}`) && PathPrefix(`/alertmanager`)";
+              service = "alertmanager";
+              tls = tlsCfg;
+            };
+
+            consul = mkRoute "consul";
+
+            consul-api = {
+              entrypoints = "https";
+              middlewares = [ ];
+              rule = "Host(`consul.${domain}`) && PathPrefix(`/v1/`)";
+              service = "consul";
+              tls = true;
+            };
+
             grafana = mkRoute "monitoring";
+
             nomad = mkRoute "nomad";
 
             nomad-api = {
@@ -289,21 +308,27 @@ in {
               tls = true;
             };
 
-            consul = mkRoute "consul";
-
-            consul-api = {
-              entrypoints = "https";
-              middlewares = [ ];
-              rule = "Host(`consul.${domain}`) && PathPrefix(`/v1/`)";
-              service = "consul";
-              tls = true;
-            };
-
             traefik = {
               inherit middlewares;
               entrypoints = "https";
               rule = "Host(`traefik.${domain}`) && PathPrefix(`/`)";
               service = "api@internal";
+              tls = tlsCfg;
+            };
+
+            vmagent = {
+              entrypoints = "https";
+              middlewares = [ ];
+              rule = "Host(`monitoring.${domain}`) && PathPrefix(`/vmagent`)";
+              service = "vmagent";
+              tls = tlsCfg;
+            };
+
+            vmalert = {
+              entrypoints = "https";
+              middlewares = [ ];
+              rule = "Host(`monitoring.${domain}`) && PathPrefix(`/vmalert`)";
+              service = "vmalert";
               tls = tlsCfg;
             };
           } // (lib.optionalAttrs cfg.useOauth2Proxy {
@@ -334,6 +359,10 @@ in {
           }));
 
           services = lib.mkDefault ({
+            alertmanager.loadBalancer = {
+              servers = [{ url = "http://monitoring:9093"; }];
+            };
+
             consul.loadBalancer = {
               servers = [{ url = "http://127.0.0.1:8500"; }];
             };
@@ -345,6 +374,14 @@ in {
 
             monitoring.loadBalancer = {
               servers = [{ url = "http://monitoring:3000"; }];
+            };
+
+            vmagent.loadBalancer = {
+              servers = [{ url = "http://monitoring:8429"; }];
+            };
+
+            vmalert.loadBalancer = {
+              servers = [{ url = "http://monitoring:8880"; }];
             };
 
             vault.loadBalancer = {

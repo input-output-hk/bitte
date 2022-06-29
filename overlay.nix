@@ -18,9 +18,12 @@ in
 
       # Packages specifically needing an unstable nixpkgs pinned latest available version
       inherit (pkgsUnstable final)
-        docker
-        podman
-        vector;
+        docker          # 20.10.17
+        grafana         # 9.0.1
+        grafana-loki    # 2.5.0
+        podman          # 4.1.1
+        # traefik       # 2.7.1 -- disabled UI in unstable, https://github.com/NixOS/nixpkgs/pull/176079, hence callPackage below
+        vector;         # 0.22.2
 
       # Alphabetically sorted packages
       agenix = inputs.agenix.packages.${final.system}.agenix;
@@ -54,9 +57,10 @@ in
       spire = prev.callPackage ./pkgs/spire.nix {};
       spire-server = spire.server;
       spire-systemd-attestor = prev.callPackage ./pkgs/spire-systemd-attestor.nix {};
+      traefik = prev.callPackage ./pkgs/traefik.nix { buildGoModule = (pkgs final).buildGo117Module; };
       vault-backend = final.callPackage ./pkgs/vault-backend.nix {};
       vault-bin = prev.callPackage ./pkgs/vault-bin.nix {};
-      victoriametrics = prev.callPackage ./pkgs/victoriametrics.nix {};
+      victoriametrics = prev.callPackage ./pkgs/victoriametrics.nix { buildGoModule = (pkgs final).buildGo117Module; };
 
       scaler-guard = let
         deps = with final; [awscli bash curl jq nomad];
