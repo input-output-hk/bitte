@@ -1,7 +1,7 @@
 grafanaUrl: {
   groups = [
     {
-      name = "vm-health";
+      name = "bitte-victoriametrics-health";
       rules = [
         {
           alert = "TooManyRestarts";
@@ -57,7 +57,7 @@ grafanaUrl: {
     {
       concurrency = 2;
       interval = "30s";
-      name = "vmsingle";
+      name = "bitte-victoriametrics-standalone";
       rules = [
         {
           alert = "DiskRunsOutOfSpaceIn3Days";
@@ -249,7 +249,7 @@ grafanaUrl: {
     {
       concurrency = 2;
       interval = "30s";
-      name = "vmagent";
+      name = "bitte-vmagent";
       rules = [
         {
           alert = "PersistentQueueIsDroppingData";

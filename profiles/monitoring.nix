@@ -149,7 +149,13 @@ in {
           {
             type = "loki";
             name = "Loki";
-            url = "http://localhost:3100";
+            # Here we point the datasource for Loki to an nginx
+            # reverse proxy to intercept prometheus rule api
+            # calls so that vmalert handler for declarative loki
+            # alerts can respond, thereby allowing grafana to
+            # display them in the next generation alerting interface.
+            # The actual loki service still exists at the standard port.
+            url = "http://localhost:3099";
             jsonData.maxLines = 1000;
           }
           {
@@ -167,6 +173,47 @@ in {
 
       security.adminPasswordFile = if isSops then "/var/lib/grafana/password"
                                   else config.age.secrets.grafana-password.path;
+    };
+
+    # While victoriametrics offers a -vmalert.proxyURL option to forward grafana
+    # rule requests to the vmalert API, there is no such corresponding option
+    # to forward Loki rules requests to the vmalert handling declarative alerts for Loki.
+    # In this case, we can intercept Grafana's request for Loki alert rules
+    # and redirect the request to the appropriate vmalert.
+    services.nginx = {
+      enable = true;
+      logError = "stderr debug";
+      commonHttpConfig = ''
+        log_format myformat '$remote_addr - $remote_user [$time_local] '
+                            '"$request" $status $body_bytes_sent '
+                            '"$http_referer" "$http_user_agent"';
+      '';
+      recommendedProxySettings = true;
+      upstreams.loki = {
+        servers = { "127.0.0.1:3100" = {}; };
+        extraConfig = ''
+          keepalive 16;
+        '';
+      };
+      virtualHosts.localhost = let
+        cfg = config.services.vmalert.datasources.vmalert-loki;
+      in {
+        listen = [ { addr = "0.0.0.0"; port = 3099; } ];
+        locations = {
+          "/" = {
+            proxyPass = "http://loki";
+            proxyWebsockets = true;
+            extraConfig = ''
+              proxy_set_header Connection "Keep-Alive";
+              proxy_set_header Proxy-Connection "Keep-Alive";
+              proxy_read_timeout 600;
+            '';
+          };
+          "/prometheus/api/v1/rules" = {
+            proxyPass = "http://${cfg.httpListenAddr}${cfg.httpPathPrefix}/api/v1/rules";
+          };
+        };
+      };
     };
 
     services.prometheus = {

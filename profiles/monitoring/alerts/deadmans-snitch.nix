@@ -1,7 +1,7 @@
 grafanaUrl: {
   groups = [
     {
-      name = "alerting-pipeline";
+      name = "bitte-deadmanssnitch";
       rules = [{
         alert = "DeadMansSnitch";
         expr = "vector(1)";
@@ -9,7 +9,7 @@ grafanaUrl: {
         annotations = {
           summary = "Alerting DeadMansSnitch.";
           description =
-            "This is a DeadMansSnitch meant to ensure that the entire Alerting pipeline is functional.";
+            "This is a DeadMansSnitch meant to ensure that the entire alerting pipeline is functional.";
         };
       }];
     }
