@@ -13,7 +13,7 @@ in {
   #   fsType = "glusterfs";
   # };
 
-  systemd.services."mnt-gv0.mount" = lib.mkIf cfg.enable {
+  systemd.mounts."mnt-gv0" = lib.mkIf cfg.enable {
     after = [ "consul.service" "dnsmasq.service" ];
     wants = [ "consul.service" "dnsmasq.service" ];
     what = "glusterd.service.consul:/gv0";
