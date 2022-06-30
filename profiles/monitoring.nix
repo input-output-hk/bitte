@@ -253,24 +253,40 @@ in {
             labels = { alias = "vmagent"; };
           }];
         })
-        (lib.mkIf config.services.vmalert.enable {
-          job_name = "vmalert";
-          scrape_interval = "60s";
-          metrics_path = "${config.services.vmalert.httpPathPrefix}/metrics";
-          static_configs = [{
-            targets = [ "${config.services.vmalert.httpListenAddr}" ];
-            labels = { alias = "vmalert"; };
-          }];
-        })
-      ];
+      ] ++ lib.optionals config.services.vmalert.enable (builtins.attrValues (
+          # Add a vmagent target scrape for each services.vmalert.datasources attr
+          lib.mapAttrs (name: cfgDs: {
+            job_name = "${name}";
+            scrape_interval = "60s";
+            metrics_path = "${cfgDs.httpPathPrefix}/metrics";
+            static_configs = [{
+              targets = [ "${cfgDs.httpListenAddr}" ];
+              labels = { alias = "${name}"; };
+            }];
+          }) config.services.vmalert.datasources));
     };
 
     services.vmalert = {
       enable = true;
-      httpListenAddr = "0.0.0.0:8880";
-      externalUrl = "https://monitoring.${domain}/vmalert";
-      httpPathPrefix = "/vmalert";
-      rules = (import ./monitoring/alerts/alerts.nix "https://monitoring.${domain}").groups;
+      datasources = {
+        vmalert-vm = {
+          datasourceUrl = "http://localhost:8428";
+          httpListenAddr = "0.0.0.0:8880";
+          externalUrl = "https://monitoring.${domain}/vmalert-vm";
+          httpPathPrefix = "/vmalert-vm";
+          rules = (import ./monitoring/alerts/vmalert-vm.nix "https://monitoring.${domain}").groups;
+        };
+        vmalert-loki = {
+          datasourceUrl = "http://localhost:3100/loki";
+          httpListenAddr = "0.0.0.0:8881";
+          externalUrl = "https://monitoring.${domain}/vmalert-loki";
+          httpPathPrefix = "/vmalert-loki";
+          # Loki uses PromQL type queries that do not strictly comply with PromQL
+          # Ref: https://github.com/VictoriaMetrics/VictoriaMetrics/issues/780
+          ruleValidateExpressions = false;
+          rules = (import ./monitoring/alerts/vmalert-loki.nix "https://monitoring.${domain}").groups;
+        };
+      };
     };
 
     secrets = lib.mkIf isSops {

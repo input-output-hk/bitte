@@ -118,189 +118,213 @@ in with lib; {
     };
   };
 
-  options.services.vmalert = {
+  options.services.vmalert = let
+  in {
     enable = mkEnableOption "vmalert";
-    package = mkOption {
-      type = types.package;
-      default = pkgs.victoriametrics;
-      defaultText = "pkgs.victoriametrics";
-      description = ''
-        The VictoriaMetrics distribution to use for vmalert.
-      '';
-    };
-    datasourceUrl = mkOption {
-      default = "http://localhost:8428";
-      type = types.str;
-      description = ''
-        VictoriaMetrics or vmselect url.
-        Required parameter.
-      '';
-    };
-    externalAlertSource = mkOption {
-      default = "";
-      type = types.str;
-      description = ''
-        External Alert Source allows to override the Source link for alerts sent
-        to AlertManager for cases where you want to build a custom link to Grafana,
-        Prometheus or any other service.
-        eg. 'explore?orgId=1&left=[\"now-1h\",\"now\",\"VictoriaMetrics\",{\"expr\": \"\"},{\"mode\":\"Metrics\"},{\"ui\":[true,true,true,\"none\"]}]'.
-        If empty string, '/api/v1/:groupID/alertID/status' is used
-      '';
-    };
-    externalUrl = mkOption {
-      default = "http://localhost:8428";
-      type = types.str;
-      description = ''
-        External URL is used as alert's source for sent alerts to the notifier.
-      '';
-    };
-    httpListenAddr = mkOption {
-      default = "127.0.0.1:8880";
-      type = types.str;
-      description = ''
-        Address to listen for http connections.
-      '';
-    };
-    httpPathPrefix = mkOption {
-      default = "";
-      type = types.str;
-      description = ''
-        An optional prefix to add to all the paths handled by http server.
-        For example, if '-http.pathPrefix=/foo/bar' is set,
-        then all the http requests will be handled on '/foo/bar/*' paths.
-        This may be useful for proxied requests.
+    datasources = mkOption {
+      default = {};
+      type = types.attrsOf (types.submodule ({name, ...}: {
+        options = {
+          enable = mkEnableOption "vmalertType";
+          name = lib.mkOption {
+            type = types.str;
+            default = name;
+          };
+          package = mkOption {
+            type = types.package;
+            default = pkgs.victoriametrics;
+            defaultText = "pkgs.victoriametrics";
+            description = ''
+              The VictoriaMetrics distribution to use for vmalert.
+            '';
+          };
+          datasourceUrl = mkOption {
+            default = "http://localhost:8428";
+            type = types.str;
+            description = ''
+              VictoriaMetrics or vmselect url.
+              Required parameter.
+            '';
+          };
+          externalAlertSource = mkOption {
+            default = "";
+            type = types.str;
+            description = ''
+              External Alert Source allows to override the Source link for alerts sent
+              to AlertManager for cases where you want to build a custom link to Grafana,
+              Prometheus or any other service.
+              eg. 'explore?orgId=1&left=[\"now-1h\",\"now\",\"VictoriaMetrics\",{\"expr\": \"\"},{\"mode\":\"Metrics\"},{\"ui\":[true,true,true,\"none\"]}]'.
+              If empty string, '/api/v1/:groupID/alertID/status' is used
+            '';
+          };
+          externalUrl = mkOption {
+            default = "http://localhost:8428";
+            type = types.str;
+            description = ''
+              External URL is used as alert's source for sent alerts to the notifier.
+            '';
+          };
+          httpListenAddr = mkOption {
+            default = "127.0.0.1:8880";
+            type = types.str;
+            description = ''
+              Address to listen for http connections.
+            '';
+          };
+          httpPathPrefix = mkOption {
+            default = "";
+            type = types.str;
+            description = ''
+              An optional prefix to add to all the paths handled by http server.
+              For example, if '-http.pathPrefix=/foo/bar' is set,
+              then all the http requests will be handled on '/foo/bar/*' paths.
+              This may be useful for proxied requests.
 
-        The httpPathPrefix should match the externalUrl path, if any.
+              The httpPathPrefix should match the externalUrl path, if any.
 
-        See:
-          https://www.robustperception.io/using-external-urls-and-proxies-with-prometheus
-      '';
-    };
-    notifierUrl = mkOption {
-      default = "http://localhost:9093/alertmanager";
-      type = types.str;
-      description = ''
-        The URL for notifying prometheus alertmanager.
-        Note that if the prometheus.alertmanager.webExternalUrl
-        parameter contains a path, it will need to also be
-        included here.
-      '';
-    };
-    remoteReadUrl = mkOption {
-      default = "http://localhost:8428";
-      type = types.str;
-      description = ''
-        VM-single addr for restoring alerts state after restart.
-      '';
-    };
-    remoteWriteUrl = mkOption {
-      default = "http://localhost:8428";
-      type = types.str;
-      description = ''
-        VM-single addr to persist alerts state and recording rules results.
-      '';
-    };
-    rules = mkOption {
-      default = [];
-      type = types.listOf types.attrs;
-      description = ''
-        A list of attrs comprising vmalert rules.
-        Each attr comprises a <rule_group>.
-        Vmalert supports Prometheus alerting rules definition format.
+              See:
+                https://www.robustperception.io/using-external-urls-and-proxies-with-prometheus
+            '';
+          };
+          notifierUrl = mkOption {
+            default = "http://localhost:9093/alertmanager";
+            type = types.str;
+            description = ''
+              The URL for notifying prometheus alertmanager.
+              Note that if the prometheus.alertmanager.webExternalUrl
+              parameter contains a path, it will need to also be
+              included here.
+            '';
+          };
+          remoteReadUrl = mkOption {
+            default = "http://localhost:8428";
+            type = types.str;
+            description = ''
+              VM-single addr for restoring alerts state after restart.
+            '';
+          };
+          remoteWriteUrl = mkOption {
+            default = "http://localhost:8428";
+            type = types.str;
+            description = ''
+              VM-single addr to persist alerts state and recording rules results.
+            '';
+          };
+          ruleValidateExpressions = mkOption {
+             type = types.bool;
+             default = true;
+             description = ''
+               Whether to validate rules expressions via MetricsQL engine (default true).
+               This option may be turned off to allow non-strict MetricsQL queries, such as for Loki.
+               Ref: https://github.com/VictoriaMetrics/VictoriaMetrics/issues/780
+             '';
+          };
+          rules = mkOption {
+            default = [];
+            type = types.listOf types.attrs;
+            description = ''
+              A list of attrs comprising vmalert rules.
+              Each attr comprises a <rule_group>.
+              Vmalert supports Prometheus alerting rules definition format.
 
-        Detailed syntax for rule groups can be found at:
-          https://docs.victoriametrics.com/vmalert.html#groups
-          https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/#defining-alerting-rules
+              Detailed syntax for rule groups can be found at:
+                https://docs.victoriametrics.com/vmalert.html#groups
+                https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/#defining-alerting-rules
 
-        While the document references above provide rule group examples in yaml,
-        this nix option expects a list of rule group attrs to be convertable to JSON by:
+              While the document references above provide rule group examples in yaml,
+              this nix option expects a list of rule group attrs to be convertable to JSON by:
 
-          builtins.toJSON { groups = config.services.vmalert.rules; }
-      '';
+                builtins.toJSON { groups = config.services.vmalert.$DATASOURCE_INSTANCE.rules; }
+            '';
+          };
+        };
+      }));
     };
   };
 
   config = {
-    systemd.services.victoriametrics = mkIf cfg.enable {
-      description = "VictoriaMetrics time series database";
-      after = [ "network.target" ];
-      serviceConfig = {
-        Restart = "on-failure";
-        RestartSec = 1;
-        StartLimitBurst = 5;
-        StateDirectory = "victoriametrics";
-        DynamicUser = true;
-        ExecStart = let
-          proxyUrl = "http://${cfgVmalert.httpListenAddr}${cfgVmalert.httpPathPrefix}";
-        in ''
-          ${cfg.package}/bin/victoria-metrics \
-            -storageDataPath=/var/lib/victoriametrics \
-            -httpListenAddr=${cfg.httpListenAddr} \
-            -retentionPeriod=${toString cfg.retentionPeriod} \
-            -selfScrapeInterval=${cfg.selfScrapeInterval} \
-            ${if cfg.enableVmalertProxy && cfgVmalert.enable then "-vmalert.proxyURL=${proxyUrl} \\" else "\\"}
-            ${escapeShellArgs cfg.extraOptions}
+    systemd.services = {
+      victoriametrics = mkIf cfg.enable {
+        description = "VictoriaMetrics time series database";
+        after = [ "network.target" ];
+        serviceConfig = {
+          Restart = "on-failure";
+          RestartSec = 1;
+          StartLimitBurst = 5;
+          StateDirectory = "victoriametrics";
+          DynamicUser = true;
+          ExecStart = let
+            cfgDs = cfgVmalert.datasources.vmalert-vm;
+            proxyUrl = "http://${cfgDs.httpListenAddr}${cfgDs.httpPathPrefix}";
+          in ''
+            ${cfg.package}/bin/victoria-metrics \
+              -storageDataPath=/var/lib/victoriametrics \
+              -httpListenAddr=${cfg.httpListenAddr} \
+              -retentionPeriod=${toString cfg.retentionPeriod} \
+              -selfScrapeInterval=${cfg.selfScrapeInterval} \
+              ${if cfg.enableVmalertProxy && cfgVmalert.enable then "-vmalert.proxyURL=${proxyUrl} \\" else "\\"}
+              ${escapeShellArgs cfg.extraOptions}
+          '';
+        };
+        wantedBy = [ "multi-user.target" ];
+
+        postStart = let
+          bindAddr =
+            (optionalString (hasPrefix ":" cfg.httpListenAddr) "127.0.0.1")
+            + cfg.httpListenAddr;
+        in mkBefore ''
+          until ${
+            getBin pkgs.curl
+          }/bin/curl -s -o /dev/null http://${bindAddr}/ping; do
+            sleep 1;
+          done
         '';
       };
-      wantedBy = [ "multi-user.target" ];
 
-      postStart = let
-        bindAddr =
-          (optionalString (hasPrefix ":" cfg.httpListenAddr) "127.0.0.1")
-          + cfg.httpListenAddr;
-      in mkBefore ''
-        until ${
-          getBin pkgs.curl
-        }/bin/curl -s -o /dev/null http://${bindAddr}/ping; do
-          sleep 1;
-        done
-      '';
-    };
-
-    systemd.services.vmagent = mkIf cfgVmagent.enable {
-      description = "VictoriaMetrics vmagent";
+      vmagent = mkIf cfgVmagent.enable {
+        description = "VictoriaMetrics vmagent";
+        after = [ "network.target" ];
+        serviceConfig = {
+          Restart = "on-failure";
+          RestartSec = 1;
+          StartLimitBurst = 5;
+          StateDirectory = "vmagent";
+          DynamicUser = true;
+          ExecStart = ''
+            ${cfgVmagent.package}/bin/vmagent \
+              -http.pathPrefix=${cfgVmagent.httpPathPrefix} \
+              -httpListenAddr=${cfgVmagent.httpListenAddr} \
+              -remoteWrite.tmpDataPath=${cfgVmagent.remoteWriteTmpDataPath} \
+              -remoteWrite.url=${cfgVmagent.remoteWriteUrl} \
+              -promscrape.config=${pkgs.writeText "vmagent-scrape-config.json" (builtins.toJSON { scrape_configs = cfgVmagent.promscrapeConfig; })}
+          '';
+        };
+        wantedBy = [ "multi-user.target" ];
+      };
+    } // (optionalAttrs cfgVmalert.enable (mapAttrs (name: cfgDs: {
+      description = "VictoriaMetrics ${name}";
       after = [ "network.target" ];
       serviceConfig = {
         Restart = "on-failure";
         RestartSec = 1;
         StartLimitBurst = 5;
-        StateDirectory = "vmagent";
+        StateDirectory = "${name}";
         DynamicUser = true;
         ExecStart = ''
-          ${cfgVmagent.package}/bin/vmagent \
-            -http.pathPrefix=${cfgVmagent.httpPathPrefix} \
-            -httpListenAddr=${cfgVmagent.httpListenAddr} \
-            -remoteWrite.tmpDataPath=${cfgVmagent.remoteWriteTmpDataPath} \
-            -remoteWrite.url=${cfgVmagent.remoteWriteUrl} \
-            -promscrape.config=${pkgs.writeText "vmagent-scrape-config.json" (builtins.toJSON { scrape_configs = cfgVmagent.promscrapeConfig; })}
+          ${cfgDs.package}/bin/vmalert \
+            -datasource.url=${cfgDs.datasourceUrl} \
+            -external.alert.source=${cfgDs.externalAlertSource} \
+            -external.url=${cfgDs.externalUrl} \
+            -http.pathPrefix=${cfgDs.httpPathPrefix} \
+            -httpListenAddr=${cfgDs.httpListenAddr} \
+            -remoteRead.url=${cfgDs.remoteReadUrl} \
+            -remoteWrite.url=${cfgDs.remoteWriteUrl} \
+            -notifier.url=${cfgDs.notifierUrl} \
+            -rule.validateExpressions=${boolToString cfgDs.ruleValidateExpressions} \
+            -rule=${pkgs.writeText "${name}-rules.json" (builtins.toJSON { groups = cfgDs.rules; })}
         '';
       };
       wantedBy = [ "multi-user.target" ];
-    };
-
-    systemd.services.vmalert = mkIf cfgVmalert.enable {
-      description = "VictoriaMetrics vmalert";
-      after = [ "network.target" ];
-      serviceConfig = {
-        Restart = "on-failure";
-        RestartSec = 1;
-        StartLimitBurst = 5;
-        StateDirectory = "vmalert";
-        DynamicUser = true;
-        ExecStart = ''
-          ${cfgVmalert.package}/bin/vmalert \
-            -datasource.url=${cfgVmalert.datasourceUrl} \
-            -external.alert.source=${cfgVmalert.externalAlertSource} \
-            -external.url=${cfgVmalert.externalUrl} \
-            -http.pathPrefix=${cfgVmalert.httpPathPrefix} \
-            -httpListenAddr=${cfgVmalert.httpListenAddr} \
-            -remoteRead.url=${cfgVmalert.remoteReadUrl} \
-            -remoteWrite.url=${cfgVmalert.remoteWriteUrl} \
-            -notifier.url=${cfgVmalert.notifierUrl} \
-            -rule=${pkgs.writeText "vmalert-rules.json" (builtins.toJSON { groups = cfgVmalert.rules; })}
-        '';
-      };
-      wantedBy = [ "multi-user.target" ];
-    };
+    }) cfgVmalert.datasources));
   };
 }

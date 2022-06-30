@@ -324,11 +324,19 @@ in {
               tls = tlsCfg;
             };
 
-            vmalert = {
+            vmalert-loki = {
               entrypoints = "https";
               middlewares = [ ];
-              rule = "Host(`monitoring.${domain}`) && PathPrefix(`/vmalert`)";
-              service = "vmalert";
+              rule = "Host(`monitoring.${domain}`) && PathPrefix(`/vmalert-loki`)";
+              service = "vmalert-loki";
+              tls = tlsCfg;
+            };
+
+            vmalert-vm = {
+              entrypoints = "https";
+              middlewares = [ ];
+              rule = "Host(`monitoring.${domain}`) && PathPrefix(`/vmalert-vm`)";
+              service = "vmalert-vm";
               tls = tlsCfg;
             };
           } // (lib.optionalAttrs cfg.useOauth2Proxy {
@@ -380,7 +388,11 @@ in {
               servers = [{ url = "http://monitoring:8429"; }];
             };
 
-            vmalert.loadBalancer = {
+            vmalert-loki.loadBalancer = {
+              servers = [{ url = "http://monitoring:8881"; }];
+            };
+
+            vmalert-vm.loadBalancer = {
               servers = [{ url = "http://monitoring:8880"; }];
             };
 
