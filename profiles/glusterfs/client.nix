@@ -14,8 +14,8 @@ in {
   };
 
   systemd.services."mnt-gv0.mount" = lib.mkIf cfg.enable {
-    after = [ "consul.service" ];
-    wants = [ "consul.service" ];
+    after = [ "consul.service" "dnsmasq.service" ];
+    wants = [ "consul.service" "dnsmasq.service" ];
   };
 
   systemd.services.nomad = lib.mkIf cfg.enable {
