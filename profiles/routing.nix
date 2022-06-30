@@ -318,7 +318,7 @@ in {
 
             vmagent = {
               entrypoints = "https";
-              middlewares = [ ];
+              middlewares = [ "ensureFirstLevelSlash" ];
               rule = "Host(`monitoring.${domain}`) && PathPrefix(`/vmagent`)";
               service = "vmagent";
               tls = tlsCfg;
@@ -326,7 +326,7 @@ in {
 
             vmalert-loki = {
               entrypoints = "https";
-              middlewares = [ ];
+              middlewares = [ "ensureFirstLevelSlash" ];
               rule = "Host(`monitoring.${domain}`) && PathPrefix(`/vmalert-loki`)";
               service = "vmalert-loki";
               tls = tlsCfg;
@@ -334,7 +334,7 @@ in {
 
             vmalert-vm = {
               entrypoints = "https";
-              middlewares = [ ];
+              middlewares = [ "ensureFirstLevelSlash" ];
               rule = "Host(`monitoring.${domain}`) && PathPrefix(`/vmalert-vm`)";
               service = "vmalert-vm";
               tls = tlsCfg;
@@ -434,6 +434,18 @@ in {
                 stsIncludeSubdomains = true;
                 stsPreload = true;
                 stsSeconds = 315360000;
+              };
+            };
+            # Ensures the first level of the path following the URL FQDN has a trailing slash.
+            # Useful for when target requires a trailing slash for relative link use.
+            # Refs:
+            #   https://github.com/traefik/traefik/issues/5159
+            #   https://github.com/VictoriaMetrics/VictoriaMetrics/issues/2799
+            ensureFirstLevelSlash = {
+              redirectregex = {
+                regex = "^https://([^/]+)/([^/]+)$";
+                replacement = "https://\${1}/\${2}/";
+                permanent = false;
               };
             };
           } // lib.optionalAttrs cfg.useOauth2Proxy {
