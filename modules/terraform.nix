@@ -94,6 +94,8 @@ let
       # "s3://${cfg.s3Bucket}/infra/secrets/${cfg.name}/${cfg.kms}/source/${awsAsg}-source.tar.xz" \
     in ''
       #!
+      cat <<'EOF' > /etc/finish-bootstrap.sh
+      #!/bin/sh
       export NIX_CONFIG="${nixConf}"
       export PATH="/run/current-system/sw/bin:$PATH"
       set -exuo pipefail
@@ -109,6 +111,8 @@ let
         nix build ./source#nixosConfigurations.${cfg.name}-${awsAsg}.config.system.build.toplevel
         nixos-rebuild --flake ./source#${cfg.name}-${awsAsg} switch
       fi # manual provisioning
+      EOF
+      chmod +x /etc/finish-bootstrap.sh
     '';
 
   localProvisionerDefaultCommand = ip:
