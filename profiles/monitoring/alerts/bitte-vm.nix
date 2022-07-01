@@ -1,4 +1,4 @@
-grafanaUrl: {
+{ ... }: {
   groups = [
     {
       name = "bitte-victoriametrics-health";
@@ -63,7 +63,7 @@ grafanaUrl: {
           alert = "DiskRunsOutOfSpaceIn3Days";
           annotations = {
             dashboard =
-              "${grafanaUrl}/d/wNf0q_kZk?viewPanel=73&var-instance={{ $labels.instance }}";
+              "{{ $externalURL }}/d/wNf0q_kZk?viewPanel=73&var-instance={{ $labels.instance }}";
             description = ''
               Taking into account current ingestion rate, free disk space will be enough only for {{ $value | humanizeDuration }} on instance {{ $labels.instance }}.
                Consider to limit the ingestion rate, decrease retention or scale the disk space if possible.'';
@@ -90,7 +90,7 @@ grafanaUrl: {
           alert = "DiskRunsOutOfSpace";
           annotations = {
             dashboard =
-              "${grafanaUrl}/d/wNf0q_kZk?viewPanel=53&var-instance={{ $labels.instance }}";
+              "{{ $externalURL }}/d/wNf0q_kZk?viewPanel=53&var-instance={{ $labels.instance }}";
             description = ''
               Disk utilisation on instance {{ $labels.instance }} is more than 80%.
                Having less than 20% of free disk space could cripple merges processes and overall performance. Consider to limit the ingestion rate, decrease retention or scale the disk space if possible.'';
@@ -111,7 +111,7 @@ grafanaUrl: {
           alert = "RequestErrorsToAPI";
           annotations = {
             dashboard =
-              "${grafanaUrl}/d/wNf0q_kZk?viewPanel=35&var-instance={{ $labels.instance }}";
+              "{{ $externalURL }}/d/wNf0q_kZk?viewPanel=35&var-instance={{ $labels.instance }}";
             description =
               "Requests to path {{ $labels.path }} are receiving errors. Please verify if clients are sending correct requests.";
             summary =
@@ -125,7 +125,7 @@ grafanaUrl: {
           alert = "ConcurrentFlushesHitTheLimit";
           annotations = {
             dashboard =
-              "${grafanaUrl}/d/wNf0q_kZk?viewPanel=59&var-instance={{ $labels.instance }}";
+              "{{ $externalURL }}/d/wNf0q_kZk?viewPanel=59&var-instance={{ $labels.instance }}";
             description = ''
               The limit of concurrent flushes on instance {{ $labels.instance }} is equal to number of CPUs.
                When VictoriaMetrics constantly hits the limit it means that storage is overloaded and requires more CPU.'';
@@ -141,7 +141,7 @@ grafanaUrl: {
           alert = "TooManyLogs";
           annotations = {
             dashboard =
-              "${grafanaUrl}/d/wNf0q_kZk?viewPanel=67&var-instance={{ $labels.instance }}";
+              "{{ $externalURL }}/d/wNf0q_kZk?viewPanel=67&var-instance={{ $labels.instance }}";
             description = ''
               Logging rate for job "{{ $labels.job }}" ({{ $labels.instance }}) is {{ $value }} for last 15m.
                Worth to check logs for specific error messages.'';
@@ -157,7 +157,7 @@ grafanaUrl: {
           alert = "RowsRejectedOnIngestion";
           annotations = {
             dashboard =
-              "${grafanaUrl}/d/wNf0q_kZk?viewPanel=58&var-instance={{ $labels.instance }}";
+              "{{ $externalURL }}/d/wNf0q_kZk?viewPanel=58&var-instance={{ $labels.instance }}";
             description = ''
               VM is rejecting to ingest rows on "{{ $labels.instance }}" due to the following reason: "{{ $labels.reason }}"'';
             summary = ''
@@ -172,7 +172,7 @@ grafanaUrl: {
           alert = "TooHighChurnRate";
           annotations = {
             dashboard =
-              "${grafanaUrl}/d/wNf0q_kZk?viewPanel=66&var-instance={{ $labels.instance }}";
+              "{{ $externalURL }}/d/wNf0q_kZk?viewPanel=66&var-instance={{ $labels.instance }}";
             description = ''
               VM constantly creates new time series on "{{ $labels.instance }}".
                This effect is known as Churn Rate.
@@ -194,7 +194,7 @@ grafanaUrl: {
           alert = "TooHighChurnRate24h";
           annotations = {
             dashboard =
-              "${grafanaUrl}/d/wNf0q_kZk?viewPanel=66&var-instance={{ $labels.instance }}";
+              "{{ $externalURL }}/d/wNf0q_kZk?viewPanel=66&var-instance={{ $labels.instance }}";
             description = ''
               The number of created new time series over last 24h is 3x times higher than current number of active series on "{{ $labels.instance }}".
                This effect is known as Churn Rate.
@@ -214,7 +214,7 @@ grafanaUrl: {
           alert = "TooHighSlowInsertsRate";
           annotations = {
             dashboard =
-              "${grafanaUrl}/d/wNf0q_kZk?viewPanel=68&var-instance={{ $labels.instance }}";
+              "{{ $externalURL }}/d/wNf0q_kZk?viewPanel=68&var-instance={{ $labels.instance }}";
             description = ''
               High rate of slow inserts on "{{ $labels.instance }}" may be a sign of resource exhaustion for the current load. It is likely more RAM is needed for optimal handling of the current number of active time series.'';
             summary = ''
@@ -255,7 +255,7 @@ grafanaUrl: {
           alert = "PersistentQueueIsDroppingData";
           annotations = {
             dashboard =
-              "${grafanaUrl}/d/G7Z9GzMGz?viewPanel=49&var-instance={{ $labels.instance }}";
+              "{{ $externalURL }}/d/G7Z9GzMGz?viewPanel=49&var-instance={{ $labels.instance }}";
             description =
               "Vmagent dropped {{ $value | humanize1024 }} from persistent queue on instance {{ $labels.instance }} for the last 10m.";
             summary =
@@ -270,7 +270,7 @@ grafanaUrl: {
           alert = "TooManyScrapeErrors";
           annotations = {
             dashboard =
-              "${grafanaUrl}/d/G7Z9GzMGz?viewPanel=31&var-instance={{ $labels.instance }}";
+              "{{ $externalURL }}/d/G7Z9GzMGz?viewPanel=31&var-instance={{ $labels.instance }}";
             summary = ''
               Job "{{ $labels.job }}" on instance {{ $labels.instance }} fails to scrape targets for last 15m'';
           };
@@ -283,7 +283,7 @@ grafanaUrl: {
           alert = "TooManyWriteErrors";
           annotations = {
             dashboard =
-              "${grafanaUrl}/d/G7Z9GzMGz?viewPanel=77&var-instance={{ $labels.instance }}";
+              "{{ $externalURL }}/d/G7Z9GzMGz?viewPanel=77&var-instance={{ $labels.instance }}";
             summary = ''
               Job "{{ $labels.job }}" on instance {{ $labels.instance }} responds with errors to write requests for last 15m.'';
           };
@@ -299,7 +299,7 @@ grafanaUrl: {
           alert = "TooManyRemoteWriteErrors";
           annotations = {
             dashboard =
-              "${grafanaUrl}/d/G7Z9GzMGz?viewPanel=61&var-instance={{ $labels.instance }}";
+              "{{ $externalURL }}/d/G7Z9GzMGz?viewPanel=61&var-instance={{ $labels.instance }}";
             description = ''
               Vmagent fails to push data via remote write protocol to destination "{{ $labels.url }}"
                Ensure that destination is up and reachable.'';
@@ -315,7 +315,7 @@ grafanaUrl: {
           alert = "RemoteWriteConnectionIsSaturated";
           annotations = {
             dashboard =
-              "${grafanaUrl}/d/G7Z9GzMGz?viewPanel=84&var-instance={{ $labels.instance }}";
+              "{{ $externalURL }}/d/G7Z9GzMGz?viewPanel=84&var-instance={{ $labels.instance }}";
             description = ''
               The remote write connection between vmagent "{{ $labels.job }}" (instance {{ $labels.instance }}) and destination "{{ $labels.url }}" is saturated by more than 90% and vmagent won't be able to keep up.
                This usually means that `-remoteWrite.queues` command-line flag must be increased in order to increase the number of connections per each remote storage.'';

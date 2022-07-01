@@ -220,21 +220,36 @@ in with lib; {
              '';
           };
           rules = mkOption {
-            default = [];
-            type = types.listOf types.attrs;
+            default = {};
+            type = types.attrs;
             description = ''
-              A list of attrs comprising vmalert rules.
-              Each attr comprises a <rule_group>.
+              An attribute set for declaring vmalert rules files.
+              Each attribute name will be converted to a filename of: "''${attrName}-rules".
+              Each attribute value will be comprised of a vmalert <rule_group>.
               Vmalert supports Prometheus alerting rules definition format.
+
+              The attribute values representing a <rule_group> can be obtained from
+              functionalized import which will allow nix interpolation if required.
+
+              Examples of setting rules files follow:
+
+                services.vmalert.datasources = {
+                  vm.rules = { worldrepo-vm = import ../../cloud/alerts/worldrepo-vm.nix {}; };
+                  loki.rules = { worldrepo-loki = import ../../cloud/alerts/worldrepo-loki.nix {}; };
+                };
+
+              All declared rules files for a specific datasource will be linkFarm joined
+              into a single directory and provided to the vmalert service specifically
+              configured to manage alerts for that datasource.
 
               Detailed syntax for rule groups can be found at:
                 https://docs.victoriametrics.com/vmalert.html#groups
                 https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/#defining-alerting-rules
 
               While the document references above provide rule group examples in yaml,
-              this nix option expects a list of rule group attrs to be convertable to JSON by:
+              this nix option expects the rules attribute set values to be convertable to JSON by:
 
-                builtins.toJSON { groups = config.services.vmalert.$DATASOURCE_INSTANCE.rules; }
+                (builtins.toJSON config.services.vmalert.''${datasources}.rules)
             '';
           };
         };
@@ -254,7 +269,7 @@ in with lib; {
           StateDirectory = "victoriametrics";
           DynamicUser = true;
           ExecStart = let
-            cfgDs = cfgVmalert.datasources.vmalert-vm;
+            cfgDs = cfgVmalert.datasources.vm;
             proxyUrl = "http://${cfgDs.httpListenAddr}${cfgDs.httpPathPrefix}";
           in ''
             ${cfg.package}/bin/victoria-metrics \
@@ -301,16 +316,28 @@ in with lib; {
         };
         wantedBy = [ "multi-user.target" ];
       };
-    } // (optionalAttrs cfgVmalert.enable (mapAttrs (name: cfgDs: {
-      description = "VictoriaMetrics ${name}";
+    } // (optionalAttrs cfgVmalert.enable (mapAttrs' (name: cfgDs: nameValuePair "vmalert-${name}" {
+      description = "VictoriaMetrics vmalert-${name}";
       after = [ "network.target" ];
       serviceConfig = {
         Restart = "on-failure";
         RestartSec = 1;
         StartLimitBurst = 5;
-        StateDirectory = "${name}";
+        StateDirectory = "vmalert-${name}";
         DynamicUser = true;
-        ExecStart = ''
+        ExecStart = let
+          linkFarmDir = lib.pipe cfgDs.rules [
+            (lib.mapAttrs (n: rulesNix: builtins.toJSON rulesNix))
+            (lib.mapAttrs' (n: rulesJson:
+              lib.nameValuePair
+                "${n}-rules.json"
+                (pkgs.writeText "${n}-rules.json" rulesJson
+              )
+            ))
+            (lib.mapAttrsToList (name: path: { inherit name path; }))
+            (pkgs.linkFarm "${name}-rules")
+          ];
+        in ''
           ${cfgDs.package}/bin/vmalert \
             -datasource.url=${cfgDs.datasourceUrl} \
             -external.alert.source=${cfgDs.externalAlertSource} \
@@ -321,7 +348,7 @@ in with lib; {
             -remoteWrite.url=${cfgDs.remoteWriteUrl} \
             -notifier.url=${cfgDs.notifierUrl} \
             -rule.validateExpressions=${boolToString cfgDs.ruleValidateExpressions} \
-            -rule=${pkgs.writeText "${name}-rules.json" (builtins.toJSON { groups = cfgDs.rules; })}
+            -rule='${linkFarmDir}/*.json'
         '';
       };
       wantedBy = [ "multi-user.target" ];

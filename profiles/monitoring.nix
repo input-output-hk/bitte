@@ -196,7 +196,7 @@ in {
         '';
       };
       virtualHosts.localhost = let
-        cfg = config.services.vmalert.datasources.vmalert-loki;
+        cfg = config.services.vmalert.datasources.loki;
       in {
         listen = [ { addr = "0.0.0.0"; port = 3099; } ];
         locations = {
@@ -303,7 +303,7 @@ in {
       ] ++ lib.optionals config.services.vmalert.enable (builtins.attrValues (
           # Add a vmagent target scrape for each services.vmalert.datasources attr
           lib.mapAttrs (name: cfgDs: {
-            job_name = "${name}";
+            job_name = "vmalert-${name}";
             scrape_interval = "60s";
             metrics_path = "${cfgDs.httpPathPrefix}/metrics";
             static_configs = [{
@@ -316,22 +316,27 @@ in {
     services.vmalert = {
       enable = true;
       datasources = {
-        vmalert-vm = {
+        vm = {
           datasourceUrl = "http://localhost:8428";
           httpListenAddr = "0.0.0.0:8880";
-          externalUrl = "https://monitoring.${domain}/vmalert-vm";
+          externalUrl = "https://monitoring.${domain}";
           httpPathPrefix = "/vmalert-vm";
-          rules = (import ./monitoring/alerts/vmalert-vm.nix "https://monitoring.${domain}").groups;
+          rules = {
+            bitte-deadmanssnitch = import ./monitoring/alerts/bitte-deadmanssnitch.nix {};
+            bitte-vm = import ./monitoring/alerts/bitte-vm.nix {};
+          };
         };
-        vmalert-loki = {
+        loki = {
           datasourceUrl = "http://localhost:3100/loki";
           httpListenAddr = "0.0.0.0:8881";
-          externalUrl = "https://monitoring.${domain}/vmalert-loki";
+          externalUrl = "https://monitoring.${domain}";
           httpPathPrefix = "/vmalert-loki";
           # Loki uses PromQL type queries that do not strictly comply with PromQL
           # Ref: https://github.com/VictoriaMetrics/VictoriaMetrics/issues/780
           ruleValidateExpressions = false;
-          rules = (import ./monitoring/alerts/vmalert-loki.nix "https://monitoring.${domain}").groups;
+          rules = {
+            bitte-loki = import ./monitoring/alerts/bitte-loki.nix {};
+          };
         };
       };
     };

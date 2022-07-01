@@ -1,4 +1,4 @@
-grafanaUrl: {
+{ ... }: {
   groups = [
     {
       name = "bitte-deadmanssnitch";
