@@ -107,11 +107,11 @@ in {
     # but env substitution through services.prometheus.alertmanager.environmentFile
     # requires bash variables in the group rules which will not pass syntax validation
     # in some fields, such as a url field.  This works around the problem.
+    # Ref: https://github.com/prometheus/alertmanager/issues/504
     systemd.services.alertmanager.preStart = let
       cfg = config.services.prometheus.alertmanager;
-      alertmanagerYml = if cfg.configText != null then
-      pkgs.writeText "alertmanager.yml" cfg.configText
-      else pkgs.writeText "alertmanager.yml" (builtins.toJSON cfg.configuration);
+      alertmanagerYml = if cfg.configText != null then pkgs.writeText "alertmanager.yml" cfg.configText
+                        else pkgs.writeText "alertmanager.yml" (builtins.toJSON cfg.configuration);
     in lib.mkForce ''
       ${pkgs.gnused}/bin/sed 's|https://deadmanssnitch.com|$DEADMANSSNITCH|g' "${alertmanagerYml}" > "/tmp/alert-manager-sed.yaml"
       ${lib.getBin pkgs.envsubst}/bin/envsubst -o "/tmp/alert-manager-substituted.yaml" \
@@ -272,6 +272,10 @@ in {
               webhook_configs = [
                 {
                   send_resolved = false;
+                  # We actually need a $DEADMANSSNITCH var here, but the syntax
+                  # checking as part of the build won't allow it on a url type.
+                  # Therefore, we resort to the script above for:
+                  # systemd.services.alertmanager.preStart.
                   url = "https://deadmanssnitch.com";
                 }
               ];
