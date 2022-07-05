@@ -97,7 +97,6 @@ in {
           $USER:$REALM:$HASHED_PASSWORD
 
         Digest auth file ownership and perms are expected to be: root:keys 0640.
-        Enabling this option will place the traefik user in the `key` group.
 
         Ref:
           https://doc.traefik.io/traefik/v2.0/middlewares/digestauth/
@@ -123,76 +122,88 @@ in {
     services.traefik.enable = true;
     services.oauth2_proxy.enable = cfg.useOauth2Proxy;
 
-    users.extraGroups.keys.members = lib.mkIf cfg.useDigestAuth [ "traefik" ];
+    users.extraGroups.keys.members = [ "traefik" ];
 
     networking.extraHosts = ''
       ${config.cluster.nodes.monitoring.privateIP} monitoring
     '';
 
-    # Only start traefik once the token is available
-    systemd.paths.traefik-consul-token = {
-      wantedBy = [ "multi-user.target" ];
-      pathConfig = {
-        Unit = "traefik.service";
-        PathExists = hashiTokens.traefik;
+    systemd.services.traefik = {
+      # Ensure the service continues trying to restart with a reasonably time delay between each attempt.
+      # See also Restart[Sec] options below.
+      startLimitIntervalSec = lib.mkForce 0;
+      startLimitBurst = lib.mkForce 0;
+
+      # Until systemd adds support for a PathExists activation trigger delay, we can use the preStart for creds existence test.
+      # This avoids a systemd service start race condition with NixOS service activation restart.
+      # Ref: https://github.com/systemd/systemd/issues/20818#issuecomment-1172952498
+      preStart = let
+        credFile = hashiTokens.consul-default;
+      in ''
+        echo "Checking for credentials file existence: ${credFile}"
+        until [ -f ${credFile} ]; do
+          echo "Waiting for credentials file to exist: ${credFile}"
+          sleep 2
+        done
+        echo "Found credentials file: ${credFile}"
+      '';
+
+      serviceConfig = {
+        Restart = lib.mkForce "always";
+        RestartSec = 5;
+
+        ExecStart = let
+            cfg = config.services.traefik;
+            jsonValue = with lib.types;
+              let
+                valueType = nullOr (oneOf [
+                  bool
+                  int
+                  float
+                  str
+                  (lazyAttrsOf valueType)
+                  (listOf valueType)
+                ]) // {
+                  description = "JSON value";
+                  emptyValue.value = { };
+                };
+              in valueType;
+            dynamicConfigFile = if cfg.dynamicConfigFile == null then
+              pkgs.runCommand "config.toml" {
+                buildInputs = [ pkgs.remarshal ];
+                preferLocalBuild = true;
+              } ''
+                remarshal -if json -of toml \
+                  < ${
+                    pkgs.writeText "dynamic_config.json"
+                    (builtins.toJSON cfg.dynamicConfigOptions)
+                  } \
+                  > $out
+              ''
+            else
+              cfg.dynamicConfigFile;
+            staticConfigFile = if cfg.staticConfigFile == null then
+              pkgs.runCommand "config.toml" {
+                buildInputs = [ pkgs.yj ];
+                preferLocalBuild = true;
+              } ''
+                yj -jt -i \
+                  < ${
+                    pkgs.writeText "static_config.json" (builtins.toJSON
+                      (lib.recursiveUpdate cfg.staticConfigOptions {
+                        providers.file.filename = "${dynamicConfigFile}";
+                      }))
+                  } \
+                  > $out
+              ''
+            else
+              cfg.staticConfigFile;
+        in lib.mkForce (pkgs.writeShellScript "traefik.sh" ''
+          export CONSUL_HTTP_TOKEN="$(< ${hashiTokens.consul-default})"
+          exec ${config.services.traefik.package}/bin/traefik --configfile=${staticConfigFile}
+        '');
       };
     };
-
-    # Get rid of the default `multi-user.target` so that the
-    # above path unit actually has an effect.
-    systemd.services.traefik.wantedBy = lib.mkForce [];
-
-    systemd.services.traefik.serviceConfig.ExecStart = let
-        cfg = config.services.traefik;
-        jsonValue = with lib.types;
-          let
-            valueType = nullOr (oneOf [
-              bool
-              int
-              float
-              str
-              (lazyAttrsOf valueType)
-              (listOf valueType)
-            ]) // {
-              description = "JSON value";
-              emptyValue.value = { };
-            };
-          in valueType;
-        dynamicConfigFile = if cfg.dynamicConfigFile == null then
-          pkgs.runCommand "config.toml" {
-            buildInputs = [ pkgs.remarshal ];
-            preferLocalBuild = true;
-          } ''
-            remarshal -if json -of toml \
-              < ${
-                pkgs.writeText "dynamic_config.json"
-                (builtins.toJSON cfg.dynamicConfigOptions)
-              } \
-              > $out
-          ''
-        else
-          cfg.dynamicConfigFile;
-        staticConfigFile = if cfg.staticConfigFile == null then
-          pkgs.runCommand "config.toml" {
-            buildInputs = [ pkgs.yj ];
-            preferLocalBuild = true;
-          } ''
-            yj -jt -i \
-              < ${
-                pkgs.writeText "static_config.json" (builtins.toJSON
-                  (lib.recursiveUpdate cfg.staticConfigOptions {
-                    providers.file.filename = "${dynamicConfigFile}";
-                  }))
-              } \
-              > $out
-          ''
-        else
-          cfg.staticConfigFile;
-    in lib.mkForce (pkgs.writeShellScript "traefik.sh" ''
-      export CONSUL_HTTP_TOKEN="$(< $CREDENTIALS_DIRECTORY/consul)"
-      exec ${config.services.traefik.package}/bin/traefik --configfile=${staticConfigFile}
-    '');
-    systemd.services.traefik.serviceConfig.LoadCredential = "consul:${hashiTokens.consul-default}";
 
     systemd.services.copy-acme-certs = lib.mkIf cfg.acmeDnsCertMgr {
       before = [ "traefik.service" ];
