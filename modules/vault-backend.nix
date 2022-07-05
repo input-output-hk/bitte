@@ -35,7 +35,7 @@ in {
 
       environment = {
         VAULT_CACERT = "cert.pem";
-        VAULT_URL = "https://core.vault.service.consul:8200";
+        VAULT_URL = "https://vault.service.consul:8200";
         VAULT_PREFIX = "vbk"; # the prefix used when storing the secrets
         LISTEN_ADDRESS = "${cfg.interface}:${toString cfg.port}";
         DEBUG = lib.mkIf cfg.debug "TRUE";
