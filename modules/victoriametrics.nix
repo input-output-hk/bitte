@@ -262,7 +262,9 @@ in with lib; {
       victoriametrics = mkIf cfg.enable {
         description = "VictoriaMetrics time series database";
         after = [ "network.target" ];
+
         serviceConfig = {
+          LimitNOFILE = 65535;
           Restart = "on-failure";
           RestartSec = 1;
           StartLimitBurst = 5;

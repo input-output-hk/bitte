@@ -122,9 +122,6 @@ in {
       retentionPeriod = 12; # months
     };
 
-    # Avoid monitor alerting failures due to default service nofile limit of 1024
-    systemd.services.victoriametrics.serviceConfig.LimitNOFILE = 65535;
-
     services.grafana = {
       auth.anonymous.enable = false;
       analytics.reporting.enable = false;
