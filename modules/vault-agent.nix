@@ -12,9 +12,27 @@ let
           default = name;
         };
         contents = lib.mkOption { type = with lib.types; str; };
+
+        # Vault has deprecated use of `command` in the template stanza, but a bug
+        # prevents us from moving to the `exec` statement until resolved:
+        # Ref: https://github.com/hashicorp/vault/issues/16230
         command = lib.mkOption {
           type = with lib.types; nullOr str;
           default = null;
+        };
+        # exec = lib.mkOption {
+        #   type = with lib.types; nullOr attrs;
+        #   default = null;
+        # };
+
+        leftDelimiter = lib.mkOption {
+          type = with lib.types; str;
+          default = "{{";
+        };
+
+        rightDelimiter = lib.mkOption {
+          type = with lib.types; str;
+          default = "}}";
         };
       };
     });
@@ -111,12 +129,17 @@ in {
           inherit (cfg) sinks;
         };
 
-        templates = lib.mapAttrs (name: value:
+        template = lib.attrValues (lib.mapAttrs (name: value:
           {
             inherit (value) destination contents;
+            left_delimiter = value.leftDelimiter;
+            right_delimiter = value.rightDelimiter;
           } // (lib.optionalAttrs (value.command != null) {
+          # TODO: on completion of exec decln fix
+          # } // (lib.optionalAttrs (value.exec != null) {
+            # inherit (value) exec;
             inherit (value) command;
-          })) cfg.templates;
+          })) cfg.templates);
       } // (lib.optionalAttrs (builtins.length cfg.listener > 0) {
         cache.use_auto_auth_token = cfg.cache.useAutoAuthToken;
 

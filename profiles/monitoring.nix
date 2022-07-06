@@ -17,7 +17,7 @@ in {
   imports = [
     ./common.nix
     ./consul/client.nix
-    ./vault/aux.nix
+    ./vault/monitoring.nix
 
     ./auxiliaries/loki.nix
 
@@ -322,10 +322,6 @@ in {
           httpListenAddr = "0.0.0.0:8880";
           externalUrl = "https://monitoring.${domain}";
           httpPathPrefix = "/vmalert-vm";
-          rules = {
-            bitte-deadmanssnitch = import ./monitoring/alerts/bitte-deadmanssnitch.nix {};
-            bitte-vm = import ./monitoring/alerts/bitte-vm.nix {};
-          };
         };
         loki = {
           datasourceUrl = "http://localhost:3100/loki";
@@ -335,9 +331,6 @@ in {
           # Loki uses PromQL type queries that do not strictly comply with PromQL
           # Ref: https://github.com/VictoriaMetrics/VictoriaMetrics/issues/780
           ruleValidateExpressions = false;
-          rules = {
-            bitte-loki = import ./monitoring/alerts/bitte-loki.nix {};
-          };
         };
       };
     };

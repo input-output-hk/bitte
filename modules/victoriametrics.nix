@@ -138,6 +138,15 @@ in with lib; {
               The VictoriaMetrics distribution to use for vmalert.
             '';
           };
+          configCheckInterval = mkOption {
+            default = "60s";
+            type = types.str;
+            description = ''
+              Interval for checking for changes in '-rule' or '-notifier.config' files.
+              By default the checking is disabled.
+              Send SIGHUP signal in order to force config check for changes.
+            '';
+          };
           datasourceUrl = mkOption {
             default = "http://localhost:8428";
             type = types.str;
@@ -186,6 +195,33 @@ in with lib; {
                 https://www.robustperception.io/using-external-urls-and-proxies-with-prometheus
             '';
           };
+          importAttrs = mkOption {
+            default = {};
+            type = types.attrs;
+            description = ''
+              An attribute set which will be passed to nix declarative vmalert rules files
+              for interpolation purposes before conversion to JSON.
+
+              NOTE:
+
+              Since terraform is used to place declarative alerts on the monitoring server
+              via a vault and vault-agent pipeline, this option should be declared at the
+              _proto level, typically in: nix/cloud/hydrationProfile.nix.
+
+              Background:
+
+              Each imported declarative alert file will be a nix file containing a function
+              signature of `{ ... }: ` at a minimum, followed by a vmalert <rule_group> attribute.
+
+              Vmalert supports Prometheus alerting rules definition format.
+              Detailed syntax for rule groups can be found at:
+                https://docs.victoriametrics.com/vmalert.html#groups
+                https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/#defining-alerting-rules
+
+              While the document references above provide rule group examples in yaml,
+              this nix option expects the rules attribute set values to be convertable to JSON.
+            '';
+          };
           notifierUrl = mkOption {
             default = "http://localhost:9093/alertmanager";
             type = types.str;
@@ -218,39 +254,6 @@ in with lib; {
                This option may be turned off to allow non-strict MetricsQL queries, such as for Loki.
                Ref: https://github.com/VictoriaMetrics/VictoriaMetrics/issues/780
              '';
-          };
-          rules = mkOption {
-            default = {};
-            type = types.attrs;
-            description = ''
-              An attribute set for declaring vmalert rules files.
-              Each attribute name will be converted to a filename of: "''${attrName}-rules".
-              Each attribute value will be comprised of a vmalert <rule_group>.
-              Vmalert supports Prometheus alerting rules definition format.
-
-              The attribute values representing a <rule_group> can be obtained from
-              functionalized import which will allow nix interpolation if required.
-
-              Examples of setting rules files follow:
-
-                services.vmalert.datasources = {
-                  vm.rules = { worldrepo-vm = import ../../cloud/alerts/worldrepo-vm.nix {}; };
-                  loki.rules = { worldrepo-loki = import ../../cloud/alerts/worldrepo-loki.nix {}; };
-                };
-
-              All declared rules files for a specific datasource will be linkFarm joined
-              into a single directory and provided to the vmalert service specifically
-              configured to manage alerts for that datasource.
-
-              Detailed syntax for rule groups can be found at:
-                https://docs.victoriametrics.com/vmalert.html#groups
-                https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/#defining-alerting-rules
-
-              While the document references above provide rule group examples in yaml,
-              this nix option expects the rules attribute set values to be convertable to JSON by:
-
-                (builtins.toJSON config.services.vmalert.''${datasources}.rules)
-            '';
           };
         };
       }));
@@ -328,17 +331,6 @@ in with lib; {
         StateDirectory = "vmalert-${name}";
         DynamicUser = true;
         ExecStart = let
-          linkFarmDir = lib.pipe cfgDs.rules [
-            (lib.mapAttrs (n: rulesNix: builtins.toJSON rulesNix))
-            (lib.mapAttrs' (n: rulesJson:
-              lib.nameValuePair
-                "${n}-rules.json"
-                (pkgs.writeText "${n}-rules.json" rulesJson
-              )
-            ))
-            (lib.mapAttrsToList (name: path: { inherit name path; }))
-            (pkgs.linkFarm "${name}-rules")
-          ];
         in ''
           ${cfgDs.package}/bin/vmalert \
             -datasource.url=${cfgDs.datasourceUrl} \
@@ -349,8 +341,9 @@ in with lib; {
             -remoteRead.url=${cfgDs.remoteReadUrl} \
             -remoteWrite.url=${cfgDs.remoteWriteUrl} \
             -notifier.url=${cfgDs.notifierUrl} \
+            -configCheckInterval=${cfgDs.configCheckInterval} \
             -rule.validateExpressions=${boolToString cfgDs.ruleValidateExpressions} \
-            -rule='${linkFarmDir}/*.json'
+            -rule='/var/lib/vmalert-${name}/alerts/*.json'
         '';
       };
       wantedBy = [ "multi-user.target" ];

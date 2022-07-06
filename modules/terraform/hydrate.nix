@@ -3,6 +3,7 @@
 # - Hydrate the cluster with backends, roles & policies
 # - Hydrate vault with application secrets
 # - Hydrate applications with initial state
+# - Hydrate monitoring with dashboards and alerts
 # - NB: some things (still) auto-hydrate through systemd one-shot jobs
 #       these could eventually be moved here.
 { self, lib, pkgs, config, terralib, ... }:
@@ -43,4 +44,7 @@ in {
         }));
     };
   };
+
+  # preconfigure hydrate-monitoring
+  tf.hydrate-monitoring.configuration = tfConfig { key = "hydrate-monitoring"; };
 }
