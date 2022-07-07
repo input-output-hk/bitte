@@ -23,9 +23,9 @@ in
     terraform-providers =
       prev.terraform-providers
       // (let
-        inherit (prev) buildGoModule;
+        inherit (prev) buildGo117Module;
         buildWithGoModule = data:
-          buildGoModule {
+          buildGo117Module {
             pname = data.repo;
             inherit (data) version;
             subPackages = ["."];
