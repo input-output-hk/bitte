@@ -1,7 +1,7 @@
 { stdenv, lib, fetchurl, unzip, makeWrapper, gawk, glibc }:
 
 let
-  version = "1.8.2";
+  version = "1.11.0";
 
   # Hashes for misc systems and architectures can be obtained with:
   #   curl -OL https://releases.hashicorp.com/vault/${version}/vault_${version}_${system}_${arch}.zip
@@ -10,15 +10,15 @@ let
   in {
     x86_64-linux = fetchurl {
       url = "${base}/vault_${version}_linux_amd64.zip";
-      sha256 = "sha256-10ck1swivx4cfFGQCbAXaAms9vHCDuVhB94Mq1TNhGM=";
+      sha256 = "sha256-AOxCvtdWgMRAoW0WwZarB6EBIlVEjeNq9wnsGfHFuVc=";
     };
     x86_64-darwin = fetchurl {
       url = "${base}/vault_${version}_darwin_amd64.zip";
-      sha256 = "sha256-4zmC64YaU5qBIr9nTDmvMJAYJcBgtMgXXL+gbptdS/U=";
+      sha256 = "sha256-UDwMC+Bf01EWzNFcrpcOF/IZOzGx70s8mRVvGrKNhYk=";
     };
     aarch64-linux = fetchurl {
       url = "${base}/vault_${version}_linux_arm64.zip";
-      sha256 = "sha256-CgNDNQnyxZSgNV3rZycMd/vG1w6ALMUiNYTDtgAp4gI=";
+      sha256 = "sha256-5IOxc77YTfRT9vEduiX/okVIN0GQZSmDqWIjy1D9tG4=";
     };
   };
 
