@@ -113,6 +113,7 @@ let
       fi # manual provisioning
       EOF
       chmod +x /etc/finish-bootstrap.sh
+      systemd-run --unit=nixos-init $_
     '';
 
   localProvisionerDefaultCommand = ip:
