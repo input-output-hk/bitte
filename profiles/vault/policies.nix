@@ -23,6 +23,8 @@ in {
         "consul/creds/consul-server-agent" = [ r ];
         "kv/data/alerts/*" = [ r ];
         "kv/metadata/alerts/*" = [ l ];
+        "kv/data/dashboards/*" = [ r ];
+        "kv/metadata/dashboards/*" = [ l ];
         "nomad/creds/*" = [ r ];
         "nomad/role/admin" = [ u ];
         "sys/policies/acl/admin" = [ u ];
@@ -65,6 +67,8 @@ in {
       "consul/creds/ingress" = [ r ];
       "kv/data/alerts/*" = [ r ];
       "kv/metadata/alerts/*" = [ l ];
+      "kv/data/dashboards/*" = [ r ];
+      "kv/metadata/dashboards/*" = [ l ];
       "kv/data/bootstrap/ca" = [ c r u d l ];
       "kv/data/bootstrap/static-tokens/*" = [ c r u d l ];
       "kv/data/bootstrap/*" = [ r ];

@@ -162,10 +162,12 @@ in {
           }
         ];
 
-        dashboards = [{
-          name = "provisioned";
-          options.path = ./monitoring/dashboards;
-        }];
+        dashboards = [
+          {
+            name = "tf-declared-dashboards";
+            options.path = "/var/lib/grafana/dashboards";
+          }
+        ];
       };
 
       security.adminPasswordFile = if isSops then "/var/lib/grafana/password"
