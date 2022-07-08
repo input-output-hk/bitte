@@ -64,7 +64,6 @@ in {
       "consul/creds/nomad-autoscaler" = [ r ];
       "consul/creds/nomad-server" = [ r ];
       "consul/creds/vault-server" = [ r ];
-      "consul/creds/ingress" = [ r ];
       "kv/data/alerts/*" = [ r ];
       "kv/metadata/alerts/*" = [ l ];
       "kv/data/dashboards/*" = [ r ];
