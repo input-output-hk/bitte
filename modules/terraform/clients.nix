@@ -158,6 +158,16 @@ in {
           id "aws_vpc_peering_connection.${vpc.region}";
       }));
 
+    resource.aws_s3_bucket_object = lib.flip lib.mapAttrs' config.cluster.awsAutoScalingGroups (name: group:
+      lib.nameValuePair "${name}-flake" rec {
+        bucket = config.cluster.s3Bucket;
+        key    = with config; "infra/secrets/${cluster.name}/${cluster.kms}/source/${name}-source.tar.xz";
+        etag  = var ''filemd5("${source}")'';
+        source = "${pkgs.runCommand "source.tar.xz" {} ''
+          tar cvf $out -C ${config.cluster.flakePath} .
+        ''}";
+      });
+
     resource.aws_subnet = mapAwsAsgVpcs (vpc:
       lib.flip lib.mapAttrsToList vpc.subnets (suffix: subnet:
         lib.nameValuePair "${vpc.region}-${suffix}" {
@@ -323,9 +333,17 @@ in {
         lib.nameValuePair group.uid {
           name = group.uid;
           inherit (group.iam.instanceProfile) path;
-          role = group.iam.instanceProfile.role.tfName;
+          # role = group.iam.instanceProfile.role.tfName;
+          role = var "data.aws_iam_role.${config.cluster.iam.roles.client.uid}.name";
           lifecycle = [{ create_before_destroy = true; }];
         });
+
+    data.aws_iam_role = let
+      # deploy for core role
+      inherit (config.cluster.iam.roles.client) uid;
+    in {
+      "${uid}".name = uid;
+    };
 
     data.aws_iam_policy_document = let
       # deploy for client role
@@ -338,18 +356,7 @@ in {
             inherit (policy) condition;
           });
         };
-    in lib.listToAttrs (lib.mapAttrsToList op role.policies);
-
-    resource.aws_iam_role = let
-      # deploy for client role
-      role = config.cluster.iam.roles.client;
-    in {
-      "${role.uid}" = {
-        name = role.uid;
-        assume_role_policy = role.assumePolicy.tfJson;
-        lifecycle = [{ create_before_destroy = true; }];
-      };
-    };
+    in lib.mapAttrs' op role.policies;
 
     resource.aws_iam_role_policy = let
       # deploy for client role
@@ -357,10 +364,10 @@ in {
       op = policyName: policy:
         lib.nameValuePair policy.uid {
           name = policy.uid;
-          role = role.id;
+          role = id "data.aws_iam_role.${role.uid}";
           policy = var "data.aws_iam_policy_document.${policy.uid}.json";
         };
-    in lib.listToAttrs (lib.mapAttrsToList op role.policies);
+    in lib.mapAttrs' op role.policies;
 
     resource.aws_security_group =
       lib.flip lib.mapAttrsToList config.cluster.awsAutoScalingGroups

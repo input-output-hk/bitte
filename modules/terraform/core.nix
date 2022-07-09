@@ -199,11 +199,16 @@ in {
 
     resource.aws_iam_role = let
       # deploy for core role
-      role = config.cluster.iam.roles.core;
+      inherit (config.cluster.iam.roles) client core;
     in {
-      "${role.uid}" = {
-        name = role.uid;
-        assume_role_policy = role.assumePolicy.tfJson;
+      "${client.uid}" = {
+        name = client.uid;
+        assume_role_policy = client.assumePolicy.tfJson;
+        lifecycle = [{ create_before_destroy = true; }];
+      };
+      "${core.uid}" = {
+        name = core.uid;
+        assume_role_policy = core.assumePolicy.tfJson;
         lifecycle = [{ create_before_destroy = true; }];
       };
     };
