@@ -364,7 +364,6 @@ in {
       op = policyName: policy:
         lib.nameValuePair policy.uid {
           name = policy.uid;
-          # role = role.id;
           role = id "data.aws_iam_role.${role.uid}";
           policy = var "data.aws_iam_policy_document.${policy.uid}.json";
         };
