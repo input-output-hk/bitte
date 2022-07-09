@@ -370,16 +370,6 @@ in {
         };
     in lib.listToAttrs (lib.mapAttrsToList op role.policies);
 
-    # resource.aws_iam_role_policy_attachment = let
-    #   # deploy for client role
-    #   role = config.cluster.iam.roles.client;
-    #   op = policyName: policy:
-    #     lib.nameValuePair policy.uid {
-    #       role = id "data.aws_iam_role.${role.uid}";
-    #       policy_arn = var "aws_iam_policy.${policy.uid}.arn";
-    #     };
-    # in lib.listToAttrs (lib.mapAttrsToList op role.policies);
-
     resource.aws_security_group =
       lib.flip lib.mapAttrsToList config.cluster.awsAutoScalingGroups
       (name: group: {
