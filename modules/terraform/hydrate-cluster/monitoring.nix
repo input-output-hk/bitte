@@ -16,17 +16,17 @@ let
 
   cfg = config.services.vmalert.datasources;
 
-  allTrue = bool: bool;
+  allTrue = lib.all lib.id;
 
   checkForNameCollision = filenames: lib.pipe filenames [
-    (map (filename: lib.last (builtins.split "/" filename)))
-    (lib.foldl (acc: check: acc ++ (if (builtins.elem check acc) then throw "Duplicate node name: ${check}" else [ check ])) [])
+    (map builtins.baseNameOf)
+    (lib.foldl' (acc: check: acc ++ (if (builtins.elem check acc) then throw "Duplicate node name: ${check}" else [ check ])) [])
     (let passThrough = list: filenames; in passThrough)
   ];
 
   filenameToAttrName = suffix: file: lib.pipe file [
-    (builtins.split "/")
-    lib.last
+    builtins.baseNameOf
+    builtins.unsafeDiscardStringContext
     (lib.removeSuffix suffix)
   ];
 
@@ -39,16 +39,16 @@ let
 
     (check (if (builtins.length nvp.value.groups) == 0 then (builtins.trace ''WARN: Declarative alert file has no group list items: ${nvp.name}'' true) else true)  "Undefined error")
 
-    (check (lib.all allTrue (map (group: if group ? "name" then true else false) nvp.value.groups))
+    (check (allTrue (map (group: if group ? "name" then true else false) nvp.value.groups))
       ''Declarative alert file has a missing "name" attribute in one of the group list items: ${nvp.name}'')
 
-    (check (lib.all allTrue (map (group: if group ? "rules" then true else false) nvp.value.groups))
+    (check (allTrue (map (group: if group ? "rules" then true else false) nvp.value.groups))
       ''Declarative alert file has a missing "rules" attribute in one of the group list items: ${nvp.name}'')
 
-    (check (lib.all allTrue (map (group: builtins.isList group.rules) nvp.value.groups))
+    (check (allTrue (map (group: builtins.isList group.rules) nvp.value.groups))
       ''Declarative alert file contains a group list item with a "rules" attribute that is not a list: ${nvp.name}'')
 
-    (check (lib.all allTrue (map (group:
+    (check (allTrue (map (group:
       if (builtins.length group.rules) == 0
       then (builtins.trace ''WARN: Declarative alert file has a group list item with no rules: ${nvp.name}'' true)
       else true
@@ -88,14 +88,16 @@ let
     };
   };
 
-  mkAlertKv = ds: dirs: lib.pipe (filterFiles ".nix" dirs) [
+  mkAlertKv = ds: dirs: lib.pipe dirs [
+    (filterFiles ".nix")
     checkForNameCollision
     (importAndLintAlerts ds)
     (map (nvp: rec { name = filenameToAttrName ".nix" nvp.name; value = builtins.toFile "${name}.json" (builtins.toJSON nvp.value); }))
     (lib.foldl (acc: v: acc ++ [ (alertKvResource ds v.name v.value) ]) [])
   ];
 
-  mkDashKv = dirs: lib.pipe (filterFiles ".json" dirs) [
+  mkDashKv = dirs: lib.pipe dirs [
+    (filterFiles ".json")
     checkForNameCollision
     (map (file: lib.nameValuePair (filenameToAttrName ".json" file) file))
     (lib.foldl (acc: v: acc ++ [ (dashKvResource v.name v.value) ]) [])
@@ -136,7 +138,7 @@ in {
 
       services.grafana.provision.dashboards = [
         {
-          name = "$CLUSTER_PROVISIONING_NAME";
+          name = "$DASHBOARD_PATH_PROVISIONING_NAME";
           options.path = ./dashboards;
         }
       ];

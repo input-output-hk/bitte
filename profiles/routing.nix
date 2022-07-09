@@ -141,7 +141,7 @@ in {
         credFile = hashiTokens.consul-default;
       in ''
         echo "Checking for credentials file existence: ${credFile}"
-        until [ -f ${credFile} ]; do
+        until [ -s ${credFile} ]; do
           echo "Waiting for credentials file to exist: ${credFile}"
           sleep 2
         done

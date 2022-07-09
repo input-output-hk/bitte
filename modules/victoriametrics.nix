@@ -7,7 +7,9 @@ in with lib; {
   disabledModules = [ "services/databases/victoriametrics.nix" ];
   options.services.victoriametrics = {
     enable = mkEnableOption "victoriametrics";
+
     enableVmalertProxy = mkEnableOption "vmalertProxy";
+
     package = mkOption {
       type = types.package;
       default = pkgs.victoriametrics;
@@ -16,6 +18,7 @@ in with lib; {
         The VictoriaMetrics distribution to use.
       '';
     };
+
     httpListenAddr = mkOption {
       default = ":8428";
       type = types.str;
@@ -23,6 +26,7 @@ in with lib; {
         The listen address for the http interface.
       '';
     };
+
     retentionPeriod = mkOption {
       type = types.int;
       default = 1;
@@ -30,6 +34,7 @@ in with lib; {
         Retention period in months.
       '';
     };
+
     selfScrapeInterval = mkOption {
       default = "60s";
       type = types.str;
@@ -38,6 +43,7 @@ in with lib; {
         Set to "0" to disable.
       '';
     };
+
     extraOptions = mkOption {
       type = types.listOf types.str;
       default = [ ];
@@ -52,6 +58,7 @@ in with lib; {
 
   options.services.vmagent = {
     enable = mkEnableOption "vmagent";
+
     package = mkOption {
       type = types.package;
       default = pkgs.victoriametrics;
@@ -60,6 +67,7 @@ in with lib; {
         The VictoriaMetrics distribution to use for vmagent.
       '';
     };
+
     httpListenAddr = mkOption {
       default = "127.0.0.1:8429";
       type = types.str;
@@ -67,6 +75,7 @@ in with lib; {
         Address to listen for http connections.
       '';
     };
+
     httpPathPrefix = mkOption {
       default = "";
       type = types.str;
@@ -82,6 +91,7 @@ in with lib; {
           https://www.robustperception.io/using-external-urls-and-proxies-with-prometheus
       '';
     };
+
     promscrapeConfig = mkOption {
       default = [];
       type = types.listOf types.attrs;
@@ -100,6 +110,7 @@ in with lib; {
           builtins.toJSON { scrape_configs = config.services.vmagent.promscrapeConfig; }
       '';
     };
+
     remoteWriteTmpDataPath = mkOption {
       default = "/tmp/vmagent-remotewrite-data";
       type = types.str;
@@ -107,8 +118,9 @@ in with lib; {
         Path to directory where temporary data for remote write component is stored.
       '';
     };
+
     remoteWriteUrl = mkOption {
-      default = "http://localhost:8428/api/v1/write";
+      default = "http://127.0.0.1:8428/api/v1/write";
       type = types.str;
       description = ''
         Remote storage URL to write data to. It must support Prometheus remote_write API.
@@ -118,18 +130,20 @@ in with lib; {
     };
   };
 
-  options.services.vmalert = let
-  in {
+  options.services.vmalert = {
     enable = mkEnableOption "vmalert";
+
     datasources = mkOption {
       default = {};
       type = types.attrsOf (types.submodule ({name, ...}: {
         options = {
           enable = mkEnableOption "vmalertType";
-          name = lib.mkOption {
+
+          name = mkOption {
             type = types.str;
             default = name;
           };
+
           package = mkOption {
             type = types.package;
             default = pkgs.victoriametrics;
@@ -138,6 +152,7 @@ in with lib; {
               The VictoriaMetrics distribution to use for vmalert.
             '';
           };
+
           configCheckInterval = mkOption {
             default = "60s";
             type = types.str;
@@ -147,14 +162,16 @@ in with lib; {
               Send SIGHUP signal in order to force config check for changes.
             '';
           };
+
           datasourceUrl = mkOption {
-            default = "http://localhost:8428";
+            default = "http://127.0.0.1:8428";
             type = types.str;
             description = ''
               VictoriaMetrics or vmselect url.
               Required parameter.
             '';
           };
+
           externalAlertSource = mkOption {
             default = "";
             type = types.str;
@@ -166,13 +183,15 @@ in with lib; {
               If empty string, '/api/v1/:groupID/alertID/status' is used
             '';
           };
+
           externalUrl = mkOption {
-            default = "http://localhost:8428";
+            default = "http://127.0.0.1:8428";
             type = types.str;
             description = ''
               External URL is used as alert's source for sent alerts to the notifier.
             '';
           };
+
           httpListenAddr = mkOption {
             default = "127.0.0.1:8880";
             type = types.str;
@@ -180,6 +199,7 @@ in with lib; {
               Address to listen for http connections.
             '';
           };
+
           httpPathPrefix = mkOption {
             default = "";
             type = types.str;
@@ -195,6 +215,7 @@ in with lib; {
                 https://www.robustperception.io/using-external-urls-and-proxies-with-prometheus
             '';
           };
+
           importAttrs = mkOption {
             default = {};
             type = types.attrs;
@@ -222,8 +243,9 @@ in with lib; {
               this nix option expects the rules attribute set values to be convertable to JSON.
             '';
           };
+
           notifierUrl = mkOption {
-            default = "http://localhost:9093/alertmanager";
+            default = "http://127.0.0.1:9093/alertmanager";
             type = types.str;
             description = ''
               The URL for notifying prometheus alertmanager.
@@ -232,20 +254,23 @@ in with lib; {
               included here.
             '';
           };
+
           remoteReadUrl = mkOption {
-            default = "http://localhost:8428";
+            default = "http://127.0.0.1:8428";
             type = types.str;
             description = ''
               VM-single addr for restoring alerts state after restart.
             '';
           };
+
           remoteWriteUrl = mkOption {
-            default = "http://localhost:8428";
+            default = "http://127.0.0.1:8428";
             type = types.str;
             description = ''
               VM-single addr to persist alerts state and recording rules results.
             '';
           };
+
           ruleValidateExpressions = mkOption {
              type = types.bool;
              default = true;
@@ -275,13 +300,13 @@ in with lib; {
           DynamicUser = true;
           ExecStart = let
             cfgDs = cfgVmalert.datasources.vm;
-            proxyUrl = "http://${cfgDs.httpListenAddr}${cfgDs.httpPathPrefix}";
+            proxyUrl = escapeShellArg "http://${cfgDs.httpListenAddr}${cfgDs.httpPathPrefix}";
           in ''
             ${cfg.package}/bin/victoria-metrics \
               -storageDataPath=/var/lib/victoriametrics \
-              -httpListenAddr=${cfg.httpListenAddr} \
-              -retentionPeriod=${toString cfg.retentionPeriod} \
-              -selfScrapeInterval=${cfg.selfScrapeInterval} \
+              -httpListenAddr=${escapeShellArg cfg.httpListenAddr} \
+              -retentionPeriod=${escapeShellArg (toString cfg.retentionPeriod)} \
+              -selfScrapeInterval=${escapeShellArg cfg.selfScrapeInterval} \
               ${if cfg.enableVmalertProxy && cfgVmalert.enable then "-vmalert.proxyURL=${proxyUrl} \\" else "\\"}
               ${escapeShellArgs cfg.extraOptions}
           '';
@@ -293,9 +318,7 @@ in with lib; {
             (optionalString (hasPrefix ":" cfg.httpListenAddr) "127.0.0.1")
             + cfg.httpListenAddr;
         in mkBefore ''
-          until ${
-            getBin pkgs.curl
-          }/bin/curl -s -o /dev/null http://${bindAddr}/ping; do
+          until ${pkgs.curl}/bin/curl --silent --fail http://${bindAddr}/ping; do
             sleep 1;
           done
         '';
@@ -312,10 +335,10 @@ in with lib; {
           DynamicUser = true;
           ExecStart = ''
             ${cfgVmagent.package}/bin/vmagent \
-              -http.pathPrefix=${cfgVmagent.httpPathPrefix} \
-              -httpListenAddr=${cfgVmagent.httpListenAddr} \
-              -remoteWrite.tmpDataPath=${cfgVmagent.remoteWriteTmpDataPath} \
-              -remoteWrite.url=${cfgVmagent.remoteWriteUrl} \
+              -http.pathPrefix=${escapeShellArg cfgVmagent.httpPathPrefix} \
+              -httpListenAddr=${escapeShellArg cfgVmagent.httpListenAddr} \
+              -remoteWrite.tmpDataPath=${escapeShellArg cfgVmagent.remoteWriteTmpDataPath} \
+              -remoteWrite.url=${escapeShellArg cfgVmagent.remoteWriteUrl} \
               -promscrape.config=${pkgs.writeText "vmagent-scrape-config.json" (builtins.toJSON { scrape_configs = cfgVmagent.promscrapeConfig; })}
           '';
         };
@@ -333,15 +356,15 @@ in with lib; {
         ExecStart = let
         in ''
           ${cfgDs.package}/bin/vmalert \
-            -datasource.url=${cfgDs.datasourceUrl} \
-            -external.alert.source=${cfgDs.externalAlertSource} \
-            -external.url=${cfgDs.externalUrl} \
-            -http.pathPrefix=${cfgDs.httpPathPrefix} \
-            -httpListenAddr=${cfgDs.httpListenAddr} \
-            -remoteRead.url=${cfgDs.remoteReadUrl} \
-            -remoteWrite.url=${cfgDs.remoteWriteUrl} \
-            -notifier.url=${cfgDs.notifierUrl} \
-            -configCheckInterval=${cfgDs.configCheckInterval} \
+            -datasource.url=${escapeShellArg cfgDs.datasourceUrl} \
+            -external.alert.source=${escapeShellArg cfgDs.externalAlertSource} \
+            -external.url=${escapeShellArg cfgDs.externalUrl} \
+            -http.pathPrefix=${escapeShellArg cfgDs.httpPathPrefix} \
+            -httpListenAddr=${escapeShellArg cfgDs.httpListenAddr} \
+            -remoteRead.url=${escapeShellArg cfgDs.remoteReadUrl} \
+            -remoteWrite.url=${escapeShellArg cfgDs.remoteWriteUrl} \
+            -notifier.url=${escapeShellArg cfgDs.notifierUrl} \
+            -configCheckInterval=${escapeShellArg cfgDs.configCheckInterval} \
             -rule.validateExpressions=${boolToString cfgDs.ruleValidateExpressions} \
             -rule='/var/lib/vmalert-${name}/alerts/*.json'
         '';

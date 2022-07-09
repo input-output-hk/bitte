@@ -4,12 +4,15 @@
 
   datacenter = config.currentCoreNode.datacenter or config.cluster.region;
 
-  agentCommand = pathPkgs: namePrefix: cmds: let
-    script = pkgs.writeShellScriptBin "${namePrefix}.sh" ''
-      set -euxo pipefail
-      PATH=${lib.makeBinPath pathPkgs}
-      ${cmds}
-    '';
+  agentCommand = runtimeInputs: namePrefix: cmds: let
+    script = pkgs.writeShellApplication {
+      inherit runtimeInputs;
+      name = "${namePrefix}.sh";
+      text = ''
+        set -x
+        ${cmds}
+      '';
+    };
   in "${script}/bin/${namePrefix}.sh";
   # Vault has deprecated use of `command` in the template stanza, but a bug
   # prevents us from moving to the `exec` statement until resolved:

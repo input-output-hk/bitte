@@ -3,10 +3,6 @@
     3100  # loki
   ];
 
-  # Required for Loki >= 2.3.0 ruler
-  systemd.services.loki.serviceConfig.ExecStartPre =
-    "+${pkgs.coreutils}/bin/mkdir -p /etc/loki/rules/fake";
-
   services.loki = {
     configuration = {
       auth_enabled = false;
@@ -56,10 +52,10 @@
         enable_api = true;
         enable_alertmanager_v2 = true;
         ring.kvstore.store = "inmemory";
-        rule_path = "/tmp/loki/rules-temp";
+        rule_path = "/var/lib/loki/rules-temp";
         storage = {
           type = "local";
-          local.directory = "/etc/loki/rules";
+          local.directory = "/var/lib/loki/rules";
         };
       };
     };

@@ -152,13 +152,13 @@ in {
             # alerts can respond, thereby allowing grafana to
             # display them in the next generation alerting interface.
             # The actual loki service still exists at the standard port.
-            url = "http://localhost:3099";
+            url = "http://127.0.0.1:3099";
             jsonData.maxLines = 1000;
           }
           {
             type = "prometheus";
             name = "VictoriaMetrics";
-            url = "http://localhost:8428";
+            url = "http://127.0.0.1:8428";
           }
         ];
 
@@ -194,7 +194,7 @@ in {
           keepalive 16;
         '';
       };
-      virtualHosts.localhost = let
+      virtualHosts."127.0.0.1" = let
         cfg = config.services.vmalert.datasources.loki;
       in {
         listen = [ { addr = "0.0.0.0"; port = 3099; } ];
@@ -234,7 +234,7 @@ in {
       alertmanagers = [{
         scheme = "http";
         path_prefix = "/";
-        static_configs = [{ targets = [ "localhost:9093" ]; }];
+        static_configs = [{ targets = [ "127.0.0.1:9093" ]; }];
       }];
 
       alertmanager = {
@@ -299,8 +299,8 @@ in {
           scrape_interval = "60s";
           metrics_path = "${config.services.vmagent.httpPathPrefix}/metrics";
           static_configs = [{
-            targets = [ "${config.services.vmagent.httpListenAddr}" ];
-            labels = { alias = "vmagent"; };
+            targets = [ config.services.vmagent.httpListenAddr ];
+            labels.alias = "vmagent";
           }];
         })
       ] ++ lib.optionals config.services.vmalert.enable (builtins.attrValues (
@@ -310,8 +310,8 @@ in {
             scrape_interval = "60s";
             metrics_path = "${cfgDs.httpPathPrefix}/metrics";
             static_configs = [{
-              targets = [ "${cfgDs.httpListenAddr}" ];
-              labels = { alias = "${name}"; };
+              targets = [ cfgDs.httpListenAddr ];
+              labels.alias = name;
             }];
           }) config.services.vmalert.datasources));
     };
@@ -320,13 +320,13 @@ in {
       enable = true;
       datasources = {
         vm = {
-          datasourceUrl = "http://localhost:8428";
+          datasourceUrl = "http://127.0.0.1:8428";
           httpListenAddr = "0.0.0.0:8880";
           externalUrl = "https://monitoring.${domain}";
           httpPathPrefix = "/vmalert-vm";
         };
         loki = {
-          datasourceUrl = "http://localhost:3100/loki";
+          datasourceUrl = "http://127.0.0.1:3100/loki";
           httpListenAddr = "0.0.0.0:8881";
           externalUrl = "https://monitoring.${domain}";
           httpPathPrefix = "/vmalert-loki";
