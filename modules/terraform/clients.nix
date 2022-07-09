@@ -356,7 +356,7 @@ in {
             inherit (policy) condition;
           });
         };
-    in lib.listToAttrs (lib.mapAttrsToList op role.policies);
+    in lib.mapAttrs' op role.policies;
 
     resource.aws_iam_role_policy = let
       # deploy for client role
@@ -367,7 +367,7 @@ in {
           role = id "data.aws_iam_role.${role.uid}";
           policy = var "data.aws_iam_policy_document.${policy.uid}.json";
         };
-    in lib.listToAttrs (lib.mapAttrsToList op role.policies);
+    in lib.mapAttrs' op role.policies;
 
     resource.aws_security_group =
       lib.flip lib.mapAttrsToList config.cluster.awsAutoScalingGroups
