@@ -333,9 +333,17 @@ in {
         lib.nameValuePair group.uid {
           name = group.uid;
           inherit (group.iam.instanceProfile) path;
-          role = group.iam.instanceProfile.role.tfName;
+          # role = group.iam.instanceProfile.role.tfName;
+          role = var "data.aws_iam_role.${config.cluster.iam.roles.client.uid}.name";
           lifecycle = [{ create_before_destroy = true; }];
         });
+
+    data.aws_iam_role = let
+      # deploy for core role
+      inherit (config.cluster.iam.roles.client) uid;
+    in {
+      "${uid}".name = uid;
+    };
 
     data.aws_iam_policy_document = let
       # deploy for client role
@@ -350,16 +358,27 @@ in {
         };
     in lib.listToAttrs (lib.mapAttrsToList op role.policies);
 
-    resource.aws_iam_policy = let
+    resource.aws_iam_role_policy = let
       # deploy for client role
       role = config.cluster.iam.roles.client;
       op = policyName: policy:
         lib.nameValuePair policy.uid {
           name = policy.uid;
           # role = role.id;
+          role = id "data.aws_iam_role.${role.uid}";
           policy = var "data.aws_iam_policy_document.${policy.uid}.json";
         };
     in lib.listToAttrs (lib.mapAttrsToList op role.policies);
+
+    # resource.aws_iam_role_policy_attachment = let
+    #   # deploy for client role
+    #   role = config.cluster.iam.roles.client;
+    #   op = policyName: policy:
+    #     lib.nameValuePair policy.uid {
+    #       role = id "data.aws_iam_role.${role.uid}";
+    #       policy_arn = var "aws_iam_policy.${policy.uid}.arn";
+    #     };
+    # in lib.listToAttrs (lib.mapAttrsToList op role.policies);
 
     resource.aws_security_group =
       lib.flip lib.mapAttrsToList config.cluster.awsAutoScalingGroups
