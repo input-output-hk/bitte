@@ -277,7 +277,7 @@ in {
         lib.nameValuePair vpc.region {
           provider = awsProviderFor vpc.region;
           vpc_peering_connection_id =
-            id "aws_vpc_peering_connection.${vpc.region}";
+            id "aws_vpc_peering_connection_accepter.${vpc.region}";
 
           requester = { allow_remote_vpc_dns_resolution = true; };
         });
@@ -295,7 +295,7 @@ in {
         lib.nameValuePair "${link.connector}-connect-${link.accepter}" {
           provider = awsProviderFor link.connector;
           vpc_peering_connection_id = id
-            "aws_vpc_peering_connection.${link.connector}-connect-${link.accepter}";
+            "aws_vpc_peering_connection_accepter.${link.accepter}-accept-${link.connector}";
 
           requester = { allow_remote_vpc_dns_resolution = true; };
         });
