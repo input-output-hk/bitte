@@ -350,24 +350,13 @@ in {
         };
     in lib.listToAttrs (lib.mapAttrsToList op role.policies);
 
-    resource.aws_iam_role = let
-      # deploy for client role
-      role = config.cluster.iam.roles.client;
-    in {
-      "${role.uid}" = {
-        name = role.uid;
-        assume_role_policy = role.assumePolicy.tfJson;
-        lifecycle = [{ create_before_destroy = true; }];
-      };
-    };
-
-    resource.aws_iam_role_policy = let
+    resource.aws_iam_policy = let
       # deploy for client role
       role = config.cluster.iam.roles.client;
       op = policyName: policy:
         lib.nameValuePair policy.uid {
           name = policy.uid;
-          role = role.id;
+          # role = role.id;
           policy = var "data.aws_iam_policy_document.${policy.uid}.json";
         };
     in lib.listToAttrs (lib.mapAttrsToList op role.policies);
