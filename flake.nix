@@ -171,4 +171,17 @@
         nixosModule.imports = builtins.attrValues self.nixosModules;
         devshellModule = import ./devshellModule.nix;
       });
+
+  nixConfig = {
+    flake-registry = "https://raw.githubusercontent.com/input-output-hk/flake-registry/iog/flake-registry.json";
+
+    extra-substituters = [
+      "https://nix-community.cachix.org"
+      "https://cache.iog.io"
+    ];
+    extra-trusted-public-keys = [
+      "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+    ];
+  };
 }
