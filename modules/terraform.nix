@@ -6,8 +6,8 @@ let
   kms2region = kms: if kms == null then null else builtins.elemAt (lib.splitString ":" kms) 3;
 
   relEncryptedFolder = let
-    encPathStr = if (config.cluster.infraType == "aws") then (toString config.secrets.encryptedRoot) else (toString config.age.encryptedRoot);
-  in lib.last (builtins.split "/nix/store/.{32}-" encPathStr);
+    path = with config; if (cluster.infraType == "aws") then secrets.encryptedRoot else age.encryptedRoot;
+  in lib.last (builtins.split "/nix/store/.{32}-" (toString path));
 
   merge = lib.foldl' lib.recursiveUpdate { };
 
