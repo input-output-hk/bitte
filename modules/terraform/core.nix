@@ -324,7 +324,7 @@ in {
             {
               local-exec = let
                 command =
-                  coreNode.localProvisioner.protoCommand publicIP;
+                  "${coreNode.localProvisioner.protoCommand} ${publicIP}";
               in {
                 inherit command;
                 inherit (coreNode.localProvisioner) interpreter environment;
@@ -334,7 +334,7 @@ in {
             (lib.optionalAttrs (name == "core-1") {
               local-exec = let
                 command =
-                  coreNode.localProvisioner.bootstrapperCommand publicIP;
+                  "${coreNode.localProvisioner.bootstrapperCommand} ${publicIP}";
               in {
                 inherit command;
                 inherit (coreNode.localProvisioner) interpreter environment;
