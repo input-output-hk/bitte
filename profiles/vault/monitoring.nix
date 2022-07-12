@@ -12,10 +12,10 @@
       templates = {
         "/run/consul-templates/vmalerts.log" = {
           contents = ''
-            {{ range $kvSubPath := secrets "kv/alerts" -}}
+            {{ range $kvSubPath := secrets "kv/system/alerts" -}}
               {{ $alertDatasource := $kvSubPath | trimSuffix "/" -}}
-              {{ range $alertTemplate := secrets (printf "kv/alerts/%s" $alertDatasource) -}}
-                {{ with secret (printf "kv/alerts/%s/%s" $alertDatasource $alertTemplate) -}}
+              {{ range $alertTemplate := secrets (printf "kv/system/alerts/%s" $alertDatasource) -}}
+                {{ with secret (printf "kv/system/alerts/%s/%s" $alertDatasource $alertTemplate) -}}
                   {{ .Data.data
                      | toUnescapedJSONPretty
                      | writeToFile
@@ -36,8 +36,8 @@
         };
         "/run/consul-templates/dashboards.log" = {
           contents = ''
-            {{ range $dashboard := secrets "kv/dashboards" -}}
-              {{ with secret (printf "kv/dashboards/%s" $dashboard) -}}
+            {{ range $dashboard := secrets "kv/system/dashboards" -}}
+              {{ with secret (printf "kv/system/dashboards/%s" $dashboard) -}}
                 {{ .Data.data
                    | toUnescapedJSONPretty
                    | writeToFile
