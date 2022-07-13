@@ -6,7 +6,35 @@
 
   Switches = { };
 
-  Config = {
+  Config = let
+    agentCommand = namePrefix: targetDirs: let
+      script = pkgs.writeShellApplication {
+        runtimeInputs = with pkgs; [ bash coreutils fd ripgrep ];
+        name = "${namePrefix}-cleanup.sh";
+        text = ''
+          set -x
+
+          if [ -s /run/consul-templates/${namePrefix}.log ]; then
+            fd --type file . \
+              ${targetDirs} \
+              --exec bash -c \
+              "
+                rg --quiet {} /run/consul-templates/${namePrefix}.log ||
+                {
+                   rm {}
+                   echo \"At $(date -u "+%FT%TZ") vault-agent command removed file: {}\" \
+                     >> /run/consul-templates/${namePrefix}-removed.log
+                }
+              "
+          fi
+        '';
+      };
+    in "${script}/bin/${namePrefix}-cleanup.sh";
+    # Vault has deprecated use of `command` in the template stanza, but a bug
+    # prevents us from moving to the `exec` statement until resolved:
+    # Ref: https://github.com/hashicorp/vault/issues/16230
+    # in { command = [ "${script}/bin/${namePrefix}.sh" ]; };
+  in {
     services.vault-agent = {
       role = "core";
       templates = {
@@ -33,6 +61,7 @@
               {{- end }}
             {{- end -}}
           '';
+          command = agentCommand "vmalerts" "/var/lib/vmalert-loki /var/lib/vmalert-vm";
         };
         "/run/consul-templates/dashboards.log" = {
           contents = ''
@@ -53,6 +82,7 @@
               {{- end }}
             {{- end -}}
           '';
+          command = agentCommand "dashboards" "/var/lib/grafana/dashboards";
         };
       };
     };
