@@ -12,15 +12,6 @@ let
     To utilize the core TF attr, the cluster config parameter `infraType`
     must either "aws" or "premSim".
   '');
-  sopsEncrypt =
-    "${pkgs.sops}/bin/sops --encrypt --input-type json --kms '${config.cluster.kms}' /dev/stdin";
-
-  sopsDecrypt = path:
-    # NB: we can't work on store paths that don't yet exist before they are generated
-    assert lib.assertMsg (builtins.isString path) "sopsDecrypt: path must be a string ${toString path}";
-    "${pkgs.sops}/bin/sops --decrypt --input-type json ${path}";
-
-  relEncryptedFolder = lib.last (builtins.split "-" (toString config.secrets.encryptedRoot));
 
 in {
   tf.core.configuration = lib.mkIf infraTypeCheck {
@@ -321,42 +312,8 @@ in {
             lib.mkIf (coreNode.ebsOptimized != null) coreNode.ebsOptimized;
 
           provisioner = let
-            ssh = "${pkgs.openssh}/bin/ssh -C -oUserKnownHostsFile=/dev/null -oNumberOfPasswordPrompts=0 -oServerAliveInterval=60 -oControlPersist=600 -oStrictHostKeyChecking=no -i ./secrets/ssh-${config.cluster.name} ${target}";
-            scp = "${pkgs.openssh}/bin/scp -C -oUserKnownHostsFile=/dev/null -oNumberOfPasswordPrompts=0 -oServerAliveInterval=60 -oControlPersist=600 -oStrictHostKeyChecking=no -i ./secrets/ssh-${config.cluster.name} ";
-            target = "root@${var "aws_eip.${coreNode.uid}.public_ip"}";
-          in (lib.optionals (name == "core-1") [{
-              local-exec = {
-                command = ''
-                  echo
-                  echo Waiting for ssh to come up on port 22 ...
-                  while test -z "$(
-                    ${pkgs.socat}/bin/socat \
-                      -T2 stdout \
-                      tcp:${var "aws_eip.${coreNode.uid}.public_ip"}:22,connect-timeout=2,readbytes=1 \
-                      2>/dev/null
-                  )"
-                  do
-                      printf " ."
-                      sleep 5
-                  done
-
-                  sleep 1
-                  if test -f ${relEncryptedFolder}/vault.enc.json; then
-                    ${ssh} -- "mkdir -p /var/lib/private/vault"
-                    ${scp} "${relEncryptedFolder}/vault.enc.json" "${target}:/var/lib/private/vault/vault.enc.json"
-                    ${ssh} -- "touch /var/lib/private/vault/.bootstrap-done"
-                  fi
-                  if test -f ${relEncryptedFolder}/nomad.bootstrap.enc.json; then
-                    tempfile=$(mktemp)
-                    ${ssh} -- "mkdir -p /var/lib/nomad"
-                    ${sopsDecrypt "${relEncryptedFolder}/nomad.bootstrap.enc.json"}|${pkgs.jq}/bin/jq -r '.token' > "$tempfile"
-                    ${scp} "$tempfile" "${target}:/var/lib/nomad/bootstrap.token"
-                    rm "$tempfile"
-                    ${ssh} -- "touch /var/lib/nomad/.bootstrap-done"
-                  fi
-                '';
-              };
-            }]) ++ [
+            publicIP = var "aws_eip.${coreNode.uid}.public_ip";
+          in [
             {
               local-exec = {
                 command = "${
@@ -367,53 +324,24 @@ in {
             {
               local-exec = let
                 command =
-                  coreNode.localProvisioner.protoCommand (var "aws_eip.${coreNode.uid}.public_ip");
+                  "${coreNode.localProvisioner.protoCommand} ${publicIP}";
               in {
                 inherit command;
                 inherit (coreNode.localProvisioner) interpreter environment;
                 working_dir = coreNode.localProvisioner.workingDir;
               };
-            }] ++
-            (lib.optionals (name == "core-1") [{
-              local-exec = {
-                command = ''
-                  echo
-                  echo Waiting for ssh to come up on port 22 ...
-                  while test -z "$(
-                    ${pkgs.socat}/bin/socat \
-                      -T2 stdout \
-                      tcp:${var "aws_eip.${coreNode.uid}.public_ip"}:22,connect-timeout=2,readbytes=1 \
-                      2>/dev/null
-                  )"
-                  do
-                      printf " ."
-                      sleep 5
-                  done
-
-                  sleep 1
-
-                  if ! test -f ${relEncryptedFolder}/vault.enc.json; then
-                    echo
-                    echo Waiting for bootstrapping on core-1 to finish for vault /var/lib/vault/vault.enc.json ...
-                    ${ssh} -- 'while ! test -f /var/lib/vault/vault.enc.json; do sleep 5; done'
-                    echo ... found /var/lib/vault/vault.enc.json
-                    secret="$(${ssh} cat /var/lib/vault/vault.enc.json)"
-                    echo "$secret" > ${relEncryptedFolder}/vault.enc.json
-                    ${pkgs.git}/bin/git add ${relEncryptedFolder}/vault.enc.json
-                  fi
-                  if ! test -f ${relEncryptedFolder}/nomad.bootstrap.enc.json; then
-                    echo
-                    echo Waiting for bootstrapping on core-1 to finish for nomad /var/lib/nomad/bootstrap.token ...
-                    ${ssh} -- 'while ! test -f /var/lib/nomad/bootstrap.token; do sleep 5; done'
-                    echo ... found /var/lib/nomad/bootstrap.token
-                    secret="$(${ssh} -- cat /var/lib/nomad/bootstrap.token)"
-                    echo "{}" | ${pkgs.jq}/bin/jq ".token = \"$secret\"" | ${sopsEncrypt} > ${relEncryptedFolder}/nomad.bootstrap.enc.json
-                    ${pkgs.git}/bin/git add ${relEncryptedFolder}/nomad.bootstrap.enc.json
-                  fi
-                '';
-              };
             }
-          ]);
+            (lib.optionalAttrs (name == "core-1") {
+              local-exec = let
+                command =
+                  "${coreNode.localProvisioner.bootstrapperCommand} ${publicIP}";
+              in {
+                inherit command;
+                inherit (coreNode.localProvisioner) interpreter environment;
+                working_dir = coreNode.localProvisioner.workingDir;
+              };
+            })
+          ];
         })
 
         (lib.mkIf config.cluster.generateSSHKey {

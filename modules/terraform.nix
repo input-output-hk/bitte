@@ -5,6 +5,10 @@ let
 
   kms2region = kms: if kms == null then null else builtins.elemAt (lib.splitString ":" kms) 3;
 
+  relEncryptedFolder = let
+    path = with config; if (cluster.infraType == "aws") then secrets.encryptedRoot else age.encryptedRoot;
+  in lib.last (builtins.split "/nix/store/.{32}-" (toString path));
+
   merge = lib.foldl' lib.recursiveUpdate { };
 
   # without zfs
@@ -110,58 +114,45 @@ let
       fi # manual provisioning
     '';
 
-  localProvisionerDefaultCommand = ip:
-    let
+  sshArgs = "-C -oConnectTimeout=5 -oUserKnownHostsFile=/dev/null -oNumberOfPasswordPrompts=0 -oServerAliveInterval=60 -oControlPersist=600 -oStrictHostKeyChecking=no -i ./secrets/ssh-${cfg.name}";
+  ssh = "ssh ${sshArgs}";
+
+  localProvisionerDefaultCommand = pkgs.writeShellApplication {
+    name = "local-provisioner-default-command";
+    runtimeInputs = with pkgs; [
+      bitte
+      git
+      lsof
+      mercurial
+      nix
+      openssh
+      systemd
+    ];
+
+    text = let
       nixConf = ''
         experimental-features = nix-command flakes
       '';
       newKernelVersion = config.boot.kernelPackages.kernel.version;
     in ''
-      set -euo pipefail
-
-      echo
-      echo Waiting for ssh to come up on port 22 ...
-      while [ -z "$(
-        ${pkgs.socat}/bin/socat \
-          -T2 stdout \
-          tcp:${ip}:22,connect-timeout=2,readbytes=1 \
-          2>/dev/null
-      )" ]
-      do
-          printf " ."
-          sleep 5
-      done
+      ip="''${1?Must provide IP}"
+      ssh_target="root@$ip"
 
       sleep 1
 
       echo
       echo Waiting for host to become ready ...
-      ${pkgs.openssh}/bin/ssh -C \
-        -oUserKnownHostsFile=/dev/null \
-        -oNumberOfPasswordPrompts=0 \
-        -oServerAliveInterval=60 \
-        -oControlPersist=600 \
-        -oStrictHostKeyChecking=accept-new \
-        -i ./secrets/ssh-${cfg.name} \
-        root@${ip} \
-        "until grep true /etc/ready &>/dev/null; do sleep 1; done 2>/dev/null"
+      until ${ssh} "$ssh_target" -- grep true /etc/ready &>/dev/null; do
+        sleep 1
+      done
 
       sleep 1
 
       export NIX_CONFIG="${nixConf}"
-      export PATH="${
-        lib.makeBinPath [
-          pkgs.openssh
-          pkgs.nix
-          pkgs.git
-          pkgs.mercurial
-          pkgs.lsof
-        ]
-      }:$PATH"
 
       echo
       echo Invoking deploy-rs on that host ...
-      ${pkgs.bitte}/bin/bitte deploy \
+      bitte deploy \
         --ssh-opts="-oUserKnownHostsFile=/dev/null" \
         --ssh-opts="-oNumberOfPasswordPrompts=0" \
         --ssh-opts="-oServerAliveInterval=60" \
@@ -170,25 +161,56 @@ let
         --skip-checks \
         --no-magic-rollback \
         --no-auto-rollback \
-        ${ip}
+        "$ip"
 
       sleep 1
 
       echo
       echo Rebooting the host to load eventually newer kernels ...
-      timeout 5 ${pkgs.openssh}/bin/ssh -C \
-        -oUserKnownHostsFile=/dev/null \
-        -oNumberOfPasswordPrompts=0 \
-        -oServerAliveInterval=60 \
-        -oControlPersist=600 \
-        -oStrictHostKeyChecking=accept-new \
-        -i ./secrets/ssh-${cfg.name} \
-        root@${ip} \
+      ${ssh} "$ssh_target" -- \
         "if [ \"$(cat /proc/sys/kernel/osrelease)\" != \"${newKernelVersion}\" ]; then \
-        ${pkgs.systemd}/bin/systemctl kexec \
-        || (echo Rebooting instead ... && ${pkgs.systemd}/bin/systemctl reboot) ; fi" \
+        systemctl kexec \
+        || (echo Rebooting instead ... && systemctl reboot) ; fi" \
       || true
     '';
+  };
+
+  localProvisionerBootstrapperCommand = pkgs.writeShellApplication {
+    name = "bootstrap";
+    runtimeInputs = with pkgs; [
+      git
+      jq
+      openssh
+      sops
+    ];
+    text = ''
+      ip="''${1?Must provide IP}"
+      ssh_target="root@$ip"
+
+      if ! test -s ${relEncryptedFolder}/vault.enc.json; then
+        echo
+        echo Waiting for bootstrapping on core-1 to finish for vault /var/lib/vault/vault.enc.json ...
+        while ! ${ssh} "$ssh_target" -- test -s /var/lib/vault/vault.enc.json &>/dev/null; do
+          sleep 5
+        done
+        echo ... found /var/lib/vault/vault.enc.json
+        secret="$(${ssh} "$ssh_target" -- cat /var/lib/vault/vault.enc.json)"
+        echo "$secret" > ${relEncryptedFolder}/vault.enc.json
+        git add ${relEncryptedFolder}/vault.enc.json
+      fi
+      if ! test -s ${relEncryptedFolder}/nomad.bootstrap.enc.json; then
+        echo
+        echo Waiting for bootstrapping on core-1 to finish for nomad /var/lib/nomad/bootstrap.token ...
+        while ! ${ssh} "$ssh_target" -- test -s /var/lib/nomad/bootstrap.token &>/dev/null; do
+          sleep 5
+        done
+        echo ... found /var/lib/nomad/bootstrap.token
+        secret="$(${ssh} "$ssh_target" -- cat /var/lib/nomad/bootstrap.token)"
+        echo "{}" | jq ".token = \"$secret\"" | sops --encrypt --input-type json --kms '${cfg.kms}' /dev/stdin > ${relEncryptedFolder}/nomad.bootstrap.enc.json
+        git add ${relEncryptedFolder}/nomad.bootstrap.enc.json
+      fi
+    '';
+  };
 
   cfg = config.cluster;
 
@@ -855,7 +877,15 @@ let
 
         localProvisioner = lib.mkOption {
           type = with lib.types; localExecType;
-          default = { protoCommand = localProvisionerDefaultCommand; };
+          default = {
+            protoCommand = let
+              drv = localProvisionerDefaultCommand;
+            in "${drv}/bin/${drv.name}";
+
+            bootstrapperCommand = let
+              drv = localProvisionerBootstrapperCommand;
+            in "${drv}/bin/${drv.name}";
+          };
         };
 
         instanceType = lib.mkOption { type = with lib.types; str; };
@@ -929,7 +959,18 @@ let
   localExecType = with lib.types;
     submodule {
       options = {
-        protoCommand = lib.mkOption { type = with lib.types; functionTo str; };
+        protoCommand = lib.mkOption {
+          type = lib.types.str;
+          description = "Provisioner command to be applied to all nodes";
+        };
+
+        bootstrapperCommand = lib.mkOption {
+          type = with lib.types; nullOr str;
+          default = null;
+          description = ''
+            Provisioner command to apply only to the first node, when applicable.
+          '';
+        };
 
         workingDir = lib.mkOption {
           type = with lib.types; nullOr path;
