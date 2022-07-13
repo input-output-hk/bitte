@@ -1,27 +1,5 @@
 { config, lib, ... }: {
   services.consul = {
-    intentions = lib.flatten (lib.mapAttrsToList (source: destinations:
-      lib.forEach destinations (destination: {
-        sourceName = source;
-        destinationName = destination;
-      })) {
-        connector = [ "node" "postgres" ];
-        ingress = [
-          "connector"
-          "web"
-          "landing"
-          "connector-develop-2598-1980ac7a"
-          "web-develop-2598-1980ac7a"
-          "landing-develop-2598-1980ac7a"
-        ];
-        node = [ "bitcoind" "postgres" ];
-        count-dashboard = [ "count-api" ];
-        connector-develop-2598-1980ac7a =
-          [ "node-develop-2598-1980ac7a" "postgres-develop-2598-1980ac7a" ];
-        node-develop-2598-1980ac7a =
-          [ "bitcoind-develop-2598-1980ac7a" "postgres-develop-2598-1980ac7a" ];
-      });
-
     roles = with config.services.consul.policies; {
       consul-agent.policyNames = [ consul-agent.name ];
       consul-server.policyNames = [ consul-agent.name ];

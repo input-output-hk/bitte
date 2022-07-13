@@ -70,19 +70,6 @@ in
         pkgs = import nixpkgs {inherit (final) system;};
       };
 
-      # Remove once nixpkgs is using openssh 8.7p1+ by default to avoid coredumps
-      # Ref: https://bbs.archlinux.org/viewtopic.php?id=265221
-      opensshNoCoredump = let
-        version = "8.7p1";
-      in
-        prev.opensshPackages.openssh.overrideAttrs (oldAttrs: {
-          inherit version;
-          src = prev.fetchurl {
-            url = "mirror://openbsd/OpenSSH/portable/openssh-${version}.tar.gz";
-            sha256 = "sha256-fKNLi7JK6eUPM3krcJGzhB1+G0QP9XvJ+r3fAeLtHiQ=";
-          };
-        });
-
       # Little convenience function helping us to containing the bash
       # madness: forcing our bash scripts to be shellChecked.
       writeBashChecked = final.writers.makeScriptWriter {

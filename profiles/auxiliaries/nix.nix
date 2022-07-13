@@ -1,5 +1,15 @@
-{ pkgs, lib, config, self, ... }: let
-  deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+{
+  pkgs,
+  lib,
+  config,
+  nodeName,
+  self,
+  ...
+}: let
+  deployType =
+    if nodeName != null
+    then config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType
+    else "aws";
 in {
   nix = {
     gc.automatic = true;
@@ -19,14 +29,18 @@ in {
         type = "indirect";
       };
     };
-    systemFeatures = [ "recursive-nix" "nixos-test" ];
+    systemFeatures = ["recursive-nix" "nixos-test"];
 
-    binaryCaches = [
-      "https://hydra.iohk.io"
-    ] ++ lib.optional (deployType == "aws") "${config.cluster.s3Cache}";
+    binaryCaches =
+      [
+        "https://hydra.iohk.io"
+      ]
+      ++ lib.optional (deployType == "aws") "${config.cluster.s3Cache}";
 
-    binaryCachePublicKeys = [
-      "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
-    ] ++ lib.optional (deployType == "aws") "${config.cluster.s3CachePubKey}";
+    binaryCachePublicKeys =
+      [
+        "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
+      ]
+      ++ lib.optional (deployType == "aws") "${config.cluster.s3CachePubKey}";
   };
 }

@@ -32,7 +32,10 @@ in rec {
 
   augmentNomadJob = import ./augment-nomad-job.nix {inherit nixpkgs;};
   mkNomadJobs = ns: envs: let
-    pkgs = import nixpkgs {system = "x86_64-linux";};
+    pkgs = import nixpkgs {
+      system = "x86_64-linux";
+      overlays = [];
+    };
   in
     builtins.mapAttrs (
       n: job: let

@@ -1,5 +1,5 @@
 {nixpkgs}: let
-  pkgs = import nixpkgs {system = "x86_64-linux";};
+  pkgs = nixpkgs.legacyPackages.x86_64-linux;
   maybeAddPackage = nixpkgs.lib.mapAttrs (
     name: orig:
       orig

@@ -57,7 +57,6 @@ in {
       autoPrune.dates = "daily";
 
       extraOptions = lib.concatStringsSep " " ([
-        "--log-driver=journald"
         # For simplicity, let the bridge network have a static ip/mask (by default it
         # would choose this one, but fall back to the next range if this one is already used)
         "--bip=172.17.0.1/16"
