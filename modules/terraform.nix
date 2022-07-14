@@ -427,6 +427,22 @@ let
           default = self.outPath;
         };
 
+        # For assistance with build machine state identification post-deployment
+        # ex: see the common.nix profile
+        sourceInfo = lib.mkOption {
+          internal = true;
+          type = with lib.types; attrsOf attrs;
+          default = lib.mapAttrs (n: v: {
+            inherit (v.sourceInfo) lastModified lastModifiedDate narHash;
+
+            rev = if v ? "rev" then v.rev else "dirty";
+            shortRev = if v ? "shortRev" then v.shortRev else "dirty";
+
+            # If "outPath" name is re-used then builtins.toJSON only converts outPath attrs and drops the rest.
+            outPathSrc = v.outPath;
+          }) self.inputs;
+        };
+
         vaultBackend = lib.mkOption {
           type = with lib.types; str;
           default = "https://vault.infra.aws.iohkdev.io";

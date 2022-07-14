@@ -83,4 +83,7 @@ in {
     alias jcl='journalctl'
     complete -F _complete_alias jcl
   '';
+
+  # For assistance with build machine state identification post-deployment
+  environment.etc."source-info.json".text = builtins.toJSON config.cluster.sourceInfo;
 }
