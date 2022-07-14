@@ -244,7 +244,7 @@ in {
         webExternalUrl = "https://monitoring.${domain}/alertmanager";
         configuration = {
           route = {
-            group_by = [ "alertname" "alias" ];
+            group_by = [ "..." ];
             group_wait = "30s";
             group_interval = "2m";
             receiver = "team-pager";
