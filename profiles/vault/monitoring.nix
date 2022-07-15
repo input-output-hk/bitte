@@ -7,9 +7,9 @@
   Switches = { };
 
   Config = let
-    agentCommand = namePrefix: targetDirs: let
+    agentCommand = namePrefix: targetDirs: maxLines: let
       script = pkgs.writeShellApplication {
-        runtimeInputs = with pkgs; [ bash coreutils fd ripgrep ];
+        runtimeInputs = with pkgs; [ bash coreutils fd moreutils ripgrep ];
         name = "${namePrefix}-cleanup.sh";
         text = ''
           set -x
@@ -24,6 +24,8 @@
                    rm {}
                    echo \"At $(date -u "+%FT%TZ") vault-agent command removed file: {}\" \
                      >> /run/consul-templates/${namePrefix}-removed.log
+                   tail -n ${toString maxLines} /run/consul-templates/${namePrefix}-removed.log \
+                     | sponge /run/consul-templates/${namePrefix}-removed.log
                 }
               "
           fi
@@ -61,7 +63,7 @@
               {{- end }}
             {{- end -}}
           '';
-          command = agentCommand "vmalerts" "/var/lib/vmalert-loki /var/lib/vmalert-vm";
+          command = agentCommand "vmalerts" "/var/lib/vmalert-loki /var/lib/vmalert-vm" 10000;
         };
         "/run/consul-templates/dashboards.log" = {
           contents = ''
@@ -82,7 +84,7 @@
               {{- end }}
             {{- end -}}
           '';
-          command = agentCommand "dashboards" "/var/lib/grafana/dashboards";
+          command = agentCommand "dashboards" "/var/lib/grafana/dashboards" 10000;
         };
       };
     };
