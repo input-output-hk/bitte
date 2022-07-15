@@ -1,5 +1,10 @@
-{ lib, fetchzip, buildGoModule, go-bindata, nixosTests }:
-
+{
+  lib,
+  fetchzip,
+  buildGoModule,
+  go-bindata,
+  nixosTests,
+}:
 buildGoModule rec {
   pname = "traefik";
   version = "2.7.2";
@@ -12,11 +17,11 @@ buildGoModule rec {
 
   vendorSha256 = "sha256-T36d8mjbThlH1mukcHgaYlhq/P46ShTHgM9zcH4L7dc=";
 
-  subPackages = [ "cmd/traefik" ];
+  subPackages = ["cmd/traefik"];
 
-  nativeBuildInputs = [ go-bindata ];
+  nativeBuildInputs = [go-bindata];
 
-  passthru.tests = { inherit (nixosTests) traefik; };
+  passthru.tests = {inherit (nixosTests) traefik;};
 
   preBuild = ''
     go generate
@@ -31,6 +36,6 @@ buildGoModule rec {
     description = "A modern reverse proxy";
     changelog = "https://github.com/traefik/traefik/raw/v${version}/CHANGELOG.md";
     license = licenses.mit;
-    maintainers = with maintainers; [ vdemeester ];
+    maintainers = with maintainers; [vdemeester];
   };
 }

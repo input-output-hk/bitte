@@ -1,8 +1,8 @@
-{ pkgs, ... }: {
+{pkgs, ...}: {
   systemd.services.reaper = {
     description = "kill orphaned nomad tasks";
-    wantedBy = [ "nomad.service" ];
-    path = with pkgs; [ coreutils procps gawk ];
+    wantedBy = ["nomad.service"];
+    path = with pkgs; [coreutils procps gawk];
     script = ''
       set -euo pipefail
       while true; do

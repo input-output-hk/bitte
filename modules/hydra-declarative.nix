@@ -1,12 +1,13 @@
-{ config, lib, ... }:
-
+{
+  config,
+  lib,
+  ...
+}:
 with lib;
-with types;
-
-let
+with types; let
   cfg = config.services.hydra;
 
-  projectType = submodule ({ name, ... }: {
+  projectType = submodule ({name, ...}: {
     options = {
       id = mkOption {
         type = str;
@@ -16,13 +17,23 @@ let
       enable = mkOption {
         type = bool;
         default = true;
-        apply = v: toString (if v then 1 else 0);
+        apply = v:
+          toString (
+            if v
+            then 1
+            else 0
+          );
       };
 
       hidden = mkOption {
         type = bool;
         default = false;
-        apply = v: toString (if v then 1 else 0);
+        apply = v:
+          toString (
+            if v
+            then 1
+            else 0
+          );
       };
 
       displayName = mkOption {
@@ -35,7 +46,7 @@ let
         default = "https://github.com/input-output-hk/${name}";
       };
 
-      owner = mkOption { type = enum (attrNames config.services.hydra.users); };
+      owner = mkOption {type = enum (attrNames config.services.hydra.users);};
 
       declfile = mkOption {
         type = str;
@@ -47,7 +58,7 @@ let
         default = "git";
       };
 
-      declvalue = mkOption { type = str; };
+      declvalue = mkOption {type = str;};
 
       description = mkOption {
         type = str;
@@ -56,7 +67,7 @@ let
     };
   });
 
-  userType = submodule ({ name, ... }: {
+  userType = submodule ({name, ...}: {
     options = {
       id = mkOption {
         type = str;
@@ -76,13 +87,21 @@ let
       emailOnError = mkOption {
         type = bool;
         default = true;
-        apply = v: toString (if v then 1 else 0);
+        apply = v:
+          toString (
+            if v
+            then 1
+            else 0
+          );
       };
 
       publicDashboard = mkOption {
         type = bool;
         default = false;
-        apply = v: if v then "t" else "f";
+        apply = v:
+          if v
+          then "t"
+          else "f";
       };
 
       roles = mkOption {
@@ -93,32 +112,31 @@ let
           "bump-to-front"
           "cancel-build"
         ]);
-        default = [ ];
+        default = [];
       };
     };
   });
-
 in {
   options.services.hydra = {
     users = mkOption {
       type = attrsOf userType;
-      default = { };
+      default = {};
     };
 
     projects = mkOption {
       type = attrsOf projectType;
-      default = { };
+      default = {};
     };
   };
 
   config = mkIf cfg.enable {
     systemd.services.hydra-declarative = {
       description = "Hydra declarative projects and users";
-      wantedBy = [ "multi-user.target" ];
-      requires = [ "hydra-init.service" "postgresql.service" ];
-      after = [ "hydra-init.service" "postgresql.service" ];
+      wantedBy = ["multi-user.target"];
+      requires = ["hydra-init.service" "postgresql.service"];
+      after = ["hydra-init.service" "postgresql.service"];
 
-      path = [ config.services.postgresql.package ];
+      path = [config.services.postgresql.package];
 
       serviceConfig = {
         Type = "oneshot";
@@ -138,27 +156,22 @@ in {
         UPDATE projects SET enabled = 0;
 
         ${concatMapStringsSep "\n" (username:
-          with cfg.users.${username};
-          let
-            cols =
-              "(username,fullname,emailaddress,password,emailonerror,type,publicdashboard)";
-            vals =
-              "('${email}','${fullName}','${email}','!',${emailOnError},'google','${publicDashboard}')";
+          with cfg.users.${username}; let
+            cols = "(username,fullname,emailaddress,password,emailonerror,type,publicdashboard)";
+            vals = "('${email}','${fullName}','${email}','!',${emailOnError},'google','${publicDashboard}')";
           in ''
             INSERT INTO users ${cols} VALUES ${vals} ON CONFLICT (username) DO UPDATE SET ${cols} = ${vals};
 
             ${concatMapStringsSep "\n" (role: ''
-              INSERT INTO userroles (username,role) VALUES ('${username}','${role}');
-            '') roles}
+                INSERT INTO userroles (username,role) VALUES ('${username}','${role}');
+              '')
+              roles}
           '') (attrNames cfg.users)}
 
         ${concatMapStringsSep "\n" (projectName:
-          with cfg.projects.${projectName};
-          let
-            cols =
-              "(name,declfile,decltype,declvalue,displayname,description,homepage,owner,enabled,hidden)";
-            vals =
-              "('${projectName}','${declfile}','${decltype}','${declvalue}','${displayName}','${description}','${homepage}','${owner}',${enable},${hidden})";
+          with cfg.projects.${projectName}; let
+            cols = "(name,declfile,decltype,declvalue,displayname,description,homepage,owner,enabled,hidden)";
+            vals = "('${projectName}','${declfile}','${decltype}','${declvalue}','${displayName}','${description}','${homepage}','${owner}',${enable},${hidden})";
           in ''
             INSERT INTO projects ${cols} VALUES ${vals} ON CONFLICT (name) DO UPDATE SET ${cols} = ${vals};
           '') (attrNames cfg.projects)}

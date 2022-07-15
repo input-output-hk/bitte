@@ -1,5 +1,10 @@
-{ config, lib, pkgs, pkiFiles, ... }: let
-
+{
+  config,
+  lib,
+  pkgs,
+  pkiFiles,
+  ...
+}: let
   isClient = config.services.vault-agent.role == "client";
 
   datacenter = config.currentCoreNode.datacenter or config.cluster.region;
@@ -20,26 +25,23 @@
   # in { command = [ "${script}/bin/${namePrefix}.sh" ]; };
 
   reload = service:
-    agentCommand [ pkgs.systemd ] "reload-${service}" "systemctl try-reload-or-restart ${service}";
+    agentCommand [pkgs.systemd] "reload-${service}" "systemctl try-reload-or-restart ${service}";
   restart = service:
-    agentCommand [ pkgs.systemd ] "restart-${service}" "systemctl try-restart ${service}";
+    agentCommand [pkgs.systemd] "restart-${service}" "systemctl try-restart ${service}";
 
   pkiAttrs = {
     common_name = "server.${datacenter}.consul";
-    ip_sans = [ "127.0.0.1" ];
-    alt_names =
-      [ "vault.service.consul" "consul.service.consul" "nomad.service.consul" ];
+    ip_sans = ["127.0.0.1"];
+    alt_names = ["vault.service.consul" "consul.service.consul" "nomad.service.consul"];
     ttl = "700h";
   };
 
   pkiArgs = lib.flip lib.mapAttrsToList pkiAttrs (name: value:
-    if builtins.isList value then
-      ''"${name}=${lib.concatStringsSep "," value}"''
-    else
-      ''"${name}=${toString value}"'');
+    if builtins.isList value
+    then ''"${name}=${lib.concatStringsSep "," value}"''
+    else ''"${name}=${toString value}"'');
 
   pkiSecret = ''"pki/issue/client" ${toString pkiArgs}'';
-
 in {
   services.vault-agent.templates = lib.mkIf isClient {
     "${pkiFiles.certChainFile}" = {

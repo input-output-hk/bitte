@@ -1,8 +1,25 @@
-{ self, lib, pkgs, config, nodeName, bittelib, hashiTokens, letsencryptCertMaterial, pkiFiles, ... }:
-let
+{
+  self,
+  lib,
+  pkgs,
+  config,
+  nodeName,
+  bittelib,
+  hashiTokens,
+  letsencryptCertMaterial,
+  pkiFiles,
+  ...
+}: let
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
   datacenter = config.currentCoreNode.datacenter or config.cluster.region;
-  domain = config.${if deployType == "aws" then "cluster" else "currentCoreNode"}.domain;
+  domain =
+    config
+    .${
+      if deployType == "aws"
+      then "cluster"
+      else "currentCoreNode"
+    }
+    .domain;
   cfg = config.services.traefik;
 in {
   imports = [
@@ -16,16 +33,17 @@ in {
     prometheusPort = lib.mkOption {
       type = with lib.types; int;
       default = 9090;
-      description =
-        "The default port for traefik prometheus to publish metrics on.";
+      description = "The default port for traefik prometheus to publish metrics on.";
     };
 
     acmeDnsCertMgr = lib.mkOption {
       type = lib.types.bool;
-      default = lib.warn ''
-        CAUTION: -- default will change soon to:
-        services.traefik.acmeDnsCertMgr = false;
-      '' true;
+      default =
+        lib.warn ''
+          CAUTION: -- default will change soon to:
+          services.traefik.acmeDnsCertMgr = false;
+        ''
+        true;
       description = ''
         If true, acme systemd services will manage a single cert and provide it to traefik:
           - using dns Let's Encrypt challenge
@@ -58,14 +76,16 @@ in {
 
     useDockerRegistry = lib.mkOption {
       type = lib.types.bool;
-      default = lib.warn ''
-        DEPRECATED: -- this option is now a no-op.
-        To enable a docker registry, apply the following
-        bitte module to the target docker registry host machine,
-        and set module options appropriately:
+      default =
+        lib.warn ''
+          DEPRECATED: -- this option is now a no-op.
+          To enable a docker registry, apply the following
+          bitte module to the target docker registry host machine,
+          and set module options appropriately:
 
-        modules/docker-registry.nix
-      '' false;
+          modules/docker-registry.nix
+        ''
+        false;
       description = ''
         DEPRECATED: -- this option is now a no-op.
         To enable a docker registry, apply the following
@@ -78,10 +98,12 @@ in {
 
     useVaultBackend = lib.mkOption {
       type = lib.types.bool;
-      default = lib.warn ''
-        CAUTION: -- default will change soon to:
-        services.traefik.useVaultBackend = true;
-      '' false;
+      default =
+        lib.warn ''
+          CAUTION: -- default will change soon to:
+          services.traefik.useVaultBackend = true;
+        ''
+        false;
       description = ''
         Enable use of a vault TF backend with a service hosted on the monitoring server.
       '';
@@ -105,7 +127,6 @@ in {
   };
 
   config = {
-
     assertions = [
       {
         assertion = cfg.useOauth2Proxy != cfg.useDigestAuth;
@@ -116,13 +137,13 @@ in {
       }
     ];
 
-    networking.firewall.allowedTCPPorts = [ 80 443 ];
+    networking.firewall.allowedTCPPorts = [80 443];
 
     services.consul.ui = true;
     services.traefik.enable = true;
     services.oauth2_proxy.enable = cfg.useOauth2Proxy;
 
-    users.extraGroups.keys.members = [ "traefik" ];
+    users.extraGroups.keys.members = ["traefik"];
 
     networking.extraHosts = ''
       ${config.cluster.nodes.monitoring.privateIP} monitoring
@@ -153,61 +174,66 @@ in {
         RestartSec = 5;
 
         ExecStart = let
-            cfg = config.services.traefik;
-            jsonValue = with lib.types;
-              let
-                valueType = nullOr (oneOf [
-                  bool
-                  int
-                  float
-                  str
-                  (lazyAttrsOf valueType)
-                  (listOf valueType)
-                ]) // {
-                  description = "JSON value";
-                  emptyValue.value = { };
-                };
-              in valueType;
-            dynamicConfigFile = if cfg.dynamicConfigFile == null then
+          cfg = config.services.traefik;
+          jsonValue = with lib.types; let
+            valueType =
+              nullOr (oneOf [
+                bool
+                int
+                float
+                str
+                (lazyAttrsOf valueType)
+                (listOf valueType)
+              ])
+              // {
+                description = "JSON value";
+                emptyValue.value = {};
+              };
+          in
+            valueType;
+          dynamicConfigFile =
+            if cfg.dynamicConfigFile == null
+            then
               pkgs.runCommand "config.toml" {
-                buildInputs = [ pkgs.remarshal ];
+                buildInputs = [pkgs.remarshal];
                 preferLocalBuild = true;
               } ''
                 remarshal -if json -of toml \
                   < ${
-                    pkgs.writeText "dynamic_config.json"
-                    (builtins.toJSON cfg.dynamicConfigOptions)
-                  } \
+                  pkgs.writeText "dynamic_config.json"
+                  (builtins.toJSON cfg.dynamicConfigOptions)
+                } \
                   > $out
               ''
-            else
-              cfg.dynamicConfigFile;
-            staticConfigFile = if cfg.staticConfigFile == null then
+            else cfg.dynamicConfigFile;
+          staticConfigFile =
+            if cfg.staticConfigFile == null
+            then
               pkgs.runCommand "config.toml" {
-                buildInputs = [ pkgs.yj ];
+                buildInputs = [pkgs.yj];
                 preferLocalBuild = true;
               } ''
                 yj -jt -i \
                   < ${
-                    pkgs.writeText "static_config.json" (builtins.toJSON
-                      (lib.recursiveUpdate cfg.staticConfigOptions {
-                        providers.file.filename = "${dynamicConfigFile}";
-                      }))
-                  } \
+                  pkgs.writeText "static_config.json" (builtins.toJSON
+                    (lib.recursiveUpdate cfg.staticConfigOptions {
+                      providers.file.filename = "${dynamicConfigFile}";
+                    }))
+                } \
                   > $out
               ''
-            else
-              cfg.staticConfigFile;
-        in lib.mkForce (pkgs.writeShellScript "traefik.sh" ''
-          export CONSUL_HTTP_TOKEN="$(< ${hashiTokens.consul-default})"
-          exec ${config.services.traefik.package}/bin/traefik --configfile=${staticConfigFile}
-        '');
+            else cfg.staticConfigFile;
+        in
+          lib.mkForce (pkgs.writeShellScript "traefik.sh" ''
+            export CONSUL_HTTP_TOKEN="$(< ${hashiTokens.consul-default})"
+            exec ${config.services.traefik.package}/bin/traefik --configfile=${staticConfigFile}
+          '');
       };
     };
 
     systemd.services.copy-acme-certs = lib.mkIf cfg.acmeDnsCertMgr {
-      before = [ "traefik.service" ];
-      wantedBy = [ "traefik.service" ];
+      before = ["traefik.service"];
+      wantedBy = ["traefik.service"];
 
       serviceConfig = {
         Type = "oneshot";
@@ -216,7 +242,7 @@ in {
         RestartSec = "30s";
       };
 
-      path = [ pkgs.coreutils ];
+      path = [pkgs.coreutils];
 
       script = ''
         set -exuo pipefail
@@ -230,8 +256,8 @@ in {
     };
 
     systemd.services."acme-${nodeName}".serviceConfig = lib.mkIf cfg.acmeDnsCertMgr {
-      ExecStartPre = bittelib.ensureDependencies pkgs [ "vault-agent" ];
-      RestrictAddressFamilies = [ "AF_UNIX" "AF_INET" "AF_INET6" ];
+      ExecStartPre = bittelib.ensureDependencies pkgs ["vault-agent"];
+      RestrictAddressFamilies = ["AF_UNIX" "AF_INET" "AF_INET6"];
     };
 
     security.acme = lib.mkIf cfg.acmeDnsCertMgr {
@@ -242,7 +268,8 @@ in {
         email = "devops@iohk.io";
         inherit (config.cluster) domain;
         credentialsFile = builtins.toFile "nothing" "";
-        extraDomainNames = [ "*.${domain}" ]
+        extraDomainNames =
+          ["*.${domain}"]
           ++ config.cluster.extraAcmeSANs;
         postRun = ''
           cp fullchain.pem ${letsencryptCertMaterial.certChainFile}
@@ -261,226 +288,244 @@ in {
 
     services.traefik = {
       dynamicConfigOptions = let
-        tlsCfg = if cfg.acmeDnsCertMgr then true else { certresolver = "acme"; };
+        tlsCfg =
+          if cfg.acmeDnsCertMgr
+          then true
+          else {certresolver = "acme";};
       in {
-        tls.certificates = if cfg.acmeDnsCertMgr then [{
-          certFile = "/var/lib/traefik/certs/${builtins.baseNameOf letsencryptCertMaterial.certChainFile}";
-          keyFile = "/var/lib/traefik/certs/${builtins.baseNameOf letsencryptCertMaterial.keyFile}";
-        }] else [ ];
+        tls.certificates =
+          if cfg.acmeDnsCertMgr
+          then [
+            {
+              certFile = "/var/lib/traefik/certs/${builtins.baseNameOf letsencryptCertMaterial.certChainFile}";
+              keyFile = "/var/lib/traefik/certs/${builtins.baseNameOf letsencryptCertMaterial.keyFile}";
+            }
+          ]
+          else [];
 
         http = {
           routers = let
-            middlewares = lib.optional cfg.useOauth2Proxy "oauth-auth-redirect"
-                          ++ lib.optional cfg.useDigestAuth "digest-auth";
+            middlewares =
+              lib.optional cfg.useOauth2Proxy "oauth-auth-redirect"
+              ++ lib.optional cfg.useDigestAuth "digest-auth";
             mkRoute = service: {
               inherit service middlewares;
               entrypoints = "https";
               rule = "Host(`${service}.${domain}`) && PathPrefix(`/`)";
               tls = tlsCfg;
             };
-          in lib.mkDefault ({
-            alertmanager = {
-              entrypoints = "https";
-              middlewares = [ ];
-              rule = "Host(`monitoring.${domain}`) && PathPrefix(`/alertmanager`)";
-              service = "alertmanager";
-              tls = tlsCfg;
-            };
+          in
+            lib.mkDefault ({
+                alertmanager = {
+                  entrypoints = "https";
+                  middlewares = [];
+                  rule = "Host(`monitoring.${domain}`) && PathPrefix(`/alertmanager`)";
+                  service = "alertmanager";
+                  tls = tlsCfg;
+                };
 
-            consul = mkRoute "consul";
+                consul = mkRoute "consul";
 
-            consul-api = {
-              entrypoints = "https";
-              middlewares = [ ];
-              rule = "Host(`consul.${domain}`) && PathPrefix(`/v1/`)";
-              service = "consul";
-              tls = true;
-            };
+                consul-api = {
+                  entrypoints = "https";
+                  middlewares = [];
+                  rule = "Host(`consul.${domain}`) && PathPrefix(`/v1/`)";
+                  service = "consul";
+                  tls = true;
+                };
 
-            grafana = mkRoute "monitoring";
+                grafana = mkRoute "monitoring";
 
-            nomad = mkRoute "nomad";
+                nomad = mkRoute "nomad";
 
-            nomad-api = {
-              entrypoints = "https";
-              middlewares = [ ];
-              rule = "Host(`nomad.${domain}`) && PathPrefix(`/v1/`)";
-              service = "nomad";
-              tls = true;
-            };
+                nomad-api = {
+                  entrypoints = "https";
+                  middlewares = [];
+                  rule = "Host(`nomad.${domain}`) && PathPrefix(`/v1/`)";
+                  service = "nomad";
+                  tls = true;
+                };
 
-            vault = mkRoute "vault";
+                vault = mkRoute "vault";
 
-            vault-api = {
-              entrypoints = "https";
-              middlewares = [ ];
-              rule = "Host(`vault.${domain}`) && PathPrefix(`/v1/`)";
-              service = "vault";
-              tls = true;
-            };
+                vault-api = {
+                  entrypoints = "https";
+                  middlewares = [];
+                  rule = "Host(`vault.${domain}`) && PathPrefix(`/v1/`)";
+                  service = "vault";
+                  tls = true;
+                };
 
-            traefik = {
-              inherit middlewares;
-              entrypoints = "https";
-              rule = "Host(`traefik.${domain}`) && PathPrefix(`/`)";
-              service = "api@internal";
-              tls = tlsCfg;
-            };
+                traefik = {
+                  inherit middlewares;
+                  entrypoints = "https";
+                  rule = "Host(`traefik.${domain}`) && PathPrefix(`/`)";
+                  service = "api@internal";
+                  tls = tlsCfg;
+                };
 
-            vmagent = {
-              entrypoints = "https";
-              middlewares = [ "ensureFirstLevelSlash" ];
-              rule = "Host(`monitoring.${domain}`) && PathPrefix(`/vmagent`)";
-              service = "vmagent";
-              tls = tlsCfg;
-            };
+                vmagent = {
+                  entrypoints = "https";
+                  middlewares = ["ensureFirstLevelSlash"];
+                  rule = "Host(`monitoring.${domain}`) && PathPrefix(`/vmagent`)";
+                  service = "vmagent";
+                  tls = tlsCfg;
+                };
 
-            vmalert-loki = {
-              entrypoints = "https";
-              middlewares = [ "ensureFirstLevelSlash" ];
-              rule = "Host(`monitoring.${domain}`) && PathPrefix(`/vmalert-loki`)";
-              service = "vmalert-loki";
-              tls = tlsCfg;
-            };
+                vmalert-loki = {
+                  entrypoints = "https";
+                  middlewares = ["ensureFirstLevelSlash"];
+                  rule = "Host(`monitoring.${domain}`) && PathPrefix(`/vmalert-loki`)";
+                  service = "vmalert-loki";
+                  tls = tlsCfg;
+                };
 
-            vmalert-vm = {
-              entrypoints = "https";
-              middlewares = [ "ensureFirstLevelSlash" ];
-              rule = "Host(`monitoring.${domain}`) && PathPrefix(`/vmalert-vm`)";
-              service = "vmalert-vm";
-              tls = tlsCfg;
-            };
-          } // (lib.optionalAttrs cfg.useOauth2Proxy {
-            oauth2-route = {
-              entrypoints = "https";
-              middlewares = [ "auth-headers" ];
-              rule = "PathPrefix(`/oauth2/`)";
-              service = "oauth-backend";
-              priority = 999;
-              tls = true;
-            };
+                vmalert-vm = {
+                  entrypoints = "https";
+                  middlewares = ["ensureFirstLevelSlash"];
+                  rule = "Host(`monitoring.${domain}`) && PathPrefix(`/vmalert-vm`)";
+                  service = "vmalert-vm";
+                  tls = tlsCfg;
+                };
+              }
+              // (lib.optionalAttrs cfg.useOauth2Proxy {
+                oauth2-route = {
+                  entrypoints = "https";
+                  middlewares = ["auth-headers"];
+                  rule = "PathPrefix(`/oauth2/`)";
+                  service = "oauth-backend";
+                  priority = 999;
+                  tls = true;
+                };
 
-            oauth2-proxy-route = {
-              entrypoints = "https";
-              middlewares = [ "auth-headers" ];
-              rule = "Host(`oauth.${domain}`) && PathPrefix(`/`)";
-              service = "oauth-backend";
-              tls = tlsCfg;
-            };
-          }) // (lib.optionalAttrs cfg.useVaultBackend {
-            vault-backend = {
-              entrypoints = "https";
-              middlewares = [ ];
-              rule = "Host(`vbk.${domain}`) && PathPrefix(`/`)";
-              service = "vault-backend";
-              tls = tlsCfg;
-            };
-          }));
+                oauth2-proxy-route = {
+                  entrypoints = "https";
+                  middlewares = ["auth-headers"];
+                  rule = "Host(`oauth.${domain}`) && PathPrefix(`/`)";
+                  service = "oauth-backend";
+                  tls = tlsCfg;
+                };
+              })
+              // (lib.optionalAttrs cfg.useVaultBackend {
+                vault-backend = {
+                  entrypoints = "https";
+                  middlewares = [];
+                  rule = "Host(`vbk.${domain}`) && PathPrefix(`/`)";
+                  service = "vault-backend";
+                  tls = tlsCfg;
+                };
+              }));
 
           services = lib.mkDefault ({
-            alertmanager.loadBalancer = {
-              servers = [{ url = "http://monitoring:9093"; }];
-            };
-
-            consul.loadBalancer = {
-              servers = [{ url = "http://127.0.0.1:8500"; }];
-            };
-
-            nomad.loadBalancer = {
-              servers = [{ url = "https://nomad.service.consul:4646"; }];
-              serversTransport = "cert-transport";
-            };
-
-            monitoring.loadBalancer = {
-              servers = [{ url = "http://monitoring:3000"; }];
-            };
-
-            vmagent.loadBalancer = {
-              servers = [{ url = "http://monitoring:8429"; }];
-            };
-
-            vmalert-loki.loadBalancer = {
-              servers = [{ url = "http://monitoring:8881"; }];
-            };
-
-            vmalert-vm.loadBalancer = {
-              servers = [{ url = "http://monitoring:8880"; }];
-            };
-
-            vault.loadBalancer = {
-              servers = [{ url = "https://active.vault.service.consul:8200"; }];
-              serversTransport = "cert-transport";
-            };
-          } // lib.optionalAttrs cfg.useOauth2Proxy {
-            oauth-backend = {
-              loadBalancer = {
-                servers = [{ url = "http://127.0.0.1:4180"; }];
+              alertmanager.loadBalancer = {
+                servers = [{url = "http://monitoring:9093";}];
               };
-            };
-          } // lib.optionalAttrs cfg.useVaultBackend {
-            vault-backend.loadBalancer = {
-              servers = [{ url = "http://monitoring:8080"; }];
-            };
-          });
+
+              consul.loadBalancer = {
+                servers = [{url = "http://127.0.0.1:8500";}];
+              };
+
+              nomad.loadBalancer = {
+                servers = [{url = "https://nomad.service.consul:4646";}];
+                serversTransport = "cert-transport";
+              };
+
+              monitoring.loadBalancer = {
+                servers = [{url = "http://monitoring:3000";}];
+              };
+
+              vmagent.loadBalancer = {
+                servers = [{url = "http://monitoring:8429";}];
+              };
+
+              vmalert-loki.loadBalancer = {
+                servers = [{url = "http://monitoring:8881";}];
+              };
+
+              vmalert-vm.loadBalancer = {
+                servers = [{url = "http://monitoring:8880";}];
+              };
+
+              vault.loadBalancer = {
+                servers = [{url = "https://active.vault.service.consul:8200";}];
+                serversTransport = "cert-transport";
+              };
+            }
+            // lib.optionalAttrs cfg.useOauth2Proxy {
+              oauth-backend = {
+                loadBalancer = {
+                  servers = [{url = "http://127.0.0.1:4180";}];
+                };
+              };
+            }
+            // lib.optionalAttrs cfg.useVaultBackend {
+              vault-backend.loadBalancer = {
+                servers = [{url = "http://monitoring:8080";}];
+              };
+            });
 
           serversTransports = {
             cert-transport = {
               insecureSkipVerify = true;
               rootCAs = let
-                certChainFile = if deployType == "aws" then pkiFiles.certChainFile
-                                                      else pkiFiles.serverCertChainFile;
-              in [ certChainFile ];
+                certChainFile =
+                  if deployType == "aws"
+                  then pkiFiles.certChainFile
+                  else pkiFiles.serverCertChainFile;
+              in [certChainFile];
             };
           };
 
           middlewares = lib.mkDefault ({
-            auth-headers = {
-              headers = {
-                browserXssFilter = true;
-                contentTypeNosniff = true;
-                forceSTSHeader = true;
-                frameDeny = true;
-                sslHost = domain;
-                sslRedirect = true;
-                stsIncludeSubdomains = true;
-                stsPreload = true;
-                stsSeconds = 315360000;
+              auth-headers = {
+                headers = {
+                  browserXssFilter = true;
+                  contentTypeNosniff = true;
+                  forceSTSHeader = true;
+                  frameDeny = true;
+                  sslHost = domain;
+                  sslRedirect = true;
+                  stsIncludeSubdomains = true;
+                  stsPreload = true;
+                  stsSeconds = 315360000;
+                };
               };
-            };
-            # Ensures the first level of the path following the URL FQDN has a trailing slash.
-            # Useful for when target requires a trailing slash for relative link use.
-            # Refs:
-            #   https://github.com/traefik/traefik/issues/5159
-            #   https://github.com/VictoriaMetrics/VictoriaMetrics/issues/2799
-            ensureFirstLevelSlash = {
-              redirectregex = {
-                regex = "^https://([^/]+)/([^/]+)$";
-                replacement = "https://\${1}/\${2}/";
-                permanent = false;
+              # Ensures the first level of the path following the URL FQDN has a trailing slash.
+              # Useful for when target requires a trailing slash for relative link use.
+              # Refs:
+              #   https://github.com/traefik/traefik/issues/5159
+              #   https://github.com/VictoriaMetrics/VictoriaMetrics/issues/2799
+              ensureFirstLevelSlash = {
+                redirectregex = {
+                  regex = "^https://([^/]+)/([^/]+)$";
+                  replacement = "https://\${1}/\${2}/";
+                  permanent = false;
+                };
               };
-            };
-          } // lib.optionalAttrs cfg.useOauth2Proxy {
-            oauth-auth-redirect = {
-              forwardAuth = {
-                address = "https://oauth.${domain}/";
-                authResponseHeaders = [
-                  "X-Auth-Request-User"
-                  "X-Auth-Request-Email"
-                  "X-Auth-Request-Access-Token"
-                  "Authorization"
-                ];
-                trustForwardHeader = true;
+            }
+            // lib.optionalAttrs cfg.useOauth2Proxy {
+              oauth-auth-redirect = {
+                forwardAuth = {
+                  address = "https://oauth.${domain}/";
+                  authResponseHeaders = [
+                    "X-Auth-Request-User"
+                    "X-Auth-Request-Email"
+                    "X-Auth-Request-Access-Token"
+                    "Authorization"
+                  ];
+                  trustForwardHeader = true;
+                };
               };
-            };
-          } // lib.optionalAttrs cfg.useDigestAuth {
-            digest-auth = {
-              digestAuth = {
-                usersFile = cfg.digestAuthFile;
-                removeHeader = true;
-                headerField= "X-WebAuth-User";
+            }
+            // lib.optionalAttrs cfg.useDigestAuth {
+              digest-auth = {
+                digestAuth = {
+                  usersFile = cfg.digestAuthFile;
+                  removeHeader = true;
+                  headerField = "X-WebAuth-User";
+                };
               };
-            };
-          });
+            });
         };
       };
 
@@ -496,7 +541,7 @@ in {
         accesslog = true;
         log.level = "info";
 
-        api = { dashboard = true; };
+        api = {dashboard = true;};
 
         entryPoints = {
           http = {
@@ -518,20 +563,22 @@ in {
           };
 
           metrics = {
-            address =
-              "127.0.0.1:${toString config.services.traefik.prometheusPort}";
+            address = "127.0.0.1:${toString config.services.traefik.prometheusPort}";
           };
         };
 
-        certificatesResolvers = if (!cfg.acmeDnsCertMgr) then {
-          acme = {
+        certificatesResolvers =
+          if (!cfg.acmeDnsCertMgr)
+          then {
             acme = {
-              email = "devops@iohk.io";
-              storage = "/var/lib/traefik/acme.json";
-              httpChallenge = { entrypoint = "http"; };
+              acme = {
+                email = "devops@iohk.io";
+                storage = "/var/lib/traefik/acme.json";
+                httpChallenge = {entrypoint = "http";};
+              };
             };
-          };
-        } else null;
+          }
+          else null;
 
         providers.consulCatalog = {
           refreshInterval = "30s";

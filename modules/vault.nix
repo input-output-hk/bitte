@@ -1,5 +1,14 @@
-{ lib, config, pkgs, nodeName, bittelib, hashiTokens, gossipEncryptionMaterial, pkiFiles, ... }:
-let
+{
+  lib,
+  config,
+  pkgs,
+  nodeName,
+  bittelib,
+  hashiTokens,
+  gossipEncryptionMaterial,
+  pkiFiles,
+  ...
+}: let
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
   sanitize = obj:
     lib.getAttr (builtins.typeOf obj) {
@@ -9,15 +18,16 @@ let
       str = obj;
       list = map sanitize obj;
       inherit null;
-      set = if (builtins.length (builtins.attrNames obj) == 0) then
-        null
-      else
-        lib.pipe obj [
-          (lib.filterAttrs
-            (name: value: name != "_module" && name != "_ref" && value != null))
-          (lib.mapAttrs' (name: value:
-            lib.nameValuePair (bittelib.snakeCase name) (sanitize value)))
-        ];
+      set =
+        if (builtins.length (builtins.attrNames obj) == 0)
+        then null
+        else
+          lib.pipe obj [
+            (lib.filterAttrs
+              (name: value: name != "_module" && name != "_ref" && value != null))
+            (lib.mapAttrs' (name: value:
+                lib.nameValuePair (bittelib.snakeCase name) (sanitize value)))
+          ];
     };
 
   storageRaftType = with lib.types;
@@ -99,14 +109,14 @@ let
                 };
               };
             });
-          default = [ ];
+          default = [];
         };
       };
     };
 
   cfg = config.services.vault;
 in {
-  disabledModules = [ "services/security/vault.nix" ];
+  disabledModules = ["services/security/vault.nix"];
   options.services.vault = {
     enable = lib.mkEnableOption "Vault daemon";
 
@@ -122,8 +132,10 @@ in {
 
     serverNodeNames = lib.mkOption {
       type = with lib.types; listOf str;
-      default = if deployType != "premSim" then [ "core-1" "core-2" "core-3" ]
-                else [ "prem-1" "prem-2" "prem-3" ];
+      default =
+        if deployType != "premSim"
+        then ["core-1" "core-2" "core-3"]
+        else ["prem-1" "prem-2" "prem-3"];
     };
 
     serverNameAddressing = lib.mkOption {
@@ -147,13 +159,13 @@ in {
 
     extraConfig = lib.mkOption {
       type = with lib.types; attrs;
-      default = { };
+      default = {};
     };
 
     ui = lib.mkEnableOption "Enable web UI";
 
     logLevel = lib.mkOption {
-      type = with lib.types; enum [ "trace" "debug" "info" "warn" "err" ];
+      type = with lib.types; enum ["trace" "debug" "info" "warn" "err"];
       default = "info";
     };
 
@@ -217,32 +229,34 @@ in {
 
                     tlsMinVersion = lib.mkOption {
                       type = with lib.types;
-                        enum [ "tls10" "tls11" "tls12" "tls13" ];
+                        enum ["tls10" "tls11" "tls12" "tls13"];
                       default = "tls12";
                     };
                   };
                 };
-              default = { };
+              default = {};
             };
           };
         };
-      default = { };
+      default = {};
     };
 
     seal = lib.mkOption {
-      type = with lib.types; nullOr (submodule {
-        options = {
-          awskms = lib.mkOption {
-            type = with lib.types; nullOr (submodule {
-              options = {
-                kmsKeyId = lib.mkOption { type = with lib.types; str; };
-                region = lib.mkOption { type = with lib.types; str; };
-              };
-            });
-            default = null;
+      type = with lib.types;
+        nullOr (submodule {
+          options = {
+            awskms = lib.mkOption {
+              type = with lib.types;
+                nullOr (submodule {
+                  options = {
+                    kmsKeyId = lib.mkOption {type = with lib.types; str;};
+                    region = lib.mkOption {type = with lib.types; str;};
+                  };
+                });
+              default = null;
+            };
           };
-        };
-      });
+        });
       default = null;
     };
 
@@ -260,7 +274,7 @@ in {
                     };
 
                     scheme = lib.mkOption {
-                      type = with lib.types; nullOr (enum [ "http" "https" ]);
+                      type = with lib.types; nullOr (enum ["http" "https"]);
                       default = null;
                     };
 
@@ -309,37 +323,51 @@ in {
     lib.mkEnableOption "Enable Vault Consul Token";
 
   config = lib.mkIf cfg.enable {
-    environment.etc."${cfg.configDir}/config.json".source =
-      pkgs.toPrettyJSON "config" (sanitize {
-        inherit (cfg)
-          serviceRegistration ui logLevel disableMlock apiAddr clusterAddr seal
-          listener storage telemetry;
-      });
+    environment.etc."${cfg.configDir}/config.json".source = pkgs.toPrettyJSON "config" (sanitize {
+      inherit
+        (cfg)
+        serviceRegistration
+        ui
+        logLevel
+        disableMlock
+        apiAddr
+        clusterAddr
+        seal
+        listener
+        storage
+        telemetry
+        ;
+    });
 
     environment.etc."${cfg.configDir}/extra-config.json".source =
       pkgs.toPrettyJSON "extra-config" cfg.extraConfig;
 
     systemd.services.vault = {
-      wantedBy = [ "multi-user.target" ];
-      after = [ "network.target" ];
+      wantedBy = ["multi-user.target"];
+      after = ["network.target"];
 
-      restartTriggers = lib.mapAttrsToList (_: d: d.source)
+      restartTriggers =
+        lib.mapAttrsToList (_: d: d.source)
         (lib.filterAttrs (n: _: lib.hasPrefix "${cfg.configDir}" n)
           config.environment.etc);
 
       unitConfig = {
-        RequiresMountsFor = [ cfg.storagePath ];
+        RequiresMountsFor = [cfg.storagePath];
         StartLimitInterval = "60s";
         StartLimitBurst = 3;
       };
 
       serviceConfig = let
-        certChainFile = if deployType == "aws" then pkiFiles.certChainFile
-                      else pkiFiles.serverCertChainFile;
-        certKeyFile = if deployType == "aws" then pkiFiles.keyFile
-                      else pkiFiles.serverKeyFile;
+        certChainFile =
+          if deployType == "aws"
+          then pkiFiles.certChainFile
+          else pkiFiles.serverCertChainFile;
+        certKeyFile =
+          if deployType == "aws"
+          then pkiFiles.keyFile
+          else pkiFiles.serverKeyFile;
         preScript = pkgs.writeBashBinChecked "vault-start-pre" ''
-          export PATH="${lib.makeBinPath [ pkgs.coreutils ]}"
+          export PATH="${lib.makeBinPath [pkgs.coreutils]}"
           set -exuo pipefail
           cp ${certChainFile} full.pem
           cp ${certKeyFile} cert-key.pem
@@ -347,13 +375,12 @@ in {
         '';
 
         postScript = pkgs.writeBashBinChecked "vault-start-post" ''
-          export PATH="${lib.makeBinPath [ pkgs.coreutils pkgs.vault-bin ]}"
+          export PATH="${lib.makeBinPath [pkgs.coreutils pkgs.vault-bin]}"
           while ! vault status; do sleep 3; done
         '';
       in {
         ExecStartPre = "!${preScript}/bin/vault-start-pre";
-        ExecStart =
-          "@${pkgs.vault-bin}/bin/vault vault server -config /etc/${cfg.configDir}";
+        ExecStart = "@${pkgs.vault-bin}/bin/vault vault server -config /etc/${cfg.configDir}";
 
         ExecStartPost = "!${postScript}/bin/vault-start-post";
         KillSignal = "SIGINT";
@@ -379,52 +406,51 @@ in {
       };
     };
 
-    systemd.services.${hashiTokens.consul-vault-srv} =
-      lib.mkIf config.services.${hashiTokens.consul-vault-srv}.enable {
-        after = [ "consul.service" ];
-        wantedBy = [ "vault.service" ];
-        before = [ "vault.service" ];
-        description = "provide a consul token for bootstrapping";
+    systemd.services.${hashiTokens.consul-vault-srv} = lib.mkIf config.services.${hashiTokens.consul-vault-srv}.enable {
+      after = ["consul.service"];
+      wantedBy = ["vault.service"];
+      before = ["vault.service"];
+      description = "provide a consul token for bootstrapping";
 
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = true;
-          Restart = "on-failure";
-          RestartSec = "20s";
-          ExecStartPre = bittelib.ensureDependencies pkgs [ "consul" ];
-        };
-
-        path = with pkgs; [ consul curl jq ];
-
-        script = ''
-          set -exuo pipefail
-
-          [ -s ${hashiTokens.vaultd-consul-json} ] && exit
-          [ -s ${gossipEncryptionMaterial.consul} ]
-          jq -e .acl.tokens.master ${gossipEncryptionMaterial.consul} || exit
-
-          CONSUL_HTTP_TOKEN="$(jq -e -r .acl.tokens.master ${gossipEncryptionMaterial.consul})"
-          export CONSUL_HTTP_TOKEN
-
-          vaultToken="$(
-            consul acl token create \
-              -policy-name=vault-server \
-              -description "vault-server ${nodeName} $(date +%Y-%m-%d-%H-%M-%S)" \
-              -format json \
-            | jq -e -r .SecretID
-          )"
-
-          echo '{}' \
-          | jq --arg token "$vaultToken" '.service_registration.consul.token = $token' \
-          > ${hashiTokens.vaultd-consul-json}.new
-
-          mv ${hashiTokens.vaultd-consul-json}.new ${hashiTokens.vaultd-consul-json}
-        '';
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        Restart = "on-failure";
+        RestartSec = "20s";
+        ExecStartPre = bittelib.ensureDependencies pkgs ["consul"];
       };
 
+      path = with pkgs; [consul curl jq];
+
+      script = ''
+        set -exuo pipefail
+
+        [ -s ${hashiTokens.vaultd-consul-json} ] && exit
+        [ -s ${gossipEncryptionMaterial.consul} ]
+        jq -e .acl.tokens.master ${gossipEncryptionMaterial.consul} || exit
+
+        CONSUL_HTTP_TOKEN="$(jq -e -r .acl.tokens.master ${gossipEncryptionMaterial.consul})"
+        export CONSUL_HTTP_TOKEN
+
+        vaultToken="$(
+          consul acl token create \
+            -policy-name=vault-server \
+            -description "vault-server ${nodeName} $(date +%Y-%m-%d-%H-%M-%S)" \
+            -format json \
+          | jq -e -r .SecretID
+        )"
+
+        echo '{}' \
+        | jq --arg token "$vaultToken" '.service_registration.consul.token = $token' \
+        > ${hashiTokens.vaultd-consul-json}.new
+
+        mv ${hashiTokens.vaultd-consul-json}.new ${hashiTokens.vaultd-consul-json}
+      '';
+    };
+
     systemd.services.vault-addr = {
-      wantedBy = [ "vault.service" ];
-      before = [ "vault.service" ];
+      wantedBy = ["vault.service"];
+      before = ["vault.service"];
 
       serviceConfig = {
         Type = "oneshot";
@@ -433,15 +459,17 @@ in {
         RestartSec = "20s";
       };
 
-      path = with pkgs; [ curl jq iproute2 ];
+      path = with pkgs; [curl jq iproute2];
 
       script = ''
         set -exuo pipefail
 
-        ${if deployType == "aws" then ''
-          ip="$(curl -f -s http://169.254.169.254/latest/meta-data/local-ipv4)"''
-        else ''
-          ip="$(ip -j addr | jq -r '.[] | select(.operstate == "UP") | .addr_info[] | select(.family == "inet") | .local')"''
+        ${
+          if deployType == "aws"
+          then ''
+            ip="$(curl -f -s http://169.254.169.254/latest/meta-data/local-ipv4)"''
+          else ''
+            ip="$(ip -j addr | jq -r '.[] | select(.operstate == "UP") | .addr_info[] | select(.family == "inet") | .local')"''
         }
 
         addr="https://$ip"

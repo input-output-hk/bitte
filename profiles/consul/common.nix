@@ -1,6 +1,12 @@
-{ lib, pkgs, config, nodeName, pkiFiles, ... }: let
-
-  Imports = { imports = [ ]; };
+{
+  lib,
+  pkgs,
+  config,
+  nodeName,
+  pkiFiles,
+  ...
+}: let
+  Imports = {imports = [];};
 
   Switches = {
     services.consul.enable = true;
@@ -25,21 +31,21 @@
     #
     # Consul ports common to both clients and servers
     networking.firewall.allowedTCPPorts = [
-      8300  # server rpc
-      8301  # lan serf
-      8302  # wan serf
-      8501  # https required for connect
-      8502  # grpc required for connect
+      8300 # server rpc
+      8301 # lan serf
+      8302 # wan serf
+      8501 # https required for connect
+      8502 # grpc required for connect
     ];
     networking.firewall.allowedUDPPorts = [
-      8301  # lan serf
-      8302  # wan serf
+      8301 # lan serf
+      8302 # wan serf
     ];
 
     services.consul = {
       inherit datacenter;
 
-      addresses = { http = lib.mkDefault "127.0.0.1"; };
+      addresses = {http = lib.mkDefault "127.0.0.1";};
 
       clientAddr = "0.0.0.0";
       enableLocalScriptChecks = true;
@@ -60,17 +66,19 @@
         disableHostname = true;
       };
 
-      nodeMeta = {
-        inherit nodeName;
-        region = lib.mkIf (deployType != "prem") config.cluster.region;
-      } // (lib.optionalAttrs ((config.currentCoreNode or null) != null) {
-        inherit (config.currentCoreNode) domain;
-        instanceType = lib.mkIf (deployType != "prem") config.currentCoreNode.instanceType;
-      });
+      nodeMeta =
+        {
+          inherit nodeName;
+          region = lib.mkIf (deployType != "prem") config.cluster.region;
+        }
+        // (lib.optionalAttrs ((config.currentCoreNode or null) != null) {
+          inherit (config.currentCoreNode) domain;
+          instanceType = lib.mkIf (deployType != "prem") config.currentCoreNode.instanceType;
+        });
 
       # generate deterministic UUIDs for each node so they can rejoin.
       nodeId = lib.mkIf (config.currentCoreNode != null) (lib.fileContents
-        (pkgs.runCommand "node-id" { buildInputs = [ pkgs.utillinux ]; }
+        (pkgs.runCommand "node-id" {buildInputs = [pkgs.utillinux];}
           "uuidgen -s -n ab8c189c-e764-4103-a1a8-d355b7f2c814 -N ${nodeName} > $out"));
 
       bindAddr = ''{{ GetInterfaceIP "${primaryInterface}" }}'';
@@ -78,12 +86,13 @@
       advertiseAddr = ''{{ GetInterfaceIP "${primaryInterface}" }}'';
 
       # Allow cname local hostname lookups through consul via dnsmasq recursor
-      recursors = [ ''{{ GetInterfaceIP "${primaryInterface}" }}'' ];
+      recursors = [''{{ GetInterfaceIP "${primaryInterface}" }}''];
 
-      retryJoin = (lib.mapAttrsToList (_: v: v.privateIP)
-        (lib.filterAttrs (k: v: lib.elem k cfg.serverNodeNames) nodes))
+      retryJoin =
+        (lib.mapAttrsToList (_: v: v.privateIP)
+          (lib.filterAttrs (k: v: lib.elem k cfg.serverNodeNames) nodes))
         ++ lib.optionals (deployType == "aws")
-        [ "provider=aws region=${config.cluster.region} tag_key=Consul tag_value=server" ];
+        ["provider=aws region=${config.cluster.region} tag_key=Consul tag_value=server"];
 
       connect = {
         caProvider = "consul";
@@ -100,9 +109,10 @@
       extraConfig = let
         inherit (config.services.vault) serverNodeNames;
 
-        mkResolver = type: dnsPattern: port: lib.concatStringsSep "\n"
+        mkResolver = type: dnsPattern: port:
+          lib.concatStringsSep "\n"
           (lib.mapAttrsToList (name: instance: "${type}=/${dnsPattern}/${instance.privateIP}${port}")
-          (lib.filterAttrs (k: v: lib.elem k serverNodeNames) nodes));
+            (lib.filterAttrs (k: v: lib.elem k serverNodeNames) nodes));
 
         consulCoreDns = mkResolver "address" "core.vault.service.consul" "";
         consulDns = mkResolver "server" "consul" "#8600";
@@ -120,30 +130,41 @@
         ${consulCoreDns}
 
         # Redirect consul and deployType specific queries to their respective DNS servers.
-        ${if role == "router" then ''
-          # Routing machines require consul dns resolution upstream rather than localhost due to token config.
-          ${consulDns}'' else consulDnsLocal}
-        ${lib.optionalString (deployType != "prem") ''
-          server=/internal/169.254.169.253#53''
+        ${
+          if role == "router"
+          then ''
+            # Routing machines require consul dns resolution upstream rather than localhost due to token config.
+            ${consulDns}''
+          else consulDnsLocal
+        }
+        ${
+          lib.optionalString (deployType != "prem") ''
+            server=/internal/169.254.169.253#53''
         }
 
         # Configure reverse in-addr.arpa DNS lookups to consul
-        ${lib.optionalString (deployType != "prem") ''
-          rev-server=10.0.0.0/8,127.0.0.1#8600
-          rev-server=172.16.0.0/16,127.0.0.1#8600''
+        ${
+          lib.optionalString (deployType != "prem") ''
+            rev-server=10.0.0.0/8,127.0.0.1#8600
+            rev-server=172.16.0.0/16,127.0.0.1#8600''
         }
 
         # Define upstream DNS servers
-        ${lib.optionalString (deployType != "prem") ''
-          server=169.254.169.253''
+        ${
+          lib.optionalString (deployType != "prem") ''
+            server=169.254.169.253''
         }
         server=8.8.8.8
 
         # Set cache and security
         cache-size=65536
-        ${if (role == "router" && config.services ? headscale && config.services.headscale.enable == true) then ''
-          # Allow local-service for tailscale queries
-          # local-service'' else "local-service"}
+        ${
+          if (role == "router" && config.services ? headscale && config.services.headscale.enable == true)
+          then ''
+            # Allow local-service for tailscale queries
+            # local-service''
+          else "local-service"
+        }
 
         # Append additional extraConfig from the ops repo as needed
       '';
@@ -161,8 +182,9 @@
       "net.bridge.bridge-nf-call-iptables" = lib.mkDefault 1;
     };
   };
-
-in Imports // lib.mkMerge [
-  Switches
-  Config
-]
+in
+  Imports
+  // lib.mkMerge [
+    Switches
+    Config
+  ]

@@ -1,6 +1,6 @@
-{ pkgs, ... }: {
+{pkgs, ...}: {
   networking.firewall.allowedTCPPorts = [
-    3100  # loki
+    3100 # loki
   ];
 
   services.loki = {
@@ -14,7 +14,7 @@
           address = "127.0.0.1";
           final_sleep = "0s";
           ring = {
-            kvstore = { store = "inmemory"; };
+            kvstore = {store = "inmemory";};
             replication_factor = 1;
           };
         };
@@ -29,23 +29,25 @@
       };
 
       schema_config = {
-        configs = [{
-          from = "2020-05-15";
-          index = {
-            period = "168h";
-            prefix = "index_";
-          };
-          object_store = "filesystem";
-          schema = "v11";
-          store = "boltdb";
-        }];
+        configs = [
+          {
+            from = "2020-05-15";
+            index = {
+              period = "168h";
+              prefix = "index_";
+            };
+            object_store = "filesystem";
+            schema = "v11";
+            store = "boltdb";
+          }
+        ];
       };
 
-      server = { http_listen_port = 3100; };
+      server = {http_listen_port = 3100;};
 
       storage_config = {
-        boltdb = { directory = "/var/lib/loki/index"; };
-        filesystem = { directory = "/var/lib/loki/chunks"; };
+        boltdb = {directory = "/var/lib/loki/index";};
+        filesystem = {directory = "/var/lib/loki/chunks";};
       };
 
       ruler = {

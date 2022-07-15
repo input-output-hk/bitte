@@ -1,4 +1,8 @@
-{ lib, config, ... }: {
+{
+  lib,
+  config,
+  ...
+}: {
   tf.hydrate-monitoring.configuration = let
     onlyTfDashboards = builtins.length config.services.grafana.provision.dashboards == 0;
     dashHeader = "Extra grafana provisioning dashboard declaration detected";

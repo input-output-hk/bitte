@@ -1,6 +1,10 @@
-{ config, pkgs, lib, hashiTokens, ... }:
-
-let
+{
+  config,
+  pkgs,
+  lib,
+  hashiTokens,
+  ...
+}: let
   cfg = config.services.nomad-snapshots;
 
   snapshotJobConfig = with lib.types;
@@ -122,18 +126,18 @@ let
     };
 
   snapshotTimer = job: {
-    partOf = [ "nomad-snapshots-${job}.service" ];
+    partOf = ["nomad-snapshots-${job}.service"];
     timerConfig = {
       OnCalendar = cfg.${job}.interval;
       RandomizedDelaySec = cfg.${job}.randomizedDelaySec;
       FixedRandomDelay = cfg.${job}.fixedRandomDelay;
       AccuracySec = "1us";
     };
-    wantedBy = [ "timers.target" ];
+    wantedBy = ["timers.target"];
   };
 
   snapshotService = job: {
-    path = with pkgs; [ coreutils curl findutils gawk hostname jq nomad ];
+    path = with pkgs; [coreutils curl findutils gawk hostname jq nomad];
 
     environment = {
       OWNER = cfg.${job}.owner;
@@ -209,7 +213,6 @@ let
       '';
     };
   };
-
 in {
   options = {
     services.nomad-snapshots = {

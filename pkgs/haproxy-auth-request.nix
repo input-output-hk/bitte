@@ -1,4 +1,7 @@
-{ stdenv, fetchgit }:
+{
+  stdenv,
+  fetchgit,
+}:
 stdenv.mkDerivation {
   pname = "haproxy-auth-request";
   version = "2020-08-23-unstable";

@@ -1,1 +1,1 @@
-_: { imports = [ ./common.nix ./consul/client.nix ./vault/hydra.nix ]; }
+_: {imports = [./common.nix ./consul/client.nix ./vault/hydra.nix];}

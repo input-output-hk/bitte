@@ -1,10 +1,15 @@
-{ config, lib, pkgs, ... }: {
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: {
   # Workaround to address broken lo interface in Nomad created net namespaces
   # https://github.com/hashicorp/nomad/issues/10014
   systemd.services.monitor-exec-driver-lo = {
-    path = with pkgs; [ coreutils inotify-tools iproute2 gnugrep ];
-    wantedBy = [ "multi-user.target" ];
-    after = [ "network-online.target" ];
+    path = with pkgs; [coreutils inotify-tools iproute2 gnugrep];
+    wantedBy = ["multi-user.target"];
+    after = ["network-online.target"];
     serviceConfig = {
       Type = "simple";
       Restart = "on-failure";

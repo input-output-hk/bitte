@@ -1,8 +1,8 @@
-{ lib
-, buildGoModule
-, fetchFromGitHub
+{
+  lib,
+  buildGoModule,
+  fetchFromGitHub,
 }:
-
 buildGoModule rec {
   pname = "systemd-attestor";
   version = "0.0.1";
@@ -16,12 +16,12 @@ buildGoModule rec {
 
   vendorSha256 = "sha256-AobKAsCyfiwR8fawysa1hxF6AJAPq8K24UaKjhAqei0=";
 
-  subPackages = [ "." ];
+  subPackages = ["."];
 
   meta = with lib; {
     description = "A systemd-attestor for SPIFFE/spire";
     homepage = "https://github.com/input-output-hk/systemd-attestor";
     license = licenses.asl20;
-    maintainers = with maintainers; [ blaggacao ];
+    maintainers = with maintainers; [blaggacao];
   };
 }

@@ -1,6 +1,10 @@
-{ config, pkgs, lib, hashiTokens, ... }:
-
-let
+{
+  config,
+  pkgs,
+  lib,
+  hashiTokens,
+  ...
+}: let
   cfg = config.services.vault-snapshots;
 
   snapshotJobConfig = with lib.types;
@@ -122,18 +126,18 @@ let
     };
 
   snapshotTimer = job: {
-    partOf = [ "vault-snapshots-${job}.service" ];
+    partOf = ["vault-snapshots-${job}.service"];
     timerConfig = {
       OnCalendar = cfg.${job}.interval;
       RandomizedDelaySec = cfg.${job}.randomizedDelaySec;
       FixedRandomDelay = cfg.${job}.fixedRandomDelay;
       AccuracySec = "1us";
     };
-    wantedBy = [ "timers.target" ];
+    wantedBy = ["timers.target"];
   };
 
   snapshotService = job: {
-    path = with pkgs; [ coreutils curl findutils gawk hostname jq vault-bin ];
+    path = with pkgs; [coreutils curl findutils gawk hostname jq vault-bin];
 
     environment = {
       OWNER = cfg.${job}.owner;
@@ -214,7 +218,6 @@ let
       '';
     };
   };
-
 in {
   options = {
     services.vault-snapshots = {

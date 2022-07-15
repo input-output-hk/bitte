@@ -1,15 +1,19 @@
-{ stdenv, makeWrapper, fetchurl, jre }:
+{
+  stdenv,
+  makeWrapper,
+  fetchurl,
+  jre,
+}:
 stdenv.mkDerivation rec {
   name = "mill";
   version = "0.6.2";
 
   src = fetchurl {
-    url =
-      "https://github.com/lihaoyi/mill/releases/download/${version}/${version}-assembly";
+    url = "https://github.com/lihaoyi/mill/releases/download/${version}/${version}-assembly";
     sha256 = "1ngn8bmdhwk6sllrnv4jawrchsdwgk78ivn98vscl5ymz9pql5jz";
   };
 
-  nativeBuildInputs = [ makeWrapper ];
+  nativeBuildInputs = [makeWrapper];
 
   dontUnpack = true;
   dontConfigure = true;

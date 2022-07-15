@@ -1,7 +1,19 @@
-{ lib, pkgs, config, etcEncrypted, ... }:
-let
+{
+  lib,
+  pkgs,
+  config,
+  etcEncrypted,
+  ...
+}: let
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
-  domain = config.${if deployType == "aws" then "cluster" else "currentCoreNode"}.domain;
+  domain =
+    config
+    .${
+      if deployType == "aws"
+      then "cluster"
+      else "currentCoreNode"
+    }
+    .domain;
   isSops = deployType == "aws";
   relEncryptedFolder = lib.last (builtins.split "-" (toString config.secrets.encryptedRoot));
   cfg = config.services.docker-registry;
@@ -33,7 +45,6 @@ in {
         a basic-auth file for registry authentication.
       '';
     };
-
   };
 
   config = lib.mkIf cfg.enable {
@@ -87,7 +98,7 @@ in {
       .systemdService;
 
     secrets.generate.redis-password = lib.mkIf isSops ''
-      export PATH="${lib.makeBinPath (with pkgs; [ coreutils sops xkcdpass ])}"
+      export PATH="${lib.makeBinPath (with pkgs; [coreutils sops xkcdpass])}"
 
       if [ ! -s ${relEncryptedFolder}/redis-password.json ]; then
         xkcdpass \

@@ -1,26 +1,38 @@
-{ lib, pkgs, config, bittelib, pkiFiles, hashiTokens, gossipEncryptionMaterial, nodeName, etcEncrypted, ... }:
-
-let
+{
+  lib,
+  pkgs,
+  config,
+  bittelib,
+  pkiFiles,
+  hashiTokens,
+  gossipEncryptionMaterial,
+  nodeName,
+  etcEncrypted,
+  ...
+}: let
   inherit (config.currentCoreNode) datacenter deployType privateIP;
 
   cfg = config.services.bootstrap;
   premSimDomain = config.currentCoreNode.domain;
 
-  exportVaultRoot = if (deployType == "aws") then ''
-    set +x
-    VAULT_TOKEN="$(
-      sops -d --extract '["root_token"]' /var/lib/vault/vault.enc.json
-    )"
-    export VAULT_TOKEN
-    set -x
-  '' else ''
-    set +x
-    VAULT_TOKEN="$(
-      rage -i /etc/ssh/ssh_host_ed25519_key -d /var/lib/vault/vault-bootstrap.json.age | jq -r '.root_token'
-    )"
-    export VAULT_TOKEN
-    set -x
-  '';
+  exportVaultRoot =
+    if (deployType == "aws")
+    then ''
+      set +x
+      VAULT_TOKEN="$(
+        sops -d --extract '["root_token"]' /var/lib/vault/vault.enc.json
+      )"
+      export VAULT_TOKEN
+      set -x
+    ''
+    else ''
+      set +x
+      VAULT_TOKEN="$(
+        rage -i /etc/ssh/ssh_host_ed25519_key -d /var/lib/vault/vault-bootstrap.json.age | jq -r '.root_token'
+      )"
+      export VAULT_TOKEN
+      set -x
+    '';
 
   exportConsulMaster = ''
     set +x
@@ -31,34 +43,37 @@ let
     set -x
   '';
 
-  initialVaultSecrets = if deployType == "aws" then ''
-    sops --decrypt --extract '["encrypt"]' ${etcEncrypted}/consul-clients.json \
-    | vault kv put kv/bootstrap/clients/consul encrypt=-
+  initialVaultSecrets =
+    if deployType == "aws"
+    then ''
+      sops --decrypt --extract '["encrypt"]' ${etcEncrypted}/consul-clients.json \
+      | vault kv put kv/bootstrap/clients/consul encrypt=-
 
-    sops --decrypt --extract '["server"]["encrypt"]' ${etcEncrypted}/nomad.json \
-    | vault kv put kv/bootstrap/clients/nomad encrypt=-
+      sops --decrypt --extract '["server"]["encrypt"]' ${etcEncrypted}/nomad.json \
+      | vault kv put kv/bootstrap/clients/nomad encrypt=-
 
-    sops --decrypt ${etcEncrypted}/nix-cache.json \
-    | vault kv put kv/bootstrap/cache/nix-key -
-  '' else ''
-    rage -i /etc/ssh/ssh_host_ed25519_key -d ${config.age.encryptedRoot + "/consul/encrypt.age"} \
-      | tr -d '\n' | vault kv put kv/bootstrap/clients/consul encrypt=-
-    rage -i /etc/ssh/ssh_host_ed25519_key -d ${config.age.encryptedRoot + "/nomad/encrypt.age"} \
-      | tr -d '\n' | vault kv put kv/bootstrap/clients/nomad encrypt=-
-    set +x
-    NIX_KEY_SECRET="$(
-      rage -i /etc/ssh/ssh_host_ed25519_key -d ${config.age.encryptedRoot + "/nix/key.age"}
-    )"
-    NIX_KEY_PUBLIC="$(cat ${config.age.encryptedRoot + "/nix/key.pub"})"
-    echo '{}' \
-    | jq \
-      -S \
-      --arg NIX_KEY_SECRET "$NIX_KEY_SECRET" \
-      --arg NIX_KEY_PUBLIC "$NIX_KEY_PUBLIC" \
-      '{ private: $NIX_KEY_SECRET, public: $NIX_KEY_PUBLIC }' \
-    | vault kv put kv/bootstrap/cache/nix-key -
-    set -x
-  '';
+      sops --decrypt ${etcEncrypted}/nix-cache.json \
+      | vault kv put kv/bootstrap/cache/nix-key -
+    ''
+    else ''
+      rage -i /etc/ssh/ssh_host_ed25519_key -d ${config.age.encryptedRoot + "/consul/encrypt.age"} \
+        | tr -d '\n' | vault kv put kv/bootstrap/clients/consul encrypt=-
+      rage -i /etc/ssh/ssh_host_ed25519_key -d ${config.age.encryptedRoot + "/nomad/encrypt.age"} \
+        | tr -d '\n' | vault kv put kv/bootstrap/clients/nomad encrypt=-
+      set +x
+      NIX_KEY_SECRET="$(
+        rage -i /etc/ssh/ssh_host_ed25519_key -d ${config.age.encryptedRoot + "/nix/key.age"}
+      )"
+      NIX_KEY_PUBLIC="$(cat ${config.age.encryptedRoot + "/nix/key.pub"})"
+      echo '{}' \
+      | jq \
+        -S \
+        --arg NIX_KEY_SECRET "$NIX_KEY_SECRET" \
+        --arg NIX_KEY_PUBLIC "$NIX_KEY_PUBLIC" \
+        '{ private: $NIX_KEY_SECRET, public: $NIX_KEY_PUBLIC }' \
+      | vault kv put kv/bootstrap/cache/nix-key -
+      set -x
+    '';
 
   initialVaultStaticSecrets = let
     mkStaticTokenCheck = policy: ''
@@ -88,95 +103,95 @@ let
     set -x
   '';
 in {
-
-  imports = [ ./options.nix ];
+  imports = [./options.nix];
 
   config = {
-    systemd.services.consul-initial-tokens =
-      lib.mkIf config.services.consul.enable {
-        after = [ "consul.service" "consul-acl.service" ];
-        wantedBy = [ "multi-user.target" ]
-          ++ (lib.optional config.services.vault.enable "vault.service")
-          ++ (lib.optional config.services.nomad.enable "nomad.service");
-        requiredBy = (lib.optional config.services.vault.enable "vault.service")
-          ++ (lib.optional config.services.nomad.enable "nomad.service");
+    systemd.services.consul-initial-tokens = lib.mkIf config.services.consul.enable {
+      after = ["consul.service" "consul-acl.service"];
+      wantedBy =
+        ["multi-user.target"]
+        ++ (lib.optional config.services.vault.enable "vault.service")
+        ++ (lib.optional config.services.nomad.enable "nomad.service");
+      requiredBy =
+        (lib.optional config.services.vault.enable "vault.service")
+        ++ (lib.optional config.services.nomad.enable "nomad.service");
 
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = true;
-          Restart = "on-failure";
-          RestartSec = "20s";
-          WorkingDirectory = "/run/keys";
-          ExecStartPre =
-            bittelib.ensureDependencies pkgs [ "consul" "consul-acl" ];
-        };
-
-        path = with pkgs; [ consul jq systemd sops ];
-
-        script = let
-          mkToken = purpose: policy: ''
-            consul acl token create \
-              -policy-name=${policy} \
-              -description "${purpose} $(date '+%Y-%m-%d %H:%M:%S')" \
-              -expires-ttl 1h \
-              -format json | \
-              jq -e -r .SecretID
-          '';
-        in ''
-          set -euo pipefail
-
-          ${exportConsulMaster}
-
-          ##########
-          # Consul #
-          ##########
-
-          if [ ! -s ${hashiTokens.consuld-json} ]; then
-            default="$(${
-              mkToken "consul-server-default" "consul-server-default"
-            })"
-            agent="$(${mkToken "consul-server-agent" "consul-server-agent"})"
-
-            echo '{}' \
-            | jq \
-              -S \
-              --arg default "$default" \
-              --arg agent "$agent" \
-              '.acl.tokens = { default: $default, agent: $agent }' \
-            > ${hashiTokens.consuld-json}.new
-
-            mv ${hashiTokens.consuld-json}.new ${hashiTokens.consuld-json}
-
-            systemctl restart consul.service
-          fi
-
-          # # # # #
-          # Nomad #
-          # # # # #
-
-          if [ ! -s ${hashiTokens.nomadd-consul-json} ]; then
-            nomad="$(${mkToken "nomad-server" "nomad-server"})"
-
-            mkdir -p /etc/nomad.d
-
-            echo '{}' \
-            | jq --arg nomad "$nomad" '.consul.token = $nomad' \
-            > ${hashiTokens.nomadd-consul-json}.new
-
-            mv ${hashiTokens.nomadd-consul-json}.new ${hashiTokens.nomadd-consul-json}
-          fi
-
-          ################
-          # Extra Config #
-          ################
-
-          ${cfg.extraConsulInitialTokensConfig}
-        '';
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        Restart = "on-failure";
+        RestartSec = "20s";
+        WorkingDirectory = "/run/keys";
+        ExecStartPre =
+          bittelib.ensureDependencies pkgs ["consul" "consul-acl"];
       };
 
+      path = with pkgs; [consul jq systemd sops];
+
+      script = let
+        mkToken = purpose: policy: ''
+          consul acl token create \
+            -policy-name=${policy} \
+            -description "${purpose} $(date '+%Y-%m-%d %H:%M:%S')" \
+            -expires-ttl 1h \
+            -format json | \
+            jq -e -r .SecretID
+        '';
+      in ''
+        set -euo pipefail
+
+        ${exportConsulMaster}
+
+        ##########
+        # Consul #
+        ##########
+
+        if [ ! -s ${hashiTokens.consuld-json} ]; then
+          default="$(${
+          mkToken "consul-server-default" "consul-server-default"
+        })"
+          agent="$(${mkToken "consul-server-agent" "consul-server-agent"})"
+
+          echo '{}' \
+          | jq \
+            -S \
+            --arg default "$default" \
+            --arg agent "$agent" \
+            '.acl.tokens = { default: $default, agent: $agent }' \
+          > ${hashiTokens.consuld-json}.new
+
+          mv ${hashiTokens.consuld-json}.new ${hashiTokens.consuld-json}
+
+          systemctl restart consul.service
+        fi
+
+        # # # # #
+        # Nomad #
+        # # # # #
+
+        if [ ! -s ${hashiTokens.nomadd-consul-json} ]; then
+          nomad="$(${mkToken "nomad-server" "nomad-server"})"
+
+          mkdir -p /etc/nomad.d
+
+          echo '{}' \
+          | jq --arg nomad "$nomad" '.consul.token = $nomad' \
+          > ${hashiTokens.nomadd-consul-json}.new
+
+          mv ${hashiTokens.nomadd-consul-json}.new ${hashiTokens.nomadd-consul-json}
+        fi
+
+        ################
+        # Extra Config #
+        ################
+
+        ${cfg.extraConsulInitialTokensConfig}
+      '';
+    };
+
     systemd.services.vault-setup = lib.mkIf config.services.vault.enable {
-      after = [ "consul-acl.service" "${hashiTokens.consul-vault-srv}.service" ];
-      wantedBy = [ "multi-user.target" ];
+      after = ["consul-acl.service" "${hashiTokens.consul-vault-srv}.service"];
+      wantedBy = ["multi-user.target"];
 
       serviceConfig = {
         Type = "oneshot";
@@ -189,13 +204,15 @@ in {
         ];
       };
 
-      environment = {
-        inherit (config.environment.variables) VAULT_CACERT VAULT_FORMAT VAULT_ADDR;
-      } // (lib.optionalAttrs (config.environment.variables ? "AWS_DEFAULT_REGION") {
-        inherit (config.environment.variables) AWS_DEFAULT_REGION;
-      });
+      environment =
+        {
+          inherit (config.environment.variables) VAULT_CACERT VAULT_FORMAT VAULT_ADDR;
+        }
+        // (lib.optionalAttrs (config.environment.variables ? "AWS_DEFAULT_REGION") {
+          inherit (config.environment.variables) AWS_DEFAULT_REGION;
+        });
 
-      path = with pkgs; [ sops rage vault-bin consul nomad coreutils jq curl ];
+      path = with pkgs; [sops rage vault-bin consul nomad coreutils jq curl];
 
       script = let
         consulPolicies =
@@ -268,26 +285,27 @@ in {
           ''))}
         ''}
 
-        ${lib.optionalString (deployType != "aws") ''
-          # Finally allow cert roles to login to Vault
+        ${
+          lib.optionalString (deployType != "aws") ''
+            # Finally allow cert roles to login to Vault
 
-          vault write auth/cert/certs/vault-agent-core \
-            display_name=vault-agent-core \
-            policies=vault-agent-core \
-            certificate=@"/etc/ssl/certs/server.pem" \
-            ttl=3600
+            vault write auth/cert/certs/vault-agent-core \
+              display_name=vault-agent-core \
+              policies=vault-agent-core \
+              certificate=@"/etc/ssl/certs/server.pem" \
+              ttl=3600
 
-          vault write auth/cert/certs/vault-agent-client \
-            display_name=vault-agent-client \
-            policies=vault-agent-client \
-            certificate=@"/etc/ssl/certs/client.pem" \
-            ttl=3600
+            vault write auth/cert/certs/vault-agent-client \
+              display_name=vault-agent-client \
+              policies=vault-agent-client \
+              certificate=@"/etc/ssl/certs/client.pem" \
+              ttl=3600
 
-          vault write auth/cert/certs/vault-agent-routing \
-            display_name=vault-agent-routing \
-            policies=routing \
-            certificate=@"/etc/ssl/certs/client.pem" \
-            ttl=3600''
+            vault write auth/cert/certs/vault-agent-routing \
+              display_name=vault-agent-routing \
+              policies=routing \
+              certificate=@"/etc/ssl/certs/client.pem" \
+              ttl=3600''
         }
 
         ${initialVaultSecrets}
@@ -303,27 +321,31 @@ in {
     };
 
     systemd.services.nomad-bootstrap = lib.mkIf config.services.nomad.enable {
-      after = [ "vault.service" "nomad.service" "network-online.target" ];
-      wants = [ "vault.service" "nomad.service" "network-online.target" ];
-      wantedBy = [ "multi-user.target" ];
+      after = ["vault.service" "nomad.service" "network-online.target"];
+      wants = ["vault.service" "nomad.service" "network-online.target"];
+      wantedBy = ["multi-user.target"];
 
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
         Restart = "on-failure";
         RestartSec = "20s";
-        ExecStartPre = bittelib.ensureDependencies pkgs [ "vault" "nomad" ];
+        ExecStartPre = bittelib.ensureDependencies pkgs ["vault" "nomad"];
       };
 
-      environment = {
-        inherit (config.environment.variables) NOMAD_ADDR;
-        CURL_CA_BUNDLE = if deployType == "aws" then pkiFiles.certChainFile
-                        else pkiFiles.serverCertChainFile;
-      } // (lib.optionalAttrs (config.environment.variables ? "AWS_DEFAULT_REGION") {
-        inherit (config.environment.variables) AWS_DEFAULT_REGION;
-      });
+      environment =
+        {
+          inherit (config.environment.variables) NOMAD_ADDR;
+          CURL_CA_BUNDLE =
+            if deployType == "aws"
+            then pkiFiles.certChainFile
+            else pkiFiles.serverCertChainFile;
+        }
+        // (lib.optionalAttrs (config.environment.variables ? "AWS_DEFAULT_REGION") {
+          inherit (config.environment.variables) AWS_DEFAULT_REGION;
+        });
 
-      path = with pkgs; [ curl sops rage coreutils jq nomad vault-bin gawk ];
+      path = with pkgs; [curl sops rage coreutils jq nomad vault-bin gawk];
 
       script = ''
         set -euo pipefail
@@ -381,7 +403,7 @@ in {
         "vault.service"
         "${hashiTokens.consul-vault-srv}.service"
       ];
-      wantedBy = [ "multi-user.target" ];
+      wantedBy = ["multi-user.target"];
 
       serviceConfig = {
         Type = "oneshot";
@@ -394,11 +416,13 @@ in {
         ];
       };
 
-      environment = {
-        inherit (config.environment.variables) VAULT_CACERT VAULT_FORMAT VAULT_ADDR;
-      } // (lib.optionalAttrs (config.environment.variables ? "AWS_DEFAULT_REGION") {
-        inherit (config.environment.variables) AWS_DEFAULT_REGION;
-      });
+      environment =
+        {
+          inherit (config.environment.variables) VAULT_CACERT VAULT_FORMAT VAULT_ADDR;
+        }
+        // (lib.optionalAttrs (config.environment.variables ? "AWS_DEFAULT_REGION") {
+          inherit (config.environment.variables) AWS_DEFAULT_REGION;
+        });
 
       path = with pkgs; [
         consul
@@ -435,7 +459,9 @@ in {
         if vault status | jq -e 'select(.sealed == false)'; then
           echo "Vault already unsealed"
         else
-          ${if deployType == "aws" then ''
+          ${
+          if deployType == "aws"
+          then ''
             vault operator init \
               -recovery-shares 1 \
               -recovery-threshold 1 | \
@@ -486,7 +512,7 @@ in {
               exit 1
             fi
             set -x''
-          }
+        }
         fi
 
         ${exportVaultRoot}
@@ -497,8 +523,9 @@ in {
 
         secrets="$(vault secrets list)"
 
-        ${lib.optionalString (deployType == "aws") ''
-          echo "$secrets" | jq -e '."aws/"'       || vault secrets enable aws''
+        ${
+          lib.optionalString (deployType == "aws") ''
+            echo "$secrets" | jq -e '."aws/"'       || vault secrets enable aws''
         }
 
         echo "$secrets" | jq -e '."consul/"'      || vault secrets enable consul
@@ -508,12 +535,14 @@ in {
 
         auth="$(vault auth list)"
 
-        ${lib.optionalString (deployType == "aws") ''
-          echo "$auth" | jq -e '."aws/"'          || vault auth enable aws''
+        ${
+          lib.optionalString (deployType == "aws") ''
+            echo "$auth" | jq -e '."aws/"'          || vault auth enable aws''
         }
 
-        ${lib.optionalString (deployType != "aws") ''
-          echo "$auth" | jq -e '."cert/"'         || vault auth enable cert''
+        ${
+          lib.optionalString (deployType != "aws") ''
+            echo "$auth" | jq -e '."cert/"'         || vault auth enable cert''
         }
 
         # This lets Vault issue Consul tokens
@@ -535,13 +564,15 @@ in {
 
         vault write \
           pki/config/urls \
-          ${if deployType != "premSim" then ''
+          ${
+          if deployType != "premSim"
+          then ''
             issuing_certificates="https://vault.${config.cluster.domain}:8200/v1/pki/ca" \
             crl_distribution_points="https://vault.${config.cluster.domain}:8200/v1/pki/crl"''
           else ''
             issuing_certificates="https://vault.${premSimDomain}:8200/v1/pki/ca" \
             crl_distribution_points="https://vault.${premSimDomain}:8200/v1/pki/crl"''
-          }
+        }
 
         vault write \
           pki/roles/server \
@@ -556,11 +587,13 @@ in {
           pki/roles/client \
           key_type=ec \
           key_bits=256 \
-          ${if deployType == "aws" then ''
+          ${
+          if deployType == "aws"
+          then ''
             allowed_domains=service.consul,${config.cluster.region}.consul \''
           else ''
             allowed_domains=service.consul,${datacenter}.consul \''
-          }
+        }
           allow_subdomains=true \
           generate_lease=true \
           max_ttl=223h

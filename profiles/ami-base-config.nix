@@ -1,16 +1,18 @@
-{ config, pkgs, ... }: {
-
-  /* The base configuration of our
-    generic client & code node AMIs
+{
+  config,
+  pkgs,
+  ...
+}: {
+  /*
+  The base configuration of our
+  generic client & code node AMIs
   */
 
-  imports = [ ./slim.nix ];
-  nix.binaryCaches = [ "https://hydra.iohk.io" ];
-  nix.binaryCachePublicKeys =
-    [ "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=" ];
+  imports = [./slim.nix];
+  nix.binaryCaches = ["https://hydra.iohk.io"];
+  nix.binaryCachePublicKeys = ["hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="];
 
-  nix.nixPath =
-    [ "nixpkgs=${pkgs.path}" "nixos-config=/etc/nixos/configuration.nix" ];
+  nix.nixPath = ["nixpkgs=${pkgs.path}" "nixos-config=/etc/nixos/configuration.nix"];
 
   nix.extraOptions = ''
     experimental-features = nix-command flakes

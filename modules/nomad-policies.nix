@@ -1,43 +1,53 @@
-{ config, lib, pkgs, bittelib, ... }:
-let
+{
+  config,
+  lib,
+  pkgs,
+  bittelib,
+  ...
+}: let
   inherit (pkgs) toPrettyJSON;
 
-  sanitize = set:
-    let
-      sanitized = lib.mapAttrsToList (name: value:
-        let type = with lib.types; builtins.typeOf value;
-        in if name == "_module" then
-          null
-        else if value == null then
-          null
-        else if type == "set" && (builtins.length (builtins.attrNames value))
-        == 0 then
-          null
-        else if type == "list" && (builtins.length value) == 0 then
-          null
-        else {
-          inherit name;
-          value = if type == "set" then
-            sanitize value
-          else if type == "list" then
-            lib.remove null value
-          else
-            value;
-        }) set;
-    in builtins.listToAttrs (lib.remove null sanitized);
+  sanitize = set: let
+    sanitized = lib.mapAttrsToList (name: value: let
+      type = with lib.types; builtins.typeOf value;
+    in
+      if name == "_module"
+      then null
+      else if value == null
+      then null
+      else if
+        type
+        == "set"
+        && (builtins.length (builtins.attrNames value))
+        == 0
+      then null
+      else if type == "list" && (builtins.length value) == 0
+      then null
+      else {
+        inherit name;
+        value =
+          if type == "set"
+          then sanitize value
+          else if type == "list"
+          then lib.remove null value
+          else value;
+      })
+    set;
+  in
+    builtins.listToAttrs (lib.remove null sanitized);
 
   policyOption = lib.mkOption {
-    type = with lib.types; enum [ "deny" "read" "write" "scale" "list" ];
+    type = with lib.types; enum ["deny" "read" "write" "scale" "list"];
   };
 
   subPolicyOption = lib.mkOption {
     default = null;
     type = with lib.types;
-      nullOr (submodule { options = { policy = policyOption; }; });
+      nullOr (submodule {options = {policy = policyOption;};});
   };
 
   nomadPoliciesType = with lib.types;
-    submodule ({ name, ... }: {
+    submodule ({name, ...}: {
       options = {
         name = lib.mkOption {
           # Disallow "management" to avoid collision with a
@@ -47,7 +57,7 @@ let
               assert lib.assertMsg (x != "management") ''
                 The "management" Nomad policy name is reserved, please change it.
               '';
-              x != "management");
+                x != "management");
           default = name;
         };
 
@@ -57,9 +67,9 @@ let
         };
 
         namespace = lib.mkOption {
-          default = { };
+          default = {};
           type = with lib.types;
-            attrsOf (submodule ({ name, ... }: {
+            attrsOf (submodule ({name, ...}: {
               options = {
                 name = lib.mkOption {
                   type = with lib.types; str;
@@ -67,7 +77,7 @@ let
                 };
                 policy = policyOption;
                 capabilities = lib.mkOption {
-                  default = [ ];
+                  default = [];
                   type = with lib.types;
                     listOf (enum [
                       "alloc-exec"
@@ -97,9 +107,9 @@ let
         };
 
         hostVolume = lib.mkOption {
-          default = { };
+          default = {};
           type = with lib.types;
-            attrsOf (submodule ({ name, ... }: {
+            attrsOf (submodule ({name, ...}: {
               options = {
                 name = lib.mkOption {
                   type = with lib.types; str;
@@ -107,9 +117,9 @@ let
                 };
                 policy = policyOption;
                 capabilities = lib.mkOption {
-                  default = [ ];
+                  default = [];
                   type =
-                    listOf (enum [ "deny" "mount-readonly" "mount-readwrite" ]);
+                    listOf (enum ["deny" "mount-readonly" "mount-readwrite"]);
                 };
               };
             }));
@@ -136,7 +146,8 @@ let
       inherit (policy) agent node operator plugin quota;
     };
 
-  createPolicies = lib.flip lib.mapAttrsToList config.services.nomad.policies
+  createPolicies =
+    lib.flip lib.mapAttrsToList config.services.nomad.policies
     (name: policy: ''
       nomad acl policy apply -description="${policy.description}" "${policy.name}" ${
         toPrettyJSON "nomad-policy-${policy.name}" (policyJson policy)
@@ -146,58 +157,57 @@ in {
   options = {
     services.nomad.policies = lib.mkOption {
       type = with lib.types; attrsOf nomadPoliciesType;
-      default = { };
+      default = {};
     };
 
     services.nomad-acl.enable = lib.mkEnableOption "Create Nomad policies";
   };
 
-  config.systemd.services.nomad-acl =
-    lib.mkIf config.services.nomad-acl.enable {
-      after = [ "nomad.service" ];
-      wantedBy = [ "multi-user.target" ];
-      description = "Service that creates all Nomad policies";
+  config.systemd.services.nomad-acl = lib.mkIf config.services.nomad-acl.enable {
+    after = ["nomad.service"];
+    wantedBy = ["multi-user.target"];
+    description = "Service that creates all Nomad policies";
 
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        Restart = "on-failure";
-        RestartSec = "20s";
-        WorkingDirectory = "/var/lib/nomad";
-        ExecStartPre = bittelib.ensureDependencies pkgs [ "nomad" ];
-      };
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      Restart = "on-failure";
+      RestartSec = "20s";
+      WorkingDirectory = "/var/lib/nomad";
+      ExecStartPre = bittelib.ensureDependencies pkgs ["nomad"];
+    };
 
-      path = with pkgs; [ config.services.nomad.package jq ];
+    path = with pkgs; [config.services.nomad.package jq];
 
-      environment = { NOMAD_ADDR = "https://127.0.0.1:4646"; };
+    environment = {NOMAD_ADDR = "https://127.0.0.1:4646";};
 
-      script = ''
-        set -euo pipefail
+    script = ''
+      set -euo pipefail
 
-        NOMAD_TOKEN="$(< bootstrap.token)"
-        export NOMAD_TOKEN
+      NOMAD_TOKEN="$(< bootstrap.token)"
+      export NOMAD_TOKEN
 
-        ${lib.concatStringsSep "" createPolicies}
+      ${lib.concatStringsSep "" createPolicies}
 
-        keepNames=(${
-          toString ((builtins.attrNames config.services.nomad.policies)
-            ++ (builtins.attrNames
-              config.tf.hydrate-cluster.configuration.locals.policies.nomad))
-        })
-        policyNames=($(nomad acl policy list -json | jq -r -e '.[].Name'))
+      keepNames=(${
+        toString ((builtins.attrNames config.services.nomad.policies)
+          ++ (builtins.attrNames
+            config.tf.hydrate-cluster.configuration.locals.policies.nomad))
+      })
+      policyNames=($(nomad acl policy list -json | jq -r -e '.[].Name'))
 
-        for name in "''${policyNames[@]}"; do
-          keep=""
-          for kname in "''${keepNames[@]}"; do
-            if [ "$name" = "$kname" ]; then
-              keep="yes"
-            fi
-          done
-
-          if [ -z "$keep" ]; then
-            nomad acl policy delete "$name"
+      for name in "''${policyNames[@]}"; do
+        keep=""
+        for kname in "''${keepNames[@]}"; do
+          if [ "$name" = "$kname" ]; then
+            keep="yes"
           fi
         done
-      '';
-    };
+
+        if [ -z "$keep" ]; then
+          nomad acl policy delete "$name"
+        fi
+      done
+    '';
+  };
 }

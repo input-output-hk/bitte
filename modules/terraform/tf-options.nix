@@ -43,12 +43,10 @@
 
   sopsDecrypt = inputType: path:
   # NB: we can't work on store paths that don't yet exist before they are generated
-    assert lib.assertMsg (builtins.isString path) "sopsDecrypt: path must be a string ${toString path}";
-    "{ sops --decrypt --input-type ${inputType} \"${path}\" || ${credentialHint}; }";
+    assert lib.assertMsg (builtins.isString path) "sopsDecrypt: path must be a string ${toString path}"; "{ sops --decrypt --input-type ${inputType} \"${path}\" || ${credentialHint}; }";
 
   sopsEncrypt = inputType: outputType: path:
-    assert lib.assertMsg (builtins.isString path) "sopsDecrypt: path must be a string ${toString path}";
-    "{ sops --encrypt --kms ${toString cfg.kms} --input-type ${inputType} --output-type ${outputType} \"${path}\" || ${credentialHint}; }";
+    assert lib.assertMsg (builtins.isString path) "sopsDecrypt: path must be a string ${toString path}"; "{ sops --encrypt --kms ${toString cfg.kms} --input-type ${inputType} --output-type ${outputType} \"${path}\" || ${credentialHint}; }";
 
   coreNode =
     if isPrem

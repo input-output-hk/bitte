@@ -1,13 +1,27 @@
-{ self, config, pkgs, lib, terralib, ... }:
-let
-  inherit (terralib)
-    id var regions awsProviderNameFor awsProviderFor mkSecurityGroupRule
-    nullRoute nullRouteInline;
+{
+  self,
+  config,
+  pkgs,
+  lib,
+  terralib,
+  ...
+}: let
+  inherit
+    (terralib)
+    id
+    var
+    regions
+    awsProviderNameFor
+    awsProviderFor
+    mkSecurityGroupRule
+    nullRoute
+    nullRouteInline
+    ;
   inherit (config.cluster) infraType vbkBackend vbkBackendSkipCertVerification;
 
-  merge = lib.foldl' lib.recursiveUpdate { };
+  merge = lib.foldl' lib.recursiveUpdate {};
 
-  tags = { Cluster = config.cluster.name; };
+  tags = {Cluster = config.cluster.name;};
 
   mapAwsAsgVpcs = terralib.aws.mapAsgVpcs config.cluster;
   mapAwsAsgVpcsToList = terralib.aws.mapAsgVpcsToList config.cluster;
@@ -36,21 +50,26 @@ let
         inherit connector;
         inherit accepter;
       }) (lib.drop (index + 1) vpcs);
-    peeringPairs = lib.flatten
+    peeringPairs =
+      lib.flatten
       (lib.imap0 (i: connector: regionPeeringPairs vpcRegions connector i)
         vpcRegions);
-  in f: lib.listToAttrs (lib.forEach peeringPairs f);
+  in
+    f: lib.listToAttrs (lib.forEach peeringPairs f);
 
-  infraTypeCheck = if builtins.elem infraType [ "aws" "premSim" ] then true else (throw ''
-    To utilize the clients TF attr, the cluster config parameter `infraType`
-    must either "aws" or "premSim".
-  '');
+  infraTypeCheck =
+    if builtins.elem infraType ["aws" "premSim"]
+    then true
+    else
+      (throw ''
+        To utilize the clients TF attr, the cluster config parameter `infraType`
+        must either "aws" or "premSim".
+      '');
 in {
   tf.clients.configuration = lib.mkIf infraTypeCheck {
     terraform.backend = lib.mkIf (vbkBackend != "local") {
       http = let
-        vbk =
-          "${vbkBackend}/state/${config.cluster.name}/clients";
+        vbk = "${vbkBackend}/state/${config.cluster.name}/clients";
       in {
         address = vbk;
         lock_address = vbk;
@@ -61,7 +80,8 @@ in {
 
     terraform.required_providers = pkgs.terraform-provider-versions;
 
-    provider.aws = [{ inherit (config.cluster) region; }]
+    provider.aws =
+      [{inherit (config.cluster) region;}]
       ++ (lib.forEach regions (region: {
         inherit region;
         alias = awsProviderNameFor region;
@@ -81,26 +101,30 @@ in {
     resource.aws_vpc = mapAwsAsgVpcs (vpc:
       lib.nameValuePair vpc.region {
         provider = awsProviderFor vpc.region;
-        lifecycle = [{ create_before_destroy = true; }];
+        lifecycle = [{create_before_destroy = true;}];
 
         cidr_block = vpc.cidr;
         enable_dns_hostnames = true;
-        tags = tags // {
-          Name = vpc.name;
-          Region = vpc.region;
-        };
+        tags =
+          tags
+          // {
+            Name = vpc.name;
+            Region = vpc.region;
+          };
       });
 
     resource.aws_internet_gateway = mapAwsAsgVpcs (vpc:
       lib.nameValuePair vpc.region {
         provider = awsProviderFor vpc.region;
-        lifecycle = [{ create_before_destroy = true; }];
+        lifecycle = [{create_before_destroy = true;}];
 
         vpc_id = id "aws_vpc.${vpc.region}";
-        tags = tags // {
-          Name = vpc.name;
-          Region = vpc.region;
-        };
+        tags =
+          tags
+          // {
+            Name = vpc.name;
+            Region = vpc.region;
+          };
       });
 
     resource.aws_route_table = mapAwsAsgVpcs (vpc:
@@ -108,55 +132,65 @@ in {
         provider = awsProviderFor vpc.region;
         vpc_id = id "aws_vpc.${vpc.region}";
 
-        route = [
-          (nullRouteInline // {
-            cidr_block = "0.0.0.0/0";
-            gateway_id = id "aws_internet_gateway.${vpc.region}";
-          })
-          (nullRouteInline // {
-            cidr_block = config.cluster.vpc.cidr;
-            vpc_peering_connection_id =
-              id "aws_vpc_peering_connection.${vpc.region}";
-          })
-        ] ++ (lib.forEach (lib.flip lib.filter (terralib.aws.asgVpcs config.cluster)
-          (innerVpc: innerVpc.region != vpc.region)) (innerVpc:
+        route =
+          [
+            (nullRouteInline
+              // {
+                cidr_block = "0.0.0.0/0";
+                gateway_id = id "aws_internet_gateway.${vpc.region}";
+              })
+            (nullRouteInline
+              // {
+                cidr_block = config.cluster.vpc.cidr;
+                vpc_peering_connection_id =
+                  id "aws_vpc_peering_connection.${vpc.region}";
+              })
+          ]
+          ++ (lib.forEach (lib.flip lib.filter (terralib.aws.asgVpcs config.cluster)
+            (innerVpc: innerVpc.region != vpc.region)) (innerVpc:
             # Derive the proper peerPairing connection name using a comparison
             let
-              connector = if innerVpc.region < vpc.region then
-                innerVpc.region
-              else
-                vpc.region;
-              accepter = if innerVpc.region > vpc.region then
-                innerVpc.region
-              else
-                vpc.region;
-            in nullRouteInline // {
-              cidr_block = innerVpc.cidr;
-              vpc_peering_connection_id = id
-                "aws_vpc_peering_connection.${connector}-connect-${accepter}";
-            }));
+              connector =
+                if innerVpc.region < vpc.region
+                then innerVpc.region
+                else vpc.region;
+              accepter =
+                if innerVpc.region > vpc.region
+                then innerVpc.region
+                else vpc.region;
+            in
+              nullRouteInline
+              // {
+                cidr_block = innerVpc.cidr;
+                vpc_peering_connection_id =
+                  id
+                  "aws_vpc_peering_connection.${connector}-connect-${accepter}";
+              }));
 
-        tags = tags // {
-          Name = vpc.name;
-          Region = vpc.region;
-        };
+        tags =
+          tags
+          // {
+            Name = vpc.name;
+            Region = vpc.region;
+          };
       });
 
     data.aws_route_table."${config.cluster.name}" = {
       provider = awsProviderFor config.cluster.region;
       filter = {
         name = "tag:Name";
-        values = [ config.cluster.name ];
+        values = [config.cluster.name];
       };
     };
 
     resource.aws_route = mapAwsAsgVpcs (vpc:
-      lib.nameValuePair vpc.region (nullRoute // {
-        route_table_id = id "data.aws_route_table.${config.cluster.name}";
-        destination_cidr_block = vpc.cidr;
-        vpc_peering_connection_id =
-          id "aws_vpc_peering_connection.${vpc.region}";
-      }));
+      lib.nameValuePair vpc.region (nullRoute
+        // {
+          route_table_id = id "data.aws_route_table.${config.cluster.name}";
+          destination_cidr_block = vpc.cidr;
+          vpc_peering_connection_id =
+            id "aws_vpc_peering_connection.${vpc.region}";
+        }));
 
     resource.aws_subnet = mapAwsAsgVpcs (vpc:
       lib.flip lib.mapAttrsToList vpc.subnets (suffix: subnet:
@@ -166,12 +200,14 @@ in {
           cidr_block = subnet.cidr;
           availability_zone = subnet.availabilityZone;
 
-          lifecycle = [{ create_before_destroy = true; }];
+          lifecycle = [{create_before_destroy = true;}];
 
-          tags = tags // {
-            Region = vpc.region;
-            Name = "${vpc.region}-${suffix}";
-          };
+          tags =
+            tags
+            // {
+              Region = vpc.region;
+              Name = "${vpc.region}-${suffix}";
+            };
         }));
     resource.aws_route_table_association = mapAwsAsgVpcs (vpc:
       lib.flip lib.mapAttrsToList vpc.subnets (suffix: subnet:
@@ -185,7 +221,7 @@ in {
       provider = awsProviderFor config.cluster.region;
       filter = {
         name = "tag:Name";
-        values = [ config.cluster.vpc.name ];
+        values = [config.cluster.vpc.name];
       };
     };
 
@@ -195,21 +231,25 @@ in {
 
     # Set up vpc pairing from each autoscaling region to the core region (1st block)
     # Then add on the mesh vpc pairing connections (2nd block)
-    resource.aws_vpc_peering_connection = mapAwsAsgVpcs (vpc:
-      lib.nameValuePair vpc.region {
-        provider = awsProviderFor vpc.region;
-        vpc_id = id "aws_vpc.${vpc.region}";
-        peer_vpc_id = id "data.aws_vpc.core";
-        peer_owner_id = var "data.aws_caller_identity.core.account_id";
-        peer_region = config.cluster.region;
-        auto_accept = false;
-        lifecycle = [{ create_before_destroy = true; }];
+    resource.aws_vpc_peering_connection =
+      mapAwsAsgVpcs (vpc:
+        lib.nameValuePair vpc.region {
+          provider = awsProviderFor vpc.region;
+          vpc_id = id "aws_vpc.${vpc.region}";
+          peer_vpc_id = id "data.aws_vpc.core";
+          peer_owner_id = var "data.aws_caller_identity.core.account_id";
+          peer_region = config.cluster.region;
+          auto_accept = false;
+          lifecycle = [{create_before_destroy = true;}];
 
-        tags = tags // {
-          Name = vpc.name;
-          Region = vpc.region;
-        };
-      }) // (mapAwsAsgVpcPeers (link:
+          tags =
+            tags
+            // {
+              Name = vpc.name;
+              Region = vpc.region;
+            };
+        })
+      // (mapAwsAsgVpcPeers (link:
         lib.nameValuePair "${link.connector}-connect-${link.accepter}" {
           provider = awsProviderFor link.connector;
           vpc_id = id "aws_vpc.${link.connector}";
@@ -217,38 +257,47 @@ in {
           peer_owner_id = var "data.aws_caller_identity.core.account_id";
           peer_region = link.accepter;
           auto_accept = false;
-          lifecycle = [{ create_before_destroy = true; }];
+          lifecycle = [{create_before_destroy = true;}];
 
-          tags = tags // {
-            Name = "${link.connector}-connect-${link.accepter}";
-            Region = link.connector;
-          };
+          tags =
+            tags
+            // {
+              Name = "${link.connector}-connect-${link.accepter}";
+              Region = link.connector;
+            };
         }));
 
     # Accept vpc pairing from each autoscaling region to the core region (1st block)
     # Then accept the mesh vpc pairing connections (2nd block)
-    resource.aws_vpc_peering_connection_accepter = mapAwsAsgVpcs (vpc:
-      lib.nameValuePair vpc.region {
-        provider = awsProviderFor config.cluster.region;
-        vpc_peering_connection_id =
-          id "aws_vpc_peering_connection.${vpc.region}";
-        auto_accept = true;
-        lifecycle = [{ create_before_destroy = true; }];
-        tags = tags // {
-          Name = vpc.name;
-          Region = vpc.region;
-        };
-      }) // (mapAwsAsgVpcPeers (link:
+    resource.aws_vpc_peering_connection_accepter =
+      mapAwsAsgVpcs (vpc:
+        lib.nameValuePair vpc.region {
+          provider = awsProviderFor config.cluster.region;
+          vpc_peering_connection_id =
+            id "aws_vpc_peering_connection.${vpc.region}";
+          auto_accept = true;
+          lifecycle = [{create_before_destroy = true;}];
+          tags =
+            tags
+            // {
+              Name = vpc.name;
+              Region = vpc.region;
+            };
+        })
+      // (mapAwsAsgVpcPeers (link:
         lib.nameValuePair "${link.accepter}-accept-${link.connector}" {
           provider = awsProviderFor link.accepter;
-          vpc_peering_connection_id = id
+          vpc_peering_connection_id =
+            id
             "aws_vpc_peering_connection.${link.connector}-connect-${link.accepter}";
           auto_accept = true;
-          lifecycle = [{ create_before_destroy = true; }];
-          tags = tags // {
-            Name = "${link.accepter}-accept-${link.connector}";
-            Region = link.accepter;
-          };
+          lifecycle = [{create_before_destroy = true;}];
+          tags =
+            tags
+            // {
+              Name = "${link.accepter}-accept-${link.connector}";
+              Region = link.accepter;
+            };
         }));
 
     # Set up cross vpc DNS resolution from each autoscaling region to the core region (1st and 2nd let block defns)
@@ -260,7 +309,7 @@ in {
           vpc_peering_connection_id =
             id "aws_vpc_peering_connection_accepter.${vpc.region}";
 
-          accepter = { allow_remote_vpc_dns_resolution = true; };
+          accepter = {allow_remote_vpc_dns_resolution = true;};
         });
 
       requesterCorePeeringOptions = mapAwsAsgVpcs (vpc:
@@ -269,76 +318,85 @@ in {
           vpc_peering_connection_id =
             id "aws_vpc_peering_connection.${vpc.region}";
 
-          requester = { allow_remote_vpc_dns_resolution = true; };
+          requester = {allow_remote_vpc_dns_resolution = true;};
         });
 
       accepterMeshPeeringOptions = mapAwsAsgVpcPeers (link:
         lib.nameValuePair "${link.accepter}-accept-${link.connector}" {
           provider = awsProviderFor link.accepter;
-          vpc_peering_connection_id = id
+          vpc_peering_connection_id =
+            id
             "aws_vpc_peering_connection_accepter.${link.accepter}-accept-${link.connector}";
 
-          accepter = { allow_remote_vpc_dns_resolution = true; };
+          accepter = {allow_remote_vpc_dns_resolution = true;};
         });
 
       requesterMeshPeeringOptions = mapAwsAsgVpcPeers (link:
         lib.nameValuePair "${link.connector}-connect-${link.accepter}" {
           provider = awsProviderFor link.connector;
-          vpc_peering_connection_id = id
+          vpc_peering_connection_id =
+            id
             "aws_vpc_peering_connection.${link.connector}-connect-${link.accepter}";
 
-          requester = { allow_remote_vpc_dns_resolution = true; };
+          requester = {allow_remote_vpc_dns_resolution = true;};
         });
 
-      recursiveMerge = lib.foldr lib.recursiveUpdate { };
-    in recursiveMerge [
-      accepterCorePeeringOptions
-      accepterMeshPeeringOptions
-      requesterCorePeeringOptions
-      requesterMeshPeeringOptions
-    ];
+      recursiveMerge = lib.foldr lib.recursiveUpdate {};
+    in
+      recursiveMerge [
+        accepterCorePeeringOptions
+        accepterMeshPeeringOptions
+        requesterCorePeeringOptions
+        requesterMeshPeeringOptions
+      ];
 
     # ---------------------------------------------------------------
     # SSL/TLS - root ssh
     # ---------------------------------------------------------------
 
-    resource.aws_key_pair = lib.mkIf config.cluster.generateSSHKey
+    resource.aws_key_pair =
+      lib.mkIf config.cluster.generateSSHKey
       (lib.listToAttrs (let
-        usedRegions = lib.unique
+        usedRegions =
+          lib.unique
           ((lib.forEach (builtins.attrValues config.cluster.awsAutoScalingGroups)
-            (group: group.region)) ++ [ config.cluster.region ]);
-      in lib.forEach usedRegions (region:
-        lib.nameValuePair region {
-          provider = awsProviderFor region;
-          key_name = "${config.cluster.name}-${region}";
-          public_key = var ''file("secrets/ssh-${config.cluster.name}.pub")'';
-        })));
+            (group: group.region))
+          ++ [config.cluster.region]);
+      in
+        lib.forEach usedRegions (region:
+          lib.nameValuePair region {
+            provider = awsProviderFor region;
+            key_name = "${config.cluster.name}-${region}";
+            public_key = var ''file("secrets/ssh-${config.cluster.name}.pub")'';
+          })));
 
     # ---------------------------------------------------------------
     # Instance IAM + Security Group
     # ---------------------------------------------------------------
 
-    resource.aws_iam_instance_profile =
-      lib.flip lib.mapAttrs' config.cluster.awsAutoScalingGroups (name: group:
-        lib.nameValuePair group.uid {
-          name = group.uid;
-          inherit (group.iam.instanceProfile) path;
-          role = group.iam.instanceProfile.role.tfName;
-          lifecycle = [{ create_before_destroy = true; }];
-        });
+    resource.aws_iam_instance_profile = lib.flip lib.mapAttrs' config.cluster.awsAutoScalingGroups (name: group:
+      lib.nameValuePair group.uid {
+        name = group.uid;
+        inherit (group.iam.instanceProfile) path;
+        role = group.iam.instanceProfile.role.tfName;
+        lifecycle = [{create_before_destroy = true;}];
+      });
 
     data.aws_iam_policy_document = let
       # deploy for client role
       role = config.cluster.iam.roles.client;
       op = policyName: policy:
         lib.nameValuePair policy.uid {
-          statement = {
-            inherit (policy) effect actions resources;
-          } // (lib.optionalAttrs (policy.condition != null) {
-            inherit (policy) condition;
-          });
+          statement =
+            {
+              inherit (policy) effect actions resources;
+            }
+            // (lib.optionalAttrs (policy.condition != null) {
+              inherit (policy) condition;
+            });
         };
-    in lib.listToAttrs (lib.mapAttrsToList op role.policies);
+    in
+      lib.listToAttrs (lib.mapAttrsToList op role.policies);
 
     resource.aws_iam_role = let
       # deploy for client role
@@ -347,7 +405,7 @@ in {
       "${role.uid}" = {
         name = role.uid;
         assume_role_policy = role.assumePolicy.tfJson;
-        lifecycle = [{ create_before_destroy = true; }];
+        lifecycle = [{create_before_destroy = true;}];
       };
     };
 
@@ -360,7 +418,8 @@ in {
           role = role.id;
           policy = var "data.aws_iam_policy_document.${policy.uid}.json";
         };
-    in lib.listToAttrs (lib.mapAttrsToList op role.policies);
+    in
+      lib.listToAttrs (lib.mapAttrsToList op role.policies);
 
     resource.aws_security_group =
       lib.flip lib.mapAttrsToList config.cluster.awsAutoScalingGroups
@@ -370,7 +429,7 @@ in {
           name_prefix = "${group.uid}-";
           description = "Security group for ASG in ${group.uid}";
           vpc_id = id "aws_vpc.${group.region}";
-          lifecycle = [{ create_before_destroy = true; }];
+          lifecycle = [{create_before_destroy = true;}];
         };
       });
 
@@ -385,84 +444,88 @@ in {
             })))));
 
       awsAsgs = lib.mapAttrsToList mapAwsAsg' config.cluster.awsAutoScalingGroups;
-    in merge awsAsgs;
+    in
+      merge awsAsgs;
 
     # ---------------------------------------------------------------
     # Auto Scaling Groups
     # ---------------------------------------------------------------
 
-    resource.aws_autoscaling_group =
-      lib.flip lib.mapAttrs' config.cluster.awsAutoScalingGroups (name: group:
-        lib.nameValuePair group.uid {
-          provider = awsProviderFor group.region;
-          launch_configuration =
-            var "aws_launch_configuration.${group.uid}.name";
+    resource.aws_autoscaling_group = lib.flip lib.mapAttrs' config.cluster.awsAutoScalingGroups (name: group:
+      lib.nameValuePair group.uid {
+        provider = awsProviderFor group.region;
+        launch_configuration =
+          var "aws_launch_configuration.${group.uid}.name";
 
-          name = group.uid;
+        name = group.uid;
 
-          vpc_zone_identifier = lib.flip lib.mapAttrsToList group.vpc.subnets
-            (suffix: _: id "aws_subnet.${group.region}-${suffix}");
+        vpc_zone_identifier =
+          lib.flip lib.mapAttrsToList group.vpc.subnets
+          (suffix: _: id "aws_subnet.${group.region}-${suffix}");
 
-          min_size = group.minSize;
-          max_size = group.maxSize;
-          desired_capacity = group.desiredCapacity;
+        min_size = group.minSize;
+        max_size = group.maxSize;
+        desired_capacity = group.desiredCapacity;
 
-          health_check_type = "EC2";
-          health_check_grace_period = 300;
-          wait_for_capacity_timeout = "2m";
-          termination_policies = [ "OldestLaunchTemplate" ];
-          max_instance_lifetime = group.maxInstanceLifetime;
+        health_check_type = "EC2";
+        health_check_grace_period = 300;
+        wait_for_capacity_timeout = "2m";
+        termination_policies = ["OldestLaunchTemplate"];
+        max_instance_lifetime = group.maxInstanceLifetime;
 
-          lifecycle = [{ create_before_destroy = true; }];
+        lifecycle = [{create_before_destroy = true;}];
 
-          tag = let
-            tags = {
+        tag = let
+          tags =
+            {
               Cluster = config.cluster.name;
               Name = group.name;
               UID = group.uid;
               Consul = "client";
               Vault = "client";
               Nomad = "client";
-            } // group.tags;
-          in lib.mapAttrsToList (key: value: {
+            }
+            // group.tags;
+        in
+          lib.mapAttrsToList (key: value: {
             inherit key value;
             propagate_at_launch = true;
-          }) tags;
-        });
-
-    resource.aws_launch_configuration =
-      lib.flip lib.mapAttrs' config.cluster.awsAutoScalingGroups (name: group:
-        lib.nameValuePair group.uid (lib.mkMerge [
-          {
-            provider = awsProviderFor group.region;
-            name_prefix = "${group.uid}-";
-            image_id = group.ami;
-            instance_type = group.instanceType;
-
-            iam_instance_profile = group.iam.instanceProfile.tfName;
-
-            security_groups = [ group.securityGroupId ];
-            placement_tenancy = "default";
-            # TODO: switch this to false for production
-            associate_public_ip_address = group.associatePublicIP;
-
-            ebs_optimized = false;
-
-            lifecycle = [{ create_before_destroy = true; }];
-
-            ebs_block_device = {
-              device_name = "/dev/xvdb";
-              volume_type = group.volumeType;
-              volume_size = group.volumeSize;
-              delete_on_termination = true;
-            };
-          }
-
-          (lib.mkIf config.cluster.generateSSHKey {
-            key_name = var "aws_key_pair.${group.region}.key_name";
           })
+          tags;
+      });
 
-          (lib.mkIf (group.userData != null) { user_data = group.userData; })
-        ]));
+    resource.aws_launch_configuration = lib.flip lib.mapAttrs' config.cluster.awsAutoScalingGroups (name: group:
+      lib.nameValuePair group.uid (lib.mkMerge [
+        {
+          provider = awsProviderFor group.region;
+          name_prefix = "${group.uid}-";
+          image_id = group.ami;
+          instance_type = group.instanceType;
+
+          iam_instance_profile = group.iam.instanceProfile.tfName;
+
+          security_groups = [group.securityGroupId];
+          placement_tenancy = "default";
+          # TODO: switch this to false for production
+          associate_public_ip_address = group.associatePublicIP;
+
+          ebs_optimized = false;
+
+          lifecycle = [{create_before_destroy = true;}];
+
+          ebs_block_device = {
+            device_name = "/dev/xvdb";
+            volume_type = group.volumeType;
+            volume_size = group.volumeSize;
+            delete_on_termination = true;
+          };
+        }
+
+        (lib.mkIf config.cluster.generateSSHKey {
+          key_name = var "aws_key_pair.${group.region}.key_name";
+        })
+
+        (lib.mkIf (group.userData != null) {user_data = group.userData;})
+      ]));
   };
 }

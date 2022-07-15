@@ -1,9 +1,9 @@
-{ config, ... }: {
+{config, ...}: {
   services.nomad.policies = {
     anonymous = {
       description = "Anonymous (no access)";
 
-      namespace."*" = { policy = "deny"; };
+      namespace."*" = {policy = "deny";};
       agent.policy = "deny";
       operator.policy = "deny";
       quota.policy = "deny";
@@ -14,7 +14,7 @@
     operator = {
       description = "Operator";
 
-      namespace.default = { policy = "read"; };
+      namespace.default = {policy = "read";};
 
       node.policy = "write";
       agent.policy = "write";
@@ -27,7 +27,7 @@
 
       namespace.default = {
         policy = "scale";
-        capabilities = [ "read-job" ];
+        capabilities = ["read-job"];
       };
 
       node.policy = "write";

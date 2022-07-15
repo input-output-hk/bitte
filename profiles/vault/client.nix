@@ -1,8 +1,15 @@
-{ config, lib, pkgs, pkiFiles, ... }: let
-
-  Imports = { imports = [
-    ./common.nix
-  ]; };
+{
+  config,
+  lib,
+  pkgs,
+  pkiFiles,
+  ...
+}: let
+  Imports = {
+    imports = [
+      ./common.nix
+    ];
+  };
 
   Switches = {
     services.vault-agent.disableTokenRotation.consulAgent = true;
@@ -11,27 +18,38 @@
 
   Config = let
     deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
-    domain = config.${if deployType == "aws" then "cluster" else "currentCoreNode"}.domain;
+    domain =
+      config
+      .${
+        if deployType == "aws"
+        then "cluster"
+        else "currentCoreNode"
+      }
+      .domain;
   in {
     services.vault-agent = {
       role = "client";
       # if we use aws and consul depends on vault bootstrapping (get a token)
       # then we cannot depend on consul to access vault, obviously
-      vaultAddress = if deployType == "aws" then "https://vault.${domain}"
-                    else "https://core.vault.service.consul:8200";
+      vaultAddress =
+        if deployType == "aws"
+        then "https://vault.${domain}"
+        else "https://core.vault.service.consul:8200";
       cache.useAutoAuthToken = true;
       # Commit 248791a: Binds vault agent to docker bridge for bridge net access
-      listener = [{
+      listener = [
+        {
           type = "tcp";
           address = "172.17.0.1:8200";
           tlsDisable = true;
-      }];
+        }
+      ];
     };
 
     systemd.services.certs-updated = {
-      wantedBy = [ "multi-user.target" ];
-      after = [ "vault-agent.service" ];
-      path = with pkgs; [ coreutils curl systemd ];
+      wantedBy = ["multi-user.target"];
+      after = ["vault-agent.service"];
+      path = with pkgs; [coreutils curl systemd];
 
       serviceConfig = {
         Type = "oneshot";
@@ -61,8 +79,9 @@
       '';
     };
   };
-
-in Imports // lib.mkMerge [
-  Switches
-  Config
-]
+in
+  Imports
+  // lib.mkMerge [
+    Switches
+    Config
+  ]

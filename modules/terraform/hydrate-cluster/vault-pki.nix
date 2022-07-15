@@ -1,16 +1,19 @@
-/* Bootstrap vault intermediate pki endpoint
-  with local root CA from well-known encrypted
-  locations.
+/*
+Bootstrap vault intermediate pki endpoint
+with local root CA from well-known encrypted
+locations.
 */
-{ terralib, lib, config, ... }:
-let
+{
+  terralib,
+  lib,
+  config,
+  ...
+}: let
   inherit (terralib) var;
   inherit (config.cluster) infraType;
-
 in {
   tf.hydrate-cluster.configuration = lib.mkIf (infraType != "prem") {
-
-    data.sops_file.ca = { source_file = "${config.secrets.encryptedRoot + "/ca.json"}"; };
+    data.sops_file.ca = {source_file = "${config.secrets.encryptedRoot + "/ca.json"}";};
     # TODO: commented parts are currently accomplished by a systemd one-shot
     # resource.vault_pki_secret_backend.pki = {
     #   description = "Cluster wide TLS/SSL PKI backend";
@@ -73,13 +76,14 @@ in {
 
       validity_period_hours = 43800;
       is_ca_certificate = true;
-      allowed_uses = [ "signing" "key encipherment" "cert sign" "crl sign" ];
+      allowed_uses = ["signing" "key encipherment" "cert sign" "crl sign"];
     };
 
     resource.vault_pki_secret_backend_intermediate_set_signed.issuing_ca = {
       # backend = var "vault_pki_secret_backend.pki.path";
       backend = "pki";
-      certificate = (var "tls_locally_signed_cert.issuing_ca.cert_pem")
+      certificate =
+        (var "tls_locally_signed_cert.issuing_ca.cert_pem")
         + (var ''data.sops_file.ca.data["cert"]'');
     };
   };

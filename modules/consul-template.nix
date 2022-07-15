@@ -1,5 +1,9 @@
-{ lib, pkgs, config, ... }:
-let
+{
+  lib,
+  pkgs,
+  config,
+  ...
+}: let
   cfg = config.services.consul-templates;
 
   templateType = with lib.types;
@@ -11,13 +15,13 @@ let
         };
 
         logLevel = lib.mkOption {
-          type = with lib.types; enum [ "debug" "info" "warn" "err" ];
+          type = with lib.types; enum ["debug" "info" "warn" "err"];
           default = "info";
         };
 
         policies = lib.mkOption {
           type = with lib.types; attrs;
-          default = { };
+          default = {};
         };
 
         source = lib.mkOption {
@@ -28,17 +32,14 @@ let
         };
 
         target = lib.mkOption {
-          type = with lib.types;
-            str; # doesn't make much sense to have path type here i think.
+          type = with lib.types; str; # doesn't make much sense to have path type here i think.
           description = ''
             Path where the output of template application will end up.
           '';
         };
       };
     };
-
 in {
-
   options.services.consul-templates = {
     enable = lib.mkEnableOption "Enable consul-template services";
 
@@ -49,28 +50,25 @@ in {
 
     templates = lib.mkOption {
       type = with lib.types; attrsOf templateType;
-      default = { };
+      default = {};
     };
   };
 
   config.services.consul.policies = lib.mkMerge (lib.mapAttrsToList
-    (name: value:
-      let
-        sourceFile = pkgs.writeText "${name}.tpl" value.source;
-        ctName = "ct-${name}";
-      in { ${ctName} = lib.mkIf (cfg.enable && value.enable) value.policies; })
+    (name: value: let
+      sourceFile = pkgs.writeText "${name}.tpl" value.source;
+      ctName = "ct-${name}";
+    in {${ctName} = lib.mkIf (cfg.enable && value.enable) value.policies;})
     cfg.templates);
 
-  config.systemd.services = lib.mkMerge (lib.mapAttrsToList (name: value:
-    let
+  config.systemd.services = lib.mkMerge (lib.mapAttrsToList (name: value: let
       sourceFile = pkgs.writeText "${name}.tpl" value.source;
       ctName = "ct-${name}";
     in {
       ${ctName} = lib.mkIf (cfg.enable && value.enable) {
-        after =
-          [ "consul.service" "consul-acl.service" "network-online.target" ];
-        wantedBy = [ "multi-user.target" ];
-        requires = [ "network-online.target" ];
+        after = ["consul.service" "consul-acl.service" "network-online.target"];
+        wantedBy = ["multi-user.target"];
+        requires = ["network-online.target"];
 
         serviceConfig = {
           DynamicUser = true;
@@ -103,5 +101,6 @@ in {
           ExecStartPost = "${pkgs.coreutils}/bin/rm -f ${value.target}";
         };
       };
-    }) cfg.templates);
+    })
+    cfg.templates);
 }

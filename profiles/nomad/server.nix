@@ -1,6 +1,10 @@
-{ config, lib, pkgs, ... }: let
-
-  Imports = { imports = [ ./common.nix ./policies.nix ]; };
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
+  Imports = {imports = [./common.nix ./policies.nix];};
 
   Switches = {
     services.nomad.server.enabled = true;
@@ -19,22 +23,26 @@
     #
     # Nomad ports specific to servers
     networking.firewall.allowedTCPPorts = [
-      4648  # serf wan
+      4648 # serf wan
     ];
     networking.firewall.allowedUDPPorts = [
-      4648  # serf wan
+      4648 # serf wan
     ];
 
     services.nomad = {
-      datacenter = if deployType == "aws" then region else datacenter;
+      datacenter =
+        if deployType == "aws"
+        then region
+        else datacenter;
 
       server = {
         bootstrap_expect = 3;
 
         server_join = {
-          retry_join = (lib.mapAttrsToList (_: v: v.privateIP) (lib.filterAttrs (k: v: lib.elem k cfg.serverNodeNames) nodes))
+          retry_join =
+            (lib.mapAttrsToList (_: v: v.privateIP) (lib.filterAttrs (k: v: lib.elem k cfg.serverNodeNames) nodes))
             ++ (lib.optionals (deployType == "aws")
-            [ "provider=aws region=${region} tag_key=Nomad tag_value=server" ]);
+              ["provider=aws region=${region} tag_key=Nomad tag_value=server"]);
         };
 
         default_scheduler_config = {
@@ -53,8 +61,9 @@
       CONSUL_HTTP_ADDR = "http://127.0.0.1:8500";
     };
   };
-
-in Imports // lib.mkMerge [
-  Switches
-  Config
-]
+in
+  Imports
+  // lib.mkMerge [
+    Switches
+    Config
+  ]

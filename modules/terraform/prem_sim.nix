@@ -1,23 +1,40 @@
-{ self, lib, pkgs, config, terralib, ... }:
-let
-  inherit (terralib)
-    var id pp regions awsProviderNameFor awsProviderFor mkSecurityGroupRule
-    nullRoute;
+{
+  self,
+  lib,
+  pkgs,
+  config,
+  terralib,
+  ...
+}: let
+  inherit
+    (terralib)
+    var
+    id
+    pp
+    regions
+    awsProviderNameFor
+    awsProviderFor
+    mkSecurityGroupRule
+    nullRoute
+    ;
   inherit (config.cluster) infraType vbkBackend vbkBackendSkipCertVerification;
 
-  merge = lib.foldl' lib.recursiveUpdate { };
-  tags = { Cluster = config.cluster.name; };
+  merge = lib.foldl' lib.recursiveUpdate {};
+  tags = {Cluster = config.cluster.name;};
 
-  infraTypeCheck = if builtins.elem infraType [ "aws" "premSim" ] then true else (throw ''
-    To utilize the prem-sim TF attr, the cluster config parameter `infraType`
-    must either "aws" or "premSim".
-  '');
+  infraTypeCheck =
+    if builtins.elem infraType ["aws" "premSim"]
+    then true
+    else
+      (throw ''
+        To utilize the prem-sim TF attr, the cluster config parameter `infraType`
+        must either "aws" or "premSim".
+      '');
 in {
   tf.prem-sim.configuration = lib.mkIf infraTypeCheck {
     terraform.backend = lib.mkIf (vbkBackend != "local") {
       http = let
-        vbk =
-          "${vbkBackend}/state/${config.cluster.name}/prem-sim";
+        vbk = "${vbkBackend}/state/${config.cluster.name}/prem-sim";
       in {
         address = vbk;
         lock_address = vbk;
@@ -29,13 +46,15 @@ in {
     terraform.required_providers = pkgs.terraform-provider-versions;
 
     provider = {
-      acme = { server_url = "https://acme-v02.api.letsencrypt.org/directory"; };
+      acme = {server_url = "https://acme-v02.api.letsencrypt.org/directory";};
 
-      aws = [{ inherit (config.cluster) region; }] ++ (lib.forEach regions
-        (region: {
-          inherit region;
-          alias = awsProviderNameFor region;
-        }));
+      aws =
+        [{inherit (config.cluster) region;}]
+        ++ (lib.forEach regions
+          (region: {
+            inherit region;
+            alias = awsProviderNameFor region;
+          }));
     };
 
     # ---------------------------------------------------------------
@@ -44,7 +63,7 @@ in {
 
     resource.aws_vpc.prem_sim = {
       provider = awsProviderFor config.cluster.region;
-      lifecycle = [{ create_before_destroy = true; }];
+      lifecycle = [{create_before_destroy = true;}];
 
       cidr_block = config.cluster.premSimVpc.cidr;
       enable_dns_hostnames = true;
@@ -56,7 +75,7 @@ in {
     };
 
     resource.aws_internet_gateway."${config.cluster.name}-premSim" = {
-      lifecycle = [{ create_before_destroy = true; }];
+      lifecycle = [{create_before_destroy = true;}];
 
       vpc_id = id "aws_vpc.prem_sim";
       tags = {
@@ -67,7 +86,7 @@ in {
 
     resource.aws_route_table."${config.cluster.name}-premSim" = {
       vpc_id = id "aws_vpc.prem_sim";
-      lifecycle = [{ create_before_destroy = true; }];
+      lifecycle = [{create_before_destroy = true;}];
 
       tags = {
         Cluster = config.cluster.name;
@@ -75,20 +94,23 @@ in {
       };
     };
 
-    resource.aws_route.prem_sim = nullRoute // {
-      route_table_id = id "aws_route_table.${config.cluster.name}-premSim";
-      destination_cidr_block = "0.0.0.0/0";
-      gateway_id = id "aws_internet_gateway.${config.cluster.name}-premSim";
-    };
+    resource.aws_route.prem_sim =
+      nullRoute
+      // {
+        route_table_id = id "aws_route_table.${config.cluster.name}-premSim";
+        destination_cidr_block = "0.0.0.0/0";
+        gateway_id = id "aws_internet_gateway.${config.cluster.name}-premSim";
+      };
 
-    resource.aws_subnet = lib.flip lib.mapAttrs' config.cluster.premSimVpc.subnets
+    resource.aws_subnet =
+      lib.flip lib.mapAttrs' config.cluster.premSimVpc.subnets
       (name: subnet:
         lib.nameValuePair subnet.name {
           provider = awsProviderFor config.cluster.vpc.region;
           vpc_id = id "aws_vpc.prem_sim";
           cidr_block = subnet.cidr;
 
-          lifecycle = [{ create_before_destroy = true; }];
+          lifecycle = [{create_before_destroy = true;}];
 
           tags = {
             Cluster = config.cluster.name;
@@ -100,7 +122,8 @@ in {
       lib.nameValuePair "${config.cluster.name}-${name}-internet" {
         subnet_id = subnet.id;
         route_table_id = id "aws_route_table.${config.cluster.name}-premSim";
-      }) config.cluster.premSimVpc.subnets;
+      })
+    config.cluster.premSimVpc.subnets;
 
     # ---------------------------------------------------------------
     # SSL/TLS - root ssh
@@ -121,10 +144,9 @@ in {
       "${config.cluster.name}-premSim" = {
         provider = awsProviderFor config.cluster.region;
         name_prefix = "${config.cluster.name}-premSim";
-        description =
-          "Security group for Simulated Premise Nodes in ${config.cluster.name}-premSim";
+        description = "Security group for Simulated Premise Nodes in ${config.cluster.name}-premSim";
         vpc_id = id "aws_vpc.prem_sim";
-        lifecycle = [{ create_before_destroy = true; }];
+        lifecycle = [{create_before_destroy = true;}];
       };
     };
 
@@ -141,7 +163,8 @@ in {
 
       premSimNodes' =
         lib.mapAttrsToList mapPremInstances config.cluster.premSimNodes;
-    in merge premSimNodes';
+    in
+      merge premSimNodes';
 
     # ---------------------------------------------------------------
     # Prem Sim Nodes
@@ -156,20 +179,22 @@ in {
           Cluster = config.cluster.name;
           Name = premSimNode.name;
         };
-        lifecycle = [{ create_before_destroy = true; }];
-      }) config.cluster.premSimNodes;
+        lifecycle = [{create_before_destroy = true;}];
+      })
+    config.cluster.premSimNodes;
 
     resource.aws_network_interface = lib.mapAttrs' (name: premSimNode:
       lib.nameValuePair premSimNode.uid {
         subnet_id = premSimNode.subnet.id;
-        security_groups = [ premSimNode.securityGroupId ];
-        private_ips = [ premSimNode.privateIP ];
+        security_groups = [premSimNode.securityGroupId];
+        private_ips = [premSimNode.privateIP];
         tags = {
           Cluster = config.cluster.name;
           Name = premSimNode.name;
         };
-        lifecycle = [{ create_before_destroy = true; }];
-      }) config.cluster.premSimNodes;
+        lifecycle = [{create_before_destroy = true;}];
+      })
+    config.cluster.premSimNodes;
 
     resource.aws_instance = lib.mapAttrs (name: premSimNode:
       lib.mkMerge [
@@ -178,13 +203,15 @@ in {
           instance_type = premSimNode.instanceType;
           monitoring = true;
 
-          tags = {
-            Cluster = config.cluster.name;
-            Name = name;
-            UID = premSimNode.uid;
-            premSimulation = "true";
-            # Flake = premSimNode.flake;
-          } // premSimNode.tags;
+          tags =
+            {
+              Cluster = config.cluster.name;
+              Name = name;
+              UID = premSimNode.uid;
+              premSimulation = "true";
+              # Flake = premSimNode.flake;
+            }
+            // premSimNode.tags;
 
           root_block_device = {
             volume_type = "gp2";
@@ -208,8 +235,8 @@ in {
             {
               local-exec = {
                 command = "${
-                    self.nixosConfigurations."${config.cluster.name}-${name}".config.secrets.generateScript
-                  }/bin/generate-secrets";
+                  self.nixosConfigurations."${config.cluster.name}-${name}".config.secrets.generateScript
+                }/bin/generate-secrets";
               };
             }
             {
@@ -228,6 +255,7 @@ in {
         (lib.mkIf config.cluster.generateSSHKey {
           key_name = "${config.cluster.name}-premSim";
         })
-      ]) config.cluster.premSimNodes;
+      ])
+    config.cluster.premSimNodes;
   };
 }

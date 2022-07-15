@@ -1,24 +1,42 @@
-{ self, lib, pkgs, config, terralib, ... }:
-let
-  inherit (terralib)
-    var id pp regions awsProviderNameFor awsProviderFor mkSecurityGroupRule
-    nullRoute mkAttachment mkStorage;
+{
+  self,
+  lib,
+  pkgs,
+  config,
+  terralib,
+  ...
+}: let
+  inherit
+    (terralib)
+    var
+    id
+    pp
+    regions
+    awsProviderNameFor
+    awsProviderFor
+    mkSecurityGroupRule
+    nullRoute
+    mkAttachment
+    mkStorage
+    ;
   inherit (config.cluster) infraType vbkBackend vbkBackendSkipCertVerification;
 
-  merge = lib.foldl' lib.recursiveUpdate { };
-  tags = { Cluster = config.cluster.name; };
+  merge = lib.foldl' lib.recursiveUpdate {};
+  tags = {Cluster = config.cluster.name;};
 
-  infraTypeCheck = if builtins.elem infraType [ "aws" "premSim" ] then true else (throw ''
-    To utilize the core TF attr, the cluster config parameter `infraType`
-    must either "aws" or "premSim".
-  '');
-
+  infraTypeCheck =
+    if builtins.elem infraType ["aws" "premSim"]
+    then true
+    else
+      (throw ''
+        To utilize the core TF attr, the cluster config parameter `infraType`
+        must either "aws" or "premSim".
+      '');
 in {
   tf.core.configuration = lib.mkIf infraTypeCheck {
     terraform.backend = lib.mkIf (vbkBackend != "local") {
       http = let
-        vbk =
-          "${vbkBackend}/state/${config.cluster.name}/core";
+        vbk = "${vbkBackend}/state/${config.cluster.name}/core";
       in {
         address = vbk;
         lock_address = vbk;
@@ -30,13 +48,15 @@ in {
     terraform.required_providers = pkgs.terraform-provider-versions;
 
     provider = {
-      acme = { server_url = "https://acme-v02.api.letsencrypt.org/directory"; };
+      acme = {server_url = "https://acme-v02.api.letsencrypt.org/directory";};
 
-      aws = [{ inherit (config.cluster) region; }] ++ (lib.forEach regions
-        (region: {
-          inherit region;
-          alias = awsProviderNameFor region;
-        }));
+      aws =
+        [{inherit (config.cluster) region;}]
+        ++ (lib.forEach regions
+          (region: {
+            inherit region;
+            alias = awsProviderNameFor region;
+          }));
     };
 
     module.instance_types_to_azs = {
@@ -50,7 +70,7 @@ in {
 
     resource.aws_vpc.core = {
       provider = awsProviderFor config.cluster.region;
-      lifecycle = [{ create_before_destroy = true; }];
+      lifecycle = [{create_before_destroy = true;}];
 
       cidr_block = config.cluster.vpc.cidr;
       enable_dns_hostnames = true;
@@ -62,7 +82,7 @@ in {
     };
 
     resource.aws_internet_gateway."${config.cluster.name}" = {
-      lifecycle = [{ create_before_destroy = true; }];
+      lifecycle = [{create_before_destroy = true;}];
 
       vpc_id = id "aws_vpc.core";
       tags = {
@@ -73,7 +93,7 @@ in {
 
     resource.aws_route_table."${config.cluster.name}" = {
       vpc_id = id "aws_vpc.core";
-      lifecycle = [{ create_before_destroy = true; }];
+      lifecycle = [{create_before_destroy = true;}];
 
       tags = {
         Cluster = config.cluster.name;
@@ -81,13 +101,16 @@ in {
       };
     };
 
-    resource.aws_route.core = nullRoute // {
-      route_table_id = id "aws_route_table.${config.cluster.name}";
-      destination_cidr_block = "0.0.0.0/0";
-      gateway_id = id "aws_internet_gateway.${config.cluster.name}";
-    };
+    resource.aws_route.core =
+      nullRoute
+      // {
+        route_table_id = id "aws_route_table.${config.cluster.name}";
+        destination_cidr_block = "0.0.0.0/0";
+        gateway_id = id "aws_internet_gateway.${config.cluster.name}";
+      };
 
-    resource.aws_subnet = lib.flip lib.mapAttrs' config.cluster.vpc.subnets
+    resource.aws_subnet =
+      lib.flip lib.mapAttrs' config.cluster.vpc.subnets
       (name: subnet:
         lib.nameValuePair subnet.name {
           provider = awsProviderFor config.cluster.vpc.region;
@@ -96,7 +119,7 @@ in {
           # This indirectly consumes "module.instance_types_to_azs"
           availability_zone = subnet.availabilityZone;
 
-          lifecycle = [{ create_before_destroy = true; }];
+          lifecycle = [{create_before_destroy = true;}];
 
           tags = {
             Cluster = config.cluster.name;
@@ -108,7 +131,8 @@ in {
       lib.nameValuePair "${config.cluster.name}-${name}-internet" {
         subnet_id = subnet.id;
         route_table_id = id "aws_route_table.${config.cluster.name}";
-      }) config.cluster.vpc.subnets;
+      })
+    config.cluster.vpc.subnets;
 
     # ---------------------------------------------------------------
     # DNS
@@ -120,32 +144,33 @@ in {
     };
 
     resource.aws_route53_record = lib.mkIf config.cluster.route53 (let
-      domains = lib.flatten
+      domains =
+        lib.flatten
         (lib.flip lib.mapAttrsToList config.cluster.coreNodes
           (instanceName: instance:
             lib.forEach instance.route53.domains
-            (domain: { ${domain} = instance.uid; })));
-    in lib.flip lib.mapAttrs' (lib.zipAttrs domains) (domain: instanceUids:
-      lib.nameValuePair "${config.cluster.name}-${
-        lib.replaceStrings [ "." "*" ] [ "_" "_" ] domain
-      }" {
-        zone_id = id "data.aws_route53_zone.selected";
-        name = domain;
-        type = "A";
-        ttl = "60";
-        records =
-          lib.forEach instanceUids (uid: var "aws_eip.${uid}.public_ip");
-      }));
+            (domain: {${domain} = instance.uid;})));
+    in
+      lib.flip lib.mapAttrs' (lib.zipAttrs domains) (domain: instanceUids:
+        lib.nameValuePair "${config.cluster.name}-${
+          lib.replaceStrings ["." "*"] ["_" "_"] domain
+        }" {
+          zone_id = id "data.aws_route53_zone.selected";
+          name = domain;
+          type = "A";
+          ttl = "60";
+          records =
+            lib.forEach instanceUids (uid: var "aws_eip.${uid}.public_ip");
+        }));
 
     # ---------------------------------------------------------------
     # SSL/TLS - root ssh
     # ---------------------------------------------------------------
 
-    resource.tls_private_key.${config.cluster.name} =
-      lib.mkIf config.cluster.generateSSHKey {
-        algorithm = "RSA";
-        rsa_bits = 4096;
-      };
+    resource.tls_private_key.${config.cluster.name} = lib.mkIf config.cluster.generateSSHKey {
+      algorithm = "RSA";
+      rsa_bits = 4096;
+    };
 
     resource.aws_key_pair.core = {
       provider = awsProviderFor config.cluster.region;
@@ -154,7 +179,7 @@ in {
         var "tls_private_key.${config.cluster.name}.public_key_openssh";
     };
 
-    resource.tls_private_key.private_key = { algorithm = "RSA"; };
+    resource.tls_private_key.private_key = {algorithm = "RSA";};
 
     resource.local_file = {
       "ssh-${config.cluster.name}" = lib.mkIf config.cluster.generateSSHKey {
@@ -163,12 +188,11 @@ in {
           var "tls_private_key.${config.cluster.name}.private_key_pem";
         file_permission = "0600";
       };
-      "ssh-${config.cluster.name}-pub" =
-        lib.mkIf config.cluster.generateSSHKey {
-          filename = "secrets/ssh-${config.cluster.name}.pub";
-          content =
-            var "tls_private_key.${config.cluster.name}.public_key_openssh";
-        };
+      "ssh-${config.cluster.name}-pub" = lib.mkIf config.cluster.generateSSHKey {
+        filename = "secrets/ssh-${config.cluster.name}.pub";
+        content =
+          var "tls_private_key.${config.cluster.name}.public_key_openssh";
+      };
     };
 
     # ---------------------------------------------------------------
@@ -180,22 +204,24 @@ in {
       role = config.cluster.iam.roles.core;
       op = policyName: policy:
         lib.nameValuePair policy.uid {
-          statement = {
-            inherit (policy) effect actions resources;
-          } // (lib.optionalAttrs (policy.condition != null) {
-            inherit (policy) condition;
-          });
+          statement =
+            {
+              inherit (policy) effect actions resources;
+            }
+            // (lib.optionalAttrs (policy.condition != null) {
+              inherit (policy) condition;
+            });
         };
-    in lib.listToAttrs (lib.mapAttrsToList op role.policies);
+    in
+      lib.listToAttrs (lib.mapAttrsToList op role.policies);
 
-    resource.aws_iam_instance_profile =
-      lib.flip lib.mapAttrs' config.cluster.coreNodes (name: coreNode:
-        lib.nameValuePair coreNode.uid {
-          name = coreNode.uid;
-          inherit (coreNode.iam.instanceProfile) path;
-          role = coreNode.iam.instanceProfile.role.tfName;
-          lifecycle = [{ create_before_destroy = true; }];
-        });
+    resource.aws_iam_instance_profile = lib.flip lib.mapAttrs' config.cluster.coreNodes (name: coreNode:
+      lib.nameValuePair coreNode.uid {
+        name = coreNode.uid;
+        inherit (coreNode.iam.instanceProfile) path;
+        role = coreNode.iam.instanceProfile.role.tfName;
+        lifecycle = [{create_before_destroy = true;}];
+      });
 
     resource.aws_iam_role = let
       # deploy for core role
@@ -204,7 +230,7 @@ in {
       "${role.uid}" = {
         name = role.uid;
         assume_role_policy = role.assumePolicy.tfJson;
-        lifecycle = [{ create_before_destroy = true; }];
+        lifecycle = [{create_before_destroy = true;}];
       };
     };
 
@@ -217,7 +243,8 @@ in {
           role = role.id;
           policy = var "data.aws_iam_policy_document.${policy.uid}.json";
         };
-    in lib.listToAttrs (lib.mapAttrsToList op role.policies);
+    in
+      lib.listToAttrs (lib.mapAttrsToList op role.policies);
 
     resource.aws_security_group = {
       "${config.cluster.name}" = {
@@ -225,7 +252,7 @@ in {
         name_prefix = "${config.cluster.name}-";
         description = "Security group for Core in ${config.cluster.name}";
         vpc_id = id "aws_vpc.core";
-        lifecycle = [{ create_before_destroy = true; }];
+        lifecycle = [{create_before_destroy = true;}];
       };
     };
 
@@ -240,7 +267,8 @@ in {
             })))));
 
       coreNodes' = lib.mapAttrsToList mapInstances config.cluster.coreNodes;
-    in merge coreNodes';
+    in
+      merge coreNodes';
 
     # ---------------------------------------------------------------
     # Core Instances
@@ -254,44 +282,49 @@ in {
           Cluster = config.cluster.name;
           Name = coreNode.name;
         };
-        lifecycle = [{ create_before_destroy = true; }];
-      }) config.cluster.coreNodes;
+        lifecycle = [{create_before_destroy = true;}];
+      })
+    config.cluster.coreNodes;
 
     resource.aws_eip_association = lib.mapAttrs' (name: coreNode:
       lib.nameValuePair coreNode.uid {
-        instance_id   = id "aws_instance.${name}";
+        instance_id = id "aws_instance.${name}";
         allocation_id = id "aws_eip.${coreNode.uid}";
-      }) config.cluster.coreNodes;
+      })
+    config.cluster.coreNodes;
 
     resource.aws_network_interface = lib.mapAttrs' (name: coreNode:
       lib.nameValuePair coreNode.uid {
         subnet_id = coreNode.subnet.id;
-        security_groups = [ coreNode.securityGroupId ];
-        private_ips = [ coreNode.privateIP ];
+        security_groups = [coreNode.securityGroupId];
+        private_ips = [coreNode.privateIP];
         tags = {
           Cluster = config.cluster.name;
           Name = coreNode.name;
         };
-        lifecycle = [{ create_before_destroy = true; }];
-      }) config.cluster.coreNodes;
+        lifecycle = [{create_before_destroy = true;}];
+      })
+    config.cluster.coreNodes;
 
     resource.aws_instance = lib.mapAttrs (name: coreNode:
       lib.mkMerge [
         (lib.mkIf coreNode.enable {
-          depends_on = [ "aws_eip.${coreNode.uid}" ];
+          depends_on = ["aws_eip.${coreNode.uid}"];
           inherit (coreNode) ami;
           instance_type = coreNode.instanceType;
           monitoring = true;
 
-          tags = {
-            Cluster = config.cluster.name;
-            Name = name;
-            UID = coreNode.uid;
-            Consul = "server";
-            Vault = "server";
-            Nomad = "server";
-            # Flake = coreNode.flake;
-          } // coreNode.tags;
+          tags =
+            {
+              Cluster = config.cluster.name;
+              Name = name;
+              UID = coreNode.uid;
+              Consul = "server";
+              Vault = "server";
+              Nomad = "server";
+              # Flake = coreNode.flake;
+            }
+            // coreNode.tags;
 
           root_block_device = {
             volume_type = "gp2";
@@ -317,14 +350,13 @@ in {
             {
               local-exec = {
                 command = "${
-                    self.nixosConfigurations."${config.cluster.name}-${name}".config.secrets.generateScript
-                  }/bin/generate-secrets";
+                  self.nixosConfigurations."${config.cluster.name}-${name}".config.secrets.generateScript
+                }/bin/generate-secrets";
               };
             }
             {
               local-exec = let
-                command =
-                  "${coreNode.localProvisioner.protoCommand} ${publicIP}";
+                command = "${coreNode.localProvisioner.protoCommand} ${publicIP}";
               in {
                 inherit command;
                 inherit (coreNode.localProvisioner) interpreter environment;
@@ -333,8 +365,7 @@ in {
             }
             (lib.optionalAttrs (name == "core-1") {
               local-exec = let
-                command =
-                  "${coreNode.localProvisioner.bootstrapperCommand} ${publicIP}";
+                command = "${coreNode.localProvisioner.bootstrapperCommand} ${publicIP}";
               in {
                 inherit command;
                 inherit (coreNode.localProvisioner) interpreter environment;
@@ -348,25 +379,30 @@ in {
           key_name = var "aws_key_pair.core.key_name";
         })
         {
-          lifecycle = [{ ignore_changes = [ "ami" ]; }];
+          lifecycle = [{ignore_changes = ["ami"];}];
         }
-      ]) config.cluster.coreNodes;
+      ])
+    config.cluster.coreNodes;
 
     # ---------------------------------------------------------------
     # Extra Storage
     # ---------------------------------------------------------------
     resource.aws_volume_attachment = let
       storageNodes = lib.filterAttrs (_: v: v.ebsVolume != null) config.cluster.coreNodes;
-    in lib.mkIf (storageNodes != {}) (lib.mapAttrs (
-      # host name == volume name
-      host: _: mkAttachment host host "/dev/sdh"
-    ) storageNodes );
+    in
+      lib.mkIf (storageNodes != {}) (lib.mapAttrs (
+          # host name == volume name
+          host: _: mkAttachment host host "/dev/sdh"
+        )
+        storageNodes);
 
     # host name == volume name
     resource.aws_ebs_volume = let
       storageNodes = lib.filterAttrs (_: v: v.ebsVolume != null) config.cluster.coreNodes;
-    in lib.mkIf (storageNodes != {}) (lib.mapAttrs (
-      host: cfg: mkStorage host config.cluster.kms cfg.ebsVolume
-    ) storageNodes );
+    in
+      lib.mkIf (storageNodes != {}) (lib.mapAttrs (
+          host: cfg: mkStorage host config.cluster.kms cfg.ebsVolume
+        )
+        storageNodes);
   };
 }

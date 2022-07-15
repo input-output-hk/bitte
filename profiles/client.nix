@@ -1,8 +1,13 @@
-{ self, pkgs, config, lib, nodeName, ... }:
-let
+{
+  self,
+  pkgs,
+  config,
+  lib,
+  nodeName,
+  ...
+}: let
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
 in {
-
   imports = [
     ./common.nix
     ./consul/client.nix
@@ -24,8 +29,11 @@ in {
   time.timeZone = "UTC";
 
   # Maintain backward compat for the aws machines otherwise derive from hostname
-  networking.hostId = if (deployType == "aws") then "9474d585"
-    else (lib.fileContents (pkgs.runCommand "hostId" { } ''
-    ${pkgs.ruby}/bin/ruby -rzlib -e 'File.write(ENV["out"], "%08x" % Zlib.crc32("${nodeName}"))'
-  ''));
+  networking.hostId =
+    if (deployType == "aws")
+    then "9474d585"
+    else
+      (lib.fileContents (pkgs.runCommand "hostId" {} ''
+        ${pkgs.ruby}/bin/ruby -rzlib -e 'File.write(ENV["out"], "%08x" % Zlib.crc32("${nodeName}"))'
+      ''));
 }
