@@ -23,9 +23,9 @@ in
     terraform-providers =
       prev.terraform-providers
       // (let
-        inherit (prev) buildGoModule;
+        inherit (prev) buildGo117Module;
         buildWithGoModule = data:
-          buildGoModule {
+          buildGo117Module {
             pname = data.repo;
             inherit (data) version;
             subPackages = ["."];
@@ -85,12 +85,12 @@ in
         };
         vault = buildWithGoModule {
           provider-source-address = "registry.terraform.io/hashicorp/vault";
-          version = "2.18.0";
-          vendorSha256 = null;
+          version = "3.7.0";
+          vendorSha256 = "sha256-TqhnjsK36EGpDlN4yy1jd/1KpdOT+hu4koMM3VCJEV0=";
           owner = "hashicorp";
           repo = "terraform-provider-vault";
-          rev = "v2.18.0";
-          sha256 = "0lmgh9w9n0qvg9kf4av1yql2dh10r0jjxy5x3vckcpfc45lgsy40";
+          rev = "v3.7.0";
+          sha256 = "sha256-n2sUc71Ymk2kI9bpQxp2TRG4hte5/xIP+NbUxBwyNaM=";
         };
         sops = buildWithGoModule {
           version = "0.6.3";

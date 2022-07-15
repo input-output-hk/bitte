@@ -128,8 +128,6 @@ in {
           address = "localhost:8500";
           scheme = "http";
         };
-      }) // (lib.optionalAttrs config.services.ingress.enable {
-        haproxy = { servers = [ "http://127.0.0.1:1936/haproxy?stats" ]; };
       }) // (lib.optionalAttrs config.services.vulnix.enable {
         http_listener_v2 = {
           service_address = ":8008";

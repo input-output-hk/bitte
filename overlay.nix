@@ -1,98 +1,66 @@
 inputs: let
-  inherit (inputs) nixpkgs ops-lib self;
+  inherit (inputs) nixpkgs nixpkgs-unstable ops-lib self;
   inherit (nixpkgs) lib;
+
   deprecated = k:
     lib.warn ''
       ${k} is deprecated from the bitte overlay.
             See bitte/overlay.nix
     '';
+
+  pkgs = final: nixpkgs.legacyPackages.${final.system};
+  pkgsUnstable = final: nixpkgs-unstable.legacyPackages.${final.system};
 in
   final: prev:
     rec {
       nixFlakes = nixUnstable;
       nixUnstable = builtins.throw "use pkgs.nix directly";
 
-      nomad = inputs.nomad.defaultPackage."${final.system}";
+      # Packages specifically needing an unstable nixpkgs pinned latest available version
+      inherit (pkgsUnstable final)
+        docker          # 20.10.17
+        grafana         # 9.0.1
+        grafana-loki    # 2.5.0
+        podman          # 4.1.1
+        # traefik       # 2.7.1 -- disabled UI in unstable, https://github.com/NixOS/nixpkgs/pull/176079, hence callPackage below
+        vector;         # 0.22.2
 
-      # Until ops Rakefile is rewritten for ragenix nix secrets vs. toml
-      inherit (inputs.agenix.packages."${final.system}") agenix;
-      inherit (inputs.agenix-cli.packages."${final.system}") agenix-cli;
+      # Alphabetically sorted packages
+      agenix = inputs.agenix.packages.${final.system}.agenix;
+      agenix-cli = inputs.agenix-cli.packages.${final.system}.agenix-cli;
+      bitte-ruby = (pkgs final).bundlerEnv { name = "bitte-gems"; gemdir = ./.; };
 
-      # We need at least Traefik 2.5.3 for Consul Connect
-      inherit (inputs.nixpkgs-unstable.legacyPackages."${final.system}") traefik complete-alias vector docker podman;
-
-      ragenix = inputs.ragenix.defaultPackage."${final.system}";
-
-      # bitte-ruby and bundler for prem, premSim ops repo Rakefile support
-      bitte-ruby = inputs.nixpkgs.legacyPackages.${final.system}.bundlerEnv {
-        name = "bitte-gems";
-        gemdir = ./.;
-      };
-
-      bundler = inputs.nixpkgs.legacyPackages.${final.system}.bundler.overrideAttrs (o: {
+      bundler = (pkgs final).bundler.overrideAttrs (o: {
         postInstall = ''
           sed -i -e '/if sudo_needed/I,+2 d' $out/${prev.ruby.gemPath}/gems/${o.gemName}-${o.version}/lib/bundler.rb
         '';
       });
 
-      nomad-follower = inputs.nomad-follower.defaultPackage."${prev.system}";
-
-      ssh-keys = let
-        keys = import (ops-lib + "/overlays/ssh-keys.nix") lib;
-        inherit (keys) allKeysFrom devOps;
-      in {devOps = allKeysFrom devOps;};
-
       consul = prev.callPackage ./pkgs/consul {};
+      consulRegister = prev.callPackage ./pkgs/consul-register.nix {};
       cue = prev.callPackage ./pkgs/cue.nix {};
-      vault-bin = prev.callPackage ./pkgs/vault-bin.nix {};
-      mill = prev.callPackage ./pkgs/mill.nix {};
+      devShell = final.callPackage ./pkgs/dev-shell.nix {};
+      docker-distribution = prev.callPackage ./pkgs/docker-distribution.nix {};
+      filebeat = final.callPackage ./pkgs/filebeat.nix {};
+      glusterfs = final.callPackage ./pkgs/glusterfs.nix {};
+      grpcdump = prev.callPackage ./pkgs/grpcdump.nix {};
       haproxy-auth-request = prev.callPackage ./pkgs/haproxy-auth-request.nix {};
       haproxy-cors = prev.callPackage ./pkgs/haproxy-cors.nix {};
-      devShell = final.callPackage ./pkgs/dev-shell.nix {};
-      consulRegister = prev.callPackage ./pkgs/consul-register.nix {};
-      grpcdump = prev.callPackage ./pkgs/grpcdump.nix {};
-      glusterfs = final.callPackage ./pkgs/glusterfs.nix {};
-      victoriametrics = prev.callPackage ./pkgs/victoriametrics.nix {};
+      mill = prev.callPackage ./pkgs/mill.nix {};
+      nomad = inputs.nomad.defaultPackage.${final.system};
       nomad-autoscaler = prev.callPackage ./pkgs/nomad-autoscaler.nix {};
-      vault-backend = final.callPackage ./pkgs/vault-backend.nix {};
+      nomad-follower = inputs.nomad-follower.defaultPackage.${prev.system};
       oauth2-proxy = final.callPackage ./pkgs/oauth2_proxy.nix {};
-      filebeat = final.callPackage ./pkgs/filebeat.nix {};
-      spire = prev.callPackage ./pkgs/spire.nix {};
-      spire-agent = spire.agent;
-      spire-server = spire.server;
+      ragenix = inputs.ragenix.defaultPackage.${final.system};
       spiffe-helper = prev.callPackage ./pkgs/spiffe-helper.nix {};
+      spire-agent = spire.agent;
+      spire = prev.callPackage ./pkgs/spire.nix {};
+      spire-server = spire.server;
       spire-systemd-attestor = prev.callPackage ./pkgs/spire-systemd-attestor.nix {};
-      docker-distribution = prev.callPackage ./pkgs/docker-distribution.nix {};
-
-      # XXX remove (also flake input) after nixpkgs bump that has vulnix 1.10.1
-      vulnix = import inputs.vulnix {
-        inherit nixpkgs;
-        pkgs = import nixpkgs {inherit (final) system;};
-      };
-
-      # Remove once nixpkgs is using openssh 8.7p1+ by default to avoid coredumps
-      # Ref: https://bbs.archlinux.org/viewtopic.php?id=265221
-      opensshNoCoredump = let
-        version = "8.7p1";
-      in
-        prev.opensshPackages.openssh.overrideAttrs (oldAttrs: {
-          inherit version;
-          src = prev.fetchurl {
-            url = "mirror://openbsd/OpenSSH/portable/openssh-${version}.tar.gz";
-            sha256 = "sha256-fKNLi7JK6eUPM3krcJGzhB1+G0QP9XvJ+r3fAeLtHiQ=";
-          };
-        });
-
-      # Little convenience function helping us to containing the bash
-      # madness: forcing our bash scripts to be shellChecked.
-      writeBashChecked = final.writers.makeScriptWriter {
-        interpreter = "${final.bash}/bin/bash";
-        check = final.writers.writeBash "shellcheck-check" ''
-          ${final.shellcheck}/bin/shellcheck "$1"
-        '';
-      };
-      writeBashBinChecked = name: final.writeBashChecked "/bin/${name}";
-      toPrettyJSON = final.callPackage ./pkgs/to-pretty-json.nix {};
+      traefik = prev.callPackage ./pkgs/traefik.nix { buildGoModule = (pkgs final).buildGo117Module; };
+      vault-backend = final.callPackage ./pkgs/vault-backend.nix {};
+      vault-bin = prev.callPackage ./pkgs/vault-bin.nix {};
+      victoriametrics = prev.callPackage ./pkgs/victoriametrics.nix { buildGoModule = (pkgs final).buildGo117Module; };
 
       scaler-guard = let
         deps = with final; [awscli bash curl jq nomad];
@@ -104,6 +72,13 @@ in
           makeWrapper $script $out/bin/scaler-guard \
             --prefix PATH : ${prev.lib.makeBinPath deps}
         '';
+
+      ssh-keys = let
+        keys = import (ops-lib + "/overlays/ssh-keys.nix") lib;
+        inherit (keys) allKeysFrom devOps;
+      in {devOps = allKeysFrom devOps;};
+
+      toPrettyJSON = final.callPackage ./pkgs/to-pretty-json.nix {};
 
       uploadBaseAMIs =
         final.writeBashBinChecked
@@ -142,6 +117,14 @@ in
           }
           echo Clients done.
         '';
+
+      writeBashBinChecked = name: final.writeBashChecked "/bin/${name}";
+      writeBashChecked = final.writers.makeScriptWriter {
+        interpreter = "${final.bash}/bin/bash";
+        check = final.writers.writeBash "shellcheck-check" ''
+          ${final.shellcheck}/bin/shellcheck "$1"
+        '';
+      };
     }
     //
     # DEPRECATED
@@ -176,7 +159,7 @@ in
       mkRequired = constituents: let
         build-version = final.writeText "version.json" (builtins.toJSON {
           inherit
-            (inputs.self)
+            (self)
             lastModified
             lastModifiedDate
             narHash

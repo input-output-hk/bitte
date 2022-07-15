@@ -37,10 +37,6 @@
       url = "github:input-output-hk/ops-lib";
       flake = false;
     };
-    vulnix = {
-      url = "github:dermetfan/vulnix/runtime-deps";
-      flake = false;
-    };
 
     # DEPRECATED: will be replaces by cicero soon
     hydra.url = "github:kreisys/hydra/hydra-server-includes";

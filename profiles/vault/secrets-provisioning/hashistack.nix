@@ -1,10 +1,25 @@
 { config, lib, pkgs, hashiTokens, ... }:
 let
   roles = let
+    agentCommand = runtimeInputs: namePrefix: cmds: let
+      script = pkgs.writeShellApplication {
+        inherit runtimeInputs;
+        name = "${namePrefix}.sh";
+        text = ''
+          set -x
+          ${cmds}
+        '';
+      };
+    in "${script}/bin/${namePrefix}.sh";
+    # Vault has deprecated use of `command` in the template stanza, but a bug
+    # prevents us from moving to the `exec` statement until resolved:
+    # Ref: https://github.com/hashicorp/vault/issues/16230
+    # in { command = [ "${script}/bin/${namePrefix}.sh" ]; };
+
     reload = service:
-      "${pkgs.systemd}/bin/systemctl --no-block try-reload-or-restart ${service} || true";
+      agentCommand [ pkgs.systemd ] "reload-${service}" "systemctl --no-block try-reload-or-restart ${service} || true";
     restart = service:
-      "${pkgs.systemd}/bin/systemctl --no-block try-restart ${service} || true";
+      agentCommand [ pkgs.systemd ] "restart-${service}" "systemctl --no-block try-restart ${service} || true";
   in {
     core = rec {
       inherit reload restart;

@@ -4,8 +4,25 @@
 
   datacenter = config.currentCoreNode.datacenter or config.cluster.region;
 
-  reload = service: "${pkgs.systemd}/bin/systemctl try-reload-or-restart ${service}";
-  restart = service: "${pkgs.systemd}/bin/systemctl try-restart ${service}";
+  agentCommand = runtimeInputs: namePrefix: cmds: let
+    script = pkgs.writeShellApplication {
+      inherit runtimeInputs;
+      name = "${namePrefix}.sh";
+      text = ''
+        set -x
+        ${cmds}
+      '';
+    };
+  in "${script}/bin/${namePrefix}.sh";
+  # Vault has deprecated use of `command` in the template stanza, but a bug
+  # prevents us from moving to the `exec` statement until resolved:
+  # Ref: https://github.com/hashicorp/vault/issues/16230
+  # in { command = [ "${script}/bin/${namePrefix}.sh" ]; };
+
+  reload = service:
+    agentCommand [ pkgs.systemd ] "reload-${service}" "systemctl try-reload-or-restart ${service}";
+  restart = service:
+    agentCommand [ pkgs.systemd ] "restart-${service}" "systemctl try-restart ${service}";
 
   pkiAttrs = {
     common_name = "server.${datacenter}.consul";

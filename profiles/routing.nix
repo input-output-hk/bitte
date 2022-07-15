@@ -97,7 +97,6 @@ in {
           $USER:$REALM:$HASHED_PASSWORD
 
         Digest auth file ownership and perms are expected to be: root:keys 0640.
-        Enabling this option will place the traefik user in the `key` group.
 
         Ref:
           https://doc.traefik.io/traefik/v2.0/middlewares/digestauth/
@@ -123,76 +122,88 @@ in {
     services.traefik.enable = true;
     services.oauth2_proxy.enable = cfg.useOauth2Proxy;
 
-    users.extraGroups.keys.members = lib.mkIf cfg.useDigestAuth [ "traefik" ];
+    users.extraGroups.keys.members = [ "traefik" ];
 
     networking.extraHosts = ''
       ${config.cluster.nodes.monitoring.privateIP} monitoring
     '';
 
-    # Only start traefik once the token is available
-    systemd.paths.traefik-consul-token = {
-      wantedBy = [ "multi-user.target" ];
-      pathConfig = {
-        Unit = "traefik.service";
-        PathExists = hashiTokens.traefik;
+    systemd.services.traefik = {
+      # Ensure the service continues trying to restart with a reasonably time delay between each attempt.
+      # See also Restart[Sec] options below.
+      startLimitIntervalSec = lib.mkForce 0;
+      startLimitBurst = lib.mkForce 0;
+
+      # Until systemd adds support for a PathExists activation trigger delay, we can use the preStart for creds existence test.
+      # This avoids a systemd service start race condition with NixOS service activation restart.
+      # Ref: https://github.com/systemd/systemd/issues/20818#issuecomment-1172952498
+      preStart = let
+        credFile = hashiTokens.consul-default;
+      in ''
+        echo "Checking for credentials file existence: ${credFile}"
+        until [ -s ${credFile} ]; do
+          echo "Waiting for credentials file to exist: ${credFile}"
+          sleep 2
+        done
+        echo "Found credentials file: ${credFile}"
+      '';
+
+      serviceConfig = {
+        Restart = lib.mkForce "always";
+        RestartSec = 5;
+
+        ExecStart = let
+            cfg = config.services.traefik;
+            jsonValue = with lib.types;
+              let
+                valueType = nullOr (oneOf [
+                  bool
+                  int
+                  float
+                  str
+                  (lazyAttrsOf valueType)
+                  (listOf valueType)
+                ]) // {
+                  description = "JSON value";
+                  emptyValue.value = { };
+                };
+              in valueType;
+            dynamicConfigFile = if cfg.dynamicConfigFile == null then
+              pkgs.runCommand "config.toml" {
+                buildInputs = [ pkgs.remarshal ];
+                preferLocalBuild = true;
+              } ''
+                remarshal -if json -of toml \
+                  < ${
+                    pkgs.writeText "dynamic_config.json"
+                    (builtins.toJSON cfg.dynamicConfigOptions)
+                  } \
+                  > $out
+              ''
+            else
+              cfg.dynamicConfigFile;
+            staticConfigFile = if cfg.staticConfigFile == null then
+              pkgs.runCommand "config.toml" {
+                buildInputs = [ pkgs.yj ];
+                preferLocalBuild = true;
+              } ''
+                yj -jt -i \
+                  < ${
+                    pkgs.writeText "static_config.json" (builtins.toJSON
+                      (lib.recursiveUpdate cfg.staticConfigOptions {
+                        providers.file.filename = "${dynamicConfigFile}";
+                      }))
+                  } \
+                  > $out
+              ''
+            else
+              cfg.staticConfigFile;
+        in lib.mkForce (pkgs.writeShellScript "traefik.sh" ''
+          export CONSUL_HTTP_TOKEN="$(< ${hashiTokens.consul-default})"
+          exec ${config.services.traefik.package}/bin/traefik --configfile=${staticConfigFile}
+        '');
       };
     };
-
-    # Get rid of the default `multi-user.target` so that the
-    # above path unit actually has an effect.
-    systemd.services.traefik.wantedBy = lib.mkForce [];
-
-    systemd.services.traefik.serviceConfig.ExecStart = let
-        cfg = config.services.traefik;
-        jsonValue = with lib.types;
-          let
-            valueType = nullOr (oneOf [
-              bool
-              int
-              float
-              str
-              (lazyAttrsOf valueType)
-              (listOf valueType)
-            ]) // {
-              description = "JSON value";
-              emptyValue.value = { };
-            };
-          in valueType;
-        dynamicConfigFile = if cfg.dynamicConfigFile == null then
-          pkgs.runCommand "config.toml" {
-            buildInputs = [ pkgs.remarshal ];
-            preferLocalBuild = true;
-          } ''
-            remarshal -if json -of toml \
-              < ${
-                pkgs.writeText "dynamic_config.json"
-                (builtins.toJSON cfg.dynamicConfigOptions)
-              } \
-              > $out
-          ''
-        else
-          cfg.dynamicConfigFile;
-        staticConfigFile = if cfg.staticConfigFile == null then
-          pkgs.runCommand "config.toml" {
-            buildInputs = [ pkgs.yj ];
-            preferLocalBuild = true;
-          } ''
-            yj -jt -i \
-              < ${
-                pkgs.writeText "static_config.json" (builtins.toJSON
-                  (lib.recursiveUpdate cfg.staticConfigOptions {
-                    providers.file.filename = "${dynamicConfigFile}";
-                  }))
-              } \
-              > $out
-          ''
-        else
-          cfg.staticConfigFile;
-    in lib.mkForce (pkgs.writeShellScript "traefik.sh" ''
-      export CONSUL_HTTP_TOKEN="$(< $CREDENTIALS_DIRECTORY/consul)"
-      exec ${config.services.traefik.package}/bin/traefik --configfile=${staticConfigFile}
-    '');
-    systemd.services.traefik.serviceConfig.LoadCredential = "consul:${hashiTokens.consul-default}";
 
     systemd.services.copy-acme-certs = lib.mkIf cfg.acmeDnsCertMgr {
       before = [ "traefik.service" ];
@@ -268,7 +279,26 @@ in {
               tls = tlsCfg;
             };
           in lib.mkDefault ({
+            alertmanager = {
+              entrypoints = "https";
+              middlewares = [ ];
+              rule = "Host(`monitoring.${domain}`) && PathPrefix(`/alertmanager`)";
+              service = "alertmanager";
+              tls = tlsCfg;
+            };
+
+            consul = mkRoute "consul";
+
+            consul-api = {
+              entrypoints = "https";
+              middlewares = [ ];
+              rule = "Host(`consul.${domain}`) && PathPrefix(`/v1/`)";
+              service = "consul";
+              tls = true;
+            };
+
             grafana = mkRoute "monitoring";
+
             nomad = mkRoute "nomad";
 
             nomad-api = {
@@ -289,21 +319,35 @@ in {
               tls = true;
             };
 
-            consul = mkRoute "consul";
-
-            consul-api = {
-              entrypoints = "https";
-              middlewares = [ ];
-              rule = "Host(`consul.${domain}`) && PathPrefix(`/v1/`)";
-              service = "consul";
-              tls = true;
-            };
-
             traefik = {
               inherit middlewares;
               entrypoints = "https";
               rule = "Host(`traefik.${domain}`) && PathPrefix(`/`)";
               service = "api@internal";
+              tls = tlsCfg;
+            };
+
+            vmagent = {
+              entrypoints = "https";
+              middlewares = [ "ensureFirstLevelSlash" ];
+              rule = "Host(`monitoring.${domain}`) && PathPrefix(`/vmagent`)";
+              service = "vmagent";
+              tls = tlsCfg;
+            };
+
+            vmalert-loki = {
+              entrypoints = "https";
+              middlewares = [ "ensureFirstLevelSlash" ];
+              rule = "Host(`monitoring.${domain}`) && PathPrefix(`/vmalert-loki`)";
+              service = "vmalert-loki";
+              tls = tlsCfg;
+            };
+
+            vmalert-vm = {
+              entrypoints = "https";
+              middlewares = [ "ensureFirstLevelSlash" ];
+              rule = "Host(`monitoring.${domain}`) && PathPrefix(`/vmalert-vm`)";
+              service = "vmalert-vm";
               tls = tlsCfg;
             };
           } // (lib.optionalAttrs cfg.useOauth2Proxy {
@@ -334,6 +378,10 @@ in {
           }));
 
           services = lib.mkDefault ({
+            alertmanager.loadBalancer = {
+              servers = [{ url = "http://monitoring:9093"; }];
+            };
+
             consul.loadBalancer = {
               servers = [{ url = "http://127.0.0.1:8500"; }];
             };
@@ -345,6 +393,18 @@ in {
 
             monitoring.loadBalancer = {
               servers = [{ url = "http://monitoring:3000"; }];
+            };
+
+            vmagent.loadBalancer = {
+              servers = [{ url = "http://monitoring:8429"; }];
+            };
+
+            vmalert-loki.loadBalancer = {
+              servers = [{ url = "http://monitoring:8881"; }];
+            };
+
+            vmalert-vm.loadBalancer = {
+              servers = [{ url = "http://monitoring:8880"; }];
             };
 
             vault.loadBalancer = {
@@ -385,6 +445,18 @@ in {
                 stsIncludeSubdomains = true;
                 stsPreload = true;
                 stsSeconds = 315360000;
+              };
+            };
+            # Ensures the first level of the path following the URL FQDN has a trailing slash.
+            # Useful for when target requires a trailing slash for relative link use.
+            # Refs:
+            #   https://github.com/traefik/traefik/issues/5159
+            #   https://github.com/VictoriaMetrics/VictoriaMetrics/issues/2799
+            ensureFirstLevelSlash = {
+              redirectregex = {
+                regex = "^https://([^/]+)/([^/]+)$";
+                replacement = "https://\${1}/\${2}/";
+                permanent = false;
               };
             };
           } // lib.optionalAttrs cfg.useOauth2Proxy {
