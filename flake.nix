@@ -8,6 +8,7 @@
   inputs.capsules.url = "github:input-output-hk/devshell-capsules";
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-21.11";
+    nixpkgs-docker.url = "github:nixos/nixpkgs/ff691ed9ba21528c1b4e034f36a04027e4522c58";
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixpkgs-unstable";
 
     nix.url = "github:nixos/nix/2.8.1";
