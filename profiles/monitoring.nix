@@ -1,17 +1,34 @@
-{ lib, pkgs, config, nodeName, etcEncrypted, ... }:
-let
+{
+  lib,
+  pkgs,
+  config,
+  nodeName,
+  etcEncrypted,
+  ...
+}: let
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
   domain =
-    config.${if deployType == "aws" then "cluster" else "currentCoreNode"}.domain;
+    config
+    .${
+      if deployType == "aws"
+      then "cluster"
+      else "currentCoreNode"
+    }
+    .domain;
   isSops = deployType == "aws";
   cfg = config.services.monitoring;
 
   relEncryptedFolder = let
-    encPathStr = if isSops then (toString config.secrets.encryptedRoot) else (toString config.age.encryptedRoot);
-  in lib.last (builtins.split "/nix/store/.{32}-" encPathStr);
+    encPathStr =
+      if isSops
+      then (toString config.secrets.encryptedRoot)
+      else (toString config.age.encryptedRoot);
+  in
+    lib.last (builtins.split "/nix/store/.{32}-" encPathStr);
 
-  alertmanagerYml = if config.services.prometheus.alertmanager.configText != null then
-    pkgs.writeText "alertmanager.yml" config.services.prometheus.alertmanager.configText
+  alertmanagerYml =
+    if config.services.prometheus.alertmanager.configText != null
+    then pkgs.writeText "alertmanager.yml" config.services.prometheus.alertmanager.configText
     else pkgs.writeText "alertmanager.yml" (builtins.toJSON config.services.prometheus.alertmanager.configuration);
 in {
   imports = [
@@ -45,14 +62,16 @@ in {
 
     useDockerRegistry = lib.mkOption {
       type = lib.types.bool;
-      default = lib.warn ''
-        DEPRECATED: -- this option is now a no-op.
-        To enable a docker registry, apply the following
-        bitte module to the target docker registry host machine,
-        and set module options appropriately:
+      default =
+        lib.warn ''
+          DEPRECATED: -- this option is now a no-op.
+          To enable a docker registry, apply the following
+          bitte module to the target docker registry host machine,
+          and set module options appropriately:
 
-        modules/docker-registry.nix
-      '' false;
+          modules/docker-registry.nix
+        ''
+        false;
       description = ''
         DEPRECATED: -- this option is now a no-op.
         To enable a docker registry, apply the following
@@ -70,11 +89,9 @@ in {
         Enable use of a vault TF backend with a service hosted on the monitoring server.
       '';
     };
-
   };
 
   config = {
-
     assertions = [
       {
         assertion = cfg.useOauth2Proxy != cfg.useDigestAuth;
@@ -87,8 +104,8 @@ in {
 
     networking.firewall.allowedTCPPorts = [
       config.services.grafana.port
-      8428  # victoriaMetrics
-      9000  # minio
+      8428 # victoriaMetrics
+      9000 # minio
     ];
 
     services.consul.ui = true;
@@ -110,13 +127,16 @@ in {
     # Ref: https://github.com/prometheus/alertmanager/issues/504
     systemd.services.alertmanager.preStart = let
       cfg = config.services.prometheus.alertmanager;
-      alertmanagerYml = if cfg.configText != null then pkgs.writeText "alertmanager.yml" cfg.configText
-                        else pkgs.writeText "alertmanager.yml" (builtins.toJSON cfg.configuration);
-    in lib.mkForce ''
-      ${pkgs.gnused}/bin/sed 's|https://deadmanssnitch.com|$DEADMANSSNITCH|g' "${alertmanagerYml}" > "/tmp/alert-manager-sed.yaml"
-      ${lib.getBin pkgs.envsubst}/bin/envsubst -o "/tmp/alert-manager-substituted.yaml" \
-                                               -i "/tmp/alert-manager-sed.yaml"
-    '';
+      alertmanagerYml =
+        if cfg.configText != null
+        then pkgs.writeText "alertmanager.yml" cfg.configText
+        else pkgs.writeText "alertmanager.yml" (builtins.toJSON cfg.configuration);
+    in
+      lib.mkForce ''
+        ${pkgs.gnused}/bin/sed 's|https://deadmanssnitch.com|$DEADMANSSNITCH|g' "${alertmanagerYml}" > "/tmp/alert-manager-sed.yaml"
+        ${lib.getBin pkgs.envsubst}/bin/envsubst  -o "/tmp/alert-manager-substituted.yaml" \
+                                                  -i "/tmp/alert-manager-sed.yaml"
+      '';
 
     services.victoriametrics = {
       retentionPeriod = 12; # months
@@ -127,18 +147,21 @@ in {
       analytics.reporting.enable = false;
       addr = "";
       domain = "monitoring.${domain}";
-      extraOptions = {
-        AUTH_PROXY_ENABLED = "true";
-        USERS_AUTO_ASSIGN_ORG_ROLE = "Editor";
-        # Enable next generation alerting for >= 8.2.x
-        UNIFIED_ALERTING_ENABLED = "true";
-        ALERTING_ENABLED = "false";
-      } // lib.optionalAttrs cfg.useOauth2Proxy {
-        AUTH_PROXY_HEADER_NAME = "X-Auth-Request-Email";
-        AUTH_SIGNOUT_REDIRECT_URL = "/oauth2/sign_out";
-      } // lib.optionalAttrs cfg.useDigestAuth {
-        AUTH_PROXY_HEADER_NAME = "X-WebAuth-User";
-      };
+      extraOptions =
+        {
+          AUTH_PROXY_ENABLED = "true";
+          USERS_AUTO_ASSIGN_ORG_ROLE = "Editor";
+          # Enable next generation alerting for >= 8.2.x
+          UNIFIED_ALERTING_ENABLED = "true";
+          ALERTING_ENABLED = "false";
+        }
+        // lib.optionalAttrs cfg.useOauth2Proxy {
+          AUTH_PROXY_HEADER_NAME = "X-Auth-Request-Email";
+          AUTH_SIGNOUT_REDIRECT_URL = "/oauth2/sign_out";
+        }
+        // lib.optionalAttrs cfg.useDigestAuth {
+          AUTH_PROXY_HEADER_NAME = "X-WebAuth-User";
+        };
       rootUrl = "https://monitoring.${domain}/";
       provision = {
         enable = true;
@@ -170,8 +193,10 @@ in {
         ];
       };
 
-      security.adminPasswordFile = if isSops then "/var/lib/grafana/password"
-                                  else config.age.secrets.grafana-password.path;
+      security.adminPasswordFile =
+        if isSops
+        then "/var/lib/grafana/password"
+        else config.age.secrets.grafana-password.path;
     };
 
     # While victoriametrics offers a -vmalert.proxyURL option to forward grafana
@@ -189,7 +214,7 @@ in {
       '';
       recommendedProxySettings = true;
       upstreams.loki = {
-        servers = { "127.0.0.1:3100" = {}; };
+        servers = {"127.0.0.1:3100" = {};};
         extraConfig = ''
           keepalive 16;
         '';
@@ -197,7 +222,12 @@ in {
       virtualHosts."127.0.0.1" = let
         cfg = config.services.vmalert.datasources.loki;
       in {
-        listen = [ { addr = "0.0.0.0"; port = 3099; } ];
+        listen = [
+          {
+            addr = "0.0.0.0";
+            port = 3099;
+          }
+        ];
         locations = {
           "/" = {
             proxyPass = "http://loki";
@@ -224,18 +254,20 @@ in {
               https_2xx = {
                 prober = "http";
                 timeout = "5s";
-                http = { fail_if_not_ssl = true; };
+                http = {fail_if_not_ssl = true;};
               };
             };
           };
         };
       };
 
-      alertmanagers = [{
-        scheme = "http";
-        path_prefix = "/";
-        static_configs = [{ targets = [ "127.0.0.1:9093" ]; }];
-      }];
+      alertmanagers = [
+        {
+          scheme = "http";
+          path_prefix = "/";
+          static_configs = [{targets = ["127.0.0.1:9093"];}];
+        }
+      ];
 
       alertmanager = {
         enable = true;
@@ -244,17 +276,17 @@ in {
         webExternalUrl = "https://monitoring.${domain}/alertmanager";
         configuration = {
           route = {
-            group_by = [ "..." ];
+            group_by = ["..."];
             group_wait = "30s";
             group_interval = "2m";
             receiver = "team-pager";
             routes = [
               {
-                match = { severity = "page"; };
+                match = {severity = "page";};
                 receiver = "team-pager";
               }
               {
-                match = { alertname = "DeadMansSnitch"; };
+                match = {alertname = "DeadMansSnitch";};
                 repeat_interval = "5m";
                 receiver = "deadmanssnitch";
               }
@@ -293,27 +325,35 @@ in {
       enable = true;
       httpListenAddr = "0.0.0.0:8429";
       httpPathPrefix = "/vmagent";
-      promscrapeConfig = [
-        (lib.mkIf config.services.vmagent.enable {
-          job_name = "vmagent";
-          scrape_interval = "60s";
-          metrics_path = "${config.services.vmagent.httpPathPrefix}/metrics";
-          static_configs = [{
-            targets = [ config.services.vmagent.httpListenAddr ];
-            labels.alias = "vmagent";
-          }];
-        })
-      ] ++ lib.optionals config.services.vmalert.enable (builtins.attrValues (
+      promscrapeConfig =
+        [
+          (lib.mkIf config.services.vmagent.enable {
+            job_name = "vmagent";
+            scrape_interval = "60s";
+            metrics_path = "${config.services.vmagent.httpPathPrefix}/metrics";
+            static_configs = [
+              {
+                targets = [config.services.vmagent.httpListenAddr];
+                labels.alias = "vmagent";
+              }
+            ];
+          })
+        ]
+        ++ lib.optionals config.services.vmalert.enable (builtins.attrValues (
           # Add a vmagent target scrape for each services.vmalert.datasources attr
           lib.mapAttrs (name: cfgDs: {
             job_name = "vmalert-${name}";
             scrape_interval = "60s";
             metrics_path = "${cfgDs.httpPathPrefix}/metrics";
-            static_configs = [{
-              targets = [ cfgDs.httpListenAddr ];
-              labels.alias = name;
-            }];
-          }) config.services.vmalert.datasources));
+            static_configs = [
+              {
+                targets = [cfgDs.httpListenAddr];
+                labels.alias = name;
+              }
+            ];
+          })
+          config.services.vmalert.datasources
+        ));
     };
 
     services.vmalert = {
@@ -344,7 +384,7 @@ in {
 
     secrets = lib.mkIf isSops {
       generate.grafana-password = ''
-        export PATH="${lib.makeBinPath (with pkgs; [ coreutils sops xkcdpass ])}"
+        export PATH="${lib.makeBinPath (with pkgs; [coreutils sops xkcdpass])}"
 
         if [ ! -s ${relEncryptedFolder}/grafana-password.json ]; then
           xkcdpass \
@@ -368,7 +408,7 @@ in {
       };
 
       install.grafana-password.script = ''
-        export PATH="${lib.makeBinPath (with pkgs; [ sops coreutils ])}"
+        export PATH="${lib.makeBinPath (with pkgs; [sops coreutils])}"
 
         mkdir -p /var/lib/grafana
 

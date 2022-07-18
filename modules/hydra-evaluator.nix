@@ -1,14 +1,19 @@
-{ config, lib, pkgs, ... }:
-
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 with lib;
-with types;
-
-let cfg = config.services.hydra.evaluator;
+with types; let
+  cfg = config.services.hydra.evaluator;
 in {
   options.services.hydra.evaluator = {
-    restricted = (mkEnableOption "restricted evaluation mode") // {
-      default = true;
-    };
+    restricted =
+      (mkEnableOption "restricted evaluation mode")
+      // {
+        default = true;
+      };
     pure = mkEnableOption "pure evaluation mode";
   };
 

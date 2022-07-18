@@ -1,4 +1,11 @@
-{ lib, pkgs, config, bittelib, pkiFiles, ... }: {
+{
+  lib,
+  pkgs,
+  config,
+  bittelib,
+  pkiFiles,
+  ...
+}: {
   options = {
     services.bootstrap = {
       extraConsulInitialTokensConfig = lib.mkOption {

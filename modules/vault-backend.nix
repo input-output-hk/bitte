@@ -1,5 +1,10 @@
-{ lib, config, pkgs, pkiFiles, ... }:
-let
+{
+  lib,
+  config,
+  pkgs,
+  pkiFiles,
+  ...
+}: let
   cfg = config.services.vault-backend;
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
 in {
@@ -17,7 +22,7 @@ in {
         default = "0.0.0.0";
       };
 
-      port= lib.mkOption {
+      port = lib.mkOption {
         type = lib.types.int;
         default = 8080;
       };
@@ -30,8 +35,8 @@ in {
     ];
 
     systemd.services.vault-backend = {
-      wantedBy = [ "multi-user.target" ];
-      after = [ "network.target" ];
+      wantedBy = ["multi-user.target"];
+      after = ["network.target"];
 
       environment = {
         VAULT_CACERT = "cert.pem";
@@ -42,13 +47,17 @@ in {
       };
 
       serviceConfig = let
-        certChainFile = if deployType == "aws" then pkiFiles.certChainFile
-                        else pkiFiles.serverCertChainFile;
-        certKeyFile = if deployType == "aws" then pkiFiles.keyFile
-                      else pkiFiles.serverKeyFile;
+        certChainFile =
+          if deployType == "aws"
+          then pkiFiles.certChainFile
+          else pkiFiles.serverCertChainFile;
+        certKeyFile =
+          if deployType == "aws"
+          then pkiFiles.keyFile
+          else pkiFiles.serverKeyFile;
         execStartPre = pkgs.writeBashBinChecked "vault-backend-pre" ''
           set -exuo pipefail
-          export PATH="${lib.makeBinPath [ pkgs.coreutils ]}"
+          export PATH="${lib.makeBinPath [pkgs.coreutils]}"
 
           cp ${certChainFile} cert.pem
           cp ${certKeyFile} key.pem

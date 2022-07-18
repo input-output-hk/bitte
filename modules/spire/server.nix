@@ -1,5 +1,9 @@
-{ config, lib, pkgs, ... }:
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   srvName = "spire-server";
   cfg = config.services.spire-server;
   settingsFormat = pkgs.formats.json {};
@@ -55,13 +59,13 @@ in {
         };
 
         options.log_level = lib.mkOption {
-          type = lib.types.enum [ "DEBUG" "INFO" "WARN" "ERROR" ];
+          type = lib.types.enum ["DEBUG" "INFO" "WARN" "ERROR"];
           default = "INFO";
           description = "Sets the logging level.";
         };
 
         options.log_format = lib.mkOption {
-          type = lib.types.enum [ "text" "json" ];
+          type = lib.types.enum ["text" "json"];
           default = "text";
           description = "Format of logs.";
         };
@@ -72,7 +76,6 @@ in {
         for supported values. Ignored if configFile is set.
       '';
     };
-
   };
 
   config = lib.mkIf cfg.enable {
@@ -86,8 +89,8 @@ in {
 
     systemd.services.${srvName} = {
       description = "Spire Server daemon";
-      after = [ "network.target" ];
-      wantedBy = [ "multi-user.target" ];
+      after = ["network.target"];
+      wantedBy = ["multi-user.target"];
       serviceConfig = {
         NoNewPrivileges = true;
         DynamicUser = true;
@@ -98,7 +101,5 @@ in {
         ExecReload = "kill -HUP $MAINPID";
       };
     };
-
   };
-
 }

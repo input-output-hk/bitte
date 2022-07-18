@@ -1,5 +1,9 @@
-{ config, lib, pkgs, ... }:
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   srvName = "spire-agent";
   cfg = config.services.${srvName};
   settingsFormat = pkgs.formats.json {};
@@ -54,13 +58,13 @@ in {
         };
 
         options.log_level = lib.mkOption {
-          type = lib.types.enum [ "DEBUG" "INFO" "WARN" "ERROR" ];
+          type = lib.types.enum ["DEBUG" "INFO" "WARN" "ERROR"];
           default = "INFO";
           description = "Sets the logging level.";
         };
 
         options.log_format = lib.mkOption {
-          type = lib.types.enum [ "text" "json" ];
+          type = lib.types.enum ["text" "json"];
           default = "text";
           description = "Format of logs.";
         };
@@ -87,8 +91,8 @@ in {
 
     systemd.services.${srvName} = {
       description = "Spire Agent daemon";
-      after = [ "network.target" ];
-      wantedBy = [ "multi-user.target" ];
+      after = ["network.target"];
+      wantedBy = ["multi-user.target"];
       serviceConfig = {
         NoNewPrivileges = true;
         DynamicUser = true; # TODO: check unix workload attestor requirements w.r.t. root

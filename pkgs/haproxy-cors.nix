@@ -1,4 +1,7 @@
-{ stdenv, fetchgit }:
+{
+  stdenv,
+  fetchgit,
+}:
 stdenv.mkDerivation {
   pname = "haproxy-lua-cors";
   version = "2020-10-22-unstable";

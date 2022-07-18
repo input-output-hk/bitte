@@ -1,16 +1,23 @@
-{ config, lib, pkgs, ... }: let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
+  Imports = {
+    imports = [
+      ./common.nix
+    ];
+  };
 
-  Imports = { imports = [
-    ./common.nix
-  ]; };
-
-  Switches = { };
+  Switches = {};
 
   Config = {
     services.vault-agent.role = "hydra";
   };
-
-in Imports // lib.mkMerge [
-  Switches
-  Config
-]
+in
+  Imports
+  // lib.mkMerge [
+    Switches
+    Config
+  ]

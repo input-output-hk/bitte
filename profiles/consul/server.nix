@@ -1,6 +1,11 @@
-{ lib, pkgs, config, nodeName, ... }: let
-
-  Imports = { imports = [ ./common.nix ./policies.nix ]; };
+{
+  lib,
+  pkgs,
+  config,
+  nodeName,
+  ...
+}: let
+  Imports = {imports = [./common.nix ./policies.nix];};
 
   Switches = {
     services.consul-snapshots.enable = true;
@@ -15,23 +20,24 @@
     #
     # Consul ports specific to servers
     networking.firewall.allowedTCPPorts = [
-      8600  # dns
+      8600 # dns
     ];
     networking.firewall.allowedUDPPorts = [
-      8600  # dns
+      8600 # dns
     ];
 
     services.consul = {
       bootstrapExpect = 3;
-      addresses = { http = "${config.currentCoreNode.privateIP} 127.0.0.1"; };
+      addresses = {http = "${config.currentCoreNode.privateIP} 127.0.0.1";};
       # autoEncrypt = {
       #   allowTls = true;
       #   tls = true;
       # };
     };
   };
-
-in Imports // lib.mkMerge [
-  Switches
-  Config
-]
+in
+  Imports
+  // lib.mkMerge [
+    Switches
+    Config
+  ]

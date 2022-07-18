@@ -1,10 +1,14 @@
-{ config, lib, ... }: {
+{
+  config,
+  lib,
+  ...
+}: {
   services.consul = {
     roles = with config.services.consul.policies; {
-      consul-agent.policyNames = [ consul-agent.name ];
-      consul-server.policyNames = [ consul-agent.name ];
-      nomad-server.policyNames = [ nomad-server.name ];
-      vault-server.policyNames = [ vault-server.name ];
+      consul-agent.policyNames = [consul-agent.name];
+      consul-server.policyNames = [consul-agent.name];
+      nomad-server.policyNames = [nomad-server.name];
+      vault-server.policyNames = [vault-server.name];
     };
 
     policies = let
@@ -12,12 +16,11 @@
       allList = list "";
       allRead = read "";
       allWrite = write "";
-      deny = path: { "${path}".policy = "deny"; };
-      list = path: { "${path}".policy = "list"; };
-      read = path: { "${path}".policy = "read"; };
-      write = path: { "${path}".policy = "write"; };
+      deny = path: {"${path}".policy = "deny";};
+      list = path: {"${path}".policy = "list";};
+      read = path: {"${path}".policy = "read";};
+      write = path: {"${path}".policy = "write";};
     in {
-
       dns = {
         nodePrefix = allRead;
         servicePrefix = allRead;
@@ -95,7 +98,6 @@
         keyPrefix = allWrite;
         acl = "write";
       };
-
     };
   };
 }

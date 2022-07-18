@@ -1,5 +1,12 @@
-{ self, pkgs, config, lib, nodeName, hashiTokens, ... }: {
-
+{
+  self,
+  pkgs,
+  config,
+  lib,
+  nodeName,
+  hashiTokens,
+  ...
+}: {
   imports = [
     ./common.nix
     ./consul/server.nix
@@ -14,5 +21,5 @@
     consul.enableDebug = false;
   };
 
-  environment.systemPackages = with pkgs; [ sops awscli cfssl tcpdump rage ];
+  environment.systemPackages = with pkgs; [sops awscli cfssl tcpdump rage];
 }

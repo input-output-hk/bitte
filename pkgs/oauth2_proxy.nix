@@ -1,5 +1,8 @@
-{ lib, buildGoModule, fetchFromGitHub }:
-
+{
+  lib,
+  buildGoModule,
+  fetchFromGitHub,
+}:
 buildGoModule rec {
   pname = "oauth2-proxy";
   version = "7.1.3";
@@ -17,13 +20,12 @@ buildGoModule rec {
   doCheck = false;
 
   # Taken from https://github.com/oauth2-proxy/oauth2-proxy/blob/master/Makefile
-  ldflags = [ "-X main.VERSION=${version}" ];
+  ldflags = ["-X main.VERSION=${version}"];
 
   meta = with lib; {
-    description =
-      "A reverse proxy that provides authentication with Google, Github, or other providers";
+    description = "A reverse proxy that provides authentication with Google, Github, or other providers";
     homepage = "https://github.com/oauth2-proxy/oauth2-proxy/";
     license = licenses.mit;
-    maintainers = with maintainers; [ yorickvp knl ];
+    maintainers = with maintainers; [yorickvp knl];
   };
 }

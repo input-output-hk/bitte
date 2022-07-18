@@ -1,15 +1,22 @@
-{ self, config, lib, pkgs, ... }: let
+{
+  self,
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
+  Imports = {
+    imports = [
+      ./common.nix
+    ];
+  };
 
-  Imports = { imports = [
-    ./common.nix
-  ]; };
-
-  Switches = { };
+  Switches = {};
 
   Config = let
     agentCommand = namePrefix: targetDirs: maxLines: let
       script = pkgs.writeShellApplication {
-        runtimeInputs = with pkgs; [ bash coreutils fd moreutils ripgrep ];
+        runtimeInputs = with pkgs; [bash coreutils fd moreutils ripgrep];
         name = "${namePrefix}-cleanup.sh";
         text = ''
           set -x
@@ -21,11 +28,11 @@
               "
                 rg --quiet {} /run/consul-templates/${namePrefix}.log ||
                 {
-                   rm {}
-                   echo \"At $(date -u "+%FT%TZ") vault-agent command removed file: {}\" \
-                     >> /run/consul-templates/${namePrefix}-removed.log
-                   tail -n ${toString maxLines} /run/consul-templates/${namePrefix}-removed.log \
-                     | sponge /run/consul-templates/${namePrefix}-removed.log
+                  rm {}
+                  echo \"At $(date -u "+%FT%TZ") vault-agent command removed file: {}\" \
+                    >> /run/consul-templates/${namePrefix}-removed.log
+                  tail -n ${toString maxLines} /run/consul-templates/${namePrefix}-removed.log \
+                    | sponge /run/consul-templates/${namePrefix}-removed.log
                 }
               "
           fi
@@ -47,12 +54,12 @@
               {{ range $alertTemplate := secrets (printf "kv/system/alerts/%s" $alertDatasource) -}}
                 {{ with secret (printf "kv/system/alerts/%s/%s" $alertDatasource $alertTemplate) -}}
                   {{ .Data.data
-                     | toUnescapedJSONPretty
-                     | writeToFile
-                       (printf "/var/lib/private/vmalert-%s/alerts/%s.json" $alertDatasource $alertTemplate)
-                       "root"
-                       "root"
-                       "0644"
+                    | toUnescapedJSONPretty
+                    | writeToFile
+                      (printf "/var/lib/private/vmalert-%s/alerts/%s.json" $alertDatasource $alertTemplate)
+                      "root"
+                      "root"
+                      "0644"
                   -}}
                   {{ (printf "At %s vault-agent wrote consul-template output declarative alerts to file: /var/lib/vmalert-%s/alerts/%s.json\n"
                     timestamp
@@ -70,12 +77,12 @@
             {{ range $dashboard := secrets "kv/system/dashboards" -}}
               {{ with secret (printf "kv/system/dashboards/%s" $dashboard) -}}
                 {{ .Data.data
-                   | toUnescapedJSONPretty
-                   | writeToFile
-                     (printf "/var/lib/grafana/dashboards/%s.json" $dashboard)
-                     "grafana"
-                     "grafana"
-                     "0644"
+                  | toUnescapedJSONPretty
+                  | writeToFile
+                    (printf "/var/lib/grafana/dashboards/%s.json" $dashboard)
+                    "grafana"
+                    "grafana"
+                    "0644"
                 -}}
                 {{ (printf "At %s vault-agent wrote consul-template output declarative dashboard to file: /var/lib/grafana/dashboards/%s.json\n"
                   timestamp
@@ -89,8 +96,9 @@
       };
     };
   };
-
-in Imports // lib.mkMerge [
-  Switches
-  Config
-]
+in
+  Imports
+  // lib.mkMerge [
+    Switches
+    Config
+  ]

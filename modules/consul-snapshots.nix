@@ -1,6 +1,9 @@
-{ config, pkgs, lib, ... }:
-
-let
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}: let
   cfg = config.services.consul-snapshots;
 
   snapshotJobConfig = with lib.types;
@@ -122,18 +125,18 @@ let
     };
 
   snapshotTimer = job: {
-    partOf = [ "consul-snapshots-${job}.service" ];
+    partOf = ["consul-snapshots-${job}.service"];
     timerConfig = {
       OnCalendar = cfg.${job}.interval;
       RandomizedDelaySec = cfg.${job}.randomizedDelaySec;
       FixedRandomDelay = cfg.${job}.fixedRandomDelay;
       AccuracySec = "1us";
     };
-    wantedBy = [ "timers.target" ];
+    wantedBy = ["timers.target"];
   };
 
   snapshotService = job: {
-    path = with pkgs; [ consul coreutils findutils gawk hostname jq ];
+    path = with pkgs; [consul coreutils findutils gawk hostname jq];
 
     environment = {
       OWNER = cfg.${job}.owner;
@@ -195,7 +198,6 @@ let
       '';
     };
   };
-
 in {
   options = {
     services.consul-snapshots = {

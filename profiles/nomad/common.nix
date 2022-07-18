@@ -1,6 +1,12 @@
-{ config, lib, pkgs, nodeName, pkiFiles, ... }: let
-
-  Imports = { imports = []; };
+{
+  config,
+  lib,
+  pkgs,
+  nodeName,
+  pkiFiles,
+  ...
+}: let
+  Imports = {imports = [];};
 
   Switches = {
     services.nomad.enable = true;
@@ -24,23 +30,22 @@
     # Nomad ports common to both clients and servers
     networking.firewall = {
       allowedTCPPorts = [
-        4646  # http api
-        4647  # rpc
+        4646 # http api
+        4647 # rpc
       ];
     };
 
     environment.variables = {
-      NOMAD_ADDR =
-        "https://127.0.0.1:${toString config.services.nomad.ports.http}";
+      NOMAD_ADDR = "https://127.0.0.1:${toString config.services.nomad.ports.http}";
     };
 
     services.nomad = {
       data_dir = /var/lib/nomad;
       log_level = "DEBUG";
-      name = if (config.currentCoreNode or null) != null then
-        "nomad-${nodeName}"
-      else
-        null;
+      name =
+        if (config.currentCoreNode or null) != null
+        then "nomad-${nodeName}"
+        else null;
 
       ports = {
         http = 4646;
@@ -78,14 +83,19 @@
         publish_node_metrics = true;
         datadog_address = "localhost:8125";
         datadog_tags = [
-          (if deployType == "aws" then "region:${region}" else "datacenter:${datacenter}")
+          (
+            if deployType == "aws"
+            then "region:${region}"
+            else "datacenter:${datacenter}"
+          )
           "role:nomad"
         ];
       };
     };
   };
-
-in Imports // lib.mkMerge [
-  Switches
-  Config
-]
+in
+  Imports
+  // lib.mkMerge [
+    Switches
+    Config
+  ]

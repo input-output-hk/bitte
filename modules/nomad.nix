@@ -1,5 +1,14 @@
-{ self, lib, pkgs, nodeName, config, bittelib, hashiTokens, pkiFiles, ... }:
-let
+{
+  self,
+  lib,
+  pkgs,
+  nodeName,
+  config,
+  bittelib,
+  hashiTokens,
+  pkiFiles,
+  ...
+}: let
   cfg = config.services.nomad;
 
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
@@ -14,14 +23,15 @@ let
       path = toString obj;
       list = map sanitize obj;
       inherit null;
-      set = if obj == { } then
-        { }
-      else
-        lib.pipe obj [
-          (lib.filterAttrs
-            (name: value: name != "_module" && name != "_ref" && value != null))
-          (lib.mapAttrs' (name: value: lib.nameValuePair name (sanitize value)))
-        ];
+      set =
+        if obj == {}
+        then {}
+        else
+          lib.pipe obj [
+            (lib.filterAttrs
+              (name: value: name != "_module" && name != "_ref" && value != null))
+            (lib.mapAttrs' (name: value: lib.nameValuePair name (sanitize value)))
+          ];
     };
 
   serverJoinType = with lib.types;
@@ -29,7 +39,7 @@ let
       options = {
         retry_join = lib.mkOption {
           type = with lib.types; listOf str;
-          default = [ ];
+          default = [];
           description = ''
             Specifies a list of server addresses to join. This is similar to
             start_join, but will continue to be attempted even if the initial
@@ -61,7 +71,7 @@ let
 
         start_join = lib.mkOption {
           type = with lib.types; listOf str;
-          default = [ ];
+          default = [];
           description = ''
             Specifies a list of server addresses to join on startup. If Nomad is
             unable to join with any of the specified addresses, agent startup
@@ -100,7 +110,7 @@ let
   in
     either (listOf (attrsOf mod)) (attrsOf mod);
 in {
-  disabledModules = [ "services/networking/nomad.nix" ];
+  disabledModules = ["services/networking/nomad.nix"];
   options.services.nomad = {
     enable = lib.mkEnableOption "Enable the Nomad agent";
 
@@ -145,7 +155,7 @@ in {
     };
 
     ports = lib.mkOption {
-      default = { };
+      default = {};
       type = with lib.types;
         submodule {
           options = {
@@ -187,12 +197,14 @@ in {
 
     serverNodeNames = lib.mkOption {
       type = with lib.types; listOf str;
-      default = if deployType != "premSim" then [ "core-1" "core-2" "core-3" ]
-                else [ "prem-1" "prem-2" "prem-3" ];
+      default =
+        if deployType != "premSim"
+        then ["core-1" "core-2" "core-3"]
+        else ["prem-1" "prem-2" "prem-3"];
     };
 
     log_level = lib.mkOption {
-      type = with lib.types; enum [ "DEBUG" "INFO" "WARN" ];
+      type = with lib.types; enum ["DEBUG" "INFO" "WARN"];
       default = "INFO";
     };
 
@@ -202,7 +214,7 @@ in {
     };
 
     client = lib.mkOption {
-      default = { };
+      default = {};
       type = with lib.types;
         submodule {
           options = {
@@ -219,7 +231,7 @@ in {
             chroot_env = lib.mkOption {
               type = with lib.types; nullOr (attrsOf str);
               default = null;
-              example = { "/usr/bin/env" = "/usr/bin/env"; };
+              example = {"/usr/bin/env" = "/usr/bin/env";};
               description = ''
                 Specifies a key-value mapping that defines the chroot environment
                 for jobs using the Exec and Java drivers.
@@ -387,7 +399,7 @@ in {
                     };
                   };
                 };
-              default = { };
+              default = {};
               description = ''
                 That Nomad should reserve a portion of the node's resources from
                 receiving tasks. This can be used to target a certain capacity
@@ -398,7 +410,7 @@ in {
 
             servers = lib.mkOption {
               type = with lib.types; listOf str;
-              default = [ ];
+              default = [];
               description = ''
                 An array of addresses to the Nomad servers this client should
                 join. This list is used to register the client with the server
@@ -411,7 +423,7 @@ in {
 
             server_join = lib.mkOption {
               type = with lib.types; serverJoinType;
-              default = { };
+              default = {};
               description = ''
                 How the Nomad client will connect to Nomad servers. The
                 start_join field is not supported on the client. The retry_join
@@ -521,7 +533,7 @@ in {
                   options = {
                     function_blacklist = lib.mkOption {
                       type = with lib.types; listOf str;
-                      default = [ "plugin" ];
+                      default = ["plugin"];
                       description = ''
                         A list of template rendering functions that should be
                         disallowed in job specs. By default the plugin function is
@@ -542,7 +554,7 @@ in {
                     };
                   };
                 };
-              default = { };
+              default = {};
               description = ''
                 Controls on the behavior of task template stanzas.
               '';
@@ -550,14 +562,18 @@ in {
 
             host_volume = lib.mkOption {
               type = with lib.types; hostVolumeType;
-              default = { };
+              default = {};
               apply = x:
                 if builtins.isList x
-                then lib.warn ''
+                then
+                  lib.warn ''
 
-                service.nomad.client.host_volume has changed from a list to an attrset
-                please update your config now.
-                '' builtins.foldl' lib.recursiveUpdate { } x
+                    service.nomad.client.host_volume has changed from a list to an attrset
+                    please update your config now.
+                  ''
+                  builtins.foldl'
+                  lib.recursiveUpdate {}
+                  x
                 else x;
               description = ''
                 Exposes paths from the host as volumes that can be mounted into
@@ -569,7 +585,7 @@ in {
     };
 
     server = lib.mkOption {
-      default = { };
+      default = {};
       type = with lib.types;
         submodule {
           options = {
@@ -602,7 +618,7 @@ in {
 
             server_join = lib.mkOption {
               type = with lib.types; serverJoinType;
-              default = { };
+              default = {};
               description = ''
                 How the Nomad client will connect to Nomad servers. The start_join
                 field is not supported on the client. The retry_join fields may
@@ -645,12 +661,12 @@ in {
             };
 
             default_scheduler_config = lib.mkOption {
-              default = { };
+              default = {};
               type = with lib.types;
                 submodule {
                   options = {
                     scheduler_algorithm = lib.mkOption {
-                      type = with lib.types; enum [ "binpack" "spread" ];
+                      type = with lib.types; enum ["binpack" "spread"];
                       default = "binpack";
                     };
 
@@ -660,15 +676,18 @@ in {
                     };
 
                     preemption_config = lib.mkOption {
-                      default = { };
+                      default = {};
                       type = with lib.types;
                         submodule {
                           options = {
-                            batch_scheduler_enabled = lib.mkEnableOption
+                            batch_scheduler_enabled =
+                              lib.mkEnableOption
                               "Enable preemption for batch tasks";
-                            system_scheduler_enabled = lib.mkEnableOption
+                            system_scheduler_enabled =
+                              lib.mkEnableOption
                               "Enable preemption for system tasks";
-                            service_scheduler_enabled = lib.mkEnableOption
+                            service_scheduler_enabled =
+                              lib.mkEnableOption
                               "Enable preemption for service tasks";
                           };
                         };
@@ -760,7 +779,7 @@ in {
             };
 
             tls_min_version = lib.mkOption {
-              type = with lib.types; enum [ "tls10" "tls11" "tls12" ];
+              type = with lib.types; enum ["tls10" "tls11" "tls12"];
               default = "tls12";
               description = ''
                 Specifies the minimum supported version of TLS.
@@ -1022,7 +1041,7 @@ in {
 
             tags = lib.mkOption {
               type = with lib.types; listOf str;
-              default = [ ];
+              default = [];
               description = ''
                 Specifies optional Consul tags to be registered with the Nomad
                 server and agent services.
@@ -1147,36 +1166,51 @@ in {
       default = null;
       type = with lib.types; nullOr attrs;
       apply = top:
-        if top == null then
-          null
+        if top == null
+        then null
         else
           lib.filter (elem: elem != null) (lib.flip lib.mapAttrsToList top
             (name: value:
-              if value == null then
-                null
+              if value == null
+              then null
               else {
-                ${name} = [{ config = [ value ]; }];
+                ${name} = [{config = [value];}];
               }));
     };
   };
 
   config = lib.mkIf cfg.enable {
-    environment.etc."nomad.d/config.json".source = pkgs.toPrettyJSON "config"
+    environment.etc."nomad.d/config.json".source =
+      pkgs.toPrettyJSON "config"
       (sanitize {
-        inherit (cfg)
-          data_dir log_level datacenter name acl ports tls consul server client
-          plugin telemetry vault;
+        inherit
+          (cfg)
+          data_dir
+          log_level
+          datacenter
+          name
+          acl
+          ports
+          tls
+          consul
+          server
+          client
+          plugin
+          telemetry
+          vault
+          ;
       });
 
-    environment.systemPackages = [ pkgs.nomad ];
+    environment.systemPackages = [pkgs.nomad];
 
-    users.extraUsers.nobody = { };
+    users.extraUsers.nobody = {};
 
     systemd.services.nomad = {
-      after = [ "network-online.target" "vault-agent.service" ];
-      wantedBy = [ "multi-user.target" ];
+      after = ["network-online.target" "vault-agent.service"];
+      wantedBy = ["multi-user.target"];
 
-      restartTriggers = lib.mapAttrsToList (_: d: d.source)
+      restartTriggers =
+        lib.mapAttrsToList (_: d: d.source)
         (lib.filterAttrs (n: _: lib.hasPrefix "${baseNameOf cfg.configDir}/" n)
           config.environment.etc);
 
@@ -1199,57 +1233,67 @@ in {
       };
 
       serviceConfig = let
-        certChainFile = if (deployType != "aws" && cfg.server.enabled) then pkiFiles.serverCertChainFile
-                        else pkiFiles.certChainFile;
-        certKeyFile = if (deployType != "aws" && cfg.server.enabled) then pkiFiles.serverKeyFile
-                      else pkiFiles.keyFile;
+        certChainFile =
+          if (deployType != "aws" && cfg.server.enabled)
+          then pkiFiles.serverCertChainFile
+          else pkiFiles.certChainFile;
+        certKeyFile =
+          if (deployType != "aws" && cfg.server.enabled)
+          then pkiFiles.serverKeyFile
+          else pkiFiles.keyFile;
         start-pre = pkgs.writeBashChecked "nomad-start-pre" (''
-          PATH="${lib.makeBinPath [ pkgs.coreutils pkgs.busybox ]}"
-          set -exuo pipefail
-          # ${bittelib.ensureDependencies pkgs [ "consul" "vault" ]}
-          cp ${certChainFile} full.pem
-          cp ${certKeyFile} cert-key.pem
-          cp ${hashiTokens.vault} .
-          chown --reference . ./*.pem
-        '' + ''
-          export PATH="${lib.makeBinPath (with pkgs; [ fd coreutils ])}:$PATH"
-        '' + (builtins.concatStringsSep "\n" (
-          lib.mapAttrsToList (k: v: ''
-            if [ ! -d "${v.path}" ]; then
-              mkdir -p "${v.path}"
-              chown nobody:nogroup "$_"
-            fi
+            PATH="${lib.makeBinPath [pkgs.coreutils pkgs.busybox]}"
+            set -exuo pipefail
+            # ${bittelib.ensureDependencies pkgs ["consul" "vault"]}
+            cp ${certChainFile} full.pem
+            cp ${certKeyFile} cert-key.pem
+            cp ${hashiTokens.vault} .
+            chown --reference . ./*.pem
           ''
-          ) config.services.nomad.client.host_volume
-        )));
-
+          + ''
+            export PATH="${lib.makeBinPath (with pkgs; [fd coreutils])}:$PATH"
+          ''
+          + (builtins.concatStringsSep "\n" (
+            lib.mapAttrsToList (
+              k: v: ''
+                if [ ! -d "${v.path}" ]; then
+                  mkdir -p "${v.path}"
+                  chown nobody:nogroup "$_"
+                fi
+              ''
+            )
+            config.services.nomad.client.host_volume
+          )));
       in {
         ExecStartPre = "!${start-pre}";
         ExecStart = let
-          args = [ "${cfg.package}/bin/nomad" "agent" ]
+          args =
+            ["${cfg.package}/bin/nomad" "agent"]
             ++ (lib.optionals (cfg.configDir != null) [
               "-config"
               (toString cfg.configDir)
-            ]) ++ (lib.optionals (cfg.pluginDir != null) [
+            ])
+            ++ (lib.optionals (cfg.pluginDir != null) [
               "-plugin-dir"
               (toString cfg.pluginDir)
             ]);
-        in pkgs.writeBashChecked "nomad" ''
-          # TODO: caching this
-          set -euo pipefail
+        in
+          pkgs.writeBashChecked "nomad" ''
+            # TODO: caching this
+            set -euo pipefail
 
-          ${lib.optionalString cfg.server.enabled ''
-            VAULT_TOKEN="$(< ${builtins.baseNameOf hashiTokens.vault})"
-            export VAULT_TOKEN
+            ${lib.optionalString cfg.server.enabled ''
+              VAULT_TOKEN="$(< ${builtins.baseNameOf hashiTokens.vault})"
+              export VAULT_TOKEN
 
-            token="$(vault token create -policy ${cfg.tokenPolicy} -period 72h -orphan -field token)"
-            export VAULT_TOKEN="$token"
-          ''}
+              token="$(vault token create -policy ${cfg.tokenPolicy} -period 72h -orphan -field token)"
+              export VAULT_TOKEN="$token"
+            ''}
 
-          exec ${
-            lib.concatStringsSep " " args
-          } -consul-token "$(< ${hashiTokens.consul-nomad})"
-        '';
+            exec ${
+              lib.concatStringsSep " " args
+            } -consul-token "$(< ${hashiTokens.consul-nomad})"
+          '';
 
         KillMode = "process";
         LimitNOFILE = "infinity";

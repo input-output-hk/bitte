@@ -1,11 +1,11 @@
-{ terralib, config, ... }:
-let
-
+{
+  terralib,
+  config,
+  ...
+}: let
   inherit (terralib) var id;
-
 in {
   tf.hydrate-cluster.configuration = {
-
     resource.vault_mount.sops = {
       path = "sops";
       type = "transit";

@@ -1,4 +1,10 @@
-{ stdenv, fetchFromGitHub, buildGoModule, go, removeReferencesTo }:
+{
+  stdenv,
+  fetchFromGitHub,
+  buildGoModule,
+  go,
+  removeReferencesTo,
+}:
 buildGoModule rec {
   pname = "nomad-autoscaler";
   version = "0.3.3";
@@ -10,9 +16,9 @@ buildGoModule rec {
     sha256 = "sha256-bN/U6aCf33B88ouQwTGG8CqARzWmIvXNr5JPr3l8cVI=";
   };
 
-  subPackages = [ "." ];
+  subPackages = ["."];
 
-  nativeBuildInputs = [ removeReferencesTo ];
+  nativeBuildInputs = [removeReferencesTo];
 
   postBuild = ''
     make bin/plugins/nomad-target

@@ -1,6 +1,12 @@
-{ config, lib, pkgs, nomad-driver-nix, dockerAuth, ... }: let
-
-  Imports = { imports = [ ./common.nix ./bridge-lo-fixup.nix ]; };
+{
+  config,
+  lib,
+  pkgs,
+  nomad-driver-nix,
+  dockerAuth,
+  ...
+}: let
+  Imports = {imports = [./common.nix ./bridge-lo-fixup.nix];};
 
   Switches = {
     services.nomad.client.enabled = true;
@@ -26,7 +32,7 @@
       ];
 
       # Trust traffic originating from the Nomad bridge where nomad bridge jobs are run
-      trustedInterfaces = [ cfg.client.bridge_network_name ];
+      trustedInterfaces = [cfg.client.bridge_network_name];
     };
 
     # Used for Consul Connect in clients
@@ -42,7 +48,15 @@
 
       client = {
         gc_interval = "12h";
-        node_class = config.${if deployType == "aws" then "currentAwsAutoScalingGroup" else "currentCoreNode"}.node_class or "core";
+        node_class =
+          config
+          .${
+            if deployType == "aws"
+            then "currentAwsAutoScalingGroup"
+            else "currentCoreNode"
+          }
+          .node_class
+          or "core";
         chroot_env = {
           # "/usr/bin/env" = "/usr/bin/env";
           "${builtins.unsafeDiscardStringContext pkgs.pkgsStatic.busybox}" = "/usr";
@@ -50,7 +64,6 @@
           "/etc/resolv.conf" = "/etc/resolv.conf";
           "/etc/ssl/certs/ca-bundle.crt" = "/etc/ssl/certs/ca-bundle.crt";
           "/etc/ssl/certs/ca-certificates.crt" = "/etc/ssl/certs/ca-certificates.crt";
-
         };
 
         # min_dynamic_port adjusted higher than the 20000 default to avoid collision
@@ -65,7 +78,10 @@
         max_dynamic_port = 32000;
       };
 
-      datacenter = if deployType == "aws" then config.currentAwsAutoScalingGroup.region else datacenter;
+      datacenter =
+        if deployType == "aws"
+        then config.currentAwsAutoScalingGroup.region
+        else datacenter;
 
       vault.address = "http://127.0.0.1:8200";
     };
@@ -74,13 +90,14 @@
       CONSUL_HTTP_ADDR = "http://127.0.0.1:8500";
     };
 
-    system.extraDependencies = [ pkgs.pkgsStatic.busybox ];
+    system.extraDependencies = [pkgs.pkgsStatic.busybox];
 
     users.extraUsers.nobody.isSystemUser = true;
-    users.groups.nogroup = { };
+    users.groups.nogroup = {};
   };
-
-in Imports // lib.mkMerge [
-  Switches
-  Config
-]
+in
+  Imports
+  // lib.mkMerge [
+    Switches
+    Config
+  ]

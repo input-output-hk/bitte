@@ -1,19 +1,33 @@
-{ lib, consul, vault-bin, coreutils, writeShellScriptBin, toPrettyJSON }:
-{ creds ? "consul-register", extraServiceConfig ? { }, service, pkiFiles }:
-let
+{
+  lib,
+  consul,
+  vault-bin,
+  coreutils,
+  writeShellScriptBin,
+  toPrettyJSON,
+}: {
+  creds ? "consul-register",
+  extraServiceConfig ? {},
+  service,
+  pkiFiles,
+}: let
   serviceJson = toPrettyJSON service.name {
-    service = service // {
-      checks = lib.flip lib.mapAttrsToList (service.checks or { })
-        (checkName: check:
-          {
-            id = "${service.name}-${checkName}";
-            service_id = service.name;
-            name = checkName;
-          } // check);
-    };
+    service =
+      service
+      // {
+        checks =
+          lib.flip lib.mapAttrsToList (service.checks or {})
+          (checkName: check:
+            {
+              id = "${service.name}-${checkName}";
+              service_id = service.name;
+              name = checkName;
+            }
+            // check);
+      };
   };
 
-  PATH = lib.makeBinPath [ coreutils consul vault-bin ];
+  PATH = lib.makeBinPath [coreutils consul vault-bin];
 
   common = ''
     set -euo pipefail
@@ -52,10 +66,10 @@ in rec {
   '';
 
   systemdService = {
-    wantedBy = [ "${service.name}.service" ];
-    partOf = [ "${service.name}.service" ];
-    after = [ "consul.service" "vault-agent.service" ];
-    wants = [ "consul.service" "vault-agent.service" ];
+    wantedBy = ["${service.name}.service"];
+    partOf = ["${service.name}.service"];
+    after = ["consul.service" "vault-agent.service"];
+    wants = ["consul.service" "vault-agent.service"];
 
     environment = {
       VAULT_ADDR = "https://127.0.0.1:8200";
@@ -64,11 +78,13 @@ in rec {
       CONSUL_CACERT = pkiFiles.caCertFile;
     };
 
-    serviceConfig = {
-      Restart = "always";
-      RestartSec = "15s";
-      ExecStart = "${register}/bin/${service.name}-register";
-      ExecStopPost = "${deregister}/bin/${service.name}-deregister";
-    } // extraServiceConfig;
+    serviceConfig =
+      {
+        Restart = "always";
+        RestartSec = "15s";
+        ExecStart = "${register}/bin/${service.name}-register";
+        ExecStopPost = "${deregister}/bin/${service.name}-deregister";
+      }
+      // extraServiceConfig;
   };
 }

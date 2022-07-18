@@ -1,17 +1,23 @@
-{ config, self, pkgs, lib, nodeName, pkiFiles, ... }:
-let
+{
+  config,
+  self,
+  pkgs,
+  lib,
+  nodeName,
+  pkiFiles,
+  ...
+}: let
   # with 3 storage nodes, and redundancy at 1, we have 2/3 of size*3. We only
   # want to use 90% to ensure the quota is actually applied in time, so ew set
   # it to 2*0.9 = 1.8.
   quotaSize =
     config.tf.core.configuration.resource.aws_ebs_volume.${nodeName}.size * 1.8;
 in {
-
   services.glusterfs.enable = true;
 
-  systemd.services.glusterd.path = with pkgs; [ nettools ];
+  systemd.services.glusterd.path = with pkgs; [nettools];
 
-  boot.kernelModules = [ "xfs" ];
+  boot.kernelModules = ["xfs"];
 
   fileSystems = {
     "/data/brick1" = {
@@ -29,17 +35,17 @@ in {
   };
 
   systemd.services."mnt-gv0.mount" = {
-    after = [ "setup-glusterfs.service" ];
-    wants = [ "setup-glusterfs.service" ];
+    after = ["setup-glusterfs.service"];
+    wants = ["setup-glusterfs.service"];
 
     serviceConfig.Restart = "on-failure";
     serviceConfig.RestartSec = "20s";
   };
 
   systemd.services.setup-glusterfs = {
-    wantedBy = [ "multi-user.target" ];
-    after = [ "glusterfs.service" ];
-    path = with pkgs; [ glusterfs gnugrep xfsprogs utillinux jq ];
+    wantedBy = ["multi-user.target"];
+    after = ["glusterfs.service"];
+    path = with pkgs; [glusterfs gnugrep xfsprogs utillinux jq];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;

@@ -1,5 +1,10 @@
-{ config, lib, pkgs, pkiFiles, ... }:
-let
+{
+  config,
+  lib,
+  pkgs,
+  pkiFiles,
+  ...
+}: let
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
   role = config.currentCoreNode.role or config.currentAwsAutoScalingGroup.role;
   isRouter = role == "router";

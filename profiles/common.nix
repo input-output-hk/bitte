@@ -1,9 +1,12 @@
-{ config, lib, pkgs, ... }:
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   inherit (config.cluster) nodes coreNodes premNodes premSimNodes;
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
 in {
-
   imports = [
     ./slim.nix
 
@@ -28,7 +31,7 @@ in {
   services.chrony.enable = true;
 
   # Ensure that the timeservers are able to resolve before iburst probing
-  systemd.services.chronyd.after = lib.mkIf config.services.dnsmasq.enable [ "dnsmasq.service" ];
+  systemd.services.chronyd.after = lib.mkIf config.services.dnsmasq.enable ["dnsmasq.service"];
 
   networking.timeServers = lib.mkForce [
     "0.nixos.pool.ntp.org"
@@ -42,7 +45,7 @@ in {
   environment.variables = {
     AWS_DEFAULT_REGION = lib.mkIf (deployType != "prem") config.cluster.region;
   };
-  environment.systemPackages = with pkgs; [ consul nomad vault-bin ];
+  environment.systemPackages = with pkgs; [consul nomad vault-bin];
 
   # Don't `nixos-rebuild switch` after the initial deploy.
   systemd.services.amazon-init.enable = false;
@@ -59,20 +62,24 @@ in {
     allowPing = true;
 
     # TODO: deprecate open firewall with SG dependency in aws
-    allowedTCPPortRanges = lib.mkIf (deployType == "aws") [ all ];
-    allowedUDPPortRanges = lib.mkIf (deployType == "aws") [ all ];
+    allowedTCPPortRanges = lib.mkIf (deployType == "aws") [all];
+    allowedUDPPortRanges = lib.mkIf (deployType == "aws") [all];
   };
 
   networking.extraHosts = let
     inherit (config.services.vault) serverNodeNames;
   in ''
     ${lib.concatStringsSep "\n"
-    (lib.mapAttrsToList (name: instance: "${instance.privateIP} ${name}.internal")
-      (lib.filterAttrs (k: v: lib.elem k serverNodeNames) nodes))}
+      (lib.mapAttrsToList (name: instance: "${instance.privateIP} ${name}.internal")
+        (lib.filterAttrs (k: v: lib.elem k serverNodeNames) nodes))}
 
     ${lib.concatStringsSep "\n"
-    (lib.mapAttrsToList (name: instance: "${instance.privateIP} ${name}")
-      (if deployType != "premSim" then (coreNodes // premNodes) else premSimNodes))}
+      (lib.mapAttrsToList (name: instance: "${instance.privateIP} ${name}")
+        (
+          if deployType != "premSim"
+          then (coreNodes // premNodes)
+          else premSimNodes
+        ))}
   '';
 
   # Convenience

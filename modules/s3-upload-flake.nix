@@ -1,4 +1,10 @@
-{ self, config, lib, pkgs, ... }: {
+{
+  self,
+  config,
+  lib,
+  pkgs,
+  ...
+}: {
   options = {
     services.s3-upload-flake.enable = lib.mkEnableOption ''
       Upload latest flake of this auto scaling group to S3
@@ -8,10 +14,9 @@
   };
 
   config = lib.mkIf config.services.s3-upload-flake.enable {
-
     systemd.services.s3-upload = {
-      wantedBy = [ "multi-user.target" ];
-      after = [ "network-online.target" ];
+      wantedBy = ["multi-user.target"];
+      after = ["network-online.target"];
 
       serviceConfig = {
         Type = "oneshot";
@@ -19,7 +24,7 @@
         RestartSec = "30s";
       };
 
-      path = with pkgs; [ awscli xz gnutar coreutils ];
+      path = with pkgs; [awscli xz gnutar coreutils];
 
       script = ''
         tar cvf source.tar.xz -C ${config.cluster.flakePath} .

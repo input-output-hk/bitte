@@ -1,5 +1,11 @@
-{ lib, pkgs, config, nodeName, etcEncrypted, ... }:
-let
+{
+  lib,
+  pkgs,
+  config,
+  nodeName,
+  etcEncrypted,
+  ...
+}: let
   deployType =
     config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
   role = config.currentCoreNode.role or config.currentAwsAutoScalingGroup.role;
@@ -15,7 +21,7 @@ let
   relEncryptedFolder = lib.last (builtins.split "-" (toString config.secrets.encryptedRoot));
 in {
   options.profiles.auxiliaries.builder = with lib; {
-    enable = mkEnableOption "builder profile" // { default = true; };
+    enable = mkEnableOption "builder profile" // {default = true;};
 
     remoteBuilder = {
       nodeName = mkOption {
@@ -27,14 +33,14 @@ in {
       buildMachine = mkOption {
         type = types.attrs;
         description = "extra `nix.buildMachines.*` options";
-        default = { };
+        default = {};
       };
     };
   };
 
   config = lib.mkIf cfg.enable {
     secrets.generate.nix-key-file = lib.mkIf isSops ''
-      export PATH="${lib.makeBinPath (with pkgs; [ nix sops coreutils ])}"
+      export PATH="${lib.makeBinPath (with pkgs; [nix sops coreutils])}"
       esk=${relEncryptedFolder}/nix-secret-key-file
       ssk=secrets/nix-secret-key-file
       if [ ! -s "$esk" ]; then
@@ -63,7 +69,7 @@ in {
     '';
 
     secrets.generate.builder-ssh-key = lib.mkIf isSops ''
-      export PATH="${lib.makeBinPath (with pkgs; [ openssh sops coreutils ])}"
+      export PATH="${lib.makeBinPath (with pkgs; [openssh sops coreutils])}"
       epk=${relEncryptedFolder}/nix-builder-key.pub
       spk=secrets/nix-builder-key.pub
       esk=${relEncryptedFolder}/nix-builder-key
@@ -85,7 +91,7 @@ in {
       inputType = "binary";
       outputType = "binary";
       script = ''
-        export PATH="${lib.makeBinPath (with pkgs; [ coreutils openssh ])}"
+        export PATH="${lib.makeBinPath (with pkgs; [coreutils openssh])}"
         chmod 0600 /etc/nix/builder-key
         ssh \
           -o NumberOfPasswordPrompts=0 \
@@ -114,21 +120,22 @@ in {
     };
 
     nix = {
-      distributedBuilds = (isAsg || isClient);
+      distributedBuilds = isAsg || isClient;
       maxJobs = lib.mkIf (isAsg || isClient) 0;
       extraOptions = ''
         builders-use-substitutes = true
       '';
-      trustedUsers = lib.mkIf isRemoteBuilder [ "root" "builder" ];
+      trustedUsers = lib.mkIf isRemoteBuilder ["root" "builder"];
       buildMachines = lib.optionals (!isRemoteBuilder) [
         ({
-          hostName = cfg.remoteBuilder.nodeName;
-          maxJobs = 5;
-          speedFactor = 1;
-          sshKey = "/etc/nix/builder-key";
-          sshUser = "builder";
-          system = "x86_64-linux";
-        } // cfg.remoteBuilder.buildMachine)
+            hostName = cfg.remoteBuilder.nodeName;
+            maxJobs = 5;
+            speedFactor = 1;
+            sshKey = "/etc/nix/builder-key";
+            sshUser = "builder";
+            system = "x86_64-linux";
+          }
+          // cfg.remoteBuilder.buildMachine)
       ];
     };
 
@@ -137,11 +144,11 @@ in {
         isSystemUser = true;
         group = "builder";
         openssh.authorizedKeys.keyFiles = let
-          builderKey = if isSops then
-            "${toString config.secrets.encryptedRoot}/nix-builder-key.pub"
-          else
-            config.age.encryptedRoot + "/ssh/builder.pub";
-        in [ builderKey ];
+          builderKey =
+            if isSops
+            then "${toString config.secrets.encryptedRoot}/nix-builder-key.pub"
+            else config.age.encryptedRoot + "/ssh/builder.pub";
+        in [builderKey];
         shell = pkgs.bashInteractive;
       };
       groups.builder = {};

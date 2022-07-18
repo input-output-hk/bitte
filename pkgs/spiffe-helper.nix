@@ -1,9 +1,9 @@
-{ lib
-, buildGoModule
-, fetchFromGitHub
-, fetchpatch
+{
+  lib,
+  buildGoModule,
+  fetchFromGitHub,
+  fetchpatch,
 }:
-
 buildGoModule rec {
   pname = "spiffe-helper";
   version = "0.5";
@@ -25,12 +25,12 @@ buildGoModule rec {
 
   vendorSha256 = "sha256-Yzc9TGBszEJbr9ZMHxKmohoAfc8zEdx37w9ekdi+gAM=";
 
-  subPackages = [ "cmd/spiffe-helper" ];
+  subPackages = ["cmd/spiffe-helper"];
 
   meta = with lib; {
     description = "The SPIFFE Helper is a tool that can be used to retrieve and manage SVIDs on behalf of a workload";
     homepage = "https://github.com/spiffe/spiffe-helper";
     license = licenses.asl20;
-    maintainers = with maintainers; [ blaggacao ];
+    maintainers = with maintainers; [blaggacao];
   };
 }

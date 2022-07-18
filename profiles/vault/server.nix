@@ -1,9 +1,16 @@
-{ config, nodeName, lib, pkiFiles, ... }: let
-
-  Imports = { imports = [
-    ./common.nix
-    ./policies.nix
-  ]; };
+{
+  config,
+  nodeName,
+  lib,
+  pkiFiles,
+  ...
+}: let
+  Imports = {
+    imports = [
+      ./common.nix
+      ./policies.nix
+    ];
+  };
 
   Switches = {
     services.vault.enable = true;
@@ -18,9 +25,10 @@
     ownedChain = "/var/lib/vault/full.pem";
     ownedKey = "/var/lib/vault/cert-key.pem";
 
-    serverAddress = if config.services.vault.serverNameAddressing
-                    then "${nodeName}.internal"
-                    else config.currentCoreNode.privateIP;
+    serverAddress =
+      if config.services.vault.serverNameAddressing
+      then "${nodeName}.internal"
+      else config.currentCoreNode.privateIP;
   in {
     # Vault firewall references:
     #   https://www.vaultproject.io/docs/configuration/listener/tcp
@@ -29,8 +37,8 @@
     # Vault ports specific to servers
     networking.firewall = {
       allowedTCPPorts = [
-        8200  # http api
-        8201  # rpc
+        8200 # http api
+        8201 # rpc
       ];
     };
 
@@ -67,7 +75,11 @@
         dogstatsdAddr = "localhost:8125";
         dogstatsdTags = [
           "role:vault"
-          (if (deployType == "aws") then "region:${region}" else "datacenter:${datacenter}")
+          (
+            if (deployType == "aws")
+            then "region:${region}"
+            else "datacenter:${datacenter}"
+          )
         ];
       };
 
@@ -75,16 +87,21 @@
         vcfg = config.services.vault;
         vaultServers =
           lib.filterAttrs (k: v: lib.elem k vcfg.serverNodeNames) nodes;
-        vaultAddress = k: v: if config.services.vault.serverNameAddressing
-                      then "${k}.internal" else v.privateIP;
-      in lib.mkDefault {
-        retryJoin = lib.mapAttrsToList (_: vaultServer: {
-          leaderApiAddr = "https://${vaultAddress _ vaultServer}:8200";
-          leaderCaCertFile = vcfg.listener.tcp.tlsClientCaFile;
-          leaderClientCertFile = vcfg.listener.tcp.tlsCertFile;
-          leaderClientKeyFile = vcfg.listener.tcp.tlsKeyFile;
-        }) vaultServers;
-      };
+        vaultAddress = k: v:
+          if config.services.vault.serverNameAddressing
+          then "${k}.internal"
+          else v.privateIP;
+      in
+        lib.mkDefault {
+          retryJoin =
+            lib.mapAttrsToList (_: vaultServer: {
+              leaderApiAddr = "https://${vaultAddress _ vaultServer}:8200";
+              leaderCaCertFile = vcfg.listener.tcp.tlsClientCaFile;
+              leaderClientCertFile = vcfg.listener.tcp.tlsCertFile;
+              leaderClientKeyFile = vcfg.listener.tcp.tlsKeyFile;
+            })
+            vaultServers;
+        };
     };
 
     environment.variables = {
@@ -93,8 +110,9 @@
       VAULT_CACERT = pkiFiles.caCertFile;
     };
   };
-
-in Imports // lib.mkMerge [
-  Switches
-  Config
-]
+in
+  Imports
+  // lib.mkMerge [
+    Switches
+    Config
+  ]

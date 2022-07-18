@@ -1,5 +1,13 @@
-{ config, lib, pkgs, bittelib, hashiTokens, gossipEncryptionMaterial, pkiFiles, ... }:
-let
+{
+  config,
+  lib,
+  pkgs,
+  bittelib,
+  hashiTokens,
+  gossipEncryptionMaterial,
+  pkiFiles,
+  ...
+}: let
   cfg = config.services.consul;
 
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
@@ -15,27 +23,31 @@ let
       list = map sanitize obj;
       path = toString obj;
       inherit null;
-      set = if (builtins.length (builtins.attrNames obj) == 0) then
-        null
-      else
-        lib.pipe obj [
-          (lib.filterAttrs
-            (name: value: name != "_module" && name != "_ref" && value != null))
-          (lib.mapAttrs' (name: value:
-            lib.nameValuePair (sanitizeName name) (sanitizeValue name value)))
-        ];
+      set =
+        if (builtins.length (builtins.attrNames obj) == 0)
+        then null
+        else
+          lib.pipe obj [
+            (lib.filterAttrs
+              (name: value: name != "_module" && name != "_ref" && value != null))
+            (lib.mapAttrs' (name: value:
+                lib.nameValuePair (sanitizeName name) (sanitizeValue name value)))
+          ];
     };
 
   # Some config cannot be snakeCase sanitized without breaking the functionality.
   # Example: consul service router, resolver and splitter configuration.
-  excluded = [ "failover" "splits" "subsets" ];
+  excluded = ["failover" "splits" "subsets"];
   sanitizeName = name:
-    if builtins.elem name excluded then name else bittelib.snakeCase name;
+    if builtins.elem name excluded
+    then name
+    else bittelib.snakeCase name;
   sanitizeValue = name: value:
-    if builtins.elem name excluded then value else sanitize value;
-
+    if builtins.elem name excluded
+    then value
+    else sanitize value;
 in {
-  disabledModules = [ "services/networking/consul.nix" ];
+  disabledModules = ["services/networking/consul.nix"];
   options = {
     services.consul = {
       enable = lib.mkEnableOption "Enable the consul daemon.";
@@ -58,19 +70,21 @@ in {
       ui = lib.mkEnableOption "Enable the web UI.";
 
       logLevel = lib.mkOption {
-        type = with lib.types; enum [ "trace" "debug" "info" "warn" "err" ];
+        type = with lib.types; enum ["trace" "debug" "info" "warn" "err"];
         default = "info";
       };
 
       serverNodeNames = lib.mkOption {
         type = with lib.types; listOf str;
-        default = if deployType != "premSim" then [ "core-1" "core-2" "core-3" ]
-                  else [ "prem-1" "prem-2" "prem-3" ];
+        default =
+          if deployType != "premSim"
+          then ["core-1" "core-2" "core-3"]
+          else ["prem-1" "prem-2" "prem-3"];
       };
 
       extraConfig = lib.mkOption {
         type = with lib.types; attrs;
-        default = { };
+        default = {};
       };
 
       datacenter = lib.mkOption {
@@ -199,9 +213,9 @@ in {
       addresses = lib.mkOption {
         type = with lib.types;
           submodule {
-            options = { http = lib.mkOption { type = with lib.types; str; }; };
+            options = {http = lib.mkOption {type = with lib.types; str;};};
           };
-        default = { };
+        default = {};
       };
 
       recursors = lib.mkOption {
@@ -220,7 +234,7 @@ in {
 
       retryJoin = lib.mkOption {
         type = with lib.types; listOf str;
-        default = [ ];
+        default = [];
       };
 
       primaryDatacenter = lib.mkOption {
@@ -229,7 +243,7 @@ in {
       };
 
       acl = lib.mkOption {
-        default = { };
+        default = {};
         type = with lib.types;
           nullOr (submodule {
             options = {
@@ -239,7 +253,7 @@ in {
               };
 
               defaultPolicy = lib.mkOption {
-                type = with lib.types; nullOr (enum [ "deny" "allow" ]);
+                type = with lib.types; nullOr (enum ["deny" "allow"]);
                 default = "deny";
               };
 
@@ -253,7 +267,7 @@ in {
 
               downPolicy = lib.mkOption {
                 type =
-                  nullOr (enum [ "allow" "deny" "extend-cache" "async-cache" ]);
+                  nullOr (enum ["allow" "deny" "extend-cache" "async-cache"]);
                 default = "extend-cache";
                 description = ''
                   In the case that a policy or token cannot be read from the
@@ -317,7 +331,7 @@ in {
               };
             };
           };
-        default = { };
+        default = {};
       };
 
       caFile = lib.mkOption {
@@ -355,7 +369,7 @@ in {
       verifyServerHostname = lib.mkEnableOption "Verify server hostname";
 
       ports = lib.mkOption {
-        default = { };
+        default = {};
         type = with lib.types;
           submodule {
             options = {
@@ -398,17 +412,17 @@ in {
       };
 
       tlsMinVersion = lib.mkOption {
-        type = with lib.types; enum [ "tls10" "tls11" "tls12" "tls13" ];
+        type = with lib.types; enum ["tls10" "tls11" "tls12" "tls13"];
         default = "tls12";
       };
 
       nodeMeta = lib.mkOption {
         type = with lib.types; attrsOf str;
-        default = { };
+        default = {};
       };
 
       telemetry = lib.mkOption {
-        default = { };
+        default = {};
         type = with lib.types;
           submodule {
             options = {
@@ -438,46 +452,78 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    environment.systemPackages = [ cfg.package ];
+    environment.systemPackages = [cfg.package];
 
-    environment.variables = { CONSUL_HTTP_ADDR = "http://127.0.0.1:8500"; };
+    environment.variables = {CONSUL_HTTP_ADDR = "http://127.0.0.1:8500";};
 
-    environment.etc."${cfg.configDir}/config.json".source =
-      pkgs.toPrettyJSON "config" (sanitize {
-        inherit (cfg)
-          ui datacenter bootstrapExpect bindAddr advertiseAddr server logLevel
-          clientAddr encrypt addresses recursors retryJoin primaryDatacenter
-          acl connect caFile certFile keyFile autoEncrypt verifyServerHostname
-          verifyOutgoing verifyIncoming verifyIncomingRpc dataDir tlsMinVersion ports
-          enableLocalScriptChecks nodeMeta telemetry nodeId enableDebug
-          enableScriptChecks;
-      });
+    environment.etc."${cfg.configDir}/config.json".source = pkgs.toPrettyJSON "config" (sanitize {
+      inherit
+        (cfg)
+        ui
+        datacenter
+        bootstrapExpect
+        bindAddr
+        advertiseAddr
+        server
+        logLevel
+        clientAddr
+        encrypt
+        addresses
+        recursors
+        retryJoin
+        primaryDatacenter
+        acl
+        connect
+        caFile
+        certFile
+        keyFile
+        autoEncrypt
+        verifyServerHostname
+        verifyOutgoing
+        verifyIncoming
+        verifyIncomingRpc
+        dataDir
+        tlsMinVersion
+        ports
+        enableLocalScriptChecks
+        nodeMeta
+        telemetry
+        nodeId
+        enableDebug
+        enableScriptChecks
+        ;
+    });
 
     environment.etc."${cfg.configDir}/extra-config.json".source =
       pkgs.toPrettyJSON "config" (sanitize cfg.extraConfig);
 
     systemd.services.consul = {
-      wantedBy = [ "multi-user.target" ];
-      after = [ "network.target" ];
+      wantedBy = ["multi-user.target"];
+      after = ["network.target"];
 
-      restartTriggers = lib.mapAttrsToList (_: d: d.source)
+      restartTriggers =
+        lib.mapAttrsToList (_: d: d.source)
         (lib.filterAttrs (n: _: lib.hasPrefix "${cfg.configDir}/" n)
           config.environment.etc);
 
-      path = with pkgs; [ envoy ];
+      path = with pkgs; [envoy];
 
       serviceConfig = let
         # Some prem machines roles are not Consul servers but do not utilize
         # intermediate cert pki either like a client would.  So here we examine
         # the machine role (isClient) rather than cfg.server which is not
         # granular enough in this case.
-        certChainFile = if (deployType != "aws" && !isClient) then pkiFiles.serverCertChainFile
-                        else pkiFiles.certChainFile;
-        certKeyFile = if (deployType != "aws" && !isClient) then pkiFiles.serverKeyFile
-                      else pkiFiles.keyFile;
+        certChainFile =
+          if (deployType != "aws" && !isClient)
+          then pkiFiles.serverCertChainFile
+          else pkiFiles.certChainFile;
+        certKeyFile =
+          if (deployType != "aws" && !isClient)
+          then pkiFiles.serverKeyFile
+          else pkiFiles.keyFile;
         preScript = let
           start-pre = pkgs.writeBashBinChecked "consul-start-pre" ''
-            PATH="${lib.makeBinPath [ pkgs.coreutils ]}"
+            PATH="${lib.makeBinPath [pkgs.coreutils]}"
             set -exuo pipefail
             cp ${certChainFile} full.pem
             cp ${certKeyFile} cert-key.pem
@@ -488,7 +534,7 @@ in {
         postScript = let
           start-post = pkgs.writeBashBinChecked "consul-start-post" ''
             set -exuo pipefail
-            PATH="${lib.makeBinPath [ pkgs.jq cfg.package pkgs.coreutils ]}"
+            PATH="${lib.makeBinPath [pkgs.jq cfg.package pkgs.coreutils]}"
             set +x
 
             # During bootstrap the vault generated token are not yet available
@@ -517,7 +563,7 @@ in {
         reloadScript = let
           reload = pkgs.writeBashBinChecked "consul-reload" ''
             set -exuo pipefail
-            PATH="${lib.makeBinPath [ pkgs.jq cfg.package pkgs.coreutils ]}"
+            PATH="${lib.makeBinPath [pkgs.jq cfg.package pkgs.coreutils]}"
             set +x
 
             # During bootstrap the vault generated token are not yet available
@@ -549,9 +595,8 @@ in {
       in {
         ExecStartPre = preScript;
         ExecReload = reloadScript;
-        ExecStart =
-          "@${cfg.package}/bin/consul consul agent -config-dir /etc/${cfg.configDir}";
-        ExecStartPost = [ postScript ];
+        ExecStart = "@${cfg.package}/bin/consul consul agent -config-dir /etc/${cfg.configDir}";
+        ExecStartPost = [postScript];
         Restart = "on-failure";
         RestartSec = "10s";
         DynamicUser = true;

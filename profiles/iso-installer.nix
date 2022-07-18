@@ -1,5 +1,9 @@
-{ lib, pkgs, ... }: {
-  imports = [ ./auxiliaries/nix.nix ./auxiliaries/ssh.nix ];
+{
+  lib,
+  pkgs,
+  ...
+}: {
+  imports = [./auxiliaries/nix.nix ./auxiliaries/ssh.nix];
 
   environment = {
     systemPackages = with pkgs; [

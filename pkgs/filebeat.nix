@@ -1,4 +1,9 @@
-{ lib, buildGoModule, fetchFromGitHub, systemd }:
+{
+  lib,
+  buildGoModule,
+  fetchFromGitHub,
+  systemd,
+}:
 buildGoModule rec {
   pname = "beats";
   version = "7.12.0";
@@ -12,6 +17,6 @@ buildGoModule rec {
 
   vendorSha256 = "sha256-Pd8jE7fAYQ/Js39X+8d1ojcGzxAg5MQkYqY2PB8CXa4=";
 
-  subPackages = [ "filebeat" ];
-  buildInputs = [ systemd.dev ];
+  subPackages = ["filebeat"];
+  buildInputs = [systemd.dev];
 }

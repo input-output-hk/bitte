@@ -1,23 +1,31 @@
-{ pkgs, lib, config, bittelib, ... }:
-let
+{
+  pkgs,
+  lib,
+  config,
+  bittelib,
+  ...
+}: let
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
 
-  rmModules = arg:
-    let
-      sanitized = lib.mapAttrsToList (name: value:
-        if name == "_module" then
-          null
-        else {
-          inherit name;
-          value =
-            if builtins.typeOf value == "set" then rmModules value else value;
-        }) arg;
-    in lib.listToAttrs (lib.remove null sanitized);
+  rmModules = arg: let
+    sanitized = lib.mapAttrsToList (name: value:
+      if name == "_module"
+      then null
+      else {
+        inherit name;
+        value =
+          if builtins.typeOf value == "set"
+          then rmModules value
+          else value;
+      })
+    arg;
+  in
+    lib.listToAttrs (lib.remove null sanitized);
 
   policy2hcl = name: value:
     pkgs.runCommandLocal "json2hcl" {
       src = builtins.toFile "${name}.json" (builtins.toJSON (rmModules value));
-      nativeBuildInputs = [ pkgs.json2hcl ];
+      nativeBuildInputs = [pkgs.json2hcl];
     } ''
       json2hcl < "$src" > "$out"
     '';
@@ -27,7 +35,7 @@ let
       options = {
         capabilities = lib.mkOption {
           type = with lib.types;
-            listOf (enum [ "create" "read" "update" "delete" "list" "sudo" ]);
+            listOf (enum ["create" "read" "update" "delete" "list" "sudo"]);
         };
       };
     });
@@ -35,9 +43,9 @@ let
   vaultApproleType = with lib.types;
     submodule (_: {
       options = {
-        token_ttl = lib.mkOption { type = with lib.types; str; };
-        token_max_ttl = lib.mkOption { type = with lib.types; str; };
-        token_policies = lib.mkOption { type = with lib.types; listOf str; };
+        token_ttl = lib.mkOption {type = with lib.types; str;};
+        token_max_ttl = lib.mkOption {type = with lib.types; str;};
+        token_policies = lib.mkOption {type = with lib.types; listOf str;};
       };
     });
 
@@ -50,108 +58,118 @@ let
       };
     });
 
-  createNomadRoles = lib.flip lib.mapAttrsToList config.services.nomad.policies
+  createNomadRoles =
+    lib.flip lib.mapAttrsToList config.services.nomad.policies
     (name: policy: ''vault write "nomad/role/${name}" "policies=${name}"'');
 in {
   options = {
     services.vault.policies = lib.mkOption {
       type = with lib.types; attrsOf vaultPoliciesType;
-      default = { };
+      default = {};
     };
 
     services.vault-acl.enable = lib.mkEnableOption "Create Vault roles";
   };
 
   # TODO: also remove them again.
-  config.systemd.services.vault-acl =
-    lib.mkIf config.services.vault-acl.enable {
-      after = [ "vault.service" "vault-bootstrap.service" ];
-      wantedBy = [ "multi-user.target" ];
-      description = "Service that creates all Vault policies.";
+  config.systemd.services.vault-acl = lib.mkIf config.services.vault-acl.enable {
+    after = ["vault.service" "vault-bootstrap.service"];
+    wantedBy = ["multi-user.target"];
+    description = "Service that creates all Vault policies.";
 
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        Restart = "on-failure";
-        RestartSec = "20s";
-        WorkingDirectory = "/var/lib/vault";
-        ExecStartPre =
-          bittelib.ensureDependencies pkgs [ "vault-bootstrap" "vault" ];
-      };
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      Restart = "on-failure";
+      RestartSec = "20s";
+      WorkingDirectory = "/var/lib/vault";
+      ExecStartPre =
+        bittelib.ensureDependencies pkgs ["vault-bootstrap" "vault"];
+    };
 
-      environment = {
-        inherit (config.environment.variables)
-          VAULT_CACERT VAULT_ADDR VAULT_FORMAT NOMAD_ADDR;
-        AWS_DEFAULT_REGION = lib.mkIf (deployType == "aws")
-                            config.environment.variables.AWS_DEFAULT_REGION;
-      };
+    environment = {
+      inherit
+        (config.environment.variables)
+        VAULT_CACERT
+        VAULT_ADDR
+        VAULT_FORMAT
+        NOMAD_ADDR
+        ;
+      AWS_DEFAULT_REGION =
+        lib.mkIf (deployType == "aws")
+        config.environment.variables.AWS_DEFAULT_REGION;
+    };
 
-      path = with pkgs; [ vault-bin sops rage jq nomad curl cacert ];
+    path = with pkgs; [vault-bin sops rage jq nomad curl cacert];
 
-      script = ''
-        set -euo pipefail
+    script = ''
+      set -euo pipefail
 
-        ${if (deployType == "aws") then ''
+      ${
+        if (deployType == "aws")
+        then ''
           VAULT_TOKEN="$(sops -d --extract '["root_token"]' vault.enc.json)"''
         else ''
           VAULT_TOKEN="$(rage -i /etc/ssh/ssh_host_ed25519_key -d /var/lib/vault/vault-bootstrap.json.age | jq -r '.root_token')"''
-        }
+      }
 
-        export VAULT_TOKEN
-        export VAULT_ADDR=https://127.0.0.1:8200
+      export VAULT_TOKEN
+      export VAULT_ADDR=https://127.0.0.1:8200
 
-        set -x
+      set -x
 
-        # Vault Policies
+      # Vault Policies
 
-        ${lib.concatStringsSep "" (lib.mapAttrsToList (name: value: ''
+      ${lib.concatStringsSep "" (lib.mapAttrsToList (name: value: ''
           vault policy write "${name}" "${policy2hcl name value}"
-        '') config.services.vault.policies)}
+        '')
+        config.services.vault.policies)}
 
-        keepNames=(default root ${
-          toString ((builtins.attrNames config.services.vault.policies)
-            ++ (builtins.attrNames
-              config.tf.hydrate-cluster.configuration.locals.policies.vault))
-        })
-        policyNames=($(vault policy list | jq -e -r '.[]'))
+      keepNames=(default root ${
+        toString ((builtins.attrNames config.services.vault.policies)
+          ++ (builtins.attrNames
+            config.tf.hydrate-cluster.configuration.locals.policies.vault))
+      })
+      policyNames=($(vault policy list | jq -e -r '.[]'))
 
-        for name in "''${policyNames[@]}"; do
-          keep=""
-          for kname in "''${keepNames[@]}"; do
-            if [ "$name" = "$kname" ]; then
-              keep="yes"
-            fi
-          done
-
-          if [ -z "$keep" ]; then
-            vault policy delete "$name"
+      for name in "''${policyNames[@]}"; do
+        keep=""
+        for kname in "''${keepNames[@]}"; do
+          if [ "$name" = "$kname" ]; then
+            keep="yes"
           fi
         done
 
-        # Nomad Policies and Default Management Role
+        if [ -z "$keep" ]; then
+          vault policy delete "$name"
+        fi
+      done
 
-        ${lib.concatStringsSep "\n" createNomadRoles}
-        vault write "nomad/role/management" "policies=" "type=management"
+      # Nomad Policies and Default Management Role
 
-        keepNames=(${
-          toString ((builtins.attrNames config.services.nomad.policies
-            ++ [ "management" ]) ++ (builtins.attrNames
-              config.tf.hydrate-cluster.configuration.locals.policies.nomad))
-        })
-        nomadRoles=($(nomad acl policy list -json | jq -r -e '.[].Name'))
+      ${lib.concatStringsSep "\n" createNomadRoles}
+      vault write "nomad/role/management" "policies=" "type=management"
 
-        for role in "''${nomadRoles[@]}"; do
-          keep=""
-          for kname in "''${keepNames[@]}"; do
-            if [ "$role" = "$kname" ]; then
-              keep="yes"
-            fi
-          done
+      keepNames=(${
+        toString ((builtins.attrNames config.services.nomad.policies
+            ++ ["management"])
+          ++ (builtins.attrNames
+            config.tf.hydrate-cluster.configuration.locals.policies.nomad))
+      })
+      nomadRoles=($(nomad acl policy list -json | jq -r -e '.[].Name'))
 
-          if [ -z "$keep" ]; then
-            vault delete "nomad/role/$role"
+      for role in "''${nomadRoles[@]}"; do
+        keep=""
+        for kname in "''${keepNames[@]}"; do
+          if [ "$role" = "$kname" ]; then
+            keep="yes"
           fi
         done
-      '';
-    };
+
+        if [ -z "$keep" ]; then
+          vault delete "nomad/role/$role"
+        fi
+      done
+    '';
+  };
 }

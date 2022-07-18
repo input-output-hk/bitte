@@ -1,16 +1,19 @@
-{ config, lib, pkgs, pkiFiles, ... }:
-let
-
-  Imports = { imports = []; };
+{
+  config,
+  lib,
+  pkgs,
+  pkiFiles,
+  ...
+}: let
+  Imports = {imports = [];};
 
   Switches = {
     services.nomad-autoscaler.enable = true;
   };
 
   Config = let
-    mkQuery = type:
-      { region, ... }:
-      lib.replaceStrings [ "\n" " " ] [ "" "" ] ''
+    mkQuery = type: {region, ...}:
+      lib.replaceStrings ["\n" " "] ["" ""] ''
         sum(
           nomad_client_allocated_${type}_value{datacenter="${region}"}
           * 100
@@ -73,8 +76,7 @@ let
 
       apm.victoriametrics = {
         driver = "prometheus";
-        config.address =
-          "http://${config.cluster.coreNodes.monitoring.privateIP}:8428";
+        config.address = "http://${config.cluster.coreNodes.monitoring.privateIP}:8428";
       };
 
       target = lib.flip lib.mapAttrs config.cluster.awsAutoScalingGroups (name: asg: {
@@ -85,8 +87,9 @@ let
       strategy.target-value.driver = "target-value";
     };
   };
-
-in Imports // lib.mkMerge [
-  Switches
-  Config
-]
+in
+  Imports
+  // lib.mkMerge [
+    Switches
+    Config
+  ]

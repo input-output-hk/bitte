@@ -1,7 +1,10 @@
-{ lib, pkgs, config, ... }:
-
-let cfg = config.services.zfs-client-options;
-
+{
+  lib,
+  pkgs,
+  config,
+  ...
+}: let
+  cfg = config.services.zfs-client-options;
 in {
   options = {
     services.zfs-client-options = {
@@ -91,14 +94,14 @@ in {
     systemd = {
       timers = {
         zfs-arc-max-control-enable = lib.mkIf cfg.enableZfsArcMaxControl {
-          wantedBy = [ "timers.target" ];
-          partOf = [ "zfs-arc-max-control-enable.service" ];
+          wantedBy = ["timers.target"];
+          partOf = ["zfs-arc-max-control-enable.service"];
           timerConfig.OnCalendar = "hourly";
         };
 
         zfs-snapshot-enable = lib.mkIf cfg.enableZfsSnapshots {
-          wantedBy = [ "timers.target" ];
-          partOf = [ "zfs-snapshot-enable.service" ];
+          wantedBy = ["timers.target"];
+          partOf = ["zfs-snapshot-enable.service"];
           timerConfig.OnCalendar = "daily";
         };
       };
@@ -106,7 +109,7 @@ in {
       services = {
         zfs-arc-max-control-enable = lib.mkIf cfg.enableZfsArcMaxControl {
           serviceConfig.Type = "oneshot";
-          path = with pkgs; [ gawk gnugrep zfs ];
+          path = with pkgs; [gawk gnugrep zfs];
           script = ''
             set -euo pipefail
             echo " "
@@ -124,7 +127,9 @@ in {
             echo "Total RAM bytes available: $RAM_TOTAL_BYTES"
 
             USE_ARC_MAX_PERCENT="${
-              if cfg.useArcMaxPercent then "true" else "false"
+              if cfg.useArcMaxPercent
+              then "true"
+              else "false"
             }"
 
             if [ "$USE_ARC_MAX_PERCENT" = "true" ]; then
@@ -178,7 +183,7 @@ in {
 
         zfs-snapshot-enable = lib.mkIf cfg.enableZfsSnapshots {
           serviceConfig.Type = "oneshot";
-          path = [ pkgs.zfs ];
+          path = [pkgs.zfs];
           script = ''
             set -euo pipefail
             echo "The current state of zfs autosnapshots is:"

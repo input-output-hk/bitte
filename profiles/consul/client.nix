@@ -1,6 +1,10 @@
-{ config, lib, pkgs, ... }: let
-
-  Imports = { imports = [ ./common.nix ]; };
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
+  Imports = {imports = [./common.nix];};
 
   Switches = {};
 
@@ -25,7 +29,10 @@
     ];
 
     services.consul = {
-      addresses.http = if isDocker then "127.0.0.1 172.17.0.1" else "127.0.0.1";
+      addresses.http =
+        if isDocker
+        then "127.0.0.1 172.17.0.1"
+        else "127.0.0.1";
       ports = {
         # Default dynamic port ranges for consul clients.
         # Nomad default ephemeral dynamic port range will need to be adjusted to avoid random collision.
@@ -42,8 +49,9 @@
       };
     };
   };
-
-in Imports // lib.mkMerge [
-  Switches
-  Config
-]
+in
+  Imports
+  // lib.mkMerge [
+    Switches
+    Config
+  ]
