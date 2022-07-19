@@ -148,8 +148,6 @@
   };
 
   snapshotService = job: {
-    path = with pkgs; [coreutils curl findutils gawk hostname jq vault-bin];
-
     environment = {
       OWNER = cfg.${job}.owner;
       BACKUP_DIR = "${cfg.${job}.backupDirPrefix}/${job}";
@@ -164,70 +162,69 @@
       Type = "oneshot";
       Restart = "on-failure";
       RestartSec = "30s";
-      ExecStart = pkgs.writeBashChecked "vault-snapshot-${job}-script" ''
-        set -exuo pipefail
+      ExecStart = let
+        name = "vault-snapshot-${job}-script.sh";
+        script = pkgs.writeShellApplication {
+          inherit name;
+          runtimeInputs = with pkgs; [coreutils findutils gawk hostname jq vault-bin];
+          text = ''
+            set -x
 
-        SNAP_NAME="$BACKUP_DIR/vault-$(hostname)-$(date +"%Y-%m-%d_%H%M%SZ''${BACKUP_SUFFIX}").snap"
+            SNAP_NAME="$BACKUP_DIR/vault-$(hostname)-$(date +"%Y-%m-%d_%H%M%SZ''${BACKUP_SUFFIX}").snap"
 
-        applyPerms () {
-          TARGET="$1"
-          PERMS="$2"
+            applyPerms () {
+              TARGET="$1"
+              PERMS="$2"
 
-          chown "$OWNER" "$TARGET"
-          chmod "$PERMS" "$TARGET"
-        }
+              chown "$OWNER" "$TARGET"
+              chmod "$PERMS" "$TARGET"
+            }
 
-        checkBackupDir () {
-          if [ ! -d "$BACKUP_DIR" ]; then
-            mkdir -p "$BACKUP_DIR"
-            applyPerms "$BACKUP_DIR" 0700
-          fi
-        }
+            takeVaultSnapshot () {
+              if [ ! -d "$BACKUP_DIR" ]; then
+                mkdir -p "$BACKUP_DIR"
+                applyPerms "$BACKUP_DIR" 0700
+              fi
+              vault operator raft snapshot save "$SNAP_NAME"
+              applyPerms "$SNAP_NAME" 0400
+            }
 
-        exportToken () {
-          set +x
-          VAULT_TOKEN="$(< ${hashiTokens.vault})"
-          export VAULT_TOKEN
-          set -x
-        }
+            set +x
+            VAULT_TOKEN="$(< ${hashiTokens.vault})"
+            export VAULT_TOKEN
+            set -x
 
-        isNotLeader () {
-          [ "$INCLUDE_LEADER" = "true" ] || \
-            vault status | jq -e '(.is_self or false) == false'
-        }
+            STATUS="$(vault status)"
 
-        isNotRaftStorage () {
-          vault status | jq -e '.storage_type != "raft"'
-        }
+            if jq -e '.storage_type != "raft"' <<< "$STATUS"; then
+              echo "Vault storage backend is not raft."
+              echo "Ensure the appropriate storage backend is being snapshotted."
+              exit 0
+            fi
 
-        takeVaultSnapshot () {
-          vault operator raft snapshot save "$SNAP_NAME"
-          applyPerms "$SNAP_NAME" 0400
-        }
+            if jq -e '(.is_self // false) == true' <<< "$STATUS"; then
+              ROLE="leader"
+            else
+              ROLE="replica"
+            fi
 
-        if isNotRaftStorage; then
-          echo "Vault storage backend is not raft."
-          echo "Ensure the appropriate storage backend is being snapshotted, ex: Consul."
-          exit 0
-        fi
+            if [ "$ROLE" = "leader" ] && [ "$INCLUDE_LEADER" = "true" ]; then
+              takeVaultSnapshot
+            elif [ "$ROLE" = "replica" ] && [ "$INCLUDE_REPLICA" = "true" ]; then
+              takeVaultSnapshot
+            fi
 
-        export VAULT_ADDR
-        exportToken
-
-        if isNotLeader; then
-          checkBackupDir
-          takeVaultSnapshot
-        fi
-
-        find "$BACKUP_DIR" \
-          -type f \
-          -name "*''${BACKUP_SUFFIX}.snap" \
-          -printf "%T@ %p\n" \
-          | sort -r -n \
-          | tail -n +${toString (cfg.${job}.backupCount + 1)} \
-          | awk '{print $2}' \
-          | xargs -r rm
-      '';
+            find "$BACKUP_DIR" \
+              -type f \
+              -name "*''${BACKUP_SUFFIX}.snap" \
+              -printf "%T@ %p\n" \
+              | sort -r -n \
+              | tail -n +${toString (cfg.${job}.backupCount + 1)} \
+              | awk '{print $2}' \
+              | xargs -r rm
+          '';
+        };
+      in "${script}/bin/${name}";
     };
   };
 in {
