@@ -1,5 +1,5 @@
 inputs: let
-  inherit (inputs) nixpkgs nixpkgs-unstable ops-lib self;
+  inherit (inputs) nixpkgs nixpkgs-docker nixpkgs-unstable ops-lib self;
   inherit (nixpkgs) lib;
 
   deprecated = k:
@@ -7,9 +7,6 @@ inputs: let
       ${k} is deprecated from the bitte overlay.
             See bitte/overlay.nix
     '';
-
-  pkgs = final: nixpkgs.legacyPackages.${final.system};
-  pkgsUnstable = final: nixpkgs-unstable.legacyPackages.${final.system};
 in
   final: prev:
     rec {
@@ -18,8 +15,7 @@ in
 
       # Packages specifically needing an unstable nixpkgs pinned latest available version
       inherit
-        (pkgsUnstable final)
-        docker # 20.10.17
+        (nixpkgs-unstable.legacyPackages.${prev.system})
         grafana # 9.0.1
         grafana-loki # 2.5.0
         podman # 4.1.1
@@ -29,12 +25,12 @@ in
       # Alphabetically sorted packages
       agenix = inputs.agenix.packages.${final.system}.agenix;
       agenix-cli = inputs.agenix-cli.packages.${final.system}.agenix-cli;
-      bitte-ruby = (pkgs final).bundlerEnv {
+      bitte-ruby = prev.bundlerEnv {
         name = "bitte-gems";
         gemdir = ./.;
       };
 
-      bundler = (pkgs final).bundler.overrideAttrs (o: {
+      bundler = prev.bundler.overrideAttrs (o: {
         postInstall = ''
           sed -i -e '/if sudo_needed/I,+2 d' $out/${prev.ruby.gemPath}/gems/${o.gemName}-${o.version}/lib/bundler.rb
         '';
@@ -45,6 +41,11 @@ in
       cue = prev.callPackage ./pkgs/cue.nix {};
       devShell = final.callPackage ./pkgs/dev-shell.nix {};
       docker-distribution = prev.callPackage ./pkgs/docker-distribution.nix {};
+
+      # Pin docker and containerd to avoid unexpected cluster wide docker daemon restarts
+      # during metal deploy resulting in OCI jobs being killed or behaving unexpectedly
+      inherit (nixpkgs-docker.legacyPackages.${prev.system}) docker containerd; # v20.10.15
+
       filebeat = final.callPackage ./pkgs/filebeat.nix {};
       glusterfs = final.callPackage ./pkgs/glusterfs.nix {};
       grpcdump = prev.callPackage ./pkgs/grpcdump.nix {};
@@ -61,10 +62,10 @@ in
       spire = prev.callPackage ./pkgs/spire.nix {};
       spire-server = spire.server;
       spire-systemd-attestor = prev.callPackage ./pkgs/spire-systemd-attestor.nix {};
-      traefik = prev.callPackage ./pkgs/traefik.nix {buildGoModule = (pkgs final).buildGo117Module;};
+      traefik = prev.callPackage ./pkgs/traefik.nix {buildGoModule = final.buildGo117Module;};
       vault-backend = final.callPackage ./pkgs/vault-backend.nix {};
       vault-bin = prev.callPackage ./pkgs/vault-bin.nix {};
-      victoriametrics = prev.callPackage ./pkgs/victoriametrics.nix {buildGoModule = (pkgs final).buildGo117Module;};
+      victoriametrics = prev.callPackage ./pkgs/victoriametrics.nix {buildGoModule = final.buildGo117Module;};
 
       scaler-guard = let
         deps = with final; [awscli bash curl jq nomad];

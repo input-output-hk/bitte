@@ -1133,6 +1133,22 @@
         "type": "indirect"
       }
     },
+    "nixpkgs-docker": {
+      "locked": {
+        "lastModified": 1652739558,
+        "narHash": "sha256-znGkjGugajqF/sFS+H4+ENmGTaVPFE0uu1JjQZJLEaQ=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "ff691ed9ba21528c1b4e034f36a04027e4522c58",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "ff691ed9ba21528c1b4e034f36a04027e4522c58",
+        "type": "github"
+      }
+    },
     "nixpkgs-regression": {
       "locked": {
         "lastModified": 1643052045,
@@ -1884,6 +1900,7 @@
         "n2c": "n2c",
         "nix": "nix_4",
         "nixpkgs": "nixpkgs_21",
+        "nixpkgs-docker": "nixpkgs-docker",
         "nixpkgs-unstable": "nixpkgs-unstable_2",
         "nomad": "nomad_2",
         "nomad-driver-nix": "nomad-driver-nix_2",
