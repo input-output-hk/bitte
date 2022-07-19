@@ -246,8 +246,9 @@ in {
         Modify services.vault-snapshots.custom options to enable and customize.
       '';
 
-      hourly = lib.mkOption {
-        type = with lib.types; snapshotJobConfig;
+      defaultHourlyOpts = lib.mkOption {
+        type = with lib.types; attrs;
+        internal = true;
         default = {
           enable = true;
           backupCount = 48;
@@ -257,8 +258,9 @@ in {
         };
       };
 
-      daily = lib.mkOption {
-        type = with lib.types; snapshotJobConfig;
+      defaultDailyOpts = lib.mkOption {
+        type = with lib.types; attrs;
+        internal = true;
         default = {
           enable = true;
           backupCount = 30;
@@ -266,6 +268,16 @@ in {
           interval = "daily";
           randomizedDelaySec = 86400;
         };
+      };
+
+      hourly = lib.mkOption {
+        type = with lib.types; snapshotJobConfig;
+        default = cfg.defaultHourlyOpts;
+      };
+
+      daily = lib.mkOption {
+        type = with lib.types; snapshotJobConfig;
+        default = cfg.defaultDailyOpts;
       };
 
       custom = lib.mkOption {
