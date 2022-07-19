@@ -85,6 +85,17 @@
           '';
         };
 
+        includeReplica = lib.mkOption {
+          type = with lib.types; bool;
+          default = true;
+          description = ''
+            Whether to include the replicas in the servers which will save snapshots.
+
+            Reducing leader load from snapshots may be best done by fixed time
+            snapshot randomization so snapshot concurrency remains 1.
+          '';
+        };
+
         interval = lib.mkOption {
           type = with lib.types; addCheck str (x: x != "");
           default = null;
@@ -143,6 +154,7 @@
       BACKUP_DIR = "${cfg.${job}.backupDirPrefix}/${job}";
       BACKUP_SUFFIX = "-${cfg.${job}.backupSuffix}";
       INCLUDE_LEADER = lib.boolToString cfg.${job}.includeLeader;
+      INCLUDE_REPLICA = lib.boolToString cfg.${job}.includeReplica;
       CONSUL_HTTP_ADDR = cfg.${job}.consulAddress;
     };
 
