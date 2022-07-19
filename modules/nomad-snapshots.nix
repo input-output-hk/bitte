@@ -148,8 +148,6 @@
   };
 
   snapshotService = job: {
-    path = with pkgs; [coreutils curl findutils gawk hostname jq nomad];
-
     environment = {
       OWNER = cfg.${job}.owner;
       BACKUP_DIR = "${cfg.${job}.backupDirPrefix}/${job}";
@@ -163,66 +161,69 @@
       Type = "oneshot";
       Restart = "on-failure";
       RestartSec = "30s";
-      ExecStart = pkgs.writeBashChecked "nomad-snapshot-${job}-script" ''
-        set -exuo pipefail
-
-        SNAP_NAME="$BACKUP_DIR/nomad-$(hostname)-$(date +"%Y-%m-%d_%H%M%SZ''${BACKUP_SUFFIX}").snap"
-
-        applyPerms () {
-          TARGET="$1"
-          PERMS="$2"
-
-          chown "$OWNER" "$TARGET"
-          chmod "$PERMS" "$TARGET"
-        }
-
-        checkBackupDir () {
-          if [ ! -d "$BACKUP_DIR" ]; then
-            mkdir -p "$BACKUP_DIR"
-            applyPerms "$BACKUP_DIR" "0700"
-          fi
-        }
-
-        exportToken () {
-          if [ ! -f ${hashiTokens.nomad-snapshot} ]; then
-            echo "Suitable nomad token for snapshotting not found."
-            echo "Ensure the appropriate token for snapshotting is available.";
-            exit 0;
-          else
-            set +x
-            NOMAD_TOKEN="$(< ${hashiTokens.nomad-snapshot})"
-            export NOMAD_TOKEN
+      ExecStart = let
+        name = "nomad-snapshot-${job}-script.sh";
+        script = pkgs.writeShellApplication {
+          inherit name;
+          runtimeInputs = with pkgs; [coreutils findutils gawk hostname jq nomad];
+          text = ''
             set -x
-          fi
-        }
 
-        isNotLeader () {
-          [ "$INCLUDE_LEADER" = "true" ] || \
-            nomad agent-info --json | jq -e '.stats.nomad.leader == "false"'
-        }
+            SNAP_NAME="$BACKUP_DIR/nomad-$(hostname)-$(date +"%Y-%m-%d_%H%M%SZ''${BACKUP_SUFFIX}").snap"
 
-        takeNomadSnapshot () {
-          nomad operator snapshot save "$SNAP_NAME"
-          applyPerms "$SNAP_NAME" "0400"
-        }
+            applyPerms () {
+              TARGET="$1"
+              PERMS="$2"
 
-        export NOMAD_ADDR
-        exportToken
+              chown "$OWNER" "$TARGET"
+              chmod "$PERMS" "$TARGET"
+            }
 
-        if isNotLeader; then
-          checkBackupDir
-          takeNomadSnapshot
-        fi
+            takeNomadSnapshot () {
+              if [ ! -d "$BACKUP_DIR" ]; then
+                mkdir -p "$BACKUP_DIR"
+                applyPerms "$BACKUP_DIR" "0700"
+              fi
+              nomad operator snapshot save "$SNAP_NAME"
+              applyPerms "$SNAP_NAME" "0400"
+            }
 
-        find "$BACKUP_DIR" \
-          -type f \
-          -name "*''${BACKUP_SUFFIX}.snap" \
-          -printf "%T@ %p\n" \
-          | sort -r -n \
-          | tail -n +${toString (cfg.${job}.backupCount + 1)} \
-          | awk '{print $2}' \
-          | xargs -r rm
-      '';
+            if [ ! -f ${hashiTokens.nomad-snapshot} ]; then
+              echo "Suitable nomad token for snapshotting not found."
+              echo "Ensure the appropriate token for snapshotting is available.";
+              exit 0;
+            else
+              set +x
+              NOMAD_TOKEN="$(< ${hashiTokens.nomad-snapshot})"
+              export NOMAD_TOKEN
+              set -x
+            fi
+
+            STATUS="$(nomad agent-info --json)"
+
+            if jq -e '(.stats.nomad.leader // "false") == "true"' <<< "$STATUS"; then
+              ROLE="leader"
+            else
+              ROLE="replica"
+            fi
+
+            if [ "$ROLE" = "leader" ] && [ "$INCLUDE_LEADER" = "true" ]; then
+              takeNomadSnapshot
+            elif [ "$ROLE" = "replica" ] && [ "$INCLUDE_REPLICA" = "true" ]; then
+              takeNomadSnapshot
+            fi
+
+            find "$BACKUP_DIR" \
+              -type f \
+              -name "*''${BACKUP_SUFFIX}.snap" \
+              -printf "%T@ %p\n" \
+              | sort -r -n \
+              | tail -n +${toString (cfg.${job}.backupCount + 1)} \
+              | awk '{print $2}' \
+              | xargs -r rm
+          '';
+        };
+      in "${script}/bin/${name}";
     };
   };
 in {
