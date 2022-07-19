@@ -147,8 +147,6 @@
   };
 
   snapshotService = job: {
-    path = with pkgs; [consul coreutils findutils gawk hostname jq];
-
     environment = {
       OWNER = cfg.${job}.owner;
       BACKUP_DIR = "${cfg.${job}.backupDirPrefix}/${job}";
@@ -162,52 +160,56 @@
       Type = "oneshot";
       Restart = "on-failure";
       RestartSec = "30s";
-      ExecStart = pkgs.writeBashChecked "consul-snapshot-${job}-script" ''
-        set -exuo pipefail
+      ExecStart = let
+        name = "consul-snapshot-${job}-script.sh";
+        script = pkgs.writeShellApplication {
+          inherit name;
+          runtimeInputs = with pkgs; [consul coreutils findutils gawk hostname jq];
+          text = ''
+            set -x
 
-        SNAP_NAME="$BACKUP_DIR/consul-$(hostname)-$(date +"%Y-%m-%d_%H%M%SZ''${BACKUP_SUFFIX}").snap"
+            SNAP_NAME="$BACKUP_DIR/consul-$(hostname)-$(date +"%Y-%m-%d_%H%M%SZ''${BACKUP_SUFFIX}").snap"
 
-        applyPerms () {
-          TARGET="$1"
-          PERMS="$2"
+            applyPerms () {
+              TARGET="$1"
+              PERMS="$2"
 
-          chown "$OWNER" "$TARGET"
-          chmod "$PERMS" "$TARGET"
-        }
+              chown "$OWNER" "$TARGET"
+              chmod "$PERMS" "$TARGET"
+            }
 
-        checkBackupDir () {
-          if [ ! -d "$BACKUP_DIR" ]; then
-            mkdir -p "$BACKUP_DIR"
-            applyPerms "$BACKUP_DIR" "0700"
-          fi
-        }
+            takeConsulSnapshot () {
+              if [ ! -d "$BACKUP_DIR" ]; then
+                mkdir -p "$BACKUP_DIR"
+                applyPerms "$BACKUP_DIR" "0700"
+              fi
+              consul snapshot save "$SNAP_NAME"
+              applyPerms "$SNAP_NAME" "0400"
+            }
 
-        isNotLeader () {
-          [ "$INCLUDE_LEADER" = "true" ] || \
-            consul info | grep -E '^\s*leader\s+=\s+false$'
-        }
+            if consul info | grep -E '^\s*leader\s+=\s+true$'; then
+              ROLE="leader"
+            else
+              ROLE="replica"
+            fi
 
-        takeConsulSnapshot () {
-          consul snapshot save "$SNAP_NAME"
-          applyPerms "$SNAP_NAME" "0400"
-        }
+            if [ "$ROLE" = "leader" ] && [ "$INCLUDE_LEADER" = "true" ]; then
+              takeConsulSnapshot
+            elif [ "$ROLE" = "replica" ] && [ "$INCLUDE_REPLICA" = "true" ]; then
+              takeConsulSnapshot
+            fi
 
-        export CONSUL_HTTP_ADDR
-
-        if isNotLeader; then
-          checkBackupDir
-          takeConsulSnapshot
-        fi
-
-        find "$BACKUP_DIR" \
-          -type f \
-          -name "*''${BACKUP_SUFFIX}.snap" \
-          -printf "%T@ %p\n" \
-          | sort -r -n \
-          | tail -n +${toString (cfg.${job}.backupCount + 1)} \
-          | awk '{print $2}' \
-          | xargs -r rm
-      '';
+            find "$BACKUP_DIR" \
+              -type f \
+              -name "*''${BACKUP_SUFFIX}.snap" \
+              -printf "%T@ %p\n" \
+              | sort -r -n \
+              | tail -n +${toString (cfg.${job}.backupCount + 1)} \
+              | awk '{print $2}' \
+              | xargs -r rm
+          '';
+        };
+      in "${script}/bin/${name}";
     };
   };
 in {
