@@ -6,19 +6,22 @@
 }: let
   cfg = config.services.consul-snapshots;
 
-  snapshotJobConfig = with lib.types;
+  inherit (lib) boolToString mkEnableOption mkIf mkOption;
+  inherit (lib.types) addCheck attrs bool int str submodule;
+
+  snapshotJobConfig =
     submodule {
       options = {
-        enable = lib.mkOption {
-          type = with lib.types; bool;
+        enable = mkOption {
+          type = bool;
           default = true;
           description = ''
             Creates a systemd service and timer to automatically save Consul snapshots.
           '';
         };
 
-        backupCount = lib.mkOption {
-          type = with lib.types; addCheck int (x: x >= 0);
+        backupCount = mkOption {
+          type = addCheck int (x: x >= 0);
           default = null;
           description = ''
             The number of snapshots to keep.  A sensible value matched to the onCalendar
@@ -29,8 +32,8 @@
           '';
         };
 
-        backupDirPrefix = lib.mkOption {
-          type = with lib.types; str;
+        backupDirPrefix = mkOption {
+          type = str;
           default = "/var/lib/private/consul/snapshots";
           description = ''
             The top level location to store the snapshots.  The actual storage location
@@ -43,8 +46,8 @@
           '';
         };
 
-        backupSuffix = lib.mkOption {
-          type = with lib.types; addCheck str (x: x != "");
+        backupSuffix = mkOption {
+          type = addCheck str (x: x != "");
           default = null;
           description = ''
             Sets the saved snapshot filename with a descriptive suffix prior to the file
@@ -54,16 +57,16 @@
           '';
         };
 
-        consulAddress = lib.mkOption {
-          type = with lib.types; str;
+        consulAddress = mkOption {
+          type = str;
           default = "http://127.0.0.1:8500";
           description = ''
             The local consul server address, including protocol and port.
           '';
         };
 
-        fixedRandomDelay = lib.mkOption {
-          type = with lib.types; bool;
+        fixedRandomDelay = mkOption {
+          type = bool;
           default = true;
           description = ''
             Makes randomizedDelaySec fixed between service restarts if true.
@@ -72,8 +75,8 @@
           '';
         };
 
-        includeLeader = lib.mkOption {
-          type = with lib.types; bool;
+        includeLeader = mkOption {
+          type = bool;
           default = true;
           description = ''
             Whether to include the leader in the servers which will save snapshots.
@@ -85,8 +88,8 @@
           '';
         };
 
-        includeReplica = lib.mkOption {
-          type = with lib.types; bool;
+        includeReplica = mkOption {
+          type = bool;
           default = true;
           description = ''
             Whether to include the replicas in the servers which will save snapshots.
@@ -96,8 +99,8 @@
           '';
         };
 
-        interval = lib.mkOption {
-          type = with lib.types; addCheck str (x: x != "");
+        interval = mkOption {
+          type = addCheck str (x: x != "");
           default = null;
           description = ''
             The default onCalendar systemd timer string to trigger snapshot backups.
@@ -110,8 +113,8 @@
           '';
         };
 
-        randomizedDelaySec = lib.mkOption {
-          type = with lib.types; addCheck int (x: x >= 0);
+        randomizedDelaySec = mkOption {
+          type = addCheck int (x: x >= 0);
           default = 0;
           description = ''
             A randomization period to be added to each systemd timer to avoid
@@ -125,8 +128,8 @@
           '';
         };
 
-        owner = lib.mkOption {
-          type = with lib.types; str;
+        owner = mkOption {
+          type = str;
           default = "consul:consul";
           description = ''
             The user and group to own the snapshot storage directory and snapshot files.
@@ -151,8 +154,8 @@
       OWNER = cfg.${job}.owner;
       BACKUP_DIR = "${cfg.${job}.backupDirPrefix}/${job}";
       BACKUP_SUFFIX = "-${cfg.${job}.backupSuffix}";
-      INCLUDE_LEADER = lib.boolToString cfg.${job}.includeLeader;
-      INCLUDE_REPLICA = lib.boolToString cfg.${job}.includeReplica;
+      INCLUDE_LEADER = boolToString cfg.${job}.includeLeader;
+      INCLUDE_REPLICA = boolToString cfg.${job}.includeReplica;
       CONSUL_HTTP_ADDR = cfg.${job}.consulAddress;
     };
 
@@ -215,7 +218,7 @@
 in {
   options = {
     services.consul-snapshots = {
-      enable = lib.mkEnableOption ''
+      enable = mkEnableOption ''
         Enable Consul snapshots.
 
         By default hourly snapshots will be taken and stored for 2 days on each consul server.
@@ -228,8 +231,8 @@ in {
         Modify services.consul-snapshots.custom options to enable and customize.
       '';
 
-      defaultHourlyOpts = lib.mkOption {
-        type = with lib.types; attrs;
+      defaultHourlyOpts = mkOption {
+        type = attrs;
         internal = true;
         default = {
           enable = true;
@@ -240,8 +243,8 @@ in {
         };
       };
 
-      defaultDailyOpts = lib.mkOption {
-        type = with lib.types; attrs;
+      defaultDailyOpts = mkOption {
+        type = attrs;
         internal = true;
         default = {
           enable = true;
@@ -252,18 +255,18 @@ in {
         };
       };
 
-      hourly = lib.mkOption {
-        type = with lib.types; snapshotJobConfig;
+      hourly = mkOption {
+        type = snapshotJobConfig;
         default = cfg.defaultHourlyOpts;
       };
 
-      daily = lib.mkOption {
-        type = with lib.types; snapshotJobConfig;
+      daily = mkOption {
+        type = snapshotJobConfig;
         default = cfg.defaultDailyOpts;
       };
 
-      custom = lib.mkOption {
-        type = with lib.types; snapshotJobConfig;
+      custom = mkOption {
+        type = snapshotJobConfig;
         default = {
           enable = false;
           backupSuffix = "custom";
@@ -272,23 +275,23 @@ in {
     };
   };
 
-  config = lib.mkIf cfg.enable {
+  config = mkIf cfg.enable {
     # Hourly snapshot configuration
     systemd.timers.consul-snapshots-hourly =
-      lib.mkIf cfg.hourly.enable (snapshotTimer "hourly");
+      mkIf cfg.hourly.enable (snapshotTimer "hourly");
     systemd.services.consul-snapshots-hourly =
-      lib.mkIf cfg.hourly.enable (snapshotService "hourly");
+      mkIf cfg.hourly.enable (snapshotService "hourly");
 
     # Daily snapshot configuration
     systemd.timers.consul-snapshots-daily =
-      lib.mkIf cfg.daily.enable (snapshotTimer "daily");
+      mkIf cfg.daily.enable (snapshotTimer "daily");
     systemd.services.consul-snapshots-daily =
-      lib.mkIf cfg.daily.enable (snapshotService "daily");
+      mkIf cfg.daily.enable (snapshotService "daily");
 
     # Custom snapshot configuration
     systemd.timers.consul-snapshots-custom =
-      lib.mkIf cfg.custom.enable (snapshotTimer "custom");
+      mkIf cfg.custom.enable (snapshotTimer "custom");
     systemd.services.consul-snapshots-custom =
-      lib.mkIf cfg.custom.enable (snapshotService "custom");
+      mkIf cfg.custom.enable (snapshotService "custom");
   };
 }
