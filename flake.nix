@@ -23,7 +23,6 @@
     utils.url = "github:numtide/flake-utils";
     blank.url = "github:divnix/blank";
 
-    nomad.url = "github:input-output-hk/nomad/release-1.2.6";
     nomad-driver-nix.url = "github:input-output-hk/nomad-driver-nix";
 
     # Vector >= 0.20.0 versions require nomad-follower watch-config format fix
