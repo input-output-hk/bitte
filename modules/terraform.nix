@@ -453,7 +453,7 @@
           type = with lib.types; attrsOf attrs;
           default =
             lib.mapAttrs (n: v: {
-              inherit (v.sourceInfo) lastModified lastModifiedDate narHash;
+              inherit (v) lastModified lastModifiedDate narHash;
 
               rev =
                 if v ? "rev"
