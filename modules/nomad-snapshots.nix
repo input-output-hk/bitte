@@ -10,134 +10,133 @@
   inherit (lib) boolToString mkEnableOption mkIf mkOption;
   inherit (lib.types) addCheck attrs bool int str submodule;
 
-  snapshotJobConfig =
-    submodule {
-      options = {
-        enable = mkOption {
-          type = bool;
-          default = true;
-          description = ''
-            Creates a systemd service and timer to automatically save Nomad snapshots.
-          '';
-        };
+  snapshotJobConfig = submodule {
+    options = {
+      enable = mkOption {
+        type = bool;
+        default = true;
+        description = ''
+          Creates a systemd service and timer to automatically save Nomad snapshots.
+        '';
+      };
 
-        backupCount = mkOption {
-          type = addCheck int (x: x >= 0);
-          default = null;
-          description = ''
-            The number of snapshots to keep.  A sensible value matched to the onCalendar
-            interval parameter should be used.  Examples of sensible suggestions may be:
+      backupCount = mkOption {
+        type = addCheck int (x: x >= 0);
+        default = null;
+        description = ''
+          The number of snapshots to keep.  A sensible value matched to the onCalendar
+          interval parameter should be used.  Examples of sensible suggestions may be:
 
-              48 backupCount for "hourly" interval (2 days of backups)
-              30 backupCount for "daily" interval (1 month of backups)
-          '';
-        };
+            48 backupCount for "hourly" interval (2 days of backups)
+            30 backupCount for "daily" interval (1 month of backups)
+        '';
+      };
 
-        backupDirPrefix = mkOption {
-          type = str;
-          default = "/var/lib/private/nomad/snapshots";
-          description = ''
-            The top level location to store the snapshots.  The actual storage location
-            of the files will be this prefix path with the snapshot job name appended,
-            where the job is one of "hourly", "daily" or "custom".
+      backupDirPrefix = mkOption {
+        type = str;
+        default = "/var/lib/private/nomad/snapshots";
+        description = ''
+          The top level location to store the snapshots.  The actual storage location
+          of the files will be this prefix path with the snapshot job name appended,
+          where the job is one of "hourly", "daily" or "custom".
 
-            Therefore, saved snapshot files will be found at:
+          Therefore, saved snapshot files will be found at:
 
-              $backupDirPrefix/$job/*.snap
-          '';
-        };
+            $backupDirPrefix/$job/*.snap
+        '';
+      };
 
-        backupSuffix = mkOption {
-          type = addCheck str (x: x != "");
-          default = null;
-          description = ''
-            Sets the saved snapshot filename with a descriptive suffix prior to the file
-            extension.  This will enable selective snapshot job pruning.  The form is:
+      backupSuffix = mkOption {
+        type = addCheck str (x: x != "");
+        default = null;
+        description = ''
+          Sets the saved snapshot filename with a descriptive suffix prior to the file
+          extension.  This will enable selective snapshot job pruning.  The form is:
 
-              nomad-$(hostname)-$(date +"%Y-%m-%d_%H%M%SZ")-$backupSuffix.snap
-          '';
-        };
+            nomad-$(hostname)-$(date +"%Y-%m-%d_%H%M%SZ")-$backupSuffix.snap
+        '';
+      };
 
-        fixedRandomDelay = mkOption {
-          type = bool;
-          default = true;
-          description = ''
-            Makes randomizedDelaySec fixed between service restarts if true.
-            This will reduce jitter and allow the interval to remain fixed,
-            while still allowing start time randomization to avoid leader overload.
-          '';
-        };
+      fixedRandomDelay = mkOption {
+        type = bool;
+        default = true;
+        description = ''
+          Makes randomizedDelaySec fixed between service restarts if true.
+          This will reduce jitter and allow the interval to remain fixed,
+          while still allowing start time randomization to avoid leader overload.
+        '';
+      };
 
-        includeLeader = mkOption {
-          type = bool;
-          default = true;
-          description = ''
-            Whether to include the leader in the servers which will save snapshots.
-            This may reduce load on the leader slightly, but by default snapshot
-            saves are proxied through the leader anyway.
+      includeLeader = mkOption {
+        type = bool;
+        default = true;
+        description = ''
+          Whether to include the leader in the servers which will save snapshots.
+          This may reduce load on the leader slightly, but by default snapshot
+          saves are proxied through the leader anyway.
 
-            Reducing leader load from snapshots may be best done by fixed time
-            snapshot randomization so snapshot concurrency remains 1.
-          '';
-        };
+          Reducing leader load from snapshots may be best done by fixed time
+          snapshot randomization so snapshot concurrency remains 1.
+        '';
+      };
 
-        includeReplica = mkOption {
-          type = bool;
-          default = true;
-          description = ''
-            Whether to include the replicas in the servers which will save snapshots.
+      includeReplica = mkOption {
+        type = bool;
+        default = true;
+        description = ''
+          Whether to include the replicas in the servers which will save snapshots.
 
-            Reducing leader load from snapshots may be best done by fixed time
-            snapshot randomization so snapshot concurrency remains 1.
-          '';
-        };
+          Reducing leader load from snapshots may be best done by fixed time
+          snapshot randomization so snapshot concurrency remains 1.
+        '';
+      };
 
-        interval = mkOption {
-          type = addCheck str (x: x != "");
-          default = null;
-          description = ''
-            The default onCalendar systemd timer string to trigger snapshot backups.
-            Any valid systemd OnCalendar string may be used here.  Sensible
-            defaults for backupCount and randomizedDelaySec should match this parameter.
-            Examples of sensible suggestions may be:
+      interval = mkOption {
+        type = addCheck str (x: x != "");
+        default = null;
+        description = ''
+          The default onCalendar systemd timer string to trigger snapshot backups.
+          Any valid systemd OnCalendar string may be used here.  Sensible
+          defaults for backupCount and randomizedDelaySec should match this parameter.
+          Examples of sensible suggestions may be:
 
-              hourly: 3600 randomizedDelaySec, 48 backupCount (2 days)
-              daily:  86400 randomizedDelaySec, 30 backupCount (1 month)
-          '';
-        };
+            hourly: 3600 randomizedDelaySec, 48 backupCount (2 days)
+            daily:  86400 randomizedDelaySec, 30 backupCount (1 month)
+        '';
+      };
 
-        randomizedDelaySec = mkOption {
-          type = addCheck int (x: x >= 0);
-          default = 0;
-          description = ''
-            A randomization period to be added to each systemd timer to avoid
-            leader overload.  By default fixedRandomDelay will also be true to minimize
-            jitter and maintain fixed interval snapshots.  Sensible defaults for
-            backupCount and randomizedDelaySec should match this parameter.
-            Examples of sensible suggestions may be:
+      randomizedDelaySec = mkOption {
+        type = addCheck int (x: x >= 0);
+        default = 0;
+        description = ''
+          A randomization period to be added to each systemd timer to avoid
+          leader overload.  By default fixedRandomDelay will also be true to minimize
+          jitter and maintain fixed interval snapshots.  Sensible defaults for
+          backupCount and randomizedDelaySec should match this parameter.
+          Examples of sensible suggestions may be:
 
-              3600  randomizedDelaySec for "hourly" interval (1 hr randomization)
-              86400 randomizedDelaySec for "daily" interval (1 day randomization)
-          '';
-        };
+            3600  randomizedDelaySec for "hourly" interval (1 hr randomization)
+            86400 randomizedDelaySec for "daily" interval (1 day randomization)
+        '';
+      };
 
-        owner = mkOption {
-          type = str;
-          default = "root:root";
-          description = ''
-            The user and group to own the snapshot storage directory and snapshot files.
-          '';
-        };
+      owner = mkOption {
+        type = str;
+        default = "root:root";
+        description = ''
+          The user and group to own the snapshot storage directory and snapshot files.
+        '';
+      };
 
-        nomadAddress = mkOption {
-          type = str;
-          default = "https://127.0.0.1:4646";
-          description = ''
-            The local nomad server address, including protocol and port.
-          '';
-        };
+      nomadAddress = mkOption {
+        type = str;
+        default = "https://127.0.0.1:4646";
+        description = ''
+          The local nomad server address, including protocol and port.
+        '';
       };
     };
+  };
 
   snapshotTimer = job: {
     partOf = ["nomad-snapshots-${job}.service"];
