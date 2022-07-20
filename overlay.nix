@@ -52,7 +52,7 @@ in
       haproxy-auth-request = prev.callPackage ./pkgs/haproxy-auth-request.nix {};
       haproxy-cors = prev.callPackage ./pkgs/haproxy-cors.nix {};
       mill = prev.callPackage ./pkgs/mill.nix {};
-      nomad = inputs.nomad.defaultPackage.${final.system};
+      nomad = prev.callPackage ./pkgs/nomad.nix {buildGoModule = prev.buildGo117Module;};
       nomad-autoscaler = prev.callPackage ./pkgs/nomad-autoscaler.nix {};
       nomad-follower = inputs.nomad-follower.defaultPackage.${prev.system};
       oauth2-proxy = final.callPackage ./pkgs/oauth2_proxy.nix {};
@@ -62,10 +62,10 @@ in
       spire = prev.callPackage ./pkgs/spire.nix {};
       spire-server = spire.server;
       spire-systemd-attestor = prev.callPackage ./pkgs/spire-systemd-attestor.nix {};
-      traefik = prev.callPackage ./pkgs/traefik.nix {buildGoModule = final.buildGo117Module;};
+      traefik = prev.callPackage ./pkgs/traefik.nix {buildGoModule = prev.buildGo117Module;};
       vault-backend = final.callPackage ./pkgs/vault-backend.nix {};
       vault-bin = prev.callPackage ./pkgs/vault-bin.nix {};
-      victoriametrics = prev.callPackage ./pkgs/victoriametrics.nix {buildGoModule = final.buildGo117Module;};
+      victoriametrics = prev.callPackage ./pkgs/victoriametrics.nix {buildGoModule = prev.buildGo117Module;};
 
       scaler-guard = let
         deps = with final; [awscli bash curl jq nomad];
