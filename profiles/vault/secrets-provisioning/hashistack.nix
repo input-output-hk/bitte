@@ -178,7 +178,7 @@ in {
         contents = role.nomadAutoscaler;
       };
 
-      "${hashiTokens.nomad-snapshot}" = lib.mkIf config.services.nomad-snapshots.enable {
+      "${hashiTokens.nomad-snapshot}" = lib.mkIf config.services.hashi-snapshots.enableNomad {
         contents = role.nomadSnapshot;
       };
 

@@ -8,7 +8,7 @@
   Imports = {imports = [./common.nix ./policies.nix];};
 
   Switches = {
-    services.consul-snapshots.enable = true;
+    services.hashi-snapshots.enableConsul = true;
     services.consul.server = true;
     services.consul.ui = true;
   };
