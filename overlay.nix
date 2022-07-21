@@ -18,6 +18,7 @@ in
         (nixpkgs-unstable.legacyPackages.${prev.system})
         grafana # 9.0.1
         grafana-loki # 2.5.0
+        nushell # 0.63.0
         podman # 4.1.1
         vector
         ; # 0.22.2

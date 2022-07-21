@@ -167,7 +167,7 @@
         name = "nomad-snapshot-${job}-script.sh";
         script = pkgs.writeShellApplication {
           inherit name;
-          runtimeInputs = with pkgs; [coreutils findutils gawk hostname jq nomad];
+          runtimeInputs = with pkgs; [coreutils hostname jq nomad nushell];
           text = ''
             set -x
 
@@ -215,14 +215,15 @@
               takeNomadSnapshot
             fi
 
-            find "$BACKUP_DIR" \
-              -type f \
-              -name "*''${BACKUP_SUFFIX}.snap" \
-              -printf "%T@ %p\n" \
-              | sort -r -n \
-              | tail -n +${toString (cfg.${job}.backupCount + 1)} \
-              | awk '{print $2}' \
-              | xargs -r rm
+            # shellcheck disable=SC2016
+            nu -c '
+              ls $"($env.BACKUP_DIR)"
+              | where name =~ $"($env.BACKUP_SUFFIX).snap$"
+              | where type == file
+              | sort-by modified
+              | drop ${toString cfg.${job}.backupCount}
+              | each {|f| rm $"($f.name)" | echo $"Deleted: ($f.name)"}
+            '
           '';
         };
       in "${script}/bin/${name}";
