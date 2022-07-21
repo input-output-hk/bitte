@@ -47,11 +47,8 @@ in
       # during metal deploy resulting in OCI jobs being killed or behaving unexpectedly
       inherit (nixpkgs-docker.legacyPackages.${prev.system}) docker containerd; # v20.10.15
 
-      filebeat = final.callPackage ./pkgs/filebeat.nix {};
       glusterfs = final.callPackage ./pkgs/glusterfs.nix {};
       grpcdump = prev.callPackage ./pkgs/grpcdump.nix {};
-      haproxy-auth-request = prev.callPackage ./pkgs/haproxy-auth-request.nix {};
-      haproxy-cors = prev.callPackage ./pkgs/haproxy-cors.nix {};
       mill = prev.callPackage ./pkgs/mill.nix {};
       nomad = prev.callPackage ./pkgs/nomad.nix {buildGoModule = prev.buildGo117Module;};
       nomad-autoscaler = prev.callPackage ./pkgs/nomad-autoscaler.nix {};
