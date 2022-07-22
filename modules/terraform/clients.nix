@@ -395,7 +395,7 @@ in {
       # deploy for core role
       inherit (config.cluster.iam.roles.client) uid;
     in {
-      "${uid}".name = uid;
+      "${uid}".name = "core-${uid}";
     };
 
     data.aws_iam_policy_document = let
