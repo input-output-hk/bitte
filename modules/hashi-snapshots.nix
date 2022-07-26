@@ -8,7 +8,7 @@
   cfg = config.services.hashi-snapshots;
 
   inherit (lib) boolToString listToAttrs mkEnableOption mkIf mkMerge mkOption nameValuePair toUpper;
-  inherit (lib.types) addCheck attrs bool enum int str submodule;
+  inherit (lib.types) attrs bool enum int ints nonEmptyStr str submodule;
 
   snapshotJobConfig = submodule {
     options = {
@@ -21,7 +21,7 @@
       };
 
       backupCount = mkOption {
-        type = addCheck int (x: x >= 0);
+        type = ints.unsigned;
         default = null;
         description = ''
           The number of snapshots to keep.  A sensible value matched to the onCalendar
@@ -47,7 +47,7 @@
       };
 
       backupSuffix = mkOption {
-        type = addCheck str (x: x != "");
+        type = nonEmptyStr;
         default = null;
         description = ''
           Sets the saved snapshot filename with a descriptive suffix prior to the file
@@ -100,7 +100,7 @@
       };
 
       interval = mkOption {
-        type = addCheck str (x: x != "");
+        type = nonEmptyStr;
         default = null;
         description = ''
           The default onCalendar systemd timer string to trigger snapshot backups.
@@ -114,7 +114,7 @@
       };
 
       randomizedDelaySec = mkOption {
-        type = addCheck int (x: x >= 0);
+        type = ints.unsigned;
         default = 0;
         description = ''
           A randomization period to be added to each systemd timer to avoid
@@ -251,11 +251,11 @@
         snapshotCmd = ''nomad operator snapshot save "$SNAP_NAME"'';
         envPrep = ''
           set +x
-          NOMAD_TOKEN="$(< ${hashiTokens.nomad-snapshot})"
+          NOMAD_TOKEN=$(< ${hashiTokens.nomad-snapshot})
           export NOMAD_TOKEN
           set -x
 
-          STATUS="$(nomad agent-info --json)"
+          STATUS=$(nomad agent-info --json)
         '';
         roleCmd = ''jq -e '(.stats.nomad.leader // "false") == "true"' <<< "$STATUS"'';
       };
@@ -268,11 +268,11 @@
         snapshotCmd = ''vault operator raft snapshot save "$SNAP_NAME"'';
         envPrep = ''
           set +x
-          VAULT_TOKEN="$(< ${hashiTokens.vault})"
+          VAULT_TOKEN=$(< ${hashiTokens.vault})
           export VAULT_TOKEN
           set -x
 
-          STATUS="$(vault status)"
+          STATUS=$(vault status)
 
           if jq -e '.storage_type != "raft"' <<< "$STATUS"; then
             echo "Vault storage backend is not raft."
