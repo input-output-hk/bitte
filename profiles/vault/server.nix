@@ -12,9 +12,17 @@
     ];
   };
 
-  Switches = {
+  Switches = let
+    cfg = config.services.hashi-snapshots;
+  in {
     services.vault.enable = true;
-    services.vault-snapshots.enable = true;
+    services.hashi-snapshots.enableVault = true;
+
+    # Do not include vault replicas in snapshotting until replica snapshot bug is resolved
+    # Ref: https://github.com/hashicorp/vault/issues/15258
+    services.hashi-snapshots.vault.hourly = cfg.defaultHourlyOpts // cfg.defaultHashiOpts.vault // {includeReplica = false;};
+    services.hashi-snapshots.vault.daily = cfg.defaultDailyOpts // cfg.defaultHashiOpts.vault // {includeReplica = false;};
+
     services.vault.ui = true;
   };
 

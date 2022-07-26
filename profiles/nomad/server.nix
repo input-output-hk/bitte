@@ -8,7 +8,7 @@
 
   Switches = {
     services.nomad.server.enabled = true;
-    services.nomad-snapshots.enable = true;
+    services.hashi-snapshots.enableNomad = true;
   };
 
   Config = let
