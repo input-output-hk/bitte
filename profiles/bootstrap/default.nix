@@ -260,7 +260,7 @@ in {
 
           vault write auth/aws/role/${config.cluster.name}-client \
             auth_type=iam \
-            bound_iam_principal_arn="$arn:role/${config.cluster.name}-client" \
+            bound_iam_principal_arn="$arn:role/core-${config.cluster.name}-client" \
             policies=default,client,nomad-server \
             period=24h || true # only available after 'tf.clients.apply'
 
