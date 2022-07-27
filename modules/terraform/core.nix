@@ -228,7 +228,7 @@ in {
       inherit (config.cluster.iam.roles) client core;
     in {
       "${client.uid}" = {
-        name = "core-${client.uid}";
+        name = client.uid;
         assume_role_policy = client.assumePolicy.tfJson;
         lifecycle = [{ create_before_destroy = true; }];
       };
