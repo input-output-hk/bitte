@@ -26,7 +26,7 @@
     nomad-driver-nix.url = "github:input-output-hk/nomad-driver-nix";
 
     # Vector >= 0.20.0 versions require nomad-follower watch-config format fix
-    nomad-follower.url = "github:input-output-hk/nomad-follower/20cd9681568586df43ecd1d5b1a476b16b9b1789";
+    nomad-follower.url = "github:input-output-hk/nomad-follower";
 
     fenix = {
       url = "github:nix-community/fenix";
