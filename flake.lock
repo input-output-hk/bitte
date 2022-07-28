@@ -460,6 +460,29 @@
         "type": "github"
       }
     },
+    "devshell_7": {
+      "inputs": {
+        "flake-utils": "flake-utils_11",
+        "nixpkgs": [
+          "tullia",
+          "std",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1650900878,
+        "narHash": "sha256-qhNncMBSa9STnhiLfELEQpYC1L4GrYHNIzyCZ/pilsI=",
+        "owner": "numtide",
+        "repo": "devshell",
+        "rev": "d97df53b5ddaa1cfbea7cddbd207eb2634304733",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "devshell",
+        "type": "github"
+      }
+    },
     "dmerge": {
       "inputs": {
         "nixlib": [
@@ -1808,11 +1831,11 @@
     "ops-lib_2": {
       "flake": false,
       "locked": {
-        "lastModified": 1649848729,
-        "narHash": "sha256-5zN9gpn+DwdB67bcHfDD8zgMnR0EaJd2JVNMyL6J1N0=",
+        "lastModified": 1662056650,
+        "narHash": "sha256-byGyz8dnmypUfeVVyYvBA///SK0QDRaxlBx9QhZpnlw=",
         "owner": "input-output-hk",
         "repo": "ops-lib",
-        "rev": "517c747f4d5d56e626f62618803bfccb09f14019",
+        "rev": "e4a5d3e2734e2aac8513c27ef3c76a0cda265419",
         "type": "github"
       },
       "original": {
