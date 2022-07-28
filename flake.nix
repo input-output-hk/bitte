@@ -23,10 +23,18 @@
     utils.url = "github:numtide/flake-utils";
     blank.url = "github:divnix/blank";
 
-    nomad-driver-nix.url = "github:input-output-hk/nomad-driver-nix";
-
+    # Cicero related
+    tullia = {
+      url = "github:input-output-hk/tullia";
+      inputs = {
+        # Tullia has nixpkgs 22.05 dependencies (ex: stdenv:shellDryRun)
+        nixpkgs.follows = "nixpkgs-unstable";
+      };
+    };
     # Vector >= 0.20.0 versions require nomad-follower watch-config format fix
     nomad-follower.url = "github:input-output-hk/nomad-follower";
+
+    nomad-driver-nix.url = "github:input-output-hk/nomad-driver-nix";
 
     fenix = {
       url = "github:nix-community/fenix";
@@ -54,6 +62,7 @@
     ragenix,
     nix,
     fenix,
+    tullia,
     ...
   } @ inputs:
     inputs.std.growOn {
@@ -122,41 +131,46 @@
       ] (system: let
         legacyPackages = pkgsForSystem system;
         unstablePackages = unstablePkgsForSystem system;
-      in rec {
-        inherit legacyPackages;
+      in
+        rec {
+          inherit legacyPackages;
 
-        packages = {inherit (self.${system}.cli.packages) bitte;};
-        defaultPackage = packages.bitte;
+          packages = {inherit (self.${system}.cli.packages) bitte;};
+          defaultPackage = packages.bitte;
 
-        hydraJobs = let
-          constituents = {
-            inherit
-              (legacyPackages)
-              bitte
-              cfssl
-              ci-env
-              consul
-              cue
-              glusterfs
-              grafana-loki
-              haproxy
-              haproxy-auth-request
-              haproxy-cors
-              nixFlakes
-              nomad
-              nomad-autoscaler
-              oauth2-proxy
-              sops
-              terraform-with-plugins
-              vault-backend
-              vault-bin
-              ;
+          hydraJobs = let
+            constituents = {
+              inherit
+                (legacyPackages)
+                bitte
+                cfssl
+                ci-env
+                consul
+                cue
+                glusterfs
+                grafana-loki
+                haproxy
+                haproxy-auth-request
+                haproxy-cors
+                nixFlakes
+                nomad
+                nomad-autoscaler
+                oauth2-proxy
+                sops
+                terraform-with-plugins
+                vault-backend
+                vault-bin
+                ;
+            };
+          in {
+            inherit constituents;
+            required = legacyPackages.mkRequired constituents;
           };
-        in {
-          inherit constituents;
-          required = legacyPackages.mkRequired constituents;
-        };
-      })
+        }
+        // tullia.fromSimple system {
+          tasks = import tullia/tasks.nix self;
+          actions = import tullia/actions.nix;
+        })
       // {
         inherit lib;
         # eta reduce not possibe since flake check validates for "final" / "prev"
