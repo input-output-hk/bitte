@@ -1691,16 +1691,17 @@
         "utils": "utils_9"
       },
       "locked": {
-        "lastModified": 1658244176,
-        "narHash": "sha256-oM+7WdbXcTiDEfuuiiVLlJi/MTRgSBwFdzVkFWsC8so=",
+        "lastModified": 1652806053,
+        "narHash": "sha256-l/uQCpNCLv1oCvLlWrpe6ed7kyLFhjKoh2tbchgl+Ac=",
         "owner": "input-output-hk",
         "repo": "nomad-follower",
-        "rev": "bd8cc28c94ba8bd48c4d4be5ab14f3904328dde3",
+        "rev": "20cd9681568586df43ecd1d5b1a476b16b9b1789",
         "type": "github"
       },
       "original": {
         "owner": "input-output-hk",
         "repo": "nomad-follower",
+        "rev": "20cd9681568586df43ecd1d5b1a476b16b9b1789",
         "type": "github"
       }
     },
