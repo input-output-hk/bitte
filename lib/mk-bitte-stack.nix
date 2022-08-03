@@ -195,59 +195,52 @@ assert lib.asserts.assertMsg (pkgs == null) (lib.warn ''
     ];
   clusters' = clusters;
 in
-  rec {
-    inherit envs;
+  lib.foldl' (acc: s: lib.recursiveUpdate acc s) {} [
+    rec {
+      inherit envs;
 
-    clusters =
-      if clusters' != null
-      then
-        lib.warn ''
+      clusters =
+        if clusters' != null
+        then
+          lib.warn ''
 
-          Use of mkBitteStack { cluster } deprecated.
-          Use mkBitteStack { bitteProfile } instead.
+            Use of mkBitteStack { cluster } deprecated.
+            Use mkBitteStack { bitteProfile } instead.
 
-          Please ask a knowledgeable colleague for refactoring help.
-        ''
-        mkCluster {
-          inherit pkgs self inputs hydrationProfile;
-          bitteProfiles = readDirRec clusters';
-        }
-      else
-        mkCluster {
-          inherit pkgs self inputs hydrationProfile;
-          bitteProfiles = [bitteProfile];
-        };
+            Please ask a knowledgeable colleague for refactoring help.
+          ''
+          mkCluster {
+            inherit pkgs self inputs hydrationProfile;
+            bitteProfiles = readDirRec clusters';
+          }
+        else
+          mkCluster {
+            inherit pkgs self inputs hydrationProfile;
+            bitteProfiles = [bitteProfile];
+          };
 
-    nixosConfigurations = mkNixosConfigurations clusters;
+      nixosConfigurations = mkNixosConfigurations clusters;
 
-    hydraJobs.x86_64-linux = let
-      clusterName = builtins.head (builtins.attrNames clusters);
-      nixosConfigurations' =
-        lib.mapAttrs (_: {config, ...}: config.system.build.toplevel)
-        nixosConfigurations;
-      tfWorkspaces =
-        lib.mapAttrs' (n: v: lib.nameValuePair "tf-${n}-plan" v.plan) clusters.${clusterName}.tf;
-      required = { required = (pkgs.mkRequired (nixosConfigurations' // tfWorkspaces)); };
-    in
-      lib.foldl' (acc: s: lib.recursiveUpdate acc s) {} [
-        nixosConfigurations'
-        tfWorkspaces
-        required
-      ];
-  }
-  // (mkDeploy {inherit self deploySshKey;})
-  // lib.optionalAttrs (jobs != null) rec {
-    nomadJobs = recursiveCallPackage jobs extended-pkgs.callPackage;
-    consulTemplates =
-      pkgs.callPackage buildConsulTemplates {inherit nomadJobs;};
-  }
-  // lib.optionalAttrs (docker != null) rec {
-    dockerImages = let
-      images = recursiveCallPackage docker extended-pkgs.callPackages;
-    in
-      lib.mapAttrs imageAttrToCommands images;
-    push-docker-images =
-      pkgs.callPackage push-docker-images' {inherit dockerImages;};
-    load-docker-images =
-      pkgs.callPackage load-docker-images' {inherit dockerImages;};
-  }
+      checks.x86_64-linux = let
+        clusterName = builtins.head (builtins.attrNames clusters);
+        tfWorkspaces = lib.mapAttrs' (n: v: lib.nameValuePair "tf-${n}-plan" v.plan) clusters.${clusterName}.tf;
+      in
+        tfWorkspaces;
+    }
+    (mkDeploy {inherit self deploySshKey;})
+    (lib.optionalAttrs (jobs != null) rec {
+      nomadJobs = recursiveCallPackage jobs extended-pkgs.callPackage;
+      consulTemplates =
+        pkgs.callPackage buildConsulTemplates {inherit nomadJobs;};
+    })
+    (lib.optionalAttrs (docker != null) rec {
+      dockerImages = let
+        images = recursiveCallPackage docker extended-pkgs.callPackages;
+      in
+        lib.mapAttrs imageAttrToCommands images;
+      push-docker-images =
+        pkgs.callPackage push-docker-images' {inherit dockerImages;};
+      load-docker-images =
+        pkgs.callPackage load-docker-images' {inherit dockerImages;};
+    })
+  ]

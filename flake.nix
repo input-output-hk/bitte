@@ -46,10 +46,12 @@
       flake = false;
     };
 
-    # DEPRECATED: will be replaces by cicero soon
-    hydra.url = "github:kreisys/hydra/hydra-server-includes";
-    hydra.inputs.nix.follows = "nix";
-    hydra.inputs.nixpkgs.follows = "nixpkgs";
+    # Preserved for special use case hydra deployment
+    hydra = {
+      url = "github:kreisys/hydra/hydra-server-includes";
+      inputs.nix.follows = "nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = {
@@ -122,13 +124,21 @@
         inherit (nixpkgs) lib;
         inherit inputs;
       };
-    in
-      utils.lib.eachSystem [
+
+      defaultSystems = [
         "aarch64-darwin"
         "aarch64-linux"
         "x86_64-darwin"
         "x86_64-linux"
-      ] (system: let
+      ];
+
+      mkChecks = systems: pkgs:
+        utils.lib.eachSystem systems (system: {
+          checks = builtins.foldl' (acc: pkg: acc // {${pkg} = (pkgsForSystem system).${pkg};}) {} pkgs;
+        });
+    in
+      utils.lib.eachSystem defaultSystems
+      (system: let
         legacyPackages = pkgsForSystem system;
         unstablePackages = unstablePkgsForSystem system;
       in
@@ -137,35 +147,6 @@
 
           packages = {inherit (self.${system}.cli.packages) bitte;};
           defaultPackage = packages.bitte;
-
-          hydraJobs = let
-            constituents = {
-              inherit
-                (legacyPackages)
-                bitte
-                cfssl
-                ci-env
-                consul
-                cue
-                glusterfs
-                grafana-loki
-                haproxy
-                haproxy-auth-request
-                haproxy-cors
-                nixFlakes
-                nomad
-                nomad-autoscaler
-                oauth2-proxy
-                sops
-                terraform-with-plugins
-                vault-backend
-                vault-bin
-                ;
-            };
-          in {
-            inherit constituents;
-            required = legacyPackages.mkRequired constituents;
-          };
         }
         // tullia.fromSimple system {
           tasks = import tullia/tasks.nix self;
@@ -176,13 +157,43 @@
         # eta reduce not possibe since flake check validates for "final" / "prev"
         overlay = nixpkgs.lib.composeManyExtensions overlays;
         profiles = lib.mkModules ./profiles;
-        nixosModules =
-          (lib.mkModules ./modules)
-          // {
-            # Until ready to update to the new age module options
-            # agenix = ragenix.nixosModules.age;
-          };
+        nixosModules = lib.mkModules ./modules;
         nixosModule.imports = builtins.attrValues self.nixosModules;
         devshellModule = import ./devshellModule.nix;
-      });
+      }
+      // mkChecks defaultSystems [
+        "agenix-cli"
+        "bitte"
+        "bitte-ruby"
+        "bundler"
+        "caddy"
+        "cfssl"
+        "consul"
+        "cue"
+        "docker-distribution"
+        "grafana-loki"
+        "hydra"
+        "mill"
+        "nomad"
+        "nomad-autoscaler"
+        "oauth2-proxy"
+        "ragenix"
+        "scaler-guard"
+        "sops"
+        "spiffe-helper"
+        "spire"
+        "spire-agent"
+        "spire-server"
+        "spire-systemd-attestor"
+        "terraform-with-plugins"
+        "traefik"
+        "vault-backend"
+      ]
+      // mkChecks ["x86_64-linux"] [
+        "agenix"
+        "glusterfs"
+        "nomad-follower"
+        "vault-bin"
+        "victoriametrics"
+      ]);
 }

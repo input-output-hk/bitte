@@ -19,11 +19,11 @@ buildGoModule rec {
     # Move to go-spiffe/v2 API
     (fetchpatch {
       url = "https://patch-diff.githubusercontent.com/raw/spiffe/spiffe-helper/pull/25.patch";
-      sha256 = "sha256-sqJv/d5ybpxJ6l1yT881Gx+9HXZStvJqFnpBPG7SaWw=";
+      sha256 = "sha256-cAEp9T0uXRM6E9D7yXsKSzGgdGFArCtyMYoP0h9g7j0=";
     })
   ];
 
-  vendorSha256 = "sha256-Yzc9TGBszEJbr9ZMHxKmohoAfc8zEdx37w9ekdi+gAM=";
+  vendorSha256 = "sha256-f1AougFjmlIAJiieaTSvCPvzT1SEVB8a8PvZ0ZXSdrw=";
 
   subPackages = ["cmd/spiffe-helper"];
 
