@@ -16,7 +16,15 @@ Related to roles that are impersonated by humans.
 
   __fromTOML = builtins.fromTOML;
 
-  vaultPolicies = tfcfg.locals.policies.vault;
+  # necessary or some of these policies get deleted by terraform; eg routing
+  coreVaultPolicies =
+    builtins.removeAttrs
+    (import ../../../profiles/vault/policies.nix {inherit config lib;})
+    .services
+    .vault
+    .policies ["vault-agent-client" "vault-agent-core"];
+
+  vaultPolicies = coreVaultPolicies // tfcfg.locals.policies.vault;
   nomadPolicies = tfcfg.locals.policies.nomad;
   consulPolicies = tfcfg.locals.policies.consul;
 
