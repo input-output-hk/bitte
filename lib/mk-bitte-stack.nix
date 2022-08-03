@@ -17,7 +17,6 @@
   hydrateModule ? hydrationProfile,
   nomadEnvs ? envs,
   envs ? {},
-  # envs ? nomadEnvs,
   jobs ? null,
   docker ? null,
   dockerRegistry ? "docker." + domain,
@@ -222,14 +221,19 @@ in
     nixosConfigurations = mkNixosConfigurations clusters;
 
     hydraJobs.x86_64-linux = let
+      clusterName = builtins.head (builtins.attrNames clusters);
       nixosConfigurations' =
         lib.mapAttrs (_: {config, ...}: config.system.build.toplevel)
         nixosConfigurations;
+      tfWorkspaces =
+        lib.mapAttrs' (n: v: lib.nameValuePair "tf-${n}-plan" v.plan) clusters.${clusterName}.tf;
+      required = { required = (pkgs.mkRequired (nixosConfigurations' // tfWorkspaces)); };
     in
-      nixosConfigurations'
-      // {
-        required = pkgs.mkRequired nixosConfigurations';
-      };
+      lib.foldl' (acc: s: lib.recursiveUpdate acc s) {} [
+        nixosConfigurations'
+        tfWorkspaces
+        required
+      ];
   }
   // (mkDeploy {inherit self deploySshKey;})
   // lib.optionalAttrs (jobs != null) rec {
