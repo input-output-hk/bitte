@@ -86,7 +86,7 @@
           experimental-features = nix-command flakes
         ''';
         binaryCaches = [
-          "https://hydra.iohk.io"
+          "https://cache.iog.io"
           "${cfg.s3Cache}"
         ];
         binaryCachePublicKeys = [
