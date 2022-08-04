@@ -39,6 +39,7 @@
         }
       ]);
 
-  folded = result [] tree;
+  folded = builtins.listToAttrs (result [] tree);
+  modules = builtins.mapAttrs (_: v: {config, ...}: {imports = [v];}) folded;
 in
-  builtins.listToAttrs folded
+  modules
