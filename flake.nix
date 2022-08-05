@@ -146,7 +146,7 @@
           inherit legacyPackages;
 
           packages = {inherit (self.${system}.cli.packages) bitte;};
-          defaultPackage = packages.bitte;
+          packages.default = packages.bitte;
         }
         // tullia.fromSimple system {
           tasks = import tullia/tasks.nix self;
@@ -155,10 +155,9 @@
       // {
         inherit lib;
         # eta reduce not possibe since flake check validates for "final" / "prev"
-        overlay = nixpkgs.lib.composeManyExtensions overlays;
+        overlays.default = nixpkgs.lib.composeManyExtensions overlays;
         profiles = lib.mkModules ./profiles;
         nixosModules = lib.mkModules ./modules;
-        nixosModule.imports = builtins.attrValues self.nixosModules;
         devshellModule = import ./devshellModule.nix;
       }
       // mkChecks defaultSystems [

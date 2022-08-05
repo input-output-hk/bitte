@@ -31,7 +31,7 @@ assert lib.asserts.assertMsg (pkgs == null) (lib.warn ''
 
   Please pass mkBitteStack { overlays } instead.
 '' "Gotta do that now. Sorry, my friend."); let
-  overlays' = overlays ++ [bitte.overlay];
+  overlays' = overlays ++ [bitte.overlays.default];
   pkgs = import nixpkgs {
     overlays = overlays';
     system = "x86_64-linux";
