@@ -5,7 +5,7 @@ pub mod subs;
 use crate::types::{BitteFind, ClusterHandle};
 use anyhow::{anyhow, Context, Result};
 use clap::{App, ArgMatches, FromArgMatches};
-use clap_generate::{generate, generators};
+use clap_complete::{generate, shells};
 use deploy::cli as deployCli;
 use deploy::cli::Opts as ExtDeployOpts;
 use log::*;
@@ -292,9 +292,9 @@ async fn info_print(cluster: ClusterHandle, json: bool) -> Result<()> {
 
 pub(crate) async fn completions(sub: &ArgMatches, mut app: App<'_>) -> Result<()> {
     match sub.subcommand() {
-        Some(("bash", _)) => generate(generators::Bash, &mut app, "bitte", &mut std::io::stdout()),
-        Some(("zsh", _)) => generate(generators::Zsh, &mut app, "bitte", &mut std::io::stdout()),
-        Some(("fish", _)) => generate(generators::Fish, &mut app, "bitte", &mut std::io::stdout()),
+        Some(("bash", _)) => generate(shells::Bash, &mut app, "bitte", &mut std::io::stdout()),
+        Some(("zsh", _)) => generate(shells::Zsh, &mut app, "bitte", &mut std::io::stdout()),
+        Some(("fish", _)) => generate(shells::Fish, &mut app, "bitte", &mut std::io::stdout()),
         _ => (),
     };
     Ok(())

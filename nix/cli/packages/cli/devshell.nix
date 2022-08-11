@@ -1,0 +1,1 @@
+../../../automation/devshells.nix

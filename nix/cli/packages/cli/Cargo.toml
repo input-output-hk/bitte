@@ -18,17 +18,17 @@ log = "^0.4.0"
 pretty_env_logger = "^0.4.0"
 anyhow = "^1.0.0"
 deploy-rs = { git = "https://github.com/input-output-hk/deploy-rs" }
-uuid = { version = "^0.8.0", features = ["serde"] }
+uuid = { version = "^1", features = ["serde"] }
 reqwest = { version = "^0.11.0", features = ["json", "gzip"] }
 thiserror = "^1.0.0"
 netrc-rs = "0.1.2"
-enum-utils = "0.1.2"
-clap_generate = "^3.0.0-rc.3"
-aws-config = "0.2.0"
-aws-sdk-ec2 = "0.2.0"
+enum-utils = "^0"
+clap_complete = "^3"
+aws-config = "^0"
+aws-sdk-ec2 = "^0"
 
 [dependencies.clap]
-version = "^3.0.0-rc.3"
+version = "^3"
 features = ["wrap_help", "derive", "env"]
 
 [profile.release]

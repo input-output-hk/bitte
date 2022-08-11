@@ -235,7 +235,7 @@ impl BitteFind for BitteNodes {
                         .as_ref()
                         .unwrap_or(&Default::default())
                         .id
-                        .to_hyphenated()
+                        .hyphenated()
                         .to_string()
                         == needle
                     || Some(node.priv_ip) == ip
@@ -264,7 +264,7 @@ impl BitteFind for BitteNodes {
                             .as_ref()
                             .unwrap_or(&Default::default())
                             .id
-                            .to_hyphenated()
+                            .hyphenated()
                             .to_string(),
                     )
                     || ips.contains(&Some(node.priv_ip))
