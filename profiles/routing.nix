@@ -38,12 +38,7 @@ in {
 
     acmeDnsCertMgr = lib.mkOption {
       type = lib.types.bool;
-      default =
-        lib.warn ''
-          CAUTION: -- default will change soon to:
-          services.traefik.acmeDnsCertMgr = false;
-        ''
-        true;
+      default = false;
       description = ''
         If true, acme systemd services will manage a single cert and provide it to traefik:
           - using dns Let's Encrypt challenge
