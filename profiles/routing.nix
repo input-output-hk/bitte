@@ -93,12 +93,7 @@ in {
 
     useVaultBackend = lib.mkOption {
       type = lib.types.bool;
-      default =
-        lib.warn ''
-          CAUTION: -- default will change soon to:
-          services.traefik.useVaultBackend = true;
-        ''
-        false;
+      default = false;
       description = ''
         Enable use of a vault TF backend with a service hosted on the monitoring server.
       '';
