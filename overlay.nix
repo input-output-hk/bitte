@@ -16,12 +16,12 @@ in
       # Packages specifically needing an unstable nixpkgs pinned latest available version
       inherit
         (nixpkgs-unstable.legacyPackages.${prev.system})
-        grafana # 9.0.1
-        grafana-loki # 2.5.0
-        nushell # 0.63.0
-        podman # 4.1.1
+        grafana # 9.0.6
+        grafana-loki # 2.6.1
+        nushell # 0.65.0
+        podman # 4.2.0
         vector
-        ; # 0.22.2
+        ; # 0.22.3
 
       # Alphabetically sorted packages
       agenix = inputs.agenix.packages.${final.system}.agenix;
@@ -56,12 +56,14 @@ in
       nomad-autoscaler = prev.callPackage ./pkgs/nomad-autoscaler.nix {};
       nomad-follower = inputs.nomad-follower.defaultPackage.${prev.system};
       oauth2-proxy = final.callPackage ./pkgs/oauth2_proxy.nix {};
+      otel-cli = final.callPackage ./pkgs/otel.nix {};
       ragenix = inputs.ragenix.defaultPackage.${final.system};
       spiffe-helper = prev.callPackage ./pkgs/spiffe-helper.nix {};
       spire-agent = spire.agent;
       spire = prev.callPackage ./pkgs/spire.nix {};
       spire-server = spire.server;
       spire-systemd-attestor = prev.callPackage ./pkgs/spire-systemd-attestor.nix {};
+      tempo = nixpkgs-unstable.legacyPackages.${prev.system}.callPackage ./pkgs/tempo.nix {buildGoModule = nixpkgs-unstable.legacyPackages.${prev.system}.buildGo118Module;};
       traefik = prev.callPackage ./pkgs/traefik.nix {buildGoModule = prev.buildGo117Module;};
       vault-backend = final.callPackage ./pkgs/vault-backend.nix {};
       vault-bin = prev.callPackage ./pkgs/vault-bin.nix {};

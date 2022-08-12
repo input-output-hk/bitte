@@ -120,6 +120,43 @@ in {
     services.loki.enable = true;
     services.grafana.enable = true;
     services.prometheus.enable = false;
+
+    services.tempo = {
+      enable = true;
+      settings = {
+        server = {
+          http_listen_address = "0.0.0.0";
+          http_listen_port = 3200;
+          grpc_listen_port = 9096;
+        };
+        distributor = {
+          receivers = {
+            otlp.protocols.grpc = null;
+            otlp.protocols.http = null;
+            jaeger.protocols.thrift_http = null;
+            jaeger.protocols.grpc = null;
+            jaeger.protocols.thrift_binary = null;
+            jaeger.protocols.thrift_compact = null;
+            zipkin = null;
+            opencensus = null;
+            # Kafka default receiver config fails is kafka is not present
+            # kafka = null;
+          };
+        };
+        ingester.lifecycler.ring.replication_factor = 3;
+        # metrics_generator
+        # query_frontend
+        # querier
+        # compactor
+        storage.trace = {
+          backend = "local";
+          local.path = "/tmp/tempo/blocks";
+          wal.path = "/tmp/tempo/wal";
+        };
+        search_enabled = true;
+      };
+    };
+
     services.vault-backend.enable = cfg.useVaultBackend;
     # services.vulnix.enable = true;
     # services.vulnix.scanClosure = true;
