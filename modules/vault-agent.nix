@@ -50,12 +50,6 @@
       };
     };
 in {
-  imports = [
-    (lib.mkRenamedOptionModule ["services" "vault-agent-core" "disableTokenRotation" "consulAgent"] ["services" "vault-agent" "disableTokenRotation" "consulAgent"])
-    (lib.mkRenamedOptionModule ["services" "vault-agent-core" "disableTokenRotation" "consulDefault"] ["services" "vault-agent" "disableTokenRotation" "consulDefault"])
-    (lib.mkRenamedOptionModule ["services" "vault-agent-client" "disableTokenRotation" "consulAgent"] ["services" "vault-agent" "disableTokenRotation" "consulAgent"])
-    (lib.mkRenamedOptionModule ["services" "vault-agent-client" "disableTokenRotation" "consulDefault"] ["services" "vault-agent" "disableTokenRotation" "consulDefault"])
-  ];
   options.services.vault-agent = {
     enable = lib.mkEnableOption "Enable the vault-agent";
 
