@@ -165,22 +165,6 @@ in {
           systemctl restart consul.service
         fi
 
-        # # # # #
-        # Nomad #
-        # # # # #
-
-        if [ ! -s ${hashiTokens.nomadd-consul-json} ]; then
-          nomad="$(${mkToken "nomad-server" "nomad-server"})"
-
-          mkdir -p /etc/nomad.d
-
-          echo '{}' \
-          | jq --arg nomad "$nomad" '.consul.token = $nomad' \
-          > ${hashiTokens.nomadd-consul-json}.new
-
-          mv ${hashiTokens.nomadd-consul-json}.new ${hashiTokens.nomadd-consul-json}
-        fi
-
         ################
         # Extra Config #
         ################

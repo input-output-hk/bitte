@@ -46,7 +46,6 @@ in {
 
     hashiTokens = {
       vaultd-consul-json = "/etc/vault.d/consul-token.json";
-      nomadd-consul-json = "/etc/nomad.d/consul-token.json";
       consuld-json = "/etc/consul.d/tokens.json";
 
       vault = "/run/keys/vault-token";

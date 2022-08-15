@@ -35,12 +35,6 @@
         {{- with secret "nomad/creds/nomad-autoscaler" }}{{ .Data.secret_id }}{{ end -}}'';
       nomadSnapshot = ''
         {{- with secret "nomad/creds/management" }}{{ .Data.secret_id }}{{ end -}}'';
-      nomadConsul = ''
-        {
-          "consul": {
-            "token": "${consulNomad}"
-          }
-        }
       '';
 
       consulAgent =
@@ -87,14 +81,6 @@
           {{ with secret "consul/creds/consul-default" }}{{ .Data.token }}{{ end }}'';
 
       consulNomad = consulDefault;
-
-      nomadConsul = ''
-        {
-          "consul": {
-            "token": "${consulNomad}"
-          }
-        }
-      '';
 
       consulACL = ''
         {
@@ -185,11 +171,6 @@ in {
       "${hashiTokens.consuld-json}" = lib.mkIf config.services.consul.enable {
         command = role.restart "consul.service";
         contents = role.consulACL;
-      };
-
-      "${hashiTokens.nomadd-consul-json}" = lib.mkIf (config.services.nomad.enable && isClient) {
-        command = role.restart "nomad.service";
-        contents = role.nomadConsul;
       };
 
       "${hashiTokens.traefik}" = lib.mkIf isRouting {
