@@ -159,7 +159,7 @@ in {
       # This avoids a systemd service start race condition with NixOS service activation restart.
       # Ref: https://github.com/systemd/systemd/issues/20818#issuecomment-1172952498
       preStart = let
-        credFile = hashiTokens.consul-default;
+        credFile = hashiTokens.traefik;
       in ''
         echo "Checking for credentials file existence: ${credFile}"
         until [ -s ${credFile} ]; do
@@ -225,7 +225,7 @@ in {
             else cfg.staticConfigFile;
         in
           lib.mkForce (pkgs.writeShellScript "traefik.sh" ''
-            export CONSUL_HTTP_TOKEN="$(< ${hashiTokens.consul-default})"
+            export CONSUL_HTTP_TOKEN="$(< ${hashiTokens.traefik})"
             exec ${config.services.traefik.package}/bin/traefik --configfile=${staticConfigFile}
           '');
       };
