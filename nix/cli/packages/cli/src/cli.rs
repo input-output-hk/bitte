@@ -1,11 +1,10 @@
-mod args;
 pub mod opts;
 pub mod subs;
 
 use crate::types::{BitteFind, ClusterHandle};
 use anyhow::{anyhow, Context, Result};
 use clap::{App, ArgMatches, FromArgMatches};
-use clap_complete::{generate, shells};
+use clap_complete::{generate, Generator};
 use deploy::cli as deployCli;
 use deploy::cli::Opts as ExtDeployOpts;
 use log::*;
@@ -27,11 +26,14 @@ pub fn init_log(level: u64) {
 }
 
 pub(crate) async fn ssh(sub: &ArgMatches, cluster: ClusterHandle) -> Result<()> {
-    let mut args = sub.values_of_lossy("args").unwrap_or_default();
-    let job: Vec<String> = sub.values_of_t("job").unwrap_or_default();
-    let delay = Duration::from_secs(sub.value_of_t::<u64>("delay").unwrap_or(0));
+    let mut args: Vec<String> = sub.get_many("args").unwrap_or_default().cloned().collect();
+    let job: Vec<String> = sub.get_many("job").unwrap_or_default().cloned().collect();
+    let delay = Duration::from_secs(*sub.get_one::<u64>("delay").unwrap_or(&0));
 
-    let namespace: String = sub.value_of_t("namespace").unwrap_or_default();
+    let namespace = sub
+        .get_one::<String>("namespace")
+        .unwrap_or(&"default".to_string())
+        .to_owned();
 
     let ip: IpAddr;
 
@@ -76,18 +78,17 @@ pub(crate) async fn ssh(sub: &ArgMatches, cluster: ClusterHandle) -> Result<()> 
 
         return Ok(());
     } else if sub.is_present("job") {
-        let (name, group, index) = (&*job[0], &*job[1], &job[2]);
+        let (name, group, index) = (&job[0], &job[1], &job[2]);
 
         let nodes = cluster.nodes;
-        let (node, alloc) = nodes.find_with_job(name, group, index, namespace.as_ref())?;
+        let (node, alloc) = nodes.find_with_job(name, group, index, &namespace.clone())?;
+        ip = node.pub_ip;
         if args.is_empty() {
             args.extend(vec![
                 "-t".into(),
-                format!("cd /var/lib/nomad/alloc/{}; bash", alloc.id),
+                format!("cd /var/lib/nomad/alloc/{} && exec $SHELL", alloc.id),
             ]);
-        }
-
-        ip = node.pub_ip;
+        };
     } else {
         let needle = args.first();
 
@@ -123,8 +124,9 @@ async fn init_ssh(ip: IpAddr, args: Vec<String>, cluster: String) -> Result<()> 
     flags.push(user_host);
 
     if !args.is_empty() {
-        flags.append(&mut args.iter().map(|string| string.as_str()).collect());
-    }
+        flags.append(&mut args.iter().map(AsRef::as_ref).collect())
+    };
+
     let ssh_args = flags.into_iter();
 
     let mut cmd = Command::new("ssh");
@@ -290,12 +292,7 @@ async fn info_print(cluster: ClusterHandle, json: bool) -> Result<()> {
     Ok(())
 }
 
-pub(crate) async fn completions(sub: &ArgMatches, mut app: App<'_>) -> Result<()> {
-    match sub.subcommand() {
-        Some(("bash", _)) => generate(shells::Bash, &mut app, "bitte", &mut std::io::stdout()),
-        Some(("zsh", _)) => generate(shells::Zsh, &mut app, "bitte", &mut std::io::stdout()),
-        Some(("fish", _)) => generate(shells::Fish, &mut app, "bitte", &mut std::io::stdout()),
-        _ => (),
-    };
-    Ok(())
+pub(crate) async fn completions<G: Generator>(gen: G, mut app: App<'_>) {
+    let cli = &mut app;
+    generate(gen, cli, cli.get_name().to_string(), &mut std::io::stdout())
 }

@@ -11,8 +11,6 @@ pub enum Error {
     Serde(#[from] serde_json::Error),
     #[error("error parsing netrc file")]
     Netrc(netrc_rs::Error),
-    #[error("current BITTE_PROVIDER is not valid: {provider}")]
-    Provider { provider: String },
 }
 
 // NOTE netrc_rs doesn't impl StdError so can't simply `#[from]`

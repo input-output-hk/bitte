@@ -1,5 +1,6 @@
-use anyhow::{Context, Result};
-use clap::{AppSettings, ArgSettings, Parser};
+use crate::types::BitteProvider;
+use clap::{ArgSettings, Parser};
+use clap_complete::Shell;
 use deploy::data as deployData;
 use deploy::settings as deploySettings;
 use uuid::Uuid;
@@ -9,13 +10,14 @@ pub enum SubCommands {
     Info(Info),
     Ssh(Ssh),
     Deploy(Deploy),
-    #[clap(setting = AppSettings::Hidden)]
     Completions(Completions),
 }
 
 #[derive(Parser)]
 /// Show information about instances and auto-scaling groups
 pub struct Info {
+    #[clap(flatten)]
+    globals: Globals,
     #[clap(short, long)]
     /// output as JSON
     json: bool,
@@ -24,6 +26,8 @@ pub struct Info {
 #[derive(Parser, Default)]
 /// Deploy core and client nodes
 pub struct Deploy {
+    #[clap(flatten)]
+    globals: Globals,
     #[clap(long, short = 'l')]
     /// (re-)deploy all client nodes
     pub clients: bool,
@@ -36,10 +40,50 @@ pub struct Deploy {
     /// private & public ip, node name and aws client id
     pub nodes: Vec<String>,
 }
+#[derive(Parser)]
+/// Generate completions for the given shell
+pub struct Completions {
+    // Shell to generate completions for
+    #[clap(long, value_enum, value_name = "SHELL", value_parser = clap::value_parser!(Shell))]
+    shell: Shell,
+}
+
+#[derive(Parser, Default)]
+struct Globals {
+    #[clap(arg_enum, long, env = "BITTE_PROVIDER", ignore_case = true, value_parser = clap::value_parser!(BitteProvider))]
+    /// The cluster infrastructure provider
+    provider: BitteProvider,
+    #[clap(long, env = "BITTE_DOMAIN", value_name = "NAME")]
+    /// The public domain of the cluster
+    domain: String,
+    #[clap(long = "cluster", env = "BITTE_CLUSTER", value_name = "TITLE")]
+    /// The unique name of the cluster
+    name: String,
+    #[clap(
+        long,
+        env = "AWS_DEFAULT_REGION",
+        value_name = "REGION",
+        required_if_eq("provider", "AWS")
+    )]
+    /// The default AWS region
+    aws_region: Option<String>,
+    #[clap(
+        long,
+        env = "AWS_ASG_REGIONS",
+        value_name = "REGIONS",
+        required_if_eq("provider", "AWS"),
+        value_delimiter(':'),
+        require_delimiter = true
+    )]
+    /// Regions containing Nomad clients
+    aws_asg_regions: Option<Vec<String>>,
+}
 
 #[derive(Parser)]
 /// SSH to instances
 pub struct Ssh {
+    #[clap(flatten)]
+    globals: Globals,
     #[clap(
         short,
         long,
@@ -54,7 +98,7 @@ pub struct Ssh {
         long,
         value_name = "TOKEN",
         env = "NOMAD_TOKEN",
-        parse(try_from_str = token_context),
+        value_parser = clap::value_parser!(Uuid),
         setting = ArgSettings::HideEnvValues
     )]
     /// for '-j': The Nomad token used to query node information
@@ -89,23 +133,4 @@ pub struct Ssh {
     #[clap(multiple_values = true)]
     /// arguments to ssh
     args: Option<String>,
-}
-
-#[derive(Parser)]
-#[clap(alias = "comp")]
-/// Generate CLI completions
-pub struct Completions {
-    #[clap(subcommand)]
-    shells: Shells,
-}
-
-#[derive(Parser)]
-pub enum Shells {
-    Bash,
-    Zsh,
-    Fish,
-}
-
-fn token_context(string: &str) -> Result<Uuid> {
-    Uuid::parse_str(string).with_context(|| format!("'{}' is not a valid UUID", string))
 }

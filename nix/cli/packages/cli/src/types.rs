@@ -26,8 +26,6 @@ use reqwest::{
     Client,
 };
 
-use error::Error;
-
 use regex::Regex;
 
 #[derive(Serialize, Deserialize)]
@@ -76,6 +74,12 @@ pub struct BitteCluster {
 #[allow(clippy::upper_case_acronyms)]
 pub enum BitteProvider {
     AWS,
+}
+
+impl Default for BitteProvider {
+    fn default() -> Self {
+        BitteProvider::AWS
+    }
 }
 
 impl Display for BitteProvider {
@@ -340,11 +344,17 @@ impl BitteNode {
     ) -> Result<BitteNodes> {
         match provider {
             BitteProvider::AWS => {
-                let regions: HashSet<String> = {
-                    let mut result = args.values_of_t("aws-asg-regions")?;
-                    let default = args.value_of_t("aws-region")?;
-                    result.push(default);
-                    result.into_iter().collect()
+                let regions = {
+                    let mut result: HashSet<String> = args
+                        .get_many("aws-asg-regions")
+                        .unwrap_or_default()
+                        .cloned()
+                        .collect();
+                    let default = args.get_one::<String>("aws-region");
+                    if default.is_some() {
+                        result.insert(default.unwrap().to_owned());
+                    }
+                    result
                 };
 
                 let mut handles = Vec::with_capacity(regions.len());
@@ -365,7 +375,10 @@ impl BitteNode {
                     ]));
                     let response = tokio::spawn(async move {
                         request.send().await.with_context(|| {
-                            format!("failed to connect to ec2.{}.amazonaws.com", region_str)
+                            format!(
+                                "failed to connect to ec2.{}.amazonaws.com",
+                                region_str.to_owned()
+                            )
                         })
                     });
                     handles.push(response);
@@ -511,15 +524,12 @@ type AllocHandle = JoinHandle<Result<NomadAllocs>>;
 
 impl BitteCluster {
     pub async fn new(args: &ArgMatches, token: Option<Uuid>) -> Result<Self> {
-        let name: String = args.value_of_t("name")?;
-        let domain: String = args.value_of_t("domain")?;
-        let provider: BitteProvider = {
-            let provider: String = args.value_of_t("provider")?;
-            match provider.parse() {
-                Ok(v) => Ok(v),
-                Err(_) => Err(Error::Provider { provider }),
-            }?
-        };
+        let name = args.get_one::<String>("name").unwrap().to_owned();
+        let domain = args.get_one::<String>("domain").unwrap().to_owned();
+        let provider: BitteProvider = args
+            .get_one::<BitteProvider>("provider")
+            .unwrap()
+            .to_owned();
 
         let nomad_api_client = match token {
             Some(token) => {

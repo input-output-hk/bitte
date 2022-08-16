@@ -3,7 +3,8 @@ mod types;
 mod utils;
 
 use anyhow::Result;
-use clap::{App, IntoApp};
+use clap::{App, ArgMatches, IntoApp};
+use clap_complete::Shell;
 use cli::opts::Bitte;
 use types::BitteCluster;
 use uuid::Uuid;
@@ -16,26 +17,32 @@ async fn main() -> Result<()> {
 
     let matches = app.clone().get_matches();
 
-    let run = |init_log: bool, token| {
+    let run = |sub: &ArgMatches, init_log: bool, token| {
         if init_log {
             cli::init_log(matches.occurrences_of("verbose"))
         };
-        BitteCluster::init(matches.clone(), token)
+        BitteCluster::init(sub.clone(), token)
     };
 
     match matches.subcommand() {
-        Some(("deploy", sub)) => cli::deploy(sub, run(false, None)).await?,
-        Some(("info", sub)) => cli::info(sub, run(true, None)).await?,
+        Some(("deploy", sub)) => cli::deploy(sub, run(sub, false, None)).await?,
+        Some(("info", sub)) => cli::info(sub, run(sub, true, None)).await?,
         Some(("ssh", sub)) => {
             let token: Option<Uuid> = if sub.is_present("job") {
-                sub.value_of_t("nomad").ok()
+                sub.get_one::<Uuid>("nomad").copied()
             } else {
                 None
             };
-            cli::ssh(sub, run(true, token)).await?
+            cli::ssh(sub, run(sub, true, token)).await?
         }
-        Some(("completions", sub)) => cli::completions(sub, app).await?,
+        Some(("completions", sub)) => {
+            if let Some(shell) = sub.get_one::<Shell>("shell").copied() {
+                cli::completions(shell, app).await;
+            }
+        }
+
         _ => (),
     }
+
     Ok(())
 }

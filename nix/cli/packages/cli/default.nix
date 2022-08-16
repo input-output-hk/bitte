@@ -50,15 +50,14 @@ in
     doCheck = false;
 
     postInstall = ''
-      export BITTE_CLUSTER=b
-      export BITTE_PROVIDER=aws
-      export BITTE_DOMAIN=b.b.b
-
       mkdir -p $out/share/zsh/site-functions
-      $out/bin/bitte comp zsh > $out/share/zsh/site-functions/_bitte
+      $out/bin/bitte completions --shell zsh > $out/share/zsh/site-functions/_bitte
 
       mkdir -p $out/share/bash-completion/completions
-      $out/bin/bitte comp bash > $out/share/bash-completion/completions/bitte
+      $out/bin/bitte completions --shell bash > $out/share/bash-completion/completions/bitte
+
+      mkdir -p $out/share/fish/vendor_completions.d
+      $out/bin/bitte completions --shell fish > $out/share/fish/vendor_completions.d/bitte.fish
     '';
 
     passthru = {
