@@ -64,6 +64,9 @@ in {
             consulDefault =
               lib.mkEnableOption
               "Disable consul default token rotation on vault-agent-core nodes";
+            routing =
+              lib.mkEnableOption
+              "Disable traefik consul token rotation on routing";
           };
         };
     };

@@ -35,19 +35,18 @@
         {{- with secret "nomad/creds/nomad-autoscaler" }}{{ .Data.secret_id }}{{ end -}}'';
       nomadSnapshot = ''
         {{- with secret "nomad/creds/management" }}{{ .Data.secret_id }}{{ end -}}'';
-      '';
 
       consulAgent =
         if config.services.vault-agent.disableTokenRotation.consulAgent
         then ''
-          {{ with secret "kv/bootstrap/static-tokens/cores/consul-server-agent" }}{{ .Data.data.token }}{{ end }}''
+          {{ with secret "kv/bootstrap/static-tokens/core/consul-server-agent" }}{{ .Data.data.token }}{{ end }}''
         else ''
           {{ with secret "consul/creds/consul-server-agent" }}{{ .Data.token }}{{ end }}'';
 
       consulDefault =
         if config.services.vault-agent.disableTokenRotation.consulDefault
         then ''
-          {{ with secret "kv/bootstrap/static-tokens/cores/consul-server-default" }}{{ .Data.data.token }}{{ end }}''
+          {{ with secret "kv/bootstrap/static-tokens/core/consul-server-default" }}{{ .Data.data.token }}{{ end }}''
         else ''
           {{ with secret "consul/creds/consul-server-default" }}{{ .Data.token }}{{ end }}'';
 
@@ -96,11 +95,18 @@
 
     routing = rec {
       inherit reload restart;
-      inherit (roles.client) consulAgent consulNomad;
-      consulDefault = ''
-        {{ with secret "consul/creds/consul-default" }}{{ .Data.token }}{{ end }}'';
-      traefik = ''{{ with secret "consul/creds/traefik" }}{{ .Data.token }}{{ end }}'';
+      inherit (roles.client) consulAgent consulDefault consulNomad;
 
+      traefik =
+        if config.services.vault-agent.disableTokenRotation.routing
+        then ''
+          {{ with secret "kv/bootstrap/static-tokens/routing/traefik" }}{{ .Data.data.token }}{{ end }}''
+        else ''
+          {{ with secret "consul/creds/traefik" }}{{ .Data.token }}{{ end }}'';
+
+      # Consul on routing excludes a default token for ACL security purposes.
+      # This has the side effect of preventing local consul DNS lookups on routing.
+      # Dnsmasq on routing is therefore configured to forward consul DNS requests to core nodes.
       consulACL = ''
         {
           "acl": {
@@ -114,10 +120,7 @@
 
     hydra = rec {
       inherit reload restart;
-      inherit (roles.client) consulAgent consulNomad;
-      consulDefault = ''
-        {{ with secret "consul/creds/consul-default" }}{{ .Data.token }}{{ end }}'';
-      traefik = ''{{ with secret "consul/creds/traefik" }}{{ .Data.token }}{{ end }}'';
+      inherit (roles.client) consulAgent consulDefault consulNomad;
 
       consulACL = ''
         {
@@ -134,7 +137,6 @@
 
   roleName = config.services.vault-agent.role;
   role = roles."${roleName}";
-  isClient = roleName == "client";
   isRouting = roleName == "routing";
 in {
   services.vault-agent = {
@@ -174,6 +176,7 @@ in {
       };
 
       "${hashiTokens.traefik}" = lib.mkIf isRouting {
+        command = role.restart "traefik.service";
         contents = role.traefik;
       };
     };
