@@ -17,24 +17,18 @@ async fn main() -> Result<()> {
 
     let matches = app.clone().get_matches();
 
-    let run = |sub: &ArgMatches, init_log: bool, token| {
+    let run = |sub: &ArgMatches, init_log: bool| {
         if init_log {
             cli::init_log(matches.occurrences_of("verbose"))
         };
+        let token = sub.get_one::<Uuid>("nomad").copied();
         BitteCluster::init(sub.clone(), token)
     };
 
     match matches.subcommand() {
-        Some(("deploy", sub)) => cli::deploy(sub, run(sub, false, None)).await?,
-        Some(("info", sub)) => cli::info(sub, run(sub, true, None)).await?,
-        Some(("ssh", sub)) => {
-            let token: Option<Uuid> = if sub.is_present("job") {
-                sub.get_one::<Uuid>("nomad").copied()
-            } else {
-                None
-            };
-            cli::ssh(sub, run(sub, true, token)).await?
-        }
+        Some(("deploy", sub)) => cli::deploy(sub, run(sub, false)).await?,
+        Some(("info", sub)) => cli::info(sub, run(sub, true)).await?,
+        Some(("ssh", sub)) => cli::ssh(sub, run(sub, true)).await?,
         Some(("completions", sub)) => {
             if let Some(shell) = sub.get_one::<Shell>("shell").copied() {
                 cli::completions(shell, app).await;

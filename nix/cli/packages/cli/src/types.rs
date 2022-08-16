@@ -8,7 +8,6 @@ use clap::{ArgEnum, ArgMatches};
 use serde::{de::Deserializer, Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::collections::hash_set::HashSet;
-use std::env;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use std::sync::Arc;
@@ -98,6 +97,8 @@ pub struct NomadClient {
     pub allocs: Option<NomadAllocs>,
     #[serde(rename = "Address")]
     pub address: Option<IpAddr>,
+    #[serde(rename = "NodeClass")]
+    pub node_class: Option<String>,
 }
 
 impl NomadClient {
@@ -122,7 +123,7 @@ pub struct BitteNode {
     pub priv_ip: IpAddr,
     pub pub_ip: IpAddr,
     pub nixos: String,
-    #[serde(skip_serializing_if = "skip_info")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub nomad_client: Option<NomadClient>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub node_type: Option<String>,
@@ -132,17 +133,13 @@ pub struct BitteNode {
     pub asg: Option<String>,
 }
 
-fn skip_info<T>(_: &Option<T>) -> bool {
-    env::var("BITTE_INFO_NO_ALLOCS").is_ok()
-}
-
 pub trait BitteFind
 where
     Self: IntoIterator,
 {
     fn find_needle(self, needle: &str) -> Result<Self::Item>;
     fn find_needles(self, needles: Vec<&str>) -> Self;
-    fn find_clients(self) -> Self;
+    fn find_clients(self, node_class: Option<String>) -> Self;
     fn find_with_job(
         self,
         name: &str,
@@ -248,8 +245,17 @@ impl BitteFind for BitteNodes {
             .with_context(|| format!("{} does not match any nodes", needle))
     }
 
-    fn find_clients(self) -> Self {
-        self.into_iter().filter(|node| node.asg.is_some()).collect()
+    fn find_clients(self, node_class: Option<String>) -> Self {
+        match node_class {
+            Some(class) => self
+                .into_iter()
+                .filter(|node| match &node.nomad_client {
+                    Some(client) => client.node_class.clone().unwrap_or_default() == class,
+                    None => false,
+                })
+                .collect(),
+            None => self.into_iter().filter(|node| node.asg.is_some()).collect(),
+        }
     }
 
     fn find_needles(self, needles: Vec<&str>) -> Self {

@@ -21,6 +21,8 @@ pub struct Info {
     #[clap(short, long)]
     /// output as JSON
     json: bool,
+    #[clap(flatten)]
+    nomad: Nomad,
 }
 
 #[derive(Parser, Default)]
@@ -39,6 +41,13 @@ pub struct Deploy {
     /// nodes to deploy; takes one or more needles to match against:
     /// private & public ip, node name and aws client id
     pub nodes: Vec<String>,
+
+    #[clap(flatten)]
+    nomad: Nomad,
+
+    #[clap(long, short = 'o',  requires_all = &["nomad", "clients"])]
+    /// the Nomad node class to filter clients against
+    class: Option<String>,
 }
 #[derive(Parser)]
 /// Generate completions for the given shell
@@ -79,6 +88,19 @@ struct Globals {
     aws_asg_regions: Option<Vec<String>>,
 }
 
+#[derive(Parser, Default)]
+struct Nomad {
+    #[clap(
+        long,
+        value_name = "TOKEN",
+        env = "NOMAD_TOKEN",
+        value_parser = clap::value_parser!(Uuid),
+        setting = ArgSettings::HideEnvValues
+    )]
+    /// The Nomad token used to query node information
+    nomad: Option<Uuid>,
+}
+
 #[derive(Parser)]
 /// SSH to instances
 pub struct Ssh {
@@ -94,15 +116,11 @@ pub struct Ssh {
     /// specify client by: job, group, alloc_index;
     /// this will also 'cd' to the alloc dir if <ARGS> is empty
     job: Option<String>,
-    #[clap(
-        long,
-        value_name = "TOKEN",
-        env = "NOMAD_TOKEN",
-        value_parser = clap::value_parser!(Uuid),
-        setting = ArgSettings::HideEnvValues
-    )]
-    /// for '-j': The Nomad token used to query node information
-    nomad: Option<Uuid>,
+    #[clap(long, short, env = "NOMAD_NAMESPACE")]
+    /// Nomad namespace to search for jobs with `-j`
+    namespace: Option<String>,
+    #[clap(flatten)]
+    nomad: Nomad,
     #[clap(
         long,
         short,
@@ -121,12 +139,12 @@ pub struct Ssh {
     )]
     /// run <ARGS> on nodes in parallel
     parallel: bool,
-    #[clap(long, short, env = "NOMAD_NAMESPACE")]
-    /// for '-j': specify nomad namespace to search for <JOB>
-    namespace: Option<String>,
     #[clap(long, short = 'l', requires = "multi")]
     /// for '-a' or '-p': execute commands only on Nomad clients
     clients: bool,
+    #[clap(long, short = 'o',  requires_all = &["nomad", "clients"])]
+    /// the Nomad node class to filter clients against
+    class: Option<String>,
     #[clap(long, short, requires = "all")]
     /// for '-a': seconds to delay between commands
     delay: Option<usize>,

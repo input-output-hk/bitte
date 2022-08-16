@@ -29,6 +29,7 @@ pub(crate) async fn ssh(sub: &ArgMatches, cluster: ClusterHandle) -> Result<()> 
     let mut args: Vec<String> = sub.get_many("args").unwrap_or_default().cloned().collect();
     let job: Vec<String> = sub.get_many("job").unwrap_or_default().cloned().collect();
     let delay = Duration::from_secs(*sub.get_one::<u64>("delay").unwrap_or(&0));
+    let node_class = sub.get_one::<String>("class").cloned();
 
     let namespace = sub
         .get_one::<String>("namespace")
@@ -41,7 +42,7 @@ pub(crate) async fn ssh(sub: &ArgMatches, cluster: ClusterHandle) -> Result<()> 
 
     if sub.is_present("all") {
         let nodes = if sub.is_present("clients") {
-            cluster.nodes.find_clients()
+            cluster.nodes.find_clients(node_class)
         } else {
             cluster.nodes
         };
@@ -58,7 +59,7 @@ pub(crate) async fn ssh(sub: &ArgMatches, cluster: ClusterHandle) -> Result<()> 
         return Ok(());
     } else if sub.is_present("parallel") {
         let nodes = if sub.is_present("clients") {
-            cluster.nodes.find_clients()
+            cluster.nodes.find_clients(node_class)
         } else {
             cluster.nodes
         };
@@ -143,11 +144,12 @@ async fn init_ssh(ip: IpAddr, args: Vec<String>, cluster: String) -> Result<()> 
 pub(crate) async fn deploy(sub: &ArgMatches, cluster: ClusterHandle) -> Result<()> {
     let opts = <subs::Deploy as FromArgMatches>::from_arg_matches(sub).unwrap_or_default();
     let cluster = cluster.await??;
+    let node_class = sub.get_one::<String>("class").cloned();
 
     info!("node needles: {:?}", opts.nodes);
 
     let instances = if opts.clients {
-        cluster.nodes.find_clients()
+        cluster.nodes.find_clients(node_class)
     } else {
         cluster
             .nodes
@@ -219,7 +221,6 @@ async fn info_print(cluster: ClusterHandle, json: bool) -> Result<()> {
     if json {
         let stdout = io::stdout();
         let handle = stdout.lock();
-        env::set_var("BITTE_INFO_NO_ALLOCS", "");
         serde_json::to_writer_pretty(handle, &cluster)?;
     } else {
         let mut core_nodes_table = Table::new();
@@ -234,23 +235,14 @@ async fn info_print(cluster: ClusterHandle, json: bool) -> Result<()> {
 
         for node in nodes.into_iter() {
             match node.asg {
-                Some(asg) => {
-                    let name: String = asg.to_string();
-                    // TODO extract true client group
+                Some(_) => {
                     let group: String = {
-                        let suffix = name.split('-').last().unwrap_or_default().to_owned();
-                        let i_type = node
-                            .node_type
-                            .clone()
-                            .unwrap_or_default()
-                            .split('.')
-                            .last()
-                            .unwrap_or_default()
-                            .to_owned();
-                        if suffix == i_type {
-                            "".to_string()
-                        } else {
-                            format!(" ({})", suffix)
+                        match node.nomad_client {
+                            Some(client) => match client.node_class {
+                                Some(class) => format!(" ({})", class),
+                                None => "".to_string(),
+                            },
+                            None => "".to_string(),
                         }
                     };
 
