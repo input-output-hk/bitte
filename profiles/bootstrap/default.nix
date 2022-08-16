@@ -76,13 +76,13 @@
     '';
 
   initialVaultStaticSecrets = let
-    mkStaticTokenCheck = policy: ''
+    mkStaticTokenCheck = policy: role: ''
       echo "Checking for ${policy} static token..."
-      if ! vault kv get -field token "kv/bootstrap/static-tokens/clients/${policy}" &> /dev/null; then
+      if ! vault kv get -field token "kv/bootstrap/static-tokens/${role}/${policy}" &> /dev/null; then
         echo "Creating ${policy} static token..."
         token="$(${mkStaticToken "${policy}"})"
         echo "Storing ${policy} static token in Vault secrets."
-        vault kv put "kv/bootstrap/static-tokens/clients/${policy}" token="$token"
+        vault kv put "kv/bootstrap/static-tokens/${role}/${policy}" token="$token"
       else
         echo "Found ${policy} static token."
       fi
@@ -96,10 +96,11 @@
     '';
   in ''
     set +x
-    ${mkStaticTokenCheck "consul-agent"}
-    ${mkStaticTokenCheck "consul-default"}
-    ${mkStaticTokenCheck "consul-server-agent"}
-    ${mkStaticTokenCheck "consul-server-default"}
+    ${mkStaticTokenCheck "consul-agent" "clients"}
+    ${mkStaticTokenCheck "consul-default" "clients"}
+    ${mkStaticTokenCheck "consul-server-agent" "core"}
+    ${mkStaticTokenCheck "consul-server-default" "core"}
+    ${mkStaticTokenCheck "traefik" "routing"}
     set -x
   '';
 in {
