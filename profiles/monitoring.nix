@@ -103,9 +103,13 @@ in {
     ];
 
     networking.firewall.allowedTCPPorts = [
-      config.services.grafana.port
+      config.services.grafana.port # default: 3000
       8428 # victoriaMetrics
+      8429 # vmagent
+      8880 # vmalert-vm
+      8881 # vmalert-loki
       9000 # minio
+      9093 # alertmanager
     ];
 
     services.consul.ui = true;
