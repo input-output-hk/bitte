@@ -5,6 +5,10 @@
   etcEncrypted,
   ...
 }: let
+  inherit (lib) boolToString last makeBinPath mkDefault mkEnableOption mkIf mkOption;
+  inherit (lib.types) bool listOf package str;
+  inherit (lib.types.ints) unsigned;
+
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
   domain =
     config
@@ -15,18 +19,20 @@
     }
     .domain;
   isSops = deployType == "aws";
-  relEncryptedFolder = lib.last (builtins.split "-" (toString config.secrets.encryptedRoot));
+  relEncryptedFolder = last (builtins.split "-" (toString config.secrets.encryptedRoot));
   cfg = config.services.docker-registry;
 in {
   options.services.docker-registry = {
-    enable = lib.mkEnableOption "Docker registry";
-    registryFqdn = lib.mkOption {
-      type = lib.types.str;
+    enable = mkEnableOption "Docker registry";
+
+    registryFqdn = mkOption {
+      type = str;
       default = "registry.${domain}";
       description = "The default host fqdn for the traefik routed registry service.";
     };
-    traefikTags = lib.mkOption {
-      type = with lib.types; listOf str;
+
+    traefikTags = mkOption {
+      type = listOf str;
       default = [
         "ingress"
         "traefik.enable=true"
@@ -45,16 +51,79 @@ in {
         a basic-auth file for registry authentication.
       '';
     };
+
+    enableRepair = mkOption {
+      type = bool;
+      default = true;
+      description = "Enables the docker registry repair service.";
+    };
+
+    repairDeleteTag = mkOption {
+      type = bool;
+      default = false;
+      description = "Also delete all tag references during repair.";
+    };
+
+    repairDryRun = mkOption {
+      type = bool;
+      default = false;
+      description = "Avoid deleting anything during repair.";
+    };
+
+    repairPkg = mkOption {
+      type = package;
+      default = pkgs.docker-registry-repair;
+      description = ''
+        The registry repair package to utilize.
+        Assumes a bin file of ''${cfg.repairPkg}/bin/docker-registry-repair.
+      '';
+    };
+
+    repairRegistryPath = mkOption {
+      type = str;
+      default = "/var/lib/docker-registry/docker/registry/v2";
+      description = "The registry path.";
+    };
+
+    repairTailDelay = mkOption {
+      type = unsigned;
+      default = 5;
+      description = "The time delay in seconds between repair spawn jobs.";
+    };
+
+    repairTailLookback = mkOption {
+      type = str;
+      default = "-1h";
+      description = ''
+        The lookback period for journal history.
+        This needs to be a valid journalctl -S parameter formatted string.
+      '';
+    };
+
+    repairTailPkg = mkOption {
+      type = package;
+      default = pkgs.docker-registry-tail;
+      description = ''
+        The registry repair tail package to utilize.
+        Assumes a bin file of ''${cfg.repairTailPkg}/bin/docker-registry-tail.
+      '';
+    };
+
+    repairTailService = mkOption {
+      type = str;
+      default = "docker-registry.service";
+      description = "The systemd service to tail.";
+    };
   };
 
-  config = lib.mkIf cfg.enable {
+  config = mkIf cfg.enable {
     networking.firewall.allowedTCPPorts = [
       config.services.dockerRegistry.port
     ];
 
     services = {
       dockerRegistry = {
-        enable = lib.mkDefault true;
+        enable = mkDefault true;
         enableDelete = true;
         enableGarbageCollect = true;
         enableRedisCache = true;
@@ -97,8 +166,40 @@ in {
       })
       .systemdService;
 
-    secrets.generate.redis-password = lib.mkIf isSops ''
-      export PATH="${lib.makeBinPath (with pkgs; [coreutils sops xkcdpass])}"
+    environment.systemPackages = with pkgs; [
+      docker-registry-repair
+      docker-registry-tail
+    ];
+
+    systemd.services.docker-registry-repair = mkIf cfg.enableRepair {
+      wantedBy = ["multi-user.target"];
+
+      startLimitIntervalSec = 0;
+      startLimitBurst = 0;
+
+      serviceConfig = {
+        Restart = "always";
+        RestartSec = 5;
+
+        ExecStart = let
+          script = pkgs.writeShellApplication {
+            name = "docker-registry-repair-tail";
+            text = ''
+              exec ${cfg.repairTailPkg}/bin/docker-registry-tail \
+                --since ${cfg.repairTailLookback} \
+                --service ${cfg.repairTailService} \
+                --repair-path ${cfg.repairPkg}/bin/docker-registry-repair \
+                --delay ${toString cfg.repairTailDelay} \
+                --delete-tag ${boolToString cfg.repairDeleteTag} \
+                --dry-run ${boolToString cfg.repairDryRun}
+            '';
+          };
+        in "${script}/bin/docker-registry-repair-tail";
+      };
+    };
+
+    secrets.generate.redis-password = mkIf isSops ''
+      export PATH="${makeBinPath (with pkgs; [coreutils sops xkcdpass])}"
 
       if [ ! -s ${relEncryptedFolder}/redis-password.json ]; then
         xkcdpass \
@@ -107,7 +208,7 @@ in {
       fi
     '';
 
-    secrets.install.redis-password = lib.mkIf isSops {
+    secrets.install.redis-password = mkIf isSops {
       source = "${etcEncrypted}/redis-password.json";
       target = /run/keys/redis-password;
       inputType = "binary";
@@ -117,7 +218,7 @@ in {
     # For the prem case, hydrate-secrets handles the push to vault instead of sops
     # TODO: add proper docker password generation creds in the Rakefile
     # TODO: add more unified handling between aws and prem secrets
-    age.secrets = lib.mkIf (!isSops) {
+    age.secrets = mkIf (!isSops) {
       redis-password = {
         file = config.age.encryptedRoot + "/redis/password.age";
         path = "/run/keys/redis-password";

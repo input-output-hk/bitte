@@ -42,6 +42,8 @@ in
       cue = prev.callPackage ./pkgs/cue.nix {};
       devShell = final.callPackage ./pkgs/dev-shell.nix {};
       docker-distribution = prev.callPackage ./pkgs/docker-distribution.nix {};
+      docker-registry-repair = prev.callPackage ./pkgs/docker-registry/default.nix {name = "docker-registry-repair";};
+      docker-registry-tail = prev.callPackage ./pkgs/docker-registry/default.nix {name = "docker-registry-tail";};
 
       # Pin docker and containerd to avoid unexpected cluster wide docker daemon restarts
       # during metal deploy resulting in OCI jobs being killed or behaving unexpectedly
