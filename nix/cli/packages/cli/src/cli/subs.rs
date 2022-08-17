@@ -1,9 +1,8 @@
-use crate::types::BitteProvider;
-use clap::{ArgSettings, Parser};
+use crate::cli::opts::{Globals, Nomad};
+use clap::Parser;
 use clap_complete::Shell;
 use deploy::data as deployData;
 use deploy::settings as deploySettings;
-use uuid::Uuid;
 
 #[derive(Parser)]
 pub enum SubCommands {
@@ -55,50 +54,6 @@ pub struct Completions {
     // Shell to generate completions for
     #[clap(long, value_enum, value_name = "SHELL", value_parser = clap::value_parser!(Shell))]
     shell: Shell,
-}
-
-#[derive(Parser, Default)]
-struct Globals {
-    #[clap(arg_enum, long, env = "BITTE_PROVIDER", ignore_case = true, value_parser = clap::value_parser!(BitteProvider))]
-    /// The cluster infrastructure provider
-    provider: BitteProvider,
-    #[clap(long, env = "BITTE_DOMAIN", value_name = "NAME")]
-    /// The public domain of the cluster
-    domain: String,
-    #[clap(long = "cluster", env = "BITTE_CLUSTER", value_name = "TITLE")]
-    /// The unique name of the cluster
-    name: String,
-    #[clap(
-        long,
-        env = "AWS_DEFAULT_REGION",
-        value_name = "REGION",
-        required_if_eq("provider", "AWS")
-    )]
-    /// The default AWS region
-    aws_region: Option<String>,
-    #[clap(
-        long,
-        env = "AWS_ASG_REGIONS",
-        value_name = "REGIONS",
-        required_if_eq("provider", "AWS"),
-        value_delimiter(':'),
-        require_delimiter = true
-    )]
-    /// Regions containing Nomad clients
-    aws_asg_regions: Option<Vec<String>>,
-}
-
-#[derive(Parser, Default)]
-struct Nomad {
-    #[clap(
-        long,
-        value_name = "TOKEN",
-        env = "NOMAD_TOKEN",
-        value_parser = clap::value_parser!(Uuid),
-        setting = ArgSettings::HideEnvValues
-    )]
-    /// The Nomad token used to query node information
-    nomad: Option<Uuid>,
 }
 
 #[derive(Parser)]
