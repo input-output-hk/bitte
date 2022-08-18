@@ -1,8 +1,16 @@
+pub mod deploy;
+pub mod info;
+pub mod ssh;
+
+pub use self::deploy::deploy;
+pub use info::info;
+pub use ssh::ssh;
+
 use crate::cli::opts::{Globals, Nomad};
+use crate::deploy_rs::data as deployData;
+use crate::deploy_rs::settings as deploySettings;
 use clap::Parser;
 use clap_complete::Shell;
-use deploy::data as deployData;
-use deploy::settings as deploySettings;
 
 #[derive(Parser)]
 pub enum SubCommands {

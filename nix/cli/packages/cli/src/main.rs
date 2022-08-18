@@ -1,13 +1,16 @@
+mod bitte;
 mod cli;
-mod types;
-mod utils;
+mod nomad;
 
 use anyhow::Result;
+use bitte::BitteCluster;
 use clap::{App, ArgMatches, IntoApp};
 use clap_complete::Shell;
 use cli::opts::Bitte;
-use types::BitteCluster;
+use cli::subs;
 use uuid::Uuid;
+
+use deploy as deploy_rs;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -26,9 +29,9 @@ async fn main() -> Result<()> {
     };
 
     match matches.subcommand() {
-        Some(("deploy", sub)) => cli::deploy(sub, run(sub, false)).await?,
-        Some(("info", sub)) => cli::info(sub, run(sub, true)).await?,
-        Some(("ssh", sub)) => cli::ssh(sub, run(sub, true)).await?,
+        Some(("deploy", sub)) => subs::deploy(sub, run(sub, false)).await?,
+        Some(("info", sub)) => subs::info(sub, run(sub, true)).await?,
+        Some(("ssh", sub)) => subs::ssh(sub, run(sub, true)).await?,
         Some(("completions", sub)) => {
             if let Some(shell) = sub.get_one::<Shell>("shell").copied() {
                 cli::completions(shell, app).await;

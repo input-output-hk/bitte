@@ -1,5 +1,5 @@
 use super::subs::SubCommands;
-use crate::types::BitteProvider;
+use crate::bitte::BitteProvider;
 use clap::{ArgSettings, Parser};
 use uuid::Uuid;
 

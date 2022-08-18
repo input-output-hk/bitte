@@ -20,8 +20,6 @@ anyhow = "^1.0.0"
 deploy-rs = { git = "https://github.com/input-output-hk/deploy-rs" }
 uuid = { version = "^1", features = ["serde"] }
 reqwest = { version = "^0.11.0", features = ["json", "gzip"] }
-thiserror = "^1.0.0"
-netrc-rs = "0.1.2"
 enum-utils = "^0"
 clap_complete = "^3"
 aws-config = "^0"
