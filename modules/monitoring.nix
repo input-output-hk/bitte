@@ -6,6 +6,35 @@
   etcEncrypted,
   ...
 }: let
+  inherit
+    (lib)
+    flip
+    getBin
+    last
+    makeBinPath
+    mapAttrs
+    mkEnableOption
+    mkForce
+    mkIf
+    mkOption
+    optionalAttrs
+    optionals
+    pipe
+    recursiveUpdate
+    warn
+    ;
+
+  inherit
+    (lib.types)
+    attrs
+    bool
+    enum
+    ints
+    listOf
+    nullOr
+    str
+    ;
+
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
   domain =
     config
@@ -24,12 +53,17 @@
       then (toString config.secrets.encryptedRoot)
       else (toString config.age.encryptedRoot);
   in
-    lib.last (builtins.split "/nix/store/.{32}-" encPathStr);
+    last (builtins.split "/nix/store/.{32}-" encPathStr);
 
   alertmanagerYml =
     if config.services.prometheus.alertmanager.configText != null
     then pkgs.writeText "alertmanager.yml" config.services.prometheus.alertmanager.configText
     else pkgs.writeText "alertmanager.yml" (builtins.toJSON config.services.prometheus.alertmanager.configuration);
+
+  mkTempoReceiver = opt: receiver:
+    if opt
+    then flip recursiveUpdate receiver
+    else flip recursiveUpdate {};
 in {
   imports = [
     ./victoriametrics.nix
@@ -37,11 +71,10 @@ in {
   ];
 
   options.services.monitoring = {
+    enable = mkEnableOption "Enable monitoring.";
 
-    enable = lib.mkEnableOption "Enable monitoring";
-
-    useOauth2Proxy = lib.mkOption {
-      type = lib.types.bool;
+    useOauth2Proxy = mkOption {
+      type = bool;
       default = true;
       description = ''
         Utilize oauth auth headers provided from traefik on routing for grafana.
@@ -49,8 +82,8 @@ in {
       '';
     };
 
-    useDigestAuth = lib.mkOption {
-      type = lib.types.bool;
+    useDigestAuth = mkOption {
+      type = bool;
       default = false;
       description = ''
         Utilize digest auth headers provided from traefik on routing for grafana.
@@ -58,10 +91,10 @@ in {
       '';
     };
 
-    useDockerRegistry = lib.mkOption {
-      type = lib.types.bool;
+    useDockerRegistry = mkOption {
+      type = bool;
       default =
-        lib.warn ''
+        warn ''
           DEPRECATED: -- this option is now a no-op.
           To enable a docker registry, apply the following
           bitte module to the target docker registry host machine,
@@ -80,16 +113,196 @@ in {
       '';
     };
 
-    useVaultBackend = lib.mkOption {
-      type = lib.types.bool;
+    useVaultBackend = mkOption {
+      type = bool;
       default = false;
       description = ''
         Enable use of a vault TF backend with a service hosted on the monitoring server.
       '';
     };
+
+    enableTempo = mkOption {
+      type = bool;
+      default = true;
+      description = "Enable Tempo tracing.";
+    };
+
+    tempoHttpListenAddress = mkOption {
+      type = str;
+      default = "0.0.0.0";
+      description = "HTTP server listen host.";
+    };
+
+    tempoHttpListenPort = mkOption {
+      type = ints.positive;
+      default = 3200;
+      description = "HTTP server listen port.";
+    };
+
+    tempoGrpcListenPort = mkOption {
+      type = ints.positive;
+      default = 9096;
+      description = "gRPC server listen port.";
+    };
+
+    tempoReceiverOtlpHttp = mkOption {
+      type = bool;
+      default = true;
+      description = "Enable OTLP receiver on HTTP.";
+    };
+
+    tempoReceiverOtlpGrpc = mkOption {
+      type = bool;
+      default = true;
+      description = "Enable OTLP receiver on gRPC.";
+    };
+
+    tempoReceiverJaegerThriftHttp = mkOption {
+      type = bool;
+      default = true;
+      description = "Enable Jaeger thrift receiver on HTTP.";
+    };
+
+    tempoReceiverJaegerGrpc = mkOption {
+      type = bool;
+      default = true;
+      description = "Enable Jaeger receiver on gRPC.";
+    };
+
+    tempoReceiverJaegerThriftBinary = mkOption {
+      type = bool;
+      default = true;
+      description = "Enable Jaeger thrift receiver for binary.";
+    };
+
+    tempoReceiverJaegerThriftCompact = mkOption {
+      type = bool;
+      default = true;
+      description = "Enable Jaeger thrift receiver on compact.";
+    };
+
+    tempoReceiverZipkin = mkOption {
+      type = bool;
+      default = true;
+      description = "Enable Zipkin receiver.";
+    };
+
+    tempoReceiverOpencensus = mkOption {
+      type = bool;
+      default = true;
+      description = "Enable Opencensus receiver.";
+    };
+
+    tempoReceiverKafka = mkOption {
+      type = bool;
+      default = false;
+      description = ''
+        Enable Kafta receiver.
+        Note: The Tempo service will fail if Tempo cannot reach a Kafka broker.
+
+        See the following refs for configuration details:
+        https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/kafkareceiver
+        https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/kafkametricsreceiver
+      '';
+    };
+
+    tempoLogReceivedSpansEnable = mkOption {
+      type = bool;
+      default = false;
+      description = ''
+        Enable to log every received span to help debug ingestion
+        or calculate span error distributions using the logs.
+      '';
+    };
+
+    tempoLogReceivedSpansIncludeAllAttrs = mkOption {
+      type = bool;
+      default = false;
+    };
+
+    tempoLogReceivedSpansFilterByStatusError = mkOption {
+      type = bool;
+      default = false;
+    };
+
+    tempoSearchTagsDenyList = mkOption {
+      type = nullOr (listOf str);
+      default = null;
+    };
+
+    tempoIngesterLifecyclerRingRepl = mkOption {
+      type = ints.positive;
+      default = 1;
+    };
+
+    tempoMetricsGeneratorEnable = mkOption {
+      type = bool;
+      default = true;
+      description = ''
+        The metrics-generator processes spans and write metrics using
+        the Prometheus remote write protocol.
+      '';
+    };
+
+    tempoMetricsGeneratorStoragePath = mkOption {
+      type = str;
+      default = "/var/lib/tempo/storage/wal-metrics";
+      description = ''
+        Path to store the WAL. Each tenant will be stored in its own subdirectory.
+      '';
+    };
+
+    tempoMetricsGeneratorStorageRemoteWrite = mkOption {
+      type = listOf attrs;
+      default = [{url = "http://127.0.0.1:8428/api/v1/write";}];
+      description = ''
+        A list of remote write endpoints in Prometheus remote_write format:
+        https://prometheus.io/docs/prometheus/latest/configuration/configuration/#remote_write
+      '';
+    };
+
+    tempoStorageTraceBackend = mkOption {
+      type = enum ["local"];
+      default = "local";
+      description = ''
+        The storage backend to use.
+      '';
+    };
+
+    tempoStorageLocalPath = mkOption {
+      type = str;
+      default = "/var/lib/tempo/storage/local";
+      description = ''
+        Where to store state if the backend selected is "local".
+      '';
+    };
+
+    tempoStorageTraceWalPath = mkOption {
+      type = str;
+      default = "/var/lib/tempo/storage/wal";
+      description = ''
+        Where to store the head blocks while they are being appended to.
+      '';
+    };
+
+    tempoSearchEnable = mkOption {
+      type = bool;
+      default = true;
+      description = ''
+        Enable tempo search.
+      '';
+    };
+
+    tempoExtraConfig = mkOption {
+      type = attrs;
+      default = {};
+      description = ''
+        Extra configuration to pass to Tempo service.
+      '';
+    };
   };
 
-  config = lib.mkIf cfg.enable {
+  config = mkIf cfg.enable {
     assertions = [
       {
         assertion = cfg.useOauth2Proxy != cfg.useDigestAuth;
@@ -100,55 +313,95 @@ in {
       }
     ];
 
-    networking.firewall.allowedTCPPorts = [
-      config.services.grafana.port # default: 3000
-      8428 # victoriaMetrics
-      8429 # vmagent
-      8880 # vmalert-vm
-      8881 # vmalert-loki
-      9000 # minio
-      9093 # alertmanager
-    ];
+    networking.firewall.allowedTCPPorts =
+      [
+        config.services.grafana.port # default: 3000
+        8428 # victoriaMetrics
+        8429 # vmagent
+        8880 # vmalert-vm
+        8881 # vmalert-loki
+        9000 # minio
+        9093 # alertmanager
+      ]
+      ++ optionals cfg.enableTempo [
+        cfg.tempoHttpListenPort # default: 3200
+        cfg.tempoGrpcListenPort # default: 9096
+      ]
+      # Tempo receiver port references:
+      # https://github.com/open-telemetry/opentelemetry-collector/blob/main/receiver/otlpreceiver/README.md
+      # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/jaegerreceiver
+      # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/opencensusreceiver
+      # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/zipkinreceiver
+      ++ optionals cfg.tempoReceiverOtlpGrpc [4317]
+      ++ optionals cfg.tempoReceiverOtlpHttp [4318]
+      ++ optionals cfg.tempoReceiverZipkin [9411]
+      ++ optionals cfg.tempoReceiverJaegerGrpc [14250]
+      ++ optionals cfg.tempoReceiverJaegerThriftHttp [14268]
+      ++ optionals cfg.tempoReceiverOpencensus [55678];
+
+    networking.firewall.allowedUDPPorts =
+      []
+      # Tempo receiver port references:
+      # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/jaegerreceiver
+      ++ optionals cfg.tempoReceiverJaegerThriftBinary [6832]
+      ++ optionals cfg.tempoReceiverJaegerThriftCompact [6831];
 
     services.victoriametrics.enable = true;
     services.victoriametrics.enableVmalertProxy = true;
     services.grafana.enable = true;
     services.prometheus.enable = false;
 
-    services.tempo = {
+    services.tempo = mkIf cfg.enableTempo {
       enable = true;
-      settings = {
-        server = {
-          http_listen_address = "0.0.0.0";
-          http_listen_port = 3200;
-          grpc_listen_port = 9096;
-        };
-        distributor = {
-          receivers = {
-            otlp.protocols.grpc = null;
-            otlp.protocols.http = null;
-            jaeger.protocols.thrift_http = null;
-            jaeger.protocols.grpc = null;
-            jaeger.protocols.thrift_binary = null;
-            jaeger.protocols.thrift_compact = null;
-            zipkin = null;
-            opencensus = null;
-            # Kafka default receiver config fails is kafka is not present
-            # kafka = null;
+      settings =
+        recursiveUpdate {
+          server = {
+            http_listen_address = cfg.tempoHttpListenAddress;
+            http_listen_port = cfg.tempoHttpListenPort;
+            grpc_listen_port = cfg.tempoGrpcListenPort;
           };
-        };
-        ingester.lifecycler.ring.replication_factor = 3;
-        # metrics_generator
-        # query_frontend
-        # querier
-        # compactor
-        storage.trace = {
-          backend = "local";
-          local.path = "/tmp/tempo/blocks";
-          wal.path = "/tmp/tempo/wal";
-        };
-        search_enabled = true;
-      };
+
+          distributor = {
+            receivers = pipe {} [
+              (mkTempoReceiver cfg.tempoReceiverOtlpHttp {otlp.protocols.http = null;})
+              (mkTempoReceiver cfg.tempoReceiverOtlpGrpc {otlp.protocols.grpc = null;})
+              (mkTempoReceiver cfg.tempoReceiverJaegerThriftHttp {jaeger.protocols.thrift_http = null;})
+              (mkTempoReceiver cfg.tempoReceiverJaegerGrpc {jaeger.protocols.grpc = null;})
+              (mkTempoReceiver cfg.tempoReceiverJaegerThriftBinary {jaeger.protocols.thrift_binary = null;})
+              (mkTempoReceiver cfg.tempoReceiverJaegerThriftCompact {jaeger.protocols.thrift_compact = null;})
+              (mkTempoReceiver cfg.tempoReceiverZipkin {zipkin = null;})
+              (mkTempoReceiver cfg.tempoReceiverOpencensus {opencensus = null;})
+              (mkTempoReceiver cfg.tempoReceiverKafka {kafka = null;})
+            ];
+
+            log_received_spans = {
+              enabled = cfg.tempoLogReceivedSpansEnable;
+              include_all_attributes = cfg.tempoLogReceivedSpansIncludeAllAttrs;
+              filter_by_status_error = cfg.tempoLogReceivedSpansFilterByStatusError;
+            };
+
+            search_tags_deny_list = cfg.tempoSearchTagsDenyList;
+          };
+
+          ingester.lifecycler.ring.replication_factor = cfg.tempoIngesterLifecyclerRingRepl;
+
+          metrics_generator_enabled = cfg.tempoMetricsGeneratorEnable;
+          metrics_generator.storage = {
+            path = cfg.tempoMetricsGeneratorStoragePath;
+            remote_write = cfg.tempoMetricsGeneratorStorageRemoteWrite;
+          };
+
+          storage.trace = {
+            backend = cfg.tempoStorageTraceBackend;
+            local.path = cfg.tempoStorageLocalPath;
+            wal.path = cfg.tempoStorageTraceWalPath;
+          };
+
+          search_enabled = cfg.tempoSearchEnable;
+
+          # Memcached
+        }
+        cfg.tempoExtraConfig;
     };
 
     services.vault-backend.enable = cfg.useVaultBackend;
@@ -167,9 +420,9 @@ in {
         then pkgs.writeText "alertmanager.yml" cfg.configText
         else pkgs.writeText "alertmanager.yml" (builtins.toJSON cfg.configuration);
     in
-      lib.mkForce ''
+      mkForce ''
         ${pkgs.gnused}/bin/sed 's|https://deadmanssnitch.com|$DEADMANSSNITCH|g' "${alertmanagerYml}" > "/tmp/alert-manager-sed.yaml"
-        ${lib.getBin pkgs.envsubst}/bin/envsubst  -o "/tmp/alert-manager-substituted.yaml" \
+        ${getBin pkgs.envsubst}/bin/envsubst  -o "/tmp/alert-manager-substituted.yaml" \
                                                   -i "/tmp/alert-manager-sed.yaml"
       '';
 
@@ -190,11 +443,11 @@ in {
           UNIFIED_ALERTING_ENABLED = "true";
           ALERTING_ENABLED = "false";
         }
-        // lib.optionalAttrs cfg.useOauth2Proxy {
+        // optionalAttrs cfg.useOauth2Proxy {
           AUTH_PROXY_HEADER_NAME = "X-Auth-Request-Email";
           AUTH_SIGNOUT_REDIRECT_URL = "/oauth2/sign_out";
         }
-        // lib.optionalAttrs cfg.useDigestAuth {
+        // optionalAttrs cfg.useDigestAuth {
           AUTH_PROXY_HEADER_NAME = "X-WebAuth-User";
         };
       rootUrl = "https://monitoring.${domain}/";
@@ -362,7 +615,7 @@ in {
       httpPathPrefix = "/vmagent";
       promscrapeConfig =
         [
-          (lib.mkIf config.services.vmagent.enable {
+          {
             job_name = "vmagent";
             scrape_interval = "60s";
             metrics_path = "${config.services.vmagent.httpPathPrefix}/metrics";
@@ -372,11 +625,12 @@ in {
                 labels.alias = "vmagent";
               }
             ];
-          })
+          }
         ]
-        ++ lib.optionals config.services.vmalert.enable (builtins.attrValues (
-          # Add a vmagent target scrape for each services.vmalert.datasources attr
-          lib.mapAttrs (name: cfgDs: {
+        ++
+        # Add a vmagent target scrape for each services.vmalert.datasources attr
+        (builtins.attrValues (
+          mapAttrs (name: cfgDs: {
             job_name = "vmalert-${name}";
             scrape_interval = "60s";
             metrics_path = "${cfgDs.httpPathPrefix}/metrics";
@@ -417,9 +671,9 @@ in {
       };
     };
 
-    secrets = lib.mkIf isSops {
+    secrets = mkIf isSops {
       generate.grafana-password = ''
-        export PATH="${lib.makeBinPath (with pkgs; [coreutils sops xkcdpass])}"
+        export PATH="${makeBinPath (with pkgs; [coreutils sops xkcdpass])}"
 
         if [ ! -s ${relEncryptedFolder}/grafana-password.json ]; then
           xkcdpass \
@@ -443,7 +697,7 @@ in {
       };
 
       install.grafana-password.script = ''
-        export PATH="${lib.makeBinPath (with pkgs; [sops coreutils])}"
+        export PATH="${makeBinPath (with pkgs; [sops coreutils])}"
 
         mkdir -p /var/lib/grafana
 
@@ -453,7 +707,7 @@ in {
       '';
     };
 
-    age.secrets = lib.mkIf (deployType != "aws") {
+    age.secrets = mkIf (deployType != "aws") {
       alertmanager = {
         file = config.age.encryptedRoot + "/monitoring/alertmanager.age";
         path = "/run/keys/alertmanager";
