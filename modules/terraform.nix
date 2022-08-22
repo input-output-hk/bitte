@@ -354,6 +354,8 @@
 
         s3Bucket = lib.mkOption {type = with lib.types; str;};
 
+        s3BucketTempo = lib.mkOption {type = with lib.types; str;};
+
         s3Cache = lib.mkOption {
           type = with lib.types; nullOr str;
           default =

@@ -10,6 +10,7 @@
     mkEnableOption
     mkIf
     mkOption
+    optionalAttrs
     optionals
     pipe
     recursiveUpdate
@@ -25,6 +26,9 @@
     nullOr
     str
     ;
+
+  deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+  isSops = deployType == "aws";
 
   cfg = config.services.tempo;
 
@@ -167,9 +171,15 @@ in {
       '';
     };
 
+    compactorCompactionBlockRetention = mkOption {
+      type = str;
+      default = "336h";
+      description = "Duration to keep blocks.  Default is 14 days.";
+    };
+
     storageTraceBackend = mkOption {
-      type = enum ["local"];
-      default = "local";
+      type = enum ["local" "s3"];
+      default = "s3";
       description = ''
         The storage backend to use.
       '';
@@ -180,6 +190,62 @@ in {
       default = "/var/lib/tempo/storage/local";
       description = ''
         Where to store state if the backend selected is "local".
+      '';
+    };
+
+    storageS3Bucket = mkOption {
+      type = str;
+      default = config.cluster.s3BucketTempo;
+      description = ''
+        Bucket name in s3.  Tempo requires a dedicated bucket since it maintains a top-level
+        object structure and does not support a custom prefix to nest within a shared bucket.
+      '';
+    };
+
+    storageS3Endpoint = mkOption {
+      type = nullOr str;
+      default = "s3.${config.cluster.region}.amazonaws.com";
+      description = ''
+        Api endpoint to connect to.  Use AWS S3 or any S3 compatible object storage endpoint.
+        Prem/minio usage will require customizing this option.
+      '';
+    };
+
+    storageS3AccessCredsEnable = mkOption {
+      type = bool;
+      default = false;
+      description = ''
+        Whether to enable access key ENV VAR usage for static credentials.
+        Required for prem/minio usage.
+
+        If enabled, an encrypted file is expected to exist containing the following substituted lines:
+
+        AWS_ACCESS_KEY_ID=$SECRET_KEY_ID
+        AWS_SECRET_ACCESS_KEY=$SECRET_KEY
+      '';
+    };
+
+    storageS3ForcePathStyle = mkOption {
+      type = bool;
+      default = false;
+      description = ''
+        Enable to use path-style requests.  Required for prem/minio usage.
+      '';
+    };
+
+    storageS3Insecure = mkOption {
+      type = bool;
+      default = false;
+      description = ''
+        Debugging option for temporary http testing.
+      '';
+    };
+
+    storageS3InsecureSkipVerify = mkOption {
+      type = bool;
+      default = false;
+      description = ''
+        Debugging option for temporary https testing.
       '';
     };
 
@@ -285,21 +351,65 @@ in {
               remote_write = cfg.metricsGeneratorStorageRemoteWrite;
             };
 
-            storage.trace = {
-              backend = cfg.storageTraceBackend;
-              local.path = cfg.storageLocalPath;
-              wal.path = cfg.storageTraceWalPath;
-            };
+            compactor.compaction.block_retention = cfg.compactorCompactionBlockRetention;
+
+            storage.trace =
+              {
+                backend = cfg.storageTraceBackend;
+                local.path = cfg.storageLocalPath;
+                wal.path = cfg.storageTraceWalPath;
+              }
+              // optionalAttrs (cfg.storageTraceBackend == "s3") {
+                s3 =
+                  {
+                    bucket = cfg.storageS3Bucket;
+                    endpoint = cfg.storageS3Endpoint;
+
+                    # For temporary debug:
+                    insecure = cfg.storageS3Insecure;
+                    insecure_skip_verify = cfg.storageS3InsecureSkipVerify;
+
+                    # Primarily for prem/minio use:
+                    forcepathstyle = cfg.storageS3ForcePathStyle;
+                  }
+                  // optionalAttrs cfg.storageS3AccessCredsEnable
+                  {
+                    access_key = "\${AWS_ACCESS_KEY_ID}";
+                    secret_key = "\${AWS_SECRET_ACCESS_KEY}";
+                  };
+              };
 
             search_enabled = cfg.searchEnable;
 
-            # Memcached
+            # TODO: memcached
           }
           cfg.extraConfig;
 
+        script = pkgs.writeShellApplication {
+          name = "tempo.sh";
+          text = ''
+            ${
+              if cfg.storageS3AccessCredsEnable
+              then ''
+                while ! [ -s /run/keys/tempo ]; do
+                  echo "Waiting for /run/keys/tempo..."
+                  sleep 3
+                done
+
+                set -a
+                # shellcheck disable=SC1091
+                source /run/keys/tempo
+                set +a''
+              else ""
+            }
+
+            exec ${pkgs.tempo}/bin/tempo --config.expand-env --config.file=${conf}
+          '';
+        };
+
         conf = settingsFormat.generate "config.yaml" settings;
       in {
-        ExecStart = "${pkgs.tempo}/bin/tempo --config.file=${conf}";
+        ExecStart = "${script}/bin/tempo.sh";
         DynamicUser = true;
         Restart = "always";
         ProtectSystem = "full";
@@ -307,6 +417,35 @@ in {
         NoNewPrivileges = true;
         WorkingDirectory = "/var/lib/tempo";
         StateDirectory = "tempo";
+      };
+    };
+
+    secrets = mkIf (cfg.storageS3AccessCredsEnable && isSops) {
+      install.tempo = {
+        inputType = "binary";
+        outputType = "binary";
+        source = config.secrets.encryptedRoot + "/tempo";
+        target = /run/keys/tempo;
+        script = ''
+          chmod 0600 /run/keys/tempo
+          chown tempo:tempo /run/keys/tempo
+        '';
+        #  # File format for tempo secret file
+        #  AWS_ACCESS_KEY_ID=$SECRET_KEY_ID
+        #  AWS_SECRET_ACCESS_KEY=$SECRET_KEY
+      };
+    };
+
+    age.secrets = mkIf (cfg.storageS3AccessCredsEnable && !isSops) {
+      tempo = {
+        file = config.age.encryptedRoot + "/monitoring/tempo.age";
+        path = "/run/keys/tempo";
+        owner = "tempo";
+        group = "tempo";
+        mode = "0600";
+        #  # File format for tempo secret file
+        #  AWS_ACCESS_KEY_ID=$SECRET_KEY_ID
+        #  AWS_SECRET_ACCESS_KEY=$SECRET_KEY
       };
     };
   };

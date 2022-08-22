@@ -437,7 +437,7 @@ in {
       '';
     };
 
-    age.secrets = mkIf (deployType != "aws") {
+    age.secrets = mkIf (!isSops) {
       alertmanager = {
         file = config.age.encryptedRoot + "/monitoring/alertmanager.age";
         path = "/run/keys/alertmanager";
