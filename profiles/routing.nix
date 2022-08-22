@@ -8,6 +8,7 @@
   hashiTokens,
   letsencryptCertMaterial,
   pkiFiles,
+  runKeyMaterial,
   ...
 }: let
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
@@ -101,7 +102,7 @@ in {
 
     digestAuthFile = lib.mkOption {
       type = lib.types.str;
-      default = "/run/keys/digest-auth";
+      default = runKeyMaterial.digest-auth;
       description = ''
         The path to the digest-auth file for the `useDigestAuth` option.
 

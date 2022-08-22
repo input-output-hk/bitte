@@ -3,6 +3,7 @@
   lib,
   pkgs,
   etcEncrypted,
+  runKeyMaterial,
   ...
 }: let
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
@@ -30,7 +31,7 @@ in {
     extraConfig.upstream = lib.mkDefault "static://202";
 
     provider = "google";
-    keyFile = "/run/keys/oauth-secrets";
+    keyFile = runKeyMaterial.oauth;
 
     email.domains = ["iohk.io"];
     cookie.domain = ".${domain}";
@@ -45,10 +46,10 @@ in {
 
     cat ${etcEncrypted}/oauth-secrets \
       | sops -d /dev/stdin \
-      > /run/keys/oauth-secrets
+      > ${runKeyMaterial.oauth}
 
-    chown root:keys /run/keys/oauth-secrets
-    chmod g+r /run/keys/oauth-secrets
+    chown root:keys ${runKeyMaterial.oauth}
+    chmod g+r ${runKeyMaterial.oauth}
   '';
 
   systemd.services.oauth2_proxy =
@@ -63,7 +64,7 @@ in {
   age.secrets = lib.mkIf (!isSops) {
     oauth-password = {
       file = config.age.encryptedRoot + "/oauth/password.age";
-      path = "/run/keys/oauth-secrets";
+      path = runKeyMaterial.oauth;
       owner = "root";
       group = "keys";
       mode = "0644";

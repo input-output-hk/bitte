@@ -56,5 +56,13 @@ in {
       nomad-autoscaler = "/run/keys/nomad-autoscaler-token";
       traefik = "/run/keys/traefik-consul-token";
     };
+
+    runKeyMaterial = {
+      alertmanager = "/run/keys/alertmanager";
+      digest-auth = "/run/keys/digest-auth";
+      oauth = "/run/keys/oauth-secrets";
+      redis = "/run/keys/redis-password";
+      tempo = "/run/keys/tempo";
+    };
   };
 }

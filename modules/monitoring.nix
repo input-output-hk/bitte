@@ -4,6 +4,7 @@
   config,
   nodeName,
   etcEncrypted,
+  runKeyMaterial,
   ...
 }: let
   inherit
@@ -289,7 +290,7 @@ in {
 
       alertmanager = {
         enable = true;
-        environmentFile = "/run/keys/alertmanager";
+        environmentFile = runKeyMaterial.alertmanager;
         listenAddress = "0.0.0.0";
         webExternalUrl = "https://monitoring.${domain}/alertmanager";
         configuration = {
@@ -416,10 +417,10 @@ in {
         inputType = "binary";
         outputType = "binary";
         source = config.secrets.encryptedRoot + "/alertmanager";
-        target = /run/keys/alertmanager;
+        target = runKeyMaterial.alertmanager;
         script = ''
-          chmod 0600 /run/keys/alertmanager
-          chown alertmanager:alertmanager /run/keys/alertmanager
+          chmod 0600 ${runKeyMaterial.alertmanager}
+          chown alertmanager:alertmanager ${runKeyMaterial.alertmanager}
         '';
         #  # File format for alertmanager secret file
         #  DEADMANSSNITCH="$SECRET_ENDPOINT"
@@ -440,7 +441,7 @@ in {
     age.secrets = mkIf (!isSops) {
       alertmanager = {
         file = config.age.encryptedRoot + "/monitoring/alertmanager.age";
-        path = "/run/keys/alertmanager";
+        path = runKeyMaterial.alertmanager;
         owner = "alertmanager";
         group = "alertmanager";
         mode = "0600";

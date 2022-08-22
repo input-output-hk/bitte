@@ -3,6 +3,7 @@
   pkgs,
   config,
   etcEncrypted,
+  runKeyMaterial,
   ...
 }: let
   inherit (lib) boolToString last makeBinPath mkDefault mkEnableOption mkIf mkOption;
@@ -210,7 +211,7 @@ in {
 
     secrets.install.redis-password = mkIf isSops {
       source = "${etcEncrypted}/redis-password.json";
-      target = /run/keys/redis-password;
+      target = runKeyMaterial.redis;
       inputType = "binary";
       outputType = "binary";
     };
@@ -221,7 +222,7 @@ in {
     age.secrets = mkIf (!isSops) {
       redis-password = {
         file = config.age.encryptedRoot + "/redis/password.age";
-        path = "/run/keys/redis-password";
+        path = runKeyMaterial.redis;
         owner = "root";
         group = "root";
         mode = "0644";

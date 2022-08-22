@@ -2,6 +2,7 @@
   config,
   lib,
   pkgs,
+  runKeyMaterial,
   ...
 }: let
   inherit
@@ -391,14 +392,14 @@ in {
             ${
               if cfg.storageS3AccessCredsEnable
               then ''
-                while ! [ -s /run/keys/tempo ]; do
-                  echo "Waiting for /run/keys/tempo..."
+                while ! [ -s ${runKeyMaterial.tempo} ]; do
+                  echo "Waiting for ${runKeyMaterial.tempo}..."
                   sleep 3
                 done
 
                 set -a
                 # shellcheck disable=SC1091
-                source /run/keys/tempo
+                source ${runKeyMaterial.tempo}
                 set +a''
               else ""
             }
@@ -425,10 +426,10 @@ in {
         inputType = "binary";
         outputType = "binary";
         source = config.secrets.encryptedRoot + "/tempo";
-        target = /run/keys/tempo;
+        target = runKeyMaterial.tempo;
         script = ''
-          chmod 0600 /run/keys/tempo
-          chown tempo:tempo /run/keys/tempo
+          chmod 0600 ${runKeyMaterial.tempo}
+          chown tempo:tempo ${runKeyMaterial.tempo}
         '';
         #  # File format for tempo secret file
         #  AWS_ACCESS_KEY_ID=$SECRET_KEY_ID
@@ -439,7 +440,7 @@ in {
     age.secrets = mkIf (cfg.storageS3AccessCredsEnable && !isSops) {
       tempo = {
         file = config.age.encryptedRoot + "/monitoring/tempo.age";
-        path = "/run/keys/tempo";
+        path = runKeyMaterial.tempo;
         owner = "tempo";
         group = "tempo";
         mode = "0600";
