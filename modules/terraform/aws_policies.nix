@@ -18,6 +18,7 @@
   inherit (config.cluster) infraType;
 
   bucketArn = "arn:aws:s3:::${config.cluster.s3Bucket}";
+  bucketTempoArn = "arn:aws:s3:::${config.cluster.s3BucketTempo}";
   allowS3ForBucket = allowS3For bucketArn;
 in {
   cluster.iam = lib.mkIf (infraType != "prem") {
@@ -146,9 +147,27 @@ in {
               "source"
             ];
           s3Cache = allowS3ForBucket "cache" "infra" ["binary-cache"];
+          s3Tempo = {
+            tempo-s3-bucket = {
+              effect = "Allow";
+              actions = [
+                "s3:PutObject"
+                "s3:GetObject"
+                "s3:ListBucket"
+                "s3:DeleteObject"
+                "s3:GetObjectTagging"
+                "s3:PutObjectTagging"
+              ];
+              resources = [
+                "${bucketTempoArn}/*"
+                bucketTempoArn
+              ];
+            };
+          };
         in
           s3Secrets
           // s3Cache
+          // s3Tempo
           // {
             kms = {
               effect = "Allow";
