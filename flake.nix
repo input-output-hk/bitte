@@ -61,6 +61,7 @@
       cellsFrom = ./nix;
       organelles = [
         (inputs.std.devshells "devshells")
+        (inputs.std.installables "packages")
 
         # ----------
         # NixOS: Modules, Profiles, Aggregates
@@ -112,8 +113,6 @@
         inherit (nixpkgs) lib;
         inherit inputs;
       };
-
-      toolchain = "stable";
     in
       utils.lib.eachSystem [
         "aarch64-darwin"
@@ -123,17 +122,10 @@
       ] (system: let
         legacyPackages = pkgsForSystem system;
         unstablePackages = unstablePkgsForSystem system;
-        rustPkg = unstablePackages.fenix."${toolchain}".withComponents [
-          "cargo"
-          "clippy"
-          "rust-src"
-          "rustc"
-          "rustfmt"
-        ];
       in rec {
         inherit legacyPackages;
 
-        packages.bitte = unstablePackages.callPackage ./cli/package.nix {inherit toolchain;};
+        packages = {inherit (self.${system}.cli.packages) bitte;};
         defaultPackage = packages.bitte;
 
         hydraJobs = let

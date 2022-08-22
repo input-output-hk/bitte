@@ -8,7 +8,7 @@
 result*
 
 # cargo
-cli/target
+target
 
 # misc
 *.swp
