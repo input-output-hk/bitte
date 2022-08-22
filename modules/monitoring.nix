@@ -8,7 +8,6 @@
 }: let
   inherit
     (lib)
-    flip
     getBin
     last
     makeBinPath
@@ -18,9 +17,6 @@
     mkIf
     mkOption
     optionalAttrs
-    optionals
-    pipe
-    recursiveUpdate
     warn
     ;
 
@@ -28,11 +24,6 @@
     (lib.types)
     attrs
     bool
-    enum
-    ints
-    listOf
-    nullOr
-    str
     ;
 
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
@@ -59,11 +50,6 @@
     if config.services.prometheus.alertmanager.configText != null
     then pkgs.writeText "alertmanager.yml" config.services.prometheus.alertmanager.configText
     else pkgs.writeText "alertmanager.yml" (builtins.toJSON config.services.prometheus.alertmanager.configuration);
-
-  mkTempoReceiver = opt: receiver:
-    if opt
-    then flip recursiveUpdate receiver
-    else flip recursiveUpdate {};
 in {
   imports = [
     ./victoriametrics.nix
@@ -120,186 +106,6 @@ in {
         Enable use of a vault TF backend with a service hosted on the monitoring server.
       '';
     };
-
-    enableTempo = mkOption {
-      type = bool;
-      default = true;
-      description = "Enable Tempo tracing.";
-    };
-
-    tempoHttpListenAddress = mkOption {
-      type = str;
-      default = "0.0.0.0";
-      description = "HTTP server listen host.";
-    };
-
-    tempoHttpListenPort = mkOption {
-      type = ints.positive;
-      default = 3200;
-      description = "HTTP server listen port.";
-    };
-
-    tempoGrpcListenPort = mkOption {
-      type = ints.positive;
-      default = 9096;
-      description = "gRPC server listen port.";
-    };
-
-    tempoReceiverOtlpHttp = mkOption {
-      type = bool;
-      default = true;
-      description = "Enable OTLP receiver on HTTP.";
-    };
-
-    tempoReceiverOtlpGrpc = mkOption {
-      type = bool;
-      default = true;
-      description = "Enable OTLP receiver on gRPC.";
-    };
-
-    tempoReceiverJaegerThriftHttp = mkOption {
-      type = bool;
-      default = true;
-      description = "Enable Jaeger thrift receiver on HTTP.";
-    };
-
-    tempoReceiverJaegerGrpc = mkOption {
-      type = bool;
-      default = true;
-      description = "Enable Jaeger receiver on gRPC.";
-    };
-
-    tempoReceiverJaegerThriftBinary = mkOption {
-      type = bool;
-      default = true;
-      description = "Enable Jaeger thrift receiver for binary.";
-    };
-
-    tempoReceiverJaegerThriftCompact = mkOption {
-      type = bool;
-      default = true;
-      description = "Enable Jaeger thrift receiver on compact.";
-    };
-
-    tempoReceiverZipkin = mkOption {
-      type = bool;
-      default = true;
-      description = "Enable Zipkin receiver.";
-    };
-
-    tempoReceiverOpencensus = mkOption {
-      type = bool;
-      default = true;
-      description = "Enable Opencensus receiver.";
-    };
-
-    tempoReceiverKafka = mkOption {
-      type = bool;
-      default = false;
-      description = ''
-        Enable Kafta receiver.
-        Note: The Tempo service will fail if Tempo cannot reach a Kafka broker.
-
-        See the following refs for configuration details:
-        https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/kafkareceiver
-        https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/kafkametricsreceiver
-      '';
-    };
-
-    tempoLogReceivedSpansEnable = mkOption {
-      type = bool;
-      default = false;
-      description = ''
-        Enable to log every received span to help debug ingestion
-        or calculate span error distributions using the logs.
-      '';
-    };
-
-    tempoLogReceivedSpansIncludeAllAttrs = mkOption {
-      type = bool;
-      default = false;
-    };
-
-    tempoLogReceivedSpansFilterByStatusError = mkOption {
-      type = bool;
-      default = false;
-    };
-
-    tempoSearchTagsDenyList = mkOption {
-      type = nullOr (listOf str);
-      default = null;
-    };
-
-    tempoIngesterLifecyclerRingRepl = mkOption {
-      type = ints.positive;
-      default = 1;
-    };
-
-    tempoMetricsGeneratorEnable = mkOption {
-      type = bool;
-      default = true;
-      description = ''
-        The metrics-generator processes spans and write metrics using
-        the Prometheus remote write protocol.
-      '';
-    };
-
-    tempoMetricsGeneratorStoragePath = mkOption {
-      type = str;
-      default = "/var/lib/tempo/storage/wal-metrics";
-      description = ''
-        Path to store the WAL. Each tenant will be stored in its own subdirectory.
-      '';
-    };
-
-    tempoMetricsGeneratorStorageRemoteWrite = mkOption {
-      type = listOf attrs;
-      default = [{url = "http://127.0.0.1:8428/api/v1/write";}];
-      description = ''
-        A list of remote write endpoints in Prometheus remote_write format:
-        https://prometheus.io/docs/prometheus/latest/configuration/configuration/#remote_write
-      '';
-    };
-
-    tempoStorageTraceBackend = mkOption {
-      type = enum ["local"];
-      default = "local";
-      description = ''
-        The storage backend to use.
-      '';
-    };
-
-    tempoStorageLocalPath = mkOption {
-      type = str;
-      default = "/var/lib/tempo/storage/local";
-      description = ''
-        Where to store state if the backend selected is "local".
-      '';
-    };
-
-    tempoStorageTraceWalPath = mkOption {
-      type = str;
-      default = "/var/lib/tempo/storage/wal";
-      description = ''
-        Where to store the head blocks while they are being appended to.
-      '';
-    };
-
-    tempoSearchEnable = mkOption {
-      type = bool;
-      default = true;
-      description = ''
-        Enable tempo search.
-      '';
-    };
-
-    tempoExtraConfig = mkOption {
-      type = attrs;
-      default = {};
-      description = ''
-        Extra configuration to pass to Tempo service.
-      '';
-    };
   };
 
   config = mkIf cfg.enable {
@@ -313,96 +119,20 @@ in {
       }
     ];
 
-    networking.firewall.allowedTCPPorts =
-      [
-        config.services.grafana.port # default: 3000
-        8428 # victoriaMetrics
-        8429 # vmagent
-        8880 # vmalert-vm
-        8881 # vmalert-loki
-        9000 # minio
-        9093 # alertmanager
-      ]
-      ++ optionals cfg.enableTempo [
-        cfg.tempoHttpListenPort # default: 3200
-        cfg.tempoGrpcListenPort # default: 9096
-      ]
-      # Tempo receiver port references:
-      # https://github.com/open-telemetry/opentelemetry-collector/blob/main/receiver/otlpreceiver/README.md
-      # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/jaegerreceiver
-      # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/opencensusreceiver
-      # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/zipkinreceiver
-      ++ optionals cfg.tempoReceiverOtlpGrpc [4317]
-      ++ optionals cfg.tempoReceiverOtlpHttp [4318]
-      ++ optionals cfg.tempoReceiverZipkin [9411]
-      ++ optionals cfg.tempoReceiverJaegerGrpc [14250]
-      ++ optionals cfg.tempoReceiverJaegerThriftHttp [14268]
-      ++ optionals cfg.tempoReceiverOpencensus [55678];
-
-    networking.firewall.allowedUDPPorts =
-      []
-      # Tempo receiver port references:
-      # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/jaegerreceiver
-      ++ optionals cfg.tempoReceiverJaegerThriftBinary [6832]
-      ++ optionals cfg.tempoReceiverJaegerThriftCompact [6831];
+    networking.firewall.allowedTCPPorts = [
+      config.services.grafana.port # default: 3000
+      8428 # victoriaMetrics
+      8429 # vmagent
+      8880 # vmalert-vm
+      8881 # vmalert-loki
+      9000 # minio
+      9093 # alertmanager
+    ];
 
     services.victoriametrics.enable = true;
     services.victoriametrics.enableVmalertProxy = true;
     services.grafana.enable = true;
     services.prometheus.enable = false;
-
-    services.tempo = mkIf cfg.enableTempo {
-      enable = true;
-      settings =
-        recursiveUpdate {
-          server = {
-            http_listen_address = cfg.tempoHttpListenAddress;
-            http_listen_port = cfg.tempoHttpListenPort;
-            grpc_listen_port = cfg.tempoGrpcListenPort;
-          };
-
-          distributor = {
-            receivers = pipe {} [
-              (mkTempoReceiver cfg.tempoReceiverOtlpHttp {otlp.protocols.http = null;})
-              (mkTempoReceiver cfg.tempoReceiverOtlpGrpc {otlp.protocols.grpc = null;})
-              (mkTempoReceiver cfg.tempoReceiverJaegerThriftHttp {jaeger.protocols.thrift_http = null;})
-              (mkTempoReceiver cfg.tempoReceiverJaegerGrpc {jaeger.protocols.grpc = null;})
-              (mkTempoReceiver cfg.tempoReceiverJaegerThriftBinary {jaeger.protocols.thrift_binary = null;})
-              (mkTempoReceiver cfg.tempoReceiverJaegerThriftCompact {jaeger.protocols.thrift_compact = null;})
-              (mkTempoReceiver cfg.tempoReceiverZipkin {zipkin = null;})
-              (mkTempoReceiver cfg.tempoReceiverOpencensus {opencensus = null;})
-              (mkTempoReceiver cfg.tempoReceiverKafka {kafka = null;})
-            ];
-
-            log_received_spans = {
-              enabled = cfg.tempoLogReceivedSpansEnable;
-              include_all_attributes = cfg.tempoLogReceivedSpansIncludeAllAttrs;
-              filter_by_status_error = cfg.tempoLogReceivedSpansFilterByStatusError;
-            };
-
-            search_tags_deny_list = cfg.tempoSearchTagsDenyList;
-          };
-
-          ingester.lifecycler.ring.replication_factor = cfg.tempoIngesterLifecyclerRingRepl;
-
-          metrics_generator_enabled = cfg.tempoMetricsGeneratorEnable;
-          metrics_generator.storage = {
-            path = cfg.tempoMetricsGeneratorStoragePath;
-            remote_write = cfg.tempoMetricsGeneratorStorageRemoteWrite;
-          };
-
-          storage.trace = {
-            backend = cfg.tempoStorageTraceBackend;
-            local.path = cfg.tempoStorageLocalPath;
-            wal.path = cfg.tempoStorageTraceWalPath;
-          };
-
-          search_enabled = cfg.tempoSearchEnable;
-
-          # Memcached
-        }
-        cfg.tempoExtraConfig;
-    };
 
     services.vault-backend.enable = cfg.useVaultBackend;
     # services.vulnix.enable = true;

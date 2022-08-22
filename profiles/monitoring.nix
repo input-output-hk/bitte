@@ -1,4 +1,6 @@
-{...}: {
+{lib, ...}: let
+  inherit (lib) mkDefault;
+in {
   imports = [
     # Profiles -- ungated config mutation w/o options
     ./common.nix
@@ -8,11 +10,13 @@
 
     # Modules -- enable gated config mutation w/ options
     ../modules/monitoring.nix
+    ../modules/tempo.nix
   ];
 
-  services.monitoring.enable = true;
-  services.loki.enable = true;
-  services.minio.enable = true;
+  services.monitoring.enable = mkDefault true;
+  services.loki.enable = mkDefault true;
+  services.tempo.enable = mkDefault true;
+  services.minio.enable = mkDefault true;
 
   services.nomad.enable = false;
 }

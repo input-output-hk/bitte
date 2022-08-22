@@ -4,7 +4,27 @@
   pkgs,
   ...
 }: let
-  inherit (lib) mkEnableOption mkIf mkOption types;
+  inherit
+    (lib)
+    flip
+    mkEnableOption
+    mkIf
+    mkOption
+    optionals
+    pipe
+    recursiveUpdate
+    ;
+
+  inherit
+    (lib.types)
+    attrs
+    bool
+    enum
+    ints
+    listOf
+    nullOr
+    str
+    ;
 
   cfg = config.services.tempo;
 
@@ -13,20 +33,178 @@ in {
   options.services.tempo = {
     enable = mkEnableOption "Grafana Tempo";
 
-    settings = mkOption {
-      type = settingsFormat.type;
-      default = {};
-      description = lib.mdDoc ''
-        Specify the configuration for Tempo in Nix.
-        See https://grafana.com/docs/tempo/latest/configuration/ for available options.
+    httpListenAddress = mkOption {
+      type = str;
+      default = "0.0.0.0";
+      description = "HTTP server listen host.";
+    };
+
+    httpListenPort = mkOption {
+      type = ints.positive;
+      default = 3200;
+      description = "HTTP server listen port.";
+    };
+
+    grpcListenPort = mkOption {
+      type = ints.positive;
+      default = 9096;
+      description = "gRPC server listen port.";
+    };
+
+    receiverOtlpHttp = mkOption {
+      type = bool;
+      default = true;
+      description = "Enable OTLP receiver on HTTP.";
+    };
+
+    receiverOtlpGrpc = mkOption {
+      type = bool;
+      default = true;
+      description = "Enable OTLP receiver on gRPC.";
+    };
+
+    receiverJaegerThriftHttp = mkOption {
+      type = bool;
+      default = true;
+      description = "Enable Jaeger thrift receiver on HTTP.";
+    };
+
+    receiverJaegerGrpc = mkOption {
+      type = bool;
+      default = true;
+      description = "Enable Jaeger receiver on gRPC.";
+    };
+
+    receiverJaegerThriftBinary = mkOption {
+      type = bool;
+      default = true;
+      description = "Enable Jaeger thrift receiver for binary.";
+    };
+
+    receiverJaegerThriftCompact = mkOption {
+      type = bool;
+      default = true;
+      description = "Enable Jaeger thrift receiver on compact.";
+    };
+
+    receiverZipkin = mkOption {
+      type = bool;
+      default = true;
+      description = "Enable Zipkin receiver.";
+    };
+
+    receiverOpencensus = mkOption {
+      type = bool;
+      default = true;
+      description = "Enable Opencensus receiver.";
+    };
+
+    receiverKafka = mkOption {
+      type = bool;
+      default = false;
+      description = ''
+        Enable Kafta receiver.
+        Note: The Tempo service will fail if Tempo cannot reach a Kafka broker.
+
+        See the following refs for configuration details:
+        https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/kafkareceiver
+        https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/kafkametricsreceiver
       '';
     };
 
-    configFile = mkOption {
-      type = types.nullOr types.path;
+    logReceivedSpansEnable = mkOption {
+      type = bool;
+      default = false;
+      description = ''
+        Enable to log every received span to help debug ingestion
+        or calculate span error distributions using the logs.
+      '';
+    };
+
+    logReceivedSpansIncludeAllAttrs = mkOption {
+      type = bool;
+      default = false;
+    };
+
+    logReceivedSpansFilterByStatusError = mkOption {
+      type = bool;
+      default = false;
+    };
+
+    searchTagsDenyList = mkOption {
+      type = nullOr (listOf str);
       default = null;
-      description = lib.mdDoc ''
-        Specify a path to a configuration file that Tempo should use.
+    };
+
+    ingesterLifecyclerRingRepl = mkOption {
+      type = ints.positive;
+      default = 1;
+    };
+
+    metricsGeneratorEnable = mkOption {
+      type = bool;
+      default = true;
+      description = ''
+        The metrics-generator processes spans and write metrics using
+        the Prometheus remote write protocol.
+      '';
+    };
+
+    metricsGeneratorStoragePath = mkOption {
+      type = str;
+      default = "/var/lib/tempo/storage/wal-metrics";
+      description = ''
+        Path to store the WAL. Each tenant will be stored in its own subdirectory.
+      '';
+    };
+
+    metricsGeneratorStorageRemoteWrite = mkOption {
+      type = listOf attrs;
+      default = [{url = "http://127.0.0.1:8428/api/v1/write";}];
+      description = ''
+        A list of remote write endpoints in Prometheus remote_write format:
+        https://prometheus.io/docs/prometheus/latest/configuration/configuration/#remote_write
+      '';
+    };
+
+    storageTraceBackend = mkOption {
+      type = enum ["local"];
+      default = "local";
+      description = ''
+        The storage backend to use.
+      '';
+    };
+
+    storageLocalPath = mkOption {
+      type = str;
+      default = "/var/lib/tempo/storage/local";
+      description = ''
+        Where to store state if the backend selected is "local".
+      '';
+    };
+
+    storageTraceWalPath = mkOption {
+      type = str;
+      default = "/var/lib/tempo/storage/wal";
+      description = ''
+        Where to store the head blocks while they are being appended to.
+      '';
+    };
+
+    searchEnable = mkOption {
+      type = bool;
+      default = true;
+      description = ''
+        Enable tempo search.
+      '';
+    };
+
+    extraConfig = mkOption {
+      type = attrs;
+      default = {};
+      description = ''
+        Extra configuration to pass to Tempo service.
+        See https://grafana.com/docs/tempo/latest/configuration/ for available options.
       '';
     };
   };
@@ -35,28 +213,91 @@ in {
     # for tempo-cli and friends
     environment.systemPackages = [pkgs.tempo];
 
-    assertions = [
-      {
-        assertion = (
-          (cfg.settings == {}) != (cfg.configFile == null)
-        );
-        message = ''
-          Please specify a configuration for Tempo with either
-          'services.tempo.settings' or
-          'services.tempo.configFile'.
-        '';
-      }
-    ];
+    networking.firewall.allowedTCPPorts =
+      [
+        cfg.httpListenPort # default: 3200
+        cfg.grpcListenPort # default: 9096
+      ]
+      # Tempo receiver port references:
+      # https://github.com/open-telemetry/opentelemetry-collector/blob/main/receiver/otlpreceiver/README.md
+      # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/jaegerreceiver
+      # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/opencensusreceiver
+      # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/zipkinreceiver
+      ++ optionals cfg.receiverOtlpGrpc [4317]
+      ++ optionals cfg.receiverOtlpHttp [4318]
+      ++ optionals cfg.receiverZipkin [9411]
+      ++ optionals cfg.receiverJaegerGrpc [14250]
+      ++ optionals cfg.receiverJaegerThriftHttp [14268]
+      ++ optionals cfg.receiverOpencensus [55678];
+
+    networking.firewall.allowedUDPPorts =
+      []
+      # Tempo receiver port references:
+      # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/jaegerreceiver
+      ++ optionals cfg.receiverJaegerThriftBinary [6832]
+      ++ optionals cfg.receiverJaegerThriftCompact [6831];
 
     systemd.services.tempo = {
       description = "Grafana Tempo Service Daemon";
       wantedBy = ["multi-user.target"];
 
       serviceConfig = let
-        conf =
-          if cfg.configFile == null
-          then settingsFormat.generate "config.yaml" cfg.settings
-          else cfg.configFile;
+        mkTempoReceiver = opt: receiver:
+          if opt
+          then flip recursiveUpdate receiver
+          else flip recursiveUpdate {};
+
+        settings =
+          recursiveUpdate {
+            server = {
+              http_listen_address = cfg.httpListenAddress;
+              http_listen_port = cfg.httpListenPort;
+              grpc_listen_port = cfg.grpcListenPort;
+            };
+
+            distributor = {
+              receivers = pipe {} [
+                (mkTempoReceiver cfg.receiverOtlpHttp {otlp.protocols.http = null;})
+                (mkTempoReceiver cfg.receiverOtlpGrpc {otlp.protocols.grpc = null;})
+                (mkTempoReceiver cfg.receiverJaegerThriftHttp {jaeger.protocols.thrift_http = null;})
+                (mkTempoReceiver cfg.receiverJaegerGrpc {jaeger.protocols.grpc = null;})
+                (mkTempoReceiver cfg.receiverJaegerThriftBinary {jaeger.protocols.thrift_binary = null;})
+                (mkTempoReceiver cfg.receiverJaegerThriftCompact {jaeger.protocols.thrift_compact = null;})
+                (mkTempoReceiver cfg.receiverZipkin {zipkin = null;})
+                (mkTempoReceiver cfg.receiverOpencensus {opencensus = null;})
+                (mkTempoReceiver cfg.receiverKafka {kafka = null;})
+              ];
+
+              log_received_spans = {
+                enabled = cfg.logReceivedSpansEnable;
+                include_all_attributes = cfg.logReceivedSpansIncludeAllAttrs;
+                filter_by_status_error = cfg.logReceivedSpansFilterByStatusError;
+              };
+
+              search_tags_deny_list = cfg.searchTagsDenyList;
+            };
+
+            ingester.lifecycler.ring.replication_factor = cfg.ingesterLifecyclerRingRepl;
+
+            metrics_generator_enabled = cfg.metricsGeneratorEnable;
+            metrics_generator.storage = {
+              path = cfg.metricsGeneratorStoragePath;
+              remote_write = cfg.metricsGeneratorStorageRemoteWrite;
+            };
+
+            storage.trace = {
+              backend = cfg.storageTraceBackend;
+              local.path = cfg.storageLocalPath;
+              wal.path = cfg.storageTraceWalPath;
+            };
+
+            search_enabled = cfg.searchEnable;
+
+            # Memcached
+          }
+          cfg.extraConfig;
+
+        conf = settingsFormat.generate "config.yaml" settings;
       in {
         ExecStart = "${pkgs.tempo}/bin/tempo --config.file=${conf}";
         DynamicUser = true;
