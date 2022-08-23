@@ -46,6 +46,7 @@ in {
         "auth/token/create" = [c r u d l s];
         "consul/creds/consul-agent" = [r u];
         "consul/creds/consul-default" = [r u];
+        "consul/creds/consul-register" = [r];
         "kv/data/bootstrap/clients/*" = [r];
         "kv/data/bootstrap/static-tokens/clients/*" = [r];
         "pki/issue/client" = [c u];

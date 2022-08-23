@@ -5,6 +5,7 @@
   nodeName,
   etcEncrypted,
   runKeyMaterial,
+  pkiFiles,
   ...
 }: let
   inherit
@@ -26,6 +27,8 @@
     attrs
     bool
     ;
+
+  inherit (pkiFiles) caCertFile;
 
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
   domain =
@@ -401,6 +404,42 @@ in {
         };
       };
     };
+
+    systemd.services.victoriametrics-service =
+      (pkgs.consulRegister {
+        pkiFiles = {inherit caCertFile;};
+        service = {
+          name = "victoriametrics";
+          port = 8428;
+
+          checks = {
+            victoriametrics-tcp = {
+              interval = "10s";
+              timeout = "5s";
+              tcp = "127.0.0.1:8428";
+            };
+          };
+        };
+      })
+      .systemdService;
+
+    systemd.services.loki-service =
+      (pkgs.consulRegister {
+        pkiFiles = {inherit caCertFile;};
+        service = {
+          name = "loki";
+          port = 3100;
+
+          checks = {
+            loki-tcp = {
+              interval = "10s";
+              timeout = "5s";
+              tcp = "127.0.0.1:3100";
+            };
+          };
+        };
+      })
+      .systemdService;
 
     secrets = mkIf isSops {
       generate.grafana-password = ''

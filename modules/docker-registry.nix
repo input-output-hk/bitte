@@ -4,11 +4,13 @@
   config,
   etcEncrypted,
   runKeyMaterial,
+  pkiFiles,
   ...
 }: let
   inherit (lib) boolToString last makeBinPath mkDefault mkEnableOption mkIf mkOption;
   inherit (lib.types) bool listOf package str;
   inherit (lib.types.ints) unsigned;
+  inherit (pkiFiles) caCertFile;
 
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
   domain =
@@ -150,7 +152,7 @@ in {
 
     systemd.services.docker-registry-service =
       (pkgs.consulRegister {
-        pkiFiles.caCertFile = "/etc/ssl/certs/ca.pem";
+        pkiFiles = {inherit caCertFile;};
         service = {
           name = "docker-registry";
           port = config.services.dockerRegistry.port;

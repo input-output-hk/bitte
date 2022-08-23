@@ -3,6 +3,7 @@
   lib,
   pkgs,
   runKeyMaterial,
+  pkiFiles,
   ...
 }: let
   inherit
@@ -28,6 +29,8 @@
     str
     ;
 
+  inherit (pkiFiles) caCertFile;
+
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
   isSops = deployType == "aws";
 
@@ -37,6 +40,16 @@
 in {
   options.services.tempo = {
     enable = mkEnableOption "Grafana Tempo";
+
+    registerConsulService = mkOption {
+      type = bool;
+      default = true;
+      description = ''
+        Register a consul service for each Tempo protocol listener.
+        The service naming will be:
+
+      '';
+    };
 
     httpListenAddress = mkOption {
       type = str;
@@ -301,125 +314,168 @@ in {
       []
       # Tempo receiver port references:
       # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/jaegerreceiver
-      ++ optionals cfg.receiverJaegerThriftBinary [6832]
-      ++ optionals cfg.receiverJaegerThriftCompact [6831];
+      ++ optionals cfg.receiverJaegerThriftCompact [6831]
+      ++ optionals cfg.receiverJaegerThriftBinary [6832];
 
-    systemd.services.tempo = {
-      description = "Grafana Tempo Service Daemon";
-      wantedBy = ["multi-user.target"];
+    systemd.services =
+      {
+        tempo = {
+          description = "Grafana Tempo Service Daemon";
+          wantedBy = ["multi-user.target"];
 
-      serviceConfig = let
-        mkTempoReceiver = opt: receiver:
-          if opt
-          then flip recursiveUpdate receiver
-          else flip recursiveUpdate {};
+          serviceConfig = let
+            mkTempoReceiver = opt: receiver:
+              if opt
+              then flip recursiveUpdate receiver
+              else flip recursiveUpdate {};
 
-        settings =
-          recursiveUpdate {
-            server = {
-              http_listen_address = cfg.httpListenAddress;
-              http_listen_port = cfg.httpListenPort;
-              grpc_listen_port = cfg.grpcListenPort;
-            };
+            settings =
+              recursiveUpdate {
+                server = {
+                  http_listen_address = cfg.httpListenAddress;
+                  http_listen_port = cfg.httpListenPort;
+                  grpc_listen_port = cfg.grpcListenPort;
+                };
 
-            distributor = {
-              receivers = pipe {} [
-                (mkTempoReceiver cfg.receiverOtlpHttp {otlp.protocols.http = null;})
-                (mkTempoReceiver cfg.receiverOtlpGrpc {otlp.protocols.grpc = null;})
-                (mkTempoReceiver cfg.receiverJaegerThriftHttp {jaeger.protocols.thrift_http = null;})
-                (mkTempoReceiver cfg.receiverJaegerGrpc {jaeger.protocols.grpc = null;})
-                (mkTempoReceiver cfg.receiverJaegerThriftBinary {jaeger.protocols.thrift_binary = null;})
-                (mkTempoReceiver cfg.receiverJaegerThriftCompact {jaeger.protocols.thrift_compact = null;})
-                (mkTempoReceiver cfg.receiverZipkin {zipkin = null;})
-                (mkTempoReceiver cfg.receiverOpencensus {opencensus = null;})
-                (mkTempoReceiver cfg.receiverKafka {kafka = null;})
-              ];
+                distributor = {
+                  receivers = pipe {} [
+                    (mkTempoReceiver cfg.receiverOtlpHttp {otlp.protocols.http = null;})
+                    (mkTempoReceiver cfg.receiverOtlpGrpc {otlp.protocols.grpc = null;})
+                    (mkTempoReceiver cfg.receiverJaegerThriftHttp {jaeger.protocols.thrift_http = null;})
+                    (mkTempoReceiver cfg.receiverJaegerGrpc {jaeger.protocols.grpc = null;})
+                    (mkTempoReceiver cfg.receiverJaegerThriftBinary {jaeger.protocols.thrift_binary = null;})
+                    (mkTempoReceiver cfg.receiverJaegerThriftCompact {jaeger.protocols.thrift_compact = null;})
+                    (mkTempoReceiver cfg.receiverZipkin {zipkin = null;})
+                    (mkTempoReceiver cfg.receiverOpencensus {opencensus = null;})
+                    (mkTempoReceiver cfg.receiverKafka {kafka = null;})
+                  ];
 
-              log_received_spans = {
-                enabled = cfg.logReceivedSpansEnable;
-                include_all_attributes = cfg.logReceivedSpansIncludeAllAttrs;
-                filter_by_status_error = cfg.logReceivedSpansFilterByStatusError;
-              };
-
-              search_tags_deny_list = cfg.searchTagsDenyList;
-            };
-
-            ingester.lifecycler.ring.replication_factor = cfg.ingesterLifecyclerRingRepl;
-
-            metrics_generator_enabled = cfg.metricsGeneratorEnable;
-            metrics_generator.storage = {
-              path = cfg.metricsGeneratorStoragePath;
-              remote_write = cfg.metricsGeneratorStorageRemoteWrite;
-            };
-
-            compactor.compaction.block_retention = cfg.compactorCompactionBlockRetention;
-
-            storage.trace =
-              {
-                backend = cfg.storageTraceBackend;
-                local.path = cfg.storageLocalPath;
-                wal.path = cfg.storageTraceWalPath;
-              }
-              // optionalAttrs (cfg.storageTraceBackend == "s3") {
-                s3 =
-                  {
-                    bucket = cfg.storageS3Bucket;
-                    endpoint = cfg.storageS3Endpoint;
-
-                    # For temporary debug:
-                    insecure = cfg.storageS3Insecure;
-                    insecure_skip_verify = cfg.storageS3InsecureSkipVerify;
-
-                    # Primarily for prem/minio use:
-                    forcepathstyle = cfg.storageS3ForcePathStyle;
-                  }
-                  // optionalAttrs cfg.storageS3AccessCredsEnable
-                  {
-                    access_key = "\${AWS_ACCESS_KEY_ID}";
-                    secret_key = "\${AWS_SECRET_ACCESS_KEY}";
+                  log_received_spans = {
+                    enabled = cfg.logReceivedSpansEnable;
+                    include_all_attributes = cfg.logReceivedSpansIncludeAllAttrs;
+                    filter_by_status_error = cfg.logReceivedSpansFilterByStatusError;
                   };
-              };
 
-            search_enabled = cfg.searchEnable;
+                  search_tags_deny_list = cfg.searchTagsDenyList;
+                };
 
-            # TODO: memcached
-          }
-          cfg.extraConfig;
+                ingester.lifecycler.ring.replication_factor = cfg.ingesterLifecyclerRingRepl;
 
-        script = pkgs.writeShellApplication {
-          name = "tempo.sh";
-          text = ''
-            ${
-              if cfg.storageS3AccessCredsEnable
-              then ''
-                while ! [ -s ${runKeyMaterial.tempo} ]; do
-                  echo "Waiting for ${runKeyMaterial.tempo}..."
-                  sleep 3
-                done
+                metrics_generator_enabled = cfg.metricsGeneratorEnable;
+                metrics_generator.storage = {
+                  path = cfg.metricsGeneratorStoragePath;
+                  remote_write = cfg.metricsGeneratorStorageRemoteWrite;
+                };
 
-                set -a
-                # shellcheck disable=SC1091
-                source ${runKeyMaterial.tempo}
-                set +a''
-              else ""
-            }
+                compactor.compaction.block_retention = cfg.compactorCompactionBlockRetention;
 
-            exec ${pkgs.tempo}/bin/tempo --config.expand-env --config.file=${conf}
-          '';
+                storage.trace =
+                  {
+                    backend = cfg.storageTraceBackend;
+                    local.path = cfg.storageLocalPath;
+                    wal.path = cfg.storageTraceWalPath;
+                  }
+                  // optionalAttrs (cfg.storageTraceBackend == "s3") {
+                    s3 =
+                      {
+                        bucket = cfg.storageS3Bucket;
+                        endpoint = cfg.storageS3Endpoint;
+
+                        # For temporary debug:
+                        insecure = cfg.storageS3Insecure;
+                        insecure_skip_verify = cfg.storageS3InsecureSkipVerify;
+
+                        # Primarily for prem/minio use:
+                        forcepathstyle = cfg.storageS3ForcePathStyle;
+                      }
+                      // optionalAttrs cfg.storageS3AccessCredsEnable
+                      {
+                        access_key = "\${AWS_ACCESS_KEY_ID}";
+                        secret_key = "\${AWS_SECRET_ACCESS_KEY}";
+                      };
+                  };
+
+                search_enabled = cfg.searchEnable;
+
+                # TODO: memcached
+              }
+              cfg.extraConfig;
+
+            script = pkgs.writeShellApplication {
+              name = "tempo.sh";
+              text = ''
+                ${
+                  if cfg.storageS3AccessCredsEnable
+                  then ''
+                    while ! [ -s ${runKeyMaterial.tempo} ]; do
+                      echo "Waiting for ${runKeyMaterial.tempo}..."
+                      sleep 3
+                    done
+
+                    set -a
+                    # shellcheck disable=SC1091
+                    source ${runKeyMaterial.tempo}
+                    set +a''
+                  else ""
+                }
+
+                exec ${pkgs.tempo}/bin/tempo --config.expand-env --config.file=${conf}
+              '';
+            };
+
+            conf = settingsFormat.generate "config.yaml" settings;
+          in {
+            ExecStart = "${script}/bin/tempo.sh";
+            DynamicUser = true;
+            Restart = "always";
+            ProtectSystem = "full";
+            DevicePolicy = "closed";
+            NoNewPrivileges = true;
+            WorkingDirectory = "/var/lib/tempo";
+            StateDirectory = "tempo";
+          };
         };
+      }
+      // (let
+        registerConsulService = service: flip recursiveUpdate service;
+        mkConsulService = cond: name: port: protocol: dep:
+          if cond
+          then {
+            "${name}" =
+              (pkgs.consulRegister {
+                pkiFiles = {inherit caCertFile;};
+                systemdServiceDep = dep;
+                service = {
+                  inherit name port;
 
-        conf = settingsFormat.generate "config.yaml" settings;
-      in {
-        ExecStart = "${script}/bin/tempo.sh";
-        DynamicUser = true;
-        Restart = "always";
-        ProtectSystem = "full";
-        DevicePolicy = "closed";
-        NoNewPrivileges = true;
-        WorkingDirectory = "/var/lib/tempo";
-        StateDirectory = "tempo";
-      };
-    };
+                  checks = {
+                    "${name}-${protocol}" = {
+                      interval = "10s";
+                      timeout = "5s";
+                      "${protocol}" = "127.0.0.1:${toString port}";
+                    };
+                  };
+                };
+              })
+              .systemdService;
+          }
+          else {};
+      in
+        pipe {} [
+          (registerConsulService (mkConsulService cfg.receiverOtlpGrpc "tempo-otlp-grpc" 4317 "tcp" "tempo"))
+          (registerConsulService (mkConsulService cfg.receiverOtlpHttp "tempo-otlp-http" 4318 "tcp" "tempo"))
+          (registerConsulService (mkConsulService cfg.receiverZipkin "tempo-zipkin" 9411 "tcp" "tempo"))
+          (registerConsulService (mkConsulService cfg.receiverJaegerGrpc "tempo-jaeger-grpc" 14250 "tcp" "tempo"))
+          (registerConsulService (mkConsulService cfg.receiverJaegerThriftHttp "tempo-jaeger-thrift-http" 14268 "tcp" "tempo"))
+          (registerConsulService (mkConsulService cfg.receiverOpencensus "tempo-opencensus" 55678 "tcp" "tempo"))
+          # TODO: UDP checks not yet supported
+          # Ref: https://github.com/hashicorp/nomad/issues/14094
+          #
+          # (registerConsulService (mkConsulService cfg.receiverJaegerThriftCompact "tempo-jaeger-thrift-compact" 6831 "udp" "tempo"))
+          # (registerConsulService (mkConsulService cfg.receiverJaegerThriftBinary "tempo-jaeger-thrift-binary" 6832 "udp" "tempo"))
+          #
+          # Kafka receiver will depend on specific configuration
+        ]);
 
     secrets = mkIf (cfg.storageS3AccessCredsEnable && isSops) {
       install.tempo = {
