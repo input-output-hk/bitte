@@ -230,12 +230,12 @@ in {
       "${client.uid}" = {
         name = "core-${client.uid}";
         assume_role_policy = client.assumePolicy.tfJson;
-        lifecycle = [{ create_before_destroy = true; }];
+        lifecycle = [{create_before_destroy = true;}];
       };
       "${core.uid}" = {
         name = core.uid;
         assume_role_policy = core.assumePolicy.tfJson;
-        lifecycle = [{ create_before_destroy = true; }];
+        lifecycle = [{create_before_destroy = true;}];
       };
     };
 

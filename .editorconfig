@@ -9,6 +9,9 @@ charset = utf-8
 trim_trailing_whitespace = true
 insert_final_newline = true
 
+[Cargo.lock]
+indent_size = unset
+
 # Use 4 spaces for the Python files
 [*.py]
 indent_size = 4

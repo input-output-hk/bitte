@@ -26,6 +26,14 @@
       ]);
 in {
   default = std.lib.mkShell {
+    imports = [
+      capsules.base
+      capsules.tools
+      capsules.integrations
+      capsules.hooks
+    ];
+  };
+  dev = std.lib.mkShell {
     packages = rust-dev-pkgs;
     language.rust = {
       packageSet = rustPlatform;
@@ -52,5 +60,14 @@ in {
       capsules.integrations
       capsules.hooks
     ];
+    commands = let
+      withCategory = category: attrset: attrset // {inherit category;};
+      bitte = withCategory "bitte";
+    in
+      with nixpkgs; [
+        (bitte {package = awscli;})
+        (bitte {package = cfssl;})
+        (bitte {package = cue;})
+      ];
   };
 }

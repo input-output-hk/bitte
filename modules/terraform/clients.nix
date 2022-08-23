@@ -195,8 +195,8 @@ in {
     resource.aws_s3_bucket_object = lib.flip lib.mapAttrs' config.cluster.awsAutoScalingGroups (name: group:
       lib.nameValuePair "${name}-flake" rec {
         bucket = config.cluster.s3Bucket;
-        key    = with config; "infra/secrets/${cluster.name}/${cluster.kms}/source/${name}-source.tar.xz";
-        etag  = var ''filemd5("${source}")'';
+        key = with config; "infra/secrets/${cluster.name}/${cluster.kms}/source/${name}-source.tar.xz";
+        etag = var ''filemd5("${source}")'';
         source = "${pkgs.runCommand "source.tar.xz" {} ''
           tar cvf $out -C ${config.cluster.flakePath} .
         ''}";
@@ -344,7 +344,8 @@ in {
       requesterMeshPeeringOptions = mapAwsAsgVpcPeers (link:
         lib.nameValuePair "${link.connector}-connect-${link.accepter}" {
           provider = awsProviderFor link.connector;
-          vpc_peering_connection_id = id
+          vpc_peering_connection_id =
+            id
             "aws_vpc_peering_connection_accepter.${link.accepter}-accept-${link.connector}";
 
           requester = {allow_remote_vpc_dns_resolution = true;};
@@ -388,7 +389,7 @@ in {
         name = group.uid;
         inherit (group.iam.instanceProfile) path;
         role = var "data.aws_iam_role.${config.cluster.iam.roles.client.uid}.name";
-        lifecycle = [{ create_before_destroy = true; }];
+        lifecycle = [{create_before_destroy = true;}];
       });
 
     data.aws_iam_role = let
@@ -411,7 +412,8 @@ in {
               inherit (policy) condition;
             });
         };
-    in lib.mapAttrs' op role.policies;
+    in
+      lib.mapAttrs' op role.policies;
 
     resource.aws_iam_role_policy = let
       # deploy for client role
@@ -422,7 +424,8 @@ in {
           role = id "data.aws_iam_role.${role.uid}";
           policy = var "data.aws_iam_policy_document.${policy.uid}.json";
         };
-    in lib.mapAttrs' op role.policies;
+    in
+      lib.mapAttrs' op role.policies;
 
     resource.aws_security_group =
       lib.flip lib.mapAttrsToList config.cluster.awsAutoScalingGroups
