@@ -7,6 +7,8 @@ inputs: let
       ${k} is deprecated from the bitte overlay.
             See bitte/overlay.nix
     '';
+
+  pkgsUnstable = nixpkgs-unstable.legacyPackages;
 in
   final: prev:
     rec {
@@ -15,7 +17,7 @@ in
 
       # Packages specifically needing an unstable nixpkgs pinned latest available version
       inherit
-        (nixpkgs-unstable.legacyPackages.${prev.system})
+        (pkgsUnstable.${prev.system})
         grafana # 9.0.6
         grafana-loki # 2.6.1
         nushell # 0.65.0
@@ -37,7 +39,7 @@ in
         '';
       });
 
-      consul = prev.callPackage ./pkgs/consul {};
+      consul = pkgsUnstable.${prev.system}.callPackage ./pkgs/consul {buildGoModule = pkgsUnstable.${prev.system}.buildGo118Module;};
       consulRegister = prev.callPackage ./pkgs/consul-register.nix {};
       cue = prev.callPackage ./pkgs/cue.nix {};
       devShell = final.callPackage ./pkgs/dev-shell.nix {};
@@ -63,8 +65,8 @@ in
       spire = prev.callPackage ./pkgs/spire.nix {};
       spire-server = spire.server;
       spire-systemd-attestor = prev.callPackage ./pkgs/spire-systemd-attestor.nix {};
-      tempo = nixpkgs-unstable.legacyPackages.${prev.system}.callPackage ./pkgs/tempo.nix {buildGoModule = nixpkgs-unstable.legacyPackages.${prev.system}.buildGo118Module;};
-      traefik = nixpkgs-unstable.legacyPackages.${prev.system}.callPackage ./pkgs/traefik.nix {buildGoModule = nixpkgs-unstable.legacyPackages.${prev.system}.buildGo118Module;};
+      tempo = pkgsUnstable.${prev.system}.callPackage ./pkgs/tempo.nix {buildGoModule = pkgsUnstable.${prev.system}.buildGo118Module;};
+      traefik = pkgsUnstable.${prev.system}.callPackage ./pkgs/traefik.nix {buildGoModule = pkgsUnstable.${prev.system}.buildGo118Module;};
       vault-backend = final.callPackage ./pkgs/vault-backend.nix {};
       vault-bin = prev.callPackage ./pkgs/vault-bin.nix {};
       victoriametrics = prev.callPackage ./pkgs/victoriametrics.nix {buildGoModule = prev.buildGo117Module;};

@@ -29,10 +29,6 @@
     services.consul = {
       bootstrapExpect = 3;
       addresses = {http = "${config.currentCoreNode.privateIP} 127.0.0.1";};
-      # autoEncrypt = {
-      #   allowTls = true;
-      #   tls = true;
-      # };
     };
   };
 in
