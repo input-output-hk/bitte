@@ -130,7 +130,7 @@ in {
 
     networking.firewall.allowedTCPPorts = [80 443];
 
-    services.consul.ui = true;
+    services.consul.uiConfig.enabled = true;
     services.traefik.enable = true;
     services.oauth2_proxy.enable = cfg.useOauth2Proxy;
 

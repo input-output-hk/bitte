@@ -51,15 +51,20 @@
       enableLocalScriptChecks = true;
       logLevel = "info";
       primaryDatacenter = datacenter;
-      tlsMinVersion = "tls12";
-      verifyIncoming = true;
-      verifyIncomingRpc = true;
-      verifyOutgoing = true;
-      verifyServerHostname = true;
-
-      caFile = pkiFiles.caCertFile;
-      certFile = ownedChain;
-      keyFile = ownedKey;
+      tls = {
+        defaults = {
+          caFile = pkiFiles.caCertFile;
+          certFile = ownedChain;
+          keyFile = ownedKey;
+          verifyIncoming = true;
+          verifyOutgoing = true;
+          tlsMinVersion = "TLSv1_2";
+        };
+        internalRpc = {
+          verifyIncoming = true;
+          verifyServerHostname = true;
+        };
+      };
 
       telemetry = {
         dogstatsdAddr = "localhost:8125";
