@@ -639,7 +639,7 @@ in {
               export CONSUL_HTTP_TOKEN
             # Therefore, on core nodes, use the out-of-band bootstrapped initial management token
             elif [ -s ${gossipEncryptionMaterial.consul} ]; then
-              # Core nodes are observed to posess the initial management token while clients do not
+              # Core nodes are observed to possess the initial management token while clients do not
               jq -e '.acl.tokens.initial_management // .acl.tokens.master' ${gossipEncryptionMaterial.consul} || exit 5
               CONSUL_HTTP_TOKEN="$(jq -e -r '.acl.tokens.initial_management // .acl.tokens.master' ${gossipEncryptionMaterial.consul})"
               export CONSUL_HTTP_TOKEN
@@ -665,7 +665,7 @@ in {
               export CONSUL_HTTP_TOKEN
             # Therefore, on core nodes, use the out-of-band bootstrapped initial management token
             elif [ -s ${gossipEncryptionMaterial.consul} ]; then
-              # Core nodes are observed to posess the initial management token while clients do not
+              # Core nodes are observed to possess the initial management token while clients do not
               jq -e '.acl.tokens.initial_management // .acl.tokens.master' ${gossipEncryptionMaterial.consul} || exit 5
               CONSUL_HTTP_TOKEN="$(jq -e -r '.acl.tokens.initial_management // .acl.tokens.master' ${gossipEncryptionMaterial.consul})"
               export CONSUL_HTTP_TOKEN

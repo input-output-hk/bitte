@@ -26,6 +26,7 @@
     ints
     listOf
     nullOr
+    port
     str
     ;
 
@@ -74,13 +75,13 @@ in {
     };
 
     httpListenPort = mkOption {
-      type = ints.positive;
+      type = port;
       default = 3200;
       description = "HTTP server listen port.";
     };
 
     grpcListenPort = mkOption {
-      type = ints.positive;
+      type = port;
       default = 9096;
       description = "gRPC server listen port.";
     };

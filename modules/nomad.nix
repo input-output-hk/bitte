@@ -322,7 +322,7 @@ in {
             };
 
             min_dynamic_port = lib.mkOption {
-              type = with lib.types; nullOr ints.unsigned;
+              type = with lib.types; nullOr port;
               default = null;
               description = ''
                 Specifies the minimum dynamic port to be assigned.
@@ -342,7 +342,7 @@ in {
             };
 
             max_dynamic_port = lib.mkOption {
-              type = with lib.types; nullOr ints.unsigned;
+              type = with lib.types; nullOr port;
               default = null;
               description = ''
                 Specifies the maximum dynamic port to be assigned.
