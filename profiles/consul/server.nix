@@ -10,7 +10,9 @@
   Switches = {
     services.hashi-snapshots.enableConsul = true;
     services.consul.server = true;
-    services.consul.uiConfig.enabled = true;
+
+    # Consul UI is intentionally served exclusively through routing machine
+    services.consul.uiConfig.enabled = false;
   };
 
   Config = {
