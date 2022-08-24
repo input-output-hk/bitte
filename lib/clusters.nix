@@ -39,7 +39,8 @@ lib.listToAttrs (lib.forEach bitteProfiles (bitteProfile: let
 
   ourMkSystem = systemType: baseModules: nodeName: node:
     (mkSystem {
-      inherit pkgs self inputs nodeName;
+      inherit self inputs nodeName;
+      pkgs = node.pkgs or pkgs;
       modules = (baseModules nodeName) ++ node.modules;
     })
     .${systemType};
