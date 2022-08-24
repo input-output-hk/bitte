@@ -46,8 +46,24 @@ in {
       default = true;
       description = ''
         Register a consul service for each Tempo protocol listener.
-        The service naming will be:
+        The service naming will be of the form "tempo-$RECEIVER_TYPE".
+      '';
+    };
 
+    memcachedEnable = mkOption {
+      type = bool;
+      default = true;
+      description = ''
+        Use memcached to improve performance of Tempo trace lookups.
+        Redis support as a Tempo cache is still marked experimental.
+      '';
+    };
+
+    memcachedMaxMb = mkOption {
+      type = ints.positive;
+      default = 1024;
+      description = ''
+        If memcached is enabled, use a default maximum of 1 GB RAM.
       '';
     };
 
@@ -317,6 +333,11 @@ in {
       ++ optionals cfg.receiverJaegerThriftCompact [6831]
       ++ optionals cfg.receiverJaegerThriftBinary [6832];
 
+    services.memcached = mkIf cfg.memcachedEnable {
+      enable = true;
+      maxMemory = cfg.memcachedMaxMb;
+    };
+
     systemd.services =
       {
         tempo = {
@@ -375,6 +396,14 @@ in {
                     local.path = cfg.storageLocalPath;
                     wal.path = cfg.storageTraceWalPath;
                   }
+                  // optionalAttrs (cfg.memcachedEnable) {
+                    cache = "memcached";
+                    memcached = let
+                      inherit (config.services.memcached) port;
+                    in {
+                      addresses = "tempo-memcached.service.consul:${toString port}";
+                    };
+                  }
                   // optionalAttrs (cfg.storageTraceBackend == "s3") {
                     s3 =
                       {
@@ -396,8 +425,6 @@ in {
                   };
 
                 search_enabled = cfg.searchEnable;
-
-                # TODO: memcached
               }
               cfg.extraConfig;
 
@@ -475,7 +502,31 @@ in {
           # (registerConsulService (mkConsulService cfg.receiverJaegerThriftBinary "tempo-jaeger-thrift-binary" 6832 "udp" "tempo"))
           #
           # Kafka receiver will depend on specific configuration
-        ]);
+        ])
+      // optionalAttrs cfg.memcachedEnable {
+        # Tempo appears to force use of a DNS based discovery mechanism despite memcached being a localhost service
+        memcached-service =
+          (pkgs.consulRegister {
+            pkiFiles = {inherit caCertFile;};
+            systemdServiceDep = "memcached";
+            service = let
+              inherit (config.services.memcached) port;
+            in {
+              name = "tempo-memcached";
+              inherit port;
+
+              address = "127.0.0.1";
+              checks = {
+                memcached-tcp = {
+                  interval = "10s";
+                  timeout = "5s";
+                  tcp = "127.0.0.1:${toString port}";
+                };
+              };
+            };
+          })
+          .systemdService;
+      };
 
     secrets = mkIf (cfg.storageS3AccessCredsEnable && isSops) {
       install.tempo = {
