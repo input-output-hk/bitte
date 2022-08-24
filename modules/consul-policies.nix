@@ -293,7 +293,7 @@ in {
 
         # set +x
         CONSUL_HTTP_TOKEN="$(
-          jq -e -r '.acl.tokens.master' < ${gossipEncryptionMaterial.consul}
+          jq -e -r '.acl.tokens.initial_management // .acl.tokens.master' < ${gossipEncryptionMaterial.consul}
         )"
         export CONSUL_HTTP_TOKEN
         # set -x

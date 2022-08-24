@@ -456,7 +456,7 @@ in {
                       };
 
                       tlsMinVersion = lib.mkOption {
-                        type = with lib.types; enum ["TLSv1_0" "TLSv1_1" "TLSv1_2" "TLSv1_3" ];
+                        type = with lib.types; enum ["TLSv1_0" "TLSv1_1" "TLSv1_2" "TLSv1_3"];
                         default = "TLSv1_2";
                         description = ''
                           This specifies the minimum supported version of TLS.
@@ -634,17 +634,14 @@ in {
             set +x
 
             # During bootstrap the vault generated token are not yet available
-            if [ -s ${hashiTokens.consul-default} ]
-            then
+            if [ -s ${hashiTokens.consul-default} ]; then
               CONSUL_HTTP_TOKEN="$(< ${hashiTokens.consul-default})"
               export CONSUL_HTTP_TOKEN
-            # Therefore, on core nodes, use the out-of-band bootstrapped master token
-            elif [ -s ${gossipEncryptionMaterial.consul} ]
-            then
-              # as of writing: core nodes are observed to posess the master token
-              # while clients do not
-              jq -e .acl.tokens.master ${gossipEncryptionMaterial.consul} || exit 5
-              CONSUL_HTTP_TOKEN="$(jq -e -r .acl.tokens.master ${gossipEncryptionMaterial.consul})"
+            # Therefore, on core nodes, use the out-of-band bootstrapped initial management token
+            elif [ -s ${gossipEncryptionMaterial.consul} ]; then
+              # Core nodes are observed to posess the initial management token while clients do not
+              jq -e '.acl.tokens.initial_management // .acl.tokens.master' ${gossipEncryptionMaterial.consul} || exit 5
+              CONSUL_HTTP_TOKEN="$(jq -e -r '.acl.tokens.initial_management // .acl.tokens.master' ${gossipEncryptionMaterial.consul})"
               export CONSUL_HTTP_TOKEN
             else
               # Unknown state, should never reach this.
@@ -663,17 +660,14 @@ in {
             set +x
 
             # During bootstrap the vault generated token are not yet available
-            if [ -s ${hashiTokens.consul-default} ]
-            then
+            if [ -s ${hashiTokens.consul-default} ]; then
               CONSUL_HTTP_TOKEN="$(< ${hashiTokens.consul-default})"
               export CONSUL_HTTP_TOKEN
-            # Therefore, on core nodes, use the out-of-band bootstrapped master token
-            elif [ -s ${gossipEncryptionMaterial.consul} ]
-            then
-              # as of writing: core nodes are observed to posess the master token
-              # while clients do not
-              jq -e .acl.tokens.master ${gossipEncryptionMaterial.consul} || exit 5
-              CONSUL_HTTP_TOKEN="$(jq -e -r .acl.tokens.master ${gossipEncryptionMaterial.consul})"
+            # Therefore, on core nodes, use the out-of-band bootstrapped initial management token
+            elif [ -s ${gossipEncryptionMaterial.consul} ]; then
+              # Core nodes are observed to posess the initial management token while clients do not
+              jq -e '.acl.tokens.initial_management // .acl.tokens.master' ${gossipEncryptionMaterial.consul} || exit 5
+              CONSUL_HTTP_TOKEN="$(jq -e -r '.acl.tokens.initial_management // .acl.tokens.master' ${gossipEncryptionMaterial.consul})"
               export CONSUL_HTTP_TOKEN
             else
               # Unknown state, should never reach this.
