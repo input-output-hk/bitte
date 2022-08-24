@@ -1,31 +1,40 @@
-{ self, lib, pkgs, config, pkiFiles, gossipEncryptionMaterial, etcEncrypted, dockerAuth, netrcFile, ... }:
-let
+{
+  self,
+  lib,
+  pkgs,
+  config,
+  pkiFiles,
+  gossipEncryptionMaterial,
+  etcEncrypted,
+  dockerAuth,
+  netrcFile,
+  ...
+}: let
   # Note: Cert definitions in this file are applicable to AWS deployType clusters.
   # For premSim and prem deploType clusters, see the Rakefilefor cert genertaion details.
   # TODO: Unify the AWS vs. prem/premSim approaches.
-
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
   roleType = config.currentCoreNode.role or config.currentAwsAutoScalingGroup.role;
 
   isSops = deployType == "aws";
   isClient = roleType == "client";
 
-  sopsEncrypt =
-    "${pkgs.sops}/bin/sops --encrypt --input-type json --kms '${config.cluster.kms}' /dev/stdin";
+  sopsEncrypt = "${pkgs.sops}/bin/sops --encrypt --input-type json --kms '${config.cluster.kms}' /dev/stdin";
 
   sopsDecrypt = path:
-    # NB: we can't work on store paths that don't yet exist before they are generated
-    assert lib.assertMsg (builtins.isString path) "sopsDecrypt: path must be a string ${toString path}";
-    "${pkgs.sops}/bin/sops --decrypt --input-type json ${path}";
+  # NB: we can't work on store paths that don't yet exist before they are generated
+    assert lib.assertMsg (builtins.isString path) "sopsDecrypt: path must be a string ${toString path}"; "${pkgs.sops}/bin/sops --decrypt --input-type json ${path}";
 
   isInstance = config.currentCoreNode != null;
 
-  names = [{
-    O = "IOHK";
-    C = "JP";
-    ST = "Kantō";
-    L = "Tokyo";
-  }];
+  names = [
+    {
+      O = "IOHK";
+      C = "JP";
+      ST = "Kantō";
+      L = "Tokyo";
+    }
+  ];
 
   key = {
     algo = "ecdsa";
@@ -33,13 +42,13 @@ let
   };
 
   caJson = pkgs.toPrettyJSON "ca" {
-    hosts = [ "consul" ];
+    hosts = ["consul"];
     inherit names key;
   };
 
   caConfigJson = pkgs.toPrettyJSON "ca" {
     signing = {
-      default = { expiry = "43800h"; };
+      default = {expiry = "43800h";};
 
       profiles = {
         core = {
@@ -55,9 +64,9 @@ let
         };
 
         intermediate = {
-          usages = [ "signing" "key encipherment" "cert sign" "crl sign" ];
+          usages = ["signing" "key encipherment" "cert sign" "crl sign"];
           expiry = "43800h";
-          ca_constraint = { is_ca = true; };
+          ca_constraint = {is_ca = true;};
         };
       };
     };
@@ -66,27 +75,28 @@ let
   certConfig = pkgs.toPrettyJSON "core" {
     CN = "${config.cluster.domain}";
     inherit names key;
-    hosts = [
-      "consul.service.consul"
-      "vault.service.consul"
-      "core.vault.service.consul"
-      "active.vault.service.consul"
-      "nomad.service.consul"
-      "server.${config.cluster.region}.consul"
-      "vault.${config.cluster.domain}"
-      "consul.${config.cluster.domain}"
-      "nomad.${config.cluster.domain}"
-      "monitoring.${config.cluster.domain}"
-      "127.0.0.1"
-    ] ++ (lib.mapAttrsToList (_: i: i.privateIP) config.cluster.coreNodes);
+    hosts =
+      [
+        "consul.service.consul"
+        "vault.service.consul"
+        "core.vault.service.consul"
+        "active.vault.service.consul"
+        "nomad.service.consul"
+        "server.${config.cluster.region}.consul"
+        "vault.${config.cluster.domain}"
+        "consul.${config.cluster.domain}"
+        "nomad.${config.cluster.domain}"
+        "monitoring.${config.cluster.domain}"
+        "127.0.0.1"
+      ]
+      ++ (lib.mapAttrsToList (_: i: i.privateIP) config.cluster.coreNodes);
   };
   relEncryptedFolder = lib.last (builtins.split "-" (toString config.secrets.encryptedRoot));
-
 in {
   environment.etc.encrypted.source = config.secrets.encryptedRoot; # etcEncrypted
 
   secrets.generate.consul = lib.mkIf (isInstance && isSops) ''
-    export PATH="${lib.makeBinPath (with pkgs; [ consul toybox jq coreutils ])}"
+    export PATH="${lib.makeBinPath (with pkgs; [consul toybox jq coreutils])}"
 
     encrypt="$(consul keygen)"
 
@@ -94,7 +104,7 @@ in {
       echo generating ${relEncryptedFolder}/consul-core.json
       echo '{}' \
       | jq --arg encrypt "$encrypt" '.encrypt = $encrypt' \
-      | jq --arg token "$(uuidgen)" '.acl.tokens.master = $token' \
+      | jq --arg token "$(uuidgen)" '.acl.tokens.initial_management = $token' \
       | ${sopsEncrypt} \
       > ${relEncryptedFolder}/consul-core.json
     fi
@@ -112,16 +122,16 @@ in {
     source = "${etcEncrypted}/docker-passwords.json";
     target = dockerAuth;
     /*
-      {
-        "auths": {
-          "docker.infra.aws.iohkdev.io": {
-            "auth": "ffffffffffffffffffffff"
-          }
-        },
-        "HttpHeaders": {
-          "User-Agent": "Docker-Client/19.03.12 (linux)"
+    {
+      "auths": {
+        "docker.infra.aws.iohkdev.io": {
+          "auth": "ffffffffffffffffffffff"
         }
+      },
+      "HttpHeaders": {
+        "User-Agent": "Docker-Client/19.03.12 (linux)"
       }
+    }
     */
   };
 
@@ -153,7 +163,7 @@ in {
   };
 
   secrets.generate.nomad = lib.mkIf (isInstance && isSops) ''
-    export PATH="${lib.makeBinPath (with pkgs; [ nomad jq ])}"
+    export PATH="${lib.makeBinPath (with pkgs; [nomad jq])}"
 
     if [ ! -s ${relEncryptedFolder}/nomad.json ]; then
       echo generating ${relEncryptedFolder}/nomad.json
@@ -167,7 +177,7 @@ in {
   '';
 
   secrets.generate.cache = lib.mkIf (isInstance && isSops) ''
-    export PATH="${lib.makeBinPath (with pkgs; [ coreutils nix jq ])}"
+    export PATH="${lib.makeBinPath (with pkgs; [coreutils nix jq])}"
 
     mkdir -p secrets encrypted
 
@@ -196,7 +206,7 @@ in {
 
   secrets.generate.ca = lib.mkIf (isInstance && isSops) ''
     export PATH="${
-      lib.makeBinPath (with pkgs; [ cfssl jq coreutils terraform-with-plugins ])
+      lib.makeBinPath (with pkgs; [cfssl jq coreutils terraform-with-plugins])
     }"
 
     if [ ! -s ${relEncryptedFolder}/ca.json ]; then
@@ -224,7 +234,7 @@ in {
 
   secrets.install.certs = lib.mkIf (isInstance && isSops) {
     script = ''
-      export PATH="${lib.makeBinPath (with pkgs; [ cfssl jq coreutils ])}"
+      export PATH="${lib.makeBinPath (with pkgs; [cfssl jq coreutils])}"
       cert="$(${sopsDecrypt "${etcEncrypted}/cert.json"})"
       echo "$cert" | cfssljson -bare cert
       cp ${builtins.baseNameOf pkiFiles.certFile} ${pkiFiles.certFile}
@@ -239,21 +249,21 @@ in {
     file = config.age.encryptedRoot + "/docker/docker-passwords.age";
     path = dockerAuth;
     /*
-      {
-        "auths": {
-          "docker.infra.aws.iohkdev.io": {
-            "auth": "ffffffffffffffffffffff"
-          }
-        },
-        "HttpHeaders": {
-          "User-Agent": "Docker-Client/19.03.12 (linux)"
+    {
+      "auths": {
+        "docker.infra.aws.iohkdev.io": {
+          "auth": "ffffffffffffffffffffff"
         }
+      },
+      "HttpHeaders": {
+        "User-Agent": "Docker-Client/19.03.12 (linux)"
       }
+    }
     */
   };
 
-  age.secrets.consul-token-master = lib.mkIf (config.services.consul.server && !isSops) {
-    file = config.age.encryptedRoot + "/consul/token-master.age";
+  age.secrets.consul-token-initial-management = lib.mkIf (config.services.consul.server && !isSops) {
+    file = config.age.encryptedRoot + "/consul/token-initial-management.age";
     path = gossipEncryptionMaterial.consul;
     mode = "0444";
     script = ''
@@ -265,7 +275,7 @@ in {
       echo "$CONTENTS" \
         | ${pkgs.jq}/bin/jq \
           --arg token "$(< "$src")" \
-          '.acl.tokens.master = $token' \
+          'del(.acl.tokens.master) | .acl.tokens.initial_management = $token' \
         > $out
     '';
   };
