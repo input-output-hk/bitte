@@ -64,7 +64,7 @@ in
       spire-server = spire.server;
       spire-systemd-attestor = prev.callPackage ./pkgs/spire-systemd-attestor.nix {};
       tempo = nixpkgs-unstable.legacyPackages.${prev.system}.callPackage ./pkgs/tempo.nix {buildGoModule = nixpkgs-unstable.legacyPackages.${prev.system}.buildGo118Module;};
-      traefik = prev.callPackage ./pkgs/traefik.nix {buildGoModule = prev.buildGo117Module;};
+      traefik = nixpkgs-unstable.legacyPackages.${prev.system}.callPackage ./pkgs/traefik.nix {buildGoModule = nixpkgs-unstable.legacyPackages.${prev.system}.buildGo118Module;};
       vault-backend = final.callPackage ./pkgs/vault-backend.nix {};
       vault-bin = prev.callPackage ./pkgs/vault-bin.nix {};
       victoriametrics = prev.callPackage ./pkgs/victoriametrics.nix {buildGoModule = prev.buildGo117Module;};
