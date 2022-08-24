@@ -535,9 +535,9 @@ in {
         vault read consul/config/access \
         &> /dev/null \
         || vault write consul/config/access \
-          ca_cert="$(< ${config.services.consul.caFile})" \
-          client_cert="$(< ${config.services.consul.certFile})" \
-          client_key="$(< ${config.services.consul.keyFile})" \
+          ca_cert="$(< ${config.services.consul.tls.defaults.caFile})" \
+          client_cert="$(< ${config.services.consul.tls.defaults.certFile})" \
+          client_key="$(< ${config.services.consul.tls.defaults.keyFile})" \
           token="$(
             consul acl token create \
               -policy-name=global-management \

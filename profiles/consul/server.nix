@@ -10,7 +10,7 @@
   Switches = {
     services.hashi-snapshots.enableConsul = true;
     services.consul.server = true;
-    services.consul.ui = true;
+    services.consul.uiConfig.enabled = true;
   };
 
   Config = {
