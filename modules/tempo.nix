@@ -12,6 +12,7 @@
     mkEnableOption
     mkIf
     mkOption
+    optional
     optionalAttrs
     optionals
     pipe
@@ -41,6 +42,15 @@
 in {
   options.services.tempo = {
     enable = mkEnableOption "Grafana Tempo";
+
+    logLevel = mkOption {
+      type = enum ["debug" "info" "warn" "error"];
+      default = "info";
+      description = ''
+        Only log messages with the given severity or above.
+        Valid levels: [debug, info, warn, error] (default info)
+      '';
+    };
 
     registerConsulService = mkOption {
       type = bool;
@@ -176,12 +186,25 @@ in {
       default = 1;
     };
 
-    metricsGeneratorEnable = mkOption {
+    metricsGeneratorEnableServiceGraphs = mkOption {
       type = bool;
       default = true;
       description = ''
         The metrics-generator processes spans and write metrics using
         the Prometheus remote write protocol.
+
+        This option will enable processing of service graphs from spans.
+      '';
+    };
+
+    metricsGeneratorEnableSpanMetrics = mkOption {
+      type = bool;
+      default = true;
+      description = ''
+        The metrics-generator processes spans and write metrics using
+        the Prometheus remote write protocol.
+
+        This option will enable processing of span metrics from spans.
       '';
     };
 
@@ -334,6 +357,20 @@ in {
       ++ optionals cfg.receiverJaegerThriftCompact [6831]
       ++ optionals cfg.receiverJaegerThriftBinary [6832];
 
+    services.vmagent.promscrapeConfig = mkIf config.services.vmagent.enable [
+      {
+        job_name = "tempo";
+        scrape_interval = "60s";
+        metrics_path = "/metrics";
+        static_configs = [
+          {
+            targets = ["${cfg.httpListenAddress}:${toString cfg.httpListenPort}"];
+            labels.alias = "tempo";
+          }
+        ];
+      }
+    ];
+
     services.memcached = mkIf cfg.memcachedEnable {
       enable = true;
       maxMemory = cfg.memcachedMaxMb;
@@ -383,11 +420,15 @@ in {
 
                 ingester.lifecycler.ring.replication_factor = cfg.ingesterLifecyclerRingRepl;
 
-                metrics_generator_enabled = cfg.metricsGeneratorEnable;
+                metrics_generator_enabled = cfg.metricsGeneratorEnableServiceGraphs || cfg.metricsGeneratorEnableSpanMetrics;
                 metrics_generator.storage = {
                   path = cfg.metricsGeneratorStoragePath;
                   remote_write = cfg.metricsGeneratorStorageRemoteWrite;
                 };
+                overrides.metrics_generator_processors =
+                  []
+                  ++ optional cfg.metricsGeneratorEnableServiceGraphs "service-graphs"
+                  ++ optional cfg.metricsGeneratorEnableSpanMetrics "span-metrics";
 
                 compactor.compaction.block_retention = cfg.compactorCompactionBlockRetention;
 
@@ -399,11 +440,9 @@ in {
                   }
                   // optionalAttrs (cfg.memcachedEnable) {
                     cache = "memcached";
-                    memcached = let
-                      inherit (config.services.memcached) port;
-                    in {
-                      addresses = "tempo-memcached.service.consul:${toString port}";
-                    };
+                    memcached.addresses = let
+                      inherit (config.services.memcached) listen port;
+                    in "${listen}:${toString port}";
                   }
                   // optionalAttrs (cfg.storageTraceBackend == "s3") {
                     s3 =
@@ -447,7 +486,7 @@ in {
                   else ""
                 }
 
-                exec ${pkgs.tempo}/bin/tempo --config.expand-env --config.file=${conf}
+                exec ${pkgs.tempo}/bin/tempo -log.level ${cfg.logLevel} -config.expand-env -config.file=${conf}
               '';
             };
 
@@ -503,31 +542,7 @@ in {
           # (registerConsulService (mkConsulService cfg.receiverJaegerThriftBinary "tempo-jaeger-thrift-binary" 6832 "udp" "tempo"))
           #
           # Kafka receiver will depend on specific configuration
-        ])
-      // optionalAttrs cfg.memcachedEnable {
-        # Tempo appears to force use of a DNS based discovery mechanism despite memcached being a localhost service
-        memcached-service =
-          (pkgs.consulRegister {
-            pkiFiles = {inherit caCertFile;};
-            systemdServiceDep = "memcached";
-            service = let
-              inherit (config.services.memcached) port;
-            in {
-              name = "tempo-memcached";
-              inherit port;
-
-              address = "127.0.0.1";
-              checks = {
-                memcached-tcp = {
-                  interval = "10s";
-                  timeout = "5s";
-                  tcp = "127.0.0.1:${toString port}";
-                };
-              };
-            };
-          })
-          .systemdService;
-      };
+        ]);
 
     secrets = mkIf (cfg.storageS3AccessCredsEnable && isSops) {
       install.tempo = {
