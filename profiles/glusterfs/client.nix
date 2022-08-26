@@ -16,8 +16,8 @@ in {
 
   systemd.mounts = [
     (lib.mkIf cfg.enable {
-      after = [ "consul.service" "dnsmasq.service" ];
-      wants = [ "consul.service" "dnsmasq.service" ];
+      after = ["consul.service" "dnsmasq.service"];
+      wants = ["consul.service" "dnsmasq.service"];
       what = "glusterd.service.consul:/gv0";
       where = "/mnt/gv0";
       type = "glusterfs";
