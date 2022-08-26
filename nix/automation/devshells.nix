@@ -33,7 +33,7 @@ in {
       capsules.hooks
     ];
   };
-  dev = std.lib.mkShell {
+  cli = std.lib.mkShell {
     packages = rust-dev-pkgs;
     language.rust = {
       packageSet = rustPlatform;
