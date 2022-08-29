@@ -24,6 +24,11 @@ in {
         "consul/creds/consul-register" = [r];
         "consul/creds/consul-server-default" = [r];
         "consul/creds/consul-server-agent" = [r];
+        "kv/data/bootstrap/static-tokens/*" = [c r u d l];
+        "kv/data/bootstrap/*" = [r];
+        "kv/data/bootstrap/letsencrypt/cert" = [c r u d l];
+        "kv/data/bootstrap/letsencrypt/fullchain" = [c r u d l];
+        "kv/data/bootstrap/letsencrypt/key" = [c r u d l];
         "kv/data/system/alerts/*" = [r];
         "kv/metadata/system/alerts/*" = [l];
         "kv/data/system/dashboards/*" = [r];
@@ -122,6 +127,7 @@ in {
       "consul/creds/consul-default" = [r u];
       "consul/creds/consul-agent" = [r u];
       "consul/creds/consul-register" = [r];
+      "kv/data/bootstrap/static-tokens/clients/*" = [r];
     };
 
     routing.path = caps {
@@ -130,6 +136,8 @@ in {
       "consul/creds/consul-default" = [r u];
       "consul/creds/consul-agent" = [r u];
       "consul/creds/traefik" = [r u];
+      "kv/data/bootstrap/static-tokens/clients/*" = [r];
+      "kv/data/bootstrap/static-tokens/routing/*" = [r];
       "kv/data/bootstrap/letsencrypt/cert" = [c r u d l];
       "kv/data/bootstrap/letsencrypt/fullchain" = [c r u d l];
       "kv/data/bootstrap/letsencrypt/key" = [c r u d l];

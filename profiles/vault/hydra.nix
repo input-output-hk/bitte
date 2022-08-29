@@ -10,7 +10,10 @@
     ];
   };
 
-  Switches = {};
+  Switches = {
+    services.vault-agent.disableTokenRotation.consulAgent = true;
+    services.vault-agent.disableTokenRotation.consulDefault = true;
+  };
 
   Config = {
     services.vault-agent.role = "hydra";

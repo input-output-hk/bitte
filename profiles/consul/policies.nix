@@ -45,7 +45,9 @@
       };
 
       traefik = {
-        servicePrefix = allRead;
+        # Traefik utilization of Consul Connect catalog requires service write perms
+        # Ref: https://www.consul.io/api-docs/agent/connect#service-leaf-certificate
+        servicePrefix = allWrite;
         nodePrefix = allRead;
       };
 
