@@ -31,6 +31,11 @@ in {
   ];
 
   options.services.traefik = {
+    enableTracing = lib.mkOption {
+      type = with lib.types; bool;
+      default = true;
+      description = "Enable traefik tracing with the Jaeger tracer.";
+    };
     prometheusPort = lib.mkOption {
       type = with lib.types; int;
       default = 9090;
@@ -521,6 +526,11 @@ in {
       };
 
       staticConfigOptions = {
+        api = {dashboard = true;};
+
+        accesslog = true;
+        log.level = "info";
+
         metrics = {
           prometheus = {
             entrypoint = "metrics";
@@ -528,11 +538,6 @@ in {
             addServicesLabels = true;
           };
         };
-
-        accesslog = true;
-        log.level = "info";
-
-        api = {dashboard = true;};
 
         entryPoints = {
           http = {
@@ -631,6 +636,13 @@ in {
           # The expression syntax is based on the Tag(`tag`), and TagRegex(`tag`)
           # functions, as well as the usual boolean logic.
           constraints = "Tag(`ingress`)";
+        };
+      } // lib.optionalAttrs cfg.enableTracing {
+        tracing = {
+          jaeger = {
+            collector.endpoint = "http://tempo-jaeger-thrift-http.service.consul:14268/api/traces?format=jaeger.thrift";
+            disableAttemptReconnecting = false;
+          };
         };
       };
     };
