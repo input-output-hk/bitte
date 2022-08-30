@@ -35,6 +35,9 @@ buildGoModule rec {
     ./consul-issue-8283.patch
     # https://github.com/hashicorp/consul/issues/12145
     ./pr-12560-deregister-sunken-token.patch
+    # Add an envoy route idle_timeout config knob
+    # Follows: https://github.com/hashicorp/consul/pull/9554
+    ./consul-idle-timeout.patch
   ];
 
   passthru.tests.consul = nixosTests.consul;
