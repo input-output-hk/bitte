@@ -183,6 +183,9 @@ in {
         }
         // optionalAttrs cfg.useDigestAuth {
           AUTH_PROXY_HEADER_NAME = "X-WebAuth-User";
+        }
+        // optionalAttrs config.services.tempo.enable {
+          FEATURE_TOGGLES_ENABLE = "tempoApmTable";
         };
       rootUrl = "https://monitoring.${domain}/";
       provision = {
