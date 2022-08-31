@@ -185,30 +185,102 @@ in {
           AUTH_PROXY_HEADER_NAME = "X-WebAuth-User";
         }
         // optionalAttrs config.services.tempo.enable {
-          FEATURE_TOGGLES_ENABLE = "tempoApmTable";
+          FEATURE_TOGGLES_ENABLE = "tempoApmTable,traceToMetrics";
+        }
+        // optionalAttrs (config.services.tempo.enable && config.services.tempo.receiverOtlpGrpc) {
+          TRACING_OPENTELEMETRY_OTLP_ADDRESS = "${config.services.tempo.httpListenAddress}:4317";
         };
       rootUrl = "https://monitoring.${domain}/";
       provision = {
         enable = true;
-        datasources = [
-          {
-            type = "loki";
-            name = "Loki";
-            # Here we point the datasource for Loki to an nginx
-            # reverse proxy to intercept prometheus rule api
-            # calls so that vmalert handler for declarative loki
-            # alerts can respond, thereby allowing grafana to
-            # display them in the next generation alerting interface.
-            # The actual loki service still exists at the standard port.
-            url = "http://127.0.0.1:3099";
-            jsonData.maxLines = 1000;
-          }
-          {
-            type = "prometheus";
-            name = "VictoriaMetrics";
-            url = "http://127.0.0.1:8428";
-          }
-        ];
+        datasources =
+          [
+            (lib.recursiveUpdate {
+                type = "loki";
+                name = "Loki";
+                uid = "Loki";
+                # Here we point the datasource for Loki to an nginx
+                # reverse proxy to intercept prometheus rule api
+                # calls so that vmalert handler for declarative loki
+                # alerts can respond, thereby allowing grafana to
+                # display them in the next generation alerting interface.
+                # The actual loki service still exists at the standard port.
+                url = "http://127.0.0.1:3099";
+                jsonData.maxLines = 1000;
+              } (lib.optionalAttrs config.services.tempo.enable {
+                jsonData.derivedFields = [
+                  {
+                    # Regex covers common examples of:
+                    #  traceID        # casing
+                    #  trace_id       # underscoring
+                    #  traceId":"     # json
+                    #  trace_id\":\"  # escaped json
+                    matcherRegex = "trace_?[iI][dD][=,\\\\:\"]+(\\w+)";
+                    name = "TraceID";
+                    datasourceUid = "Tempo";
+                    url = "$${__value.raw}";
+                  }
+                ];
+              }))
+            {
+              type = "prometheus";
+              name = "VictoriaMetrics";
+              uid = "VictoriaMetrics";
+              url = "http://127.0.0.1:8428";
+            }
+          ]
+          ++ lib.optionals config.services.tempo.enable [
+            {
+              type = "tempo";
+              name = "Tempo";
+              uid = "Tempo";
+              url = "http://${config.services.tempo.httpListenAddress}:${toString config.services.tempo.httpListenPort}";
+              jsonData = {
+                httpMethod = "GET";
+                nodeGraph.enabled = true;
+                lokiSearch.datasourceUid = "Loki";
+                search.hide = false;
+                serviceMap.datasourceUid = "VictoriaMetrics";
+                tracesToLogs = {
+                  datasourceUid = "Loki";
+                  filterBySpanID = false;
+                  filterByTraceID = false;
+                  mappedTags = [
+                    {
+                      key = "service.name";
+                      value = "service";
+                    }
+                  ];
+                  mapTagNamesEnabled = true;
+                  spanStartTimeShift = "1h";
+                  spanEndTimeShift = "1h";
+                };
+                tracesToMetrics = {
+                  datasourceUid = "VictoriaMetrics";
+                  tags = [
+                    {
+                      key = "service.name";
+                      value = "service";
+                    }
+                  ];
+                  queries = [
+                    {
+                      name = "Error rate";
+                      query = "sum by (client,server) (rate(traces_service_graph_request_failed_total{$$__tags}[$$__rate_interval]))";
+                    }
+                    {
+                      name = "Latency rate";
+                      query = "sum by (client,server) (rate(traces_spanmetrics_latency_bucket{$$__tags}[$$__rate_interval]))";
+                    }
+                    {
+                      name = "Request rate";
+                      query = "sum by (client,server) (rate(traces_service_graph_request_total{$$__tags}[$$__rate_interval]))";
+                    }
+                  ];
+                };
+              };
+            }
+          ];
 
         dashboards = [
           {
