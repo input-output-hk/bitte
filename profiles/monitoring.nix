@@ -9,6 +9,7 @@ in {
     ./auxiliaries/loki.nix
 
     # Modules -- enable gated config mutation w/ options
+    ../modules/grafana.nix
     ../modules/monitoring.nix
     ../modules/tempo.nix
   ];

@@ -18,7 +18,7 @@ in
       # Packages specifically needing an unstable nixpkgs pinned latest available version
       inherit
         (pkgsUnstable.${prev.system})
-        grafana # 9.0.6
+        grafana # 9.1.1
         grafana-loki # 2.6.1
         nushell # 0.65.0
         podman # 4.2.0
