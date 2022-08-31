@@ -32,6 +32,15 @@ in
         '';
       };
 
+      maxLabelsPerTimeseries = mkOption {
+        default = 30;
+        type = types.int;
+        description = ''
+          The maximum number of labels accepted per time series. Superfluous labels are dropped.
+          In this case the vm_metrics_with_dropped_labels_total metric at /metrics page is incremented.
+        '';
+      };
+
       retentionPeriod = mkOption {
         type = types.int;
         default = 1;
@@ -311,6 +320,7 @@ in
                 ${cfg.package}/bin/victoria-metrics \
                   -storageDataPath=/var/lib/victoriametrics \
                   -httpListenAddr=${escapeShellArg cfg.httpListenAddr} \
+                  -maxLabelsPerTimeseries=${toString cfg.maxLabelsPerTimeseries} \
                   -retentionPeriod=${escapeShellArg (toString cfg.retentionPeriod)} \
                   -selfScrapeInterval=${escapeShellArg cfg.selfScrapeInterval} \
                   ${
