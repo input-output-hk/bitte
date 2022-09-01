@@ -2,13 +2,12 @@
   config,
   lib,
   pkgs,
-  runKeyMaterial,
-  pkiFiles,
   ...
 }: let
   inherit
     (lib)
     flip
+    mdDoc
     mkEnableOption
     mkIf
     mkOption
@@ -27,127 +26,114 @@
     ints
     listOf
     nullOr
+    path
     port
     str
     ;
-
-  inherit (pkiFiles) caCertFile;
-
-  deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
-  isSops = deployType == "aws";
 
   cfg = config.services.tempo;
 
   settingsFormat = pkgs.formats.yaml {};
 in {
   options.services.tempo = {
-    enable = mkEnableOption "Grafana Tempo";
+    enable = mkEnableOption (mdDoc "Grafana Tempo");
 
     logLevel = mkOption {
       type = enum ["debug" "info" "warn" "error"];
       default = "info";
-      description = ''
+      description = mdDoc ''
         Only log messages with the given severity or above.
         Valid levels: [debug, info, warn, error] (default info)
-      '';
-    };
-
-    registerConsulService = mkOption {
-      type = bool;
-      default = true;
-      description = ''
-        Register a consul service for each Tempo protocol listener.
-        The service naming will be of the form "tempo-$RECEIVER_TYPE".
       '';
     };
 
     memcachedEnable = mkOption {
       type = bool;
       default = true;
-      description = ''
+      description = mdDoc ''
         Use memcached to improve performance of Tempo trace lookups.
         Redis support as a Tempo cache is still marked experimental.
       '';
     };
 
-    memcachedMaxMb = mkOption {
+    memcachedMaxMB = mkOption {
       type = ints.positive;
       default = 1024;
-      description = ''
-        If memcached is enabled, use a default maximum of 1 GB RAM.
+      description = mdDoc ''
+        If services.tempo.memcachedEnable is true, use a default maximum of 1 GB RAM.
       '';
     };
 
     httpListenAddress = mkOption {
       type = str;
       default = "0.0.0.0";
-      description = "HTTP server listen host.";
+      description = mdDoc "HTTP server listen host.";
     };
 
     httpListenPort = mkOption {
       type = port;
       default = 3200;
-      description = "HTTP server listen port.";
+      description = mdDoc "HTTP server listen port.";
     };
 
     grpcListenPort = mkOption {
       type = port;
       default = 9096;
-      description = "gRPC server listen port.";
+      description = mdDoc "gRPC server listen port.";
     };
 
     receiverOtlpHttp = mkOption {
       type = bool;
       default = true;
-      description = "Enable OTLP receiver on HTTP.";
+      description = mdDoc "Enable OTLP receiver on HTTP, port 4318.";
     };
 
     receiverOtlpGrpc = mkOption {
       type = bool;
       default = true;
-      description = "Enable OTLP receiver on gRPC.";
+      description = mdDoc "Enable OTLP receiver on gRPC, port 4317.";
     };
 
     receiverJaegerThriftHttp = mkOption {
       type = bool;
       default = true;
-      description = "Enable Jaeger thrift receiver on HTTP.";
+      description = mdDoc "Enable Jaeger thrift receiver on HTTP, port 14268.";
     };
 
     receiverJaegerGrpc = mkOption {
       type = bool;
       default = true;
-      description = "Enable Jaeger receiver on gRPC.";
+      description = mdDoc "Enable Jaeger receiver on gRPC, port 14250.";
     };
 
     receiverJaegerThriftBinary = mkOption {
       type = bool;
       default = true;
-      description = "Enable Jaeger thrift receiver for binary.";
+      description = mdDoc "Enable Jaeger thrift receiver for binary, port 6832.";
     };
 
     receiverJaegerThriftCompact = mkOption {
       type = bool;
       default = true;
-      description = "Enable Jaeger thrift receiver on compact.";
+      description = mdDoc "Enable Jaeger thrift receiver on compact, port 6831.";
     };
 
     receiverZipkin = mkOption {
       type = bool;
       default = true;
-      description = "Enable Zipkin receiver.";
+      description = mdDoc "Enable Zipkin receiver, port 9411.";
     };
 
     receiverOpencensus = mkOption {
       type = bool;
       default = true;
-      description = "Enable Opencensus receiver.";
+      description = mdDoc "Enable Opencensus receiver, port 55678.";
     };
 
     receiverKafka = mkOption {
       type = bool;
       default = false;
-      description = ''
+      description = mdDoc ''
         Enable Kafta receiver.
         Note: The Tempo service will fail if Tempo cannot reach a Kafka broker.
 
@@ -160,7 +146,7 @@ in {
     logReceivedSpansEnable = mkOption {
       type = bool;
       default = false;
-      description = ''
+      description = mdDoc ''
         Enable to log every received span to help debug ingestion
         or calculate span error distributions using the logs.
       '';
@@ -169,27 +155,42 @@ in {
     logReceivedSpansIncludeAllAttrs = mkOption {
       type = bool;
       default = false;
+      description = mdDoc ''
+        Enable to log all attributes of received spans when
+        services.tempo.logReceivedSpansEnable is true.
+      '';
     };
 
     logReceivedSpansFilterByStatusError = mkOption {
       type = bool;
       default = false;
+      description = mdDoc ''
+        Enable to log received spans by error status when
+        services.tempo.logReceivedSpansEnable is true.
+      '';
     };
 
     searchTagsDenyList = mkOption {
       type = nullOr (listOf str);
       default = null;
+      description = mdDoc ''
+        List of string tags that will not be extracted from trace data for search lookups.
+        This is a global config that will apply to all tenants.
+      '';
     };
 
     ingesterLifecyclerRingRepl = mkOption {
       type = ints.positive;
       default = 1;
+      description = mdDoc ''
+        Number of replicas of each span to make while pushing to the backend.
+      '';
     };
 
     metricsGeneratorEnableServiceGraphs = mkOption {
       type = bool;
       default = true;
-      description = ''
+      description = mdDoc ''
         The metrics-generator processes spans and write metrics using
         the Prometheus remote write protocol.
 
@@ -200,7 +201,7 @@ in {
     metricsGeneratorEnableSpanMetrics = mkOption {
       type = bool;
       default = true;
-      description = ''
+      description = mdDoc ''
         The metrics-generator processes spans and write metrics using
         the Prometheus remote write protocol.
 
@@ -211,15 +212,15 @@ in {
     metricsGeneratorStoragePath = mkOption {
       type = str;
       default = "/var/lib/tempo/storage/wal-metrics";
-      description = ''
+      description = mdDoc ''
         Path to store the WAL. Each tenant will be stored in its own subdirectory.
       '';
     };
 
     metricsGeneratorStorageRemoteWrite = mkOption {
-      type = listOf attrs;
-      default = [{url = "http://127.0.0.1:8428/api/v1/write";}];
-      description = ''
+      type = nullOr (listOf attrs);
+      default = null;
+      description = mdDoc ''
         A list of remote write endpoints in Prometheus remote_write format:
         https://prometheus.io/docs/prometheus/latest/configuration/configuration/#remote_write
       '';
@@ -228,13 +229,13 @@ in {
     compactorCompactionBlockRetention = mkOption {
       type = str;
       default = "336h";
-      description = "Duration to keep blocks.  Default is 14 days.";
+      description = mdDoc "Duration to keep blocks.  Default is 14 days.";
     };
 
     storageTraceBackend = mkOption {
       type = enum ["local" "s3"];
-      default = "s3";
-      description = ''
+      default = "local";
+      description = mdDoc ''
         The storage backend to use.
       '';
     };
@@ -242,15 +243,15 @@ in {
     storageLocalPath = mkOption {
       type = str;
       default = "/var/lib/tempo/storage/local";
-      description = ''
+      description = mdDoc ''
         Where to store state if the backend selected is "local".
       '';
     };
 
     storageS3Bucket = mkOption {
-      type = str;
-      default = config.cluster.s3BucketTempo;
-      description = ''
+      type = nullOr str;
+      default = null;
+      description = mdDoc ''
         Bucket name in s3.  Tempo requires a dedicated bucket since it maintains a top-level
         object structure and does not support a custom prefix to nest within a shared bucket.
       '';
@@ -258,21 +259,33 @@ in {
 
     storageS3Endpoint = mkOption {
       type = nullOr str;
-      default = "s3.${config.cluster.region}.amazonaws.com";
-      description = ''
+      default = null;
+      description = mdDoc ''
         Api endpoint to connect to.  Use AWS S3 or any S3 compatible object storage endpoint.
-        Prem/minio usage will require customizing this option.
+
+        As an example, for AWS typically this would be set to: s3.$REGION.amazonaws.com,
+        where $REGION is the region the s3 bucket was created in.
       '';
     };
 
     storageS3AccessCredsEnable = mkOption {
       type = bool;
       default = false;
-      description = ''
+      description = mdDoc ''
         Whether to enable access key ENV VAR usage for static credentials.
-        Required for prem/minio usage.
 
-        If enabled, an encrypted file is expected to exist containing the following substituted lines:
+        If enabled, a file is expected to exist at location specified by option
+        storageS3AccessCredsPath.
+      '';
+    };
+
+    storageS3AccessCredsPath = mkOption {
+      type = str;
+      default = "/run/keys/tempo";
+      description = mdDoc ''
+        Specifies the location of an S3 credentials file that Tempo should utilize.
+
+        This file is expected to contain the following substituted lines:
 
         AWS_ACCESS_KEY_ID=$SECRET_KEY_ID
         AWS_SECRET_ACCESS_KEY=$SECRET_KEY
@@ -282,15 +295,15 @@ in {
     storageS3ForcePathStyle = mkOption {
       type = bool;
       default = false;
-      description = ''
-        Enable to use path-style requests.  Required for prem/minio usage.
+      description = mdDoc ''
+        Enable to use path-style requests.
       '';
     };
 
     storageS3Insecure = mkOption {
       type = bool;
       default = false;
-      description = ''
+      description = mdDoc ''
         Debugging option for temporary http testing.
       '';
     };
@@ -298,7 +311,7 @@ in {
     storageS3InsecureSkipVerify = mkOption {
       type = bool;
       default = false;
-      description = ''
+      description = mdDoc ''
         Debugging option for temporary https testing.
       '';
     };
@@ -306,7 +319,7 @@ in {
     storageTraceWalPath = mkOption {
       type = str;
       default = "/var/lib/tempo/storage/wal";
-      description = ''
+      description = mdDoc ''
         Where to store the head blocks while they are being appended to.
       '';
     };
@@ -314,7 +327,7 @@ in {
     searchEnable = mkOption {
       type = bool;
       default = true;
-      description = ''
+      description = mdDoc ''
         Enable tempo search.
       '';
     };
@@ -322,18 +335,61 @@ in {
     extraConfig = mkOption {
       type = attrs;
       default = {};
-      description = ''
+      description = mdDoc ''
         Extra configuration to pass to Tempo service.
         See https://grafana.com/docs/tempo/latest/configuration/ for available options.
+      '';
+    };
+
+    configFile = mkOption {
+      type = nullOr path;
+      default = null;
+      description = mdDoc ''
+        As an alternative to building a working Tempo configuration using the available
+        module options, the path to a complete Tempo configuration file may be provided.
+
+        When a path to a complete Tempo configuration file is provided, all Tempo module
+        options will be ignored in favor of the Tempo configuration file, with the
+        exception of the 'service.tempo.enable' and 'services.tempo.logLevel' options.
       '';
     };
   };
 
   config = mkIf cfg.enable {
-    # for tempo-cli and friends
-    environment.systemPackages = [pkgs.tempo];
+    assertions = mkIf (cfg.configFile == null) [
+      {
+        assertion =
+          if cfg.metricsGeneratorEnableServiceGraphs || cfg.metricsGeneratorEnableSpanMetrics
+          then cfg.metricsGeneratorStorageRemoteWrite != null
+          else true;
+        message = ''
+          Please specify a Prometheus metrics remote write endpoint when using Tempo metrics
+          generator services with 'services.tempo.metricsGeneratorStorageRemoteWrite'.
+        '';
+      }
+      {
+        assertion =
+          if cfg.storageTraceBackend == "s3"
+          then cfg.storageS3Bucket != null
+          else true;
+        message = ''
+          Please specify an S3 storage bucket when using the s3 storage backend with
+          with 'services.tempo.storageS3Bucket'.
+        '';
+      }
+      {
+        assertion =
+          if cfg.storageTraceBackend == "s3"
+          then cfg.storageS3Endpoint != null
+          else true;
+        message = ''
+          Please specify an S3 storage endpoint when using the s3 storage backend with
+          with 'services.tempo.storageS3Endpoint'.
+        '';
+      }
+    ];
 
-    networking.firewall.allowedTCPPorts =
+    networking.firewall.allowedTCPPorts = mkIf (cfg.configFile == null) (
       [
         cfg.httpListenPort # default: 3200
         cfg.grpcListenPort # default: 9096
@@ -348,228 +404,150 @@ in {
       ++ optionals cfg.receiverZipkin [9411]
       ++ optionals cfg.receiverJaegerGrpc [14250]
       ++ optionals cfg.receiverJaegerThriftHttp [14268]
-      ++ optionals cfg.receiverOpencensus [55678];
+      ++ optionals cfg.receiverOpencensus [55678]
+    );
 
-    networking.firewall.allowedUDPPorts =
+    networking.firewall.allowedUDPPorts = mkIf (cfg.configFile == null) (
       []
       # Tempo receiver port references:
       # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/jaegerreceiver
       ++ optionals cfg.receiverJaegerThriftCompact [6831]
-      ++ optionals cfg.receiverJaegerThriftBinary [6832];
+      ++ optionals cfg.receiverJaegerThriftBinary [6832]
+    );
 
-    services.vmagent.promscrapeConfig = mkIf config.services.vmagent.enable [
-      {
-        job_name = "tempo";
-        scrape_interval = "60s";
-        metrics_path = "/metrics";
-        static_configs = [
-          {
-            targets = ["${cfg.httpListenAddress}:${toString cfg.httpListenPort}"];
-            labels.alias = "tempo";
-          }
-        ];
-      }
-    ];
-
-    services.memcached = mkIf cfg.memcachedEnable {
+    services.memcached = mkIf (cfg.memcachedEnable && cfg.configFile == null) {
       enable = true;
-      maxMemory = cfg.memcachedMaxMb;
+      maxMemory = cfg.memcachedMaxMB;
     };
 
-    systemd.services =
-      {
-        tempo = {
-          description = "Grafana Tempo Service Daemon";
-          wantedBy = ["multi-user.target"];
+    # for tempo-cli and friends
+    environment.systemPackages = [pkgs.tempo];
 
-          serviceConfig = let
-            mkTempoReceiver = opt: receiver:
-              if opt
-              then flip recursiveUpdate receiver
-              else flip recursiveUpdate {};
+    systemd.services.tempo = {
+      description = "Grafana Tempo Service Daemon";
+      wantedBy = ["multi-user.target"];
 
-            settings =
-              recursiveUpdate {
-                server = {
-                  http_listen_address = cfg.httpListenAddress;
-                  http_listen_port = cfg.httpListenPort;
-                  grpc_listen_port = cfg.grpcListenPort;
-                };
+      serviceConfig = let
+        mkTempoReceiver = opt: receiver:
+          if opt
+          then flip recursiveUpdate receiver
+          else flip recursiveUpdate {};
 
-                distributor = {
-                  receivers = pipe {} [
-                    (mkTempoReceiver cfg.receiverOtlpHttp {otlp.protocols.http = null;})
-                    (mkTempoReceiver cfg.receiverOtlpGrpc {otlp.protocols.grpc = null;})
-                    (mkTempoReceiver cfg.receiverJaegerThriftHttp {jaeger.protocols.thrift_http = null;})
-                    (mkTempoReceiver cfg.receiverJaegerGrpc {jaeger.protocols.grpc = null;})
-                    (mkTempoReceiver cfg.receiverJaegerThriftBinary {jaeger.protocols.thrift_binary = null;})
-                    (mkTempoReceiver cfg.receiverJaegerThriftCompact {jaeger.protocols.thrift_compact = null;})
-                    (mkTempoReceiver cfg.receiverZipkin {zipkin = null;})
-                    (mkTempoReceiver cfg.receiverOpencensus {opencensus = null;})
-                    (mkTempoReceiver cfg.receiverKafka {kafka = null;})
-                  ];
-
-                  log_received_spans = {
-                    enabled = cfg.logReceivedSpansEnable;
-                    include_all_attributes = cfg.logReceivedSpansIncludeAllAttrs;
-                    filter_by_status_error = cfg.logReceivedSpansFilterByStatusError;
-                  };
-
-                  search_tags_deny_list = cfg.searchTagsDenyList;
-                };
-
-                ingester.lifecycler.ring.replication_factor = cfg.ingesterLifecyclerRingRepl;
-
-                metrics_generator_enabled = cfg.metricsGeneratorEnableServiceGraphs || cfg.metricsGeneratorEnableSpanMetrics;
-                metrics_generator.storage = {
-                  path = cfg.metricsGeneratorStoragePath;
-                  remote_write = cfg.metricsGeneratorStorageRemoteWrite;
-                };
-                overrides.metrics_generator_processors =
-                  []
-                  ++ optional cfg.metricsGeneratorEnableServiceGraphs "service-graphs"
-                  ++ optional cfg.metricsGeneratorEnableSpanMetrics "span-metrics";
-
-                compactor.compaction.block_retention = cfg.compactorCompactionBlockRetention;
-
-                storage.trace =
-                  {
-                    backend = cfg.storageTraceBackend;
-                    local.path = cfg.storageLocalPath;
-                    wal.path = cfg.storageTraceWalPath;
-                  }
-                  // optionalAttrs (cfg.memcachedEnable) {
-                    cache = "memcached";
-                    memcached.addresses = let
-                      inherit (config.services.memcached) listen port;
-                    in "${listen}:${toString port}";
-                  }
-                  // optionalAttrs (cfg.storageTraceBackend == "s3") {
-                    s3 =
-                      {
-                        bucket = cfg.storageS3Bucket;
-                        endpoint = cfg.storageS3Endpoint;
-
-                        # For temporary debug:
-                        insecure = cfg.storageS3Insecure;
-                        insecure_skip_verify = cfg.storageS3InsecureSkipVerify;
-
-                        # Primarily for prem/minio use:
-                        forcepathstyle = cfg.storageS3ForcePathStyle;
-                      }
-                      // optionalAttrs cfg.storageS3AccessCredsEnable
-                      {
-                        access_key = "\${AWS_ACCESS_KEY_ID}";
-                        secret_key = "\${AWS_SECRET_ACCESS_KEY}";
-                      };
-                  };
-
-                search_enabled = cfg.searchEnable;
-              }
-              cfg.extraConfig;
-
-            script = pkgs.writeShellApplication {
-              name = "tempo.sh";
-              text = ''
-                ${
-                  if cfg.storageS3AccessCredsEnable
-                  then ''
-                    while ! [ -s ${runKeyMaterial.tempo} ]; do
-                      echo "Waiting for ${runKeyMaterial.tempo}..."
-                      sleep 3
-                    done
-
-                    set -a
-                    # shellcheck disable=SC1091
-                    source ${runKeyMaterial.tempo}
-                    set +a''
-                  else ""
-                }
-
-                exec ${pkgs.tempo}/bin/tempo -log.level ${cfg.logLevel} -config.expand-env -config.file=${conf}
-              '';
+        settings =
+          recursiveUpdate {
+            server = {
+              http_listen_address = cfg.httpListenAddress;
+              http_listen_port = cfg.httpListenPort;
+              grpc_listen_port = cfg.grpcListenPort;
             };
 
-            conf = settingsFormat.generate "config.yaml" settings;
-          in {
-            ExecStart = "${script}/bin/tempo.sh";
-            DynamicUser = true;
-            Restart = "always";
-            ProtectSystem = "full";
-            DevicePolicy = "closed";
-            NoNewPrivileges = true;
-            WorkingDirectory = "/var/lib/tempo";
-            StateDirectory = "tempo";
-          };
-        };
-      }
-      // (let
-        registerConsulService = service: flip recursiveUpdate service;
-        mkConsulService = cond: name: port: protocol: dep:
-          if cond
-          then {
-            "${name}" =
-              (pkgs.consulRegister {
-                pkiFiles = {inherit caCertFile;};
-                systemdServiceDep = dep;
-                service = {
-                  inherit name port;
+            distributor = {
+              receivers = pipe {} [
+                (mkTempoReceiver cfg.receiverOtlpHttp {otlp.protocols.http = null;})
+                (mkTempoReceiver cfg.receiverOtlpGrpc {otlp.protocols.grpc = null;})
+                (mkTempoReceiver cfg.receiverJaegerThriftHttp {jaeger.protocols.thrift_http = null;})
+                (mkTempoReceiver cfg.receiverJaegerGrpc {jaeger.protocols.grpc = null;})
+                (mkTempoReceiver cfg.receiverJaegerThriftBinary {jaeger.protocols.thrift_binary = null;})
+                (mkTempoReceiver cfg.receiverJaegerThriftCompact {jaeger.protocols.thrift_compact = null;})
+                (mkTempoReceiver cfg.receiverZipkin {zipkin = null;})
+                (mkTempoReceiver cfg.receiverOpencensus {opencensus = null;})
+                (mkTempoReceiver cfg.receiverKafka {kafka = null;})
+              ];
 
-                  checks = {
-                    "${name}-${protocol}" = {
-                      interval = "10s";
-                      timeout = "5s";
-                      "${protocol}" = "127.0.0.1:${toString port}";
-                    };
+              log_received_spans = {
+                enabled = cfg.logReceivedSpansEnable;
+                include_all_attributes = cfg.logReceivedSpansIncludeAllAttrs;
+                filter_by_status_error = cfg.logReceivedSpansFilterByStatusError;
+              };
+
+              search_tags_deny_list = cfg.searchTagsDenyList;
+            };
+
+            ingester.lifecycler.ring.replication_factor = cfg.ingesterLifecyclerRingRepl;
+
+            metrics_generator_enabled = cfg.metricsGeneratorEnableServiceGraphs || cfg.metricsGeneratorEnableSpanMetrics;
+            metrics_generator.storage = {
+              path = cfg.metricsGeneratorStoragePath;
+              remote_write = cfg.metricsGeneratorStorageRemoteWrite;
+            };
+            overrides.metrics_generator_processors =
+              []
+              ++ optional cfg.metricsGeneratorEnableServiceGraphs "service-graphs"
+              ++ optional cfg.metricsGeneratorEnableSpanMetrics "span-metrics";
+
+            compactor.compaction.block_retention = cfg.compactorCompactionBlockRetention;
+
+            storage.trace =
+              {
+                backend = cfg.storageTraceBackend;
+                local.path = cfg.storageLocalPath;
+                wal.path = cfg.storageTraceWalPath;
+              }
+              // optionalAttrs (cfg.memcachedEnable) {
+                cache = "memcached";
+                memcached.addresses = let
+                  inherit (config.services.memcached) listen port;
+                in "${listen}:${toString port}";
+              }
+              // optionalAttrs (cfg.storageTraceBackend == "s3") {
+                s3 =
+                  {
+                    bucket = cfg.storageS3Bucket;
+                    endpoint = cfg.storageS3Endpoint;
+
+                    # For temporary debug:
+                    insecure = cfg.storageS3Insecure;
+                    insecure_skip_verify = cfg.storageS3InsecureSkipVerify;
+
+                    # For minio use:
+                    forcepathstyle = cfg.storageS3ForcePathStyle;
+                  }
+                  // optionalAttrs cfg.storageS3AccessCredsEnable
+                  {
+                    access_key = "\${AWS_ACCESS_KEY_ID}";
+                    secret_key = "\${AWS_SECRET_ACCESS_KEY}";
                   };
-                };
-              })
-              .systemdService;
+              };
+
+            search_enabled = cfg.searchEnable;
           }
-          else {};
-      in
-        pipe {} [
-          (registerConsulService (mkConsulService cfg.receiverOtlpGrpc "tempo-otlp-grpc" 4317 "tcp" "tempo"))
-          (registerConsulService (mkConsulService cfg.receiverOtlpHttp "tempo-otlp-http" 4318 "tcp" "tempo"))
-          (registerConsulService (mkConsulService cfg.receiverZipkin "tempo-zipkin" 9411 "tcp" "tempo"))
-          (registerConsulService (mkConsulService cfg.receiverJaegerGrpc "tempo-jaeger-grpc" 14250 "tcp" "tempo"))
-          (registerConsulService (mkConsulService cfg.receiverJaegerThriftHttp "tempo-jaeger-thrift-http" 14268 "tcp" "tempo"))
-          (registerConsulService (mkConsulService cfg.receiverOpencensus "tempo-opencensus" 55678 "tcp" "tempo"))
-          # TODO: UDP checks not yet supported
-          # Ref: https://github.com/hashicorp/nomad/issues/14094
-          #
-          # (registerConsulService (mkConsulService cfg.receiverJaegerThriftCompact "tempo-jaeger-thrift-compact" 6831 "udp" "tempo"))
-          # (registerConsulService (mkConsulService cfg.receiverJaegerThriftBinary "tempo-jaeger-thrift-binary" 6832 "udp" "tempo"))
-          #
-          # Kafka receiver will depend on specific configuration
-        ]);
+          cfg.extraConfig;
 
-    secrets = mkIf (cfg.storageS3AccessCredsEnable && isSops) {
-      install.tempo = {
-        inputType = "binary";
-        outputType = "binary";
-        source = config.secrets.encryptedRoot + "/tempo";
-        target = runKeyMaterial.tempo;
-        script = ''
-          chmod 0600 ${runKeyMaterial.tempo}
-          chown tempo:tempo ${runKeyMaterial.tempo}
-        '';
-        #  # File format for tempo secret file
-        #  AWS_ACCESS_KEY_ID=$SECRET_KEY_ID
-        #  AWS_SECRET_ACCESS_KEY=$SECRET_KEY
-      };
-    };
+        script = pkgs.writeShellApplication {
+          name = "tempo.sh";
+          text = ''
+            ${
+              if cfg.storageS3AccessCredsEnable && (cfg.configFile == null)
+              then ''
+                while ! [ -s ${cfg.storageS3AccessCredsPath} ]; do
+                  echo "Waiting for ${cfg.storageS3AccessCredsPath}..."
+                  sleep 3
+                done
 
-    age.secrets = mkIf (cfg.storageS3AccessCredsEnable && !isSops) {
-      tempo = {
-        file = config.age.encryptedRoot + "/monitoring/tempo.age";
-        path = runKeyMaterial.tempo;
-        owner = "tempo";
-        group = "tempo";
-        mode = "0600";
-        #  # File format for tempo secret file
-        #  AWS_ACCESS_KEY_ID=$SECRET_KEY_ID
-        #  AWS_SECRET_ACCESS_KEY=$SECRET_KEY
+                set -a
+                # shellcheck disable=SC1091
+                source ${cfg.storageS3AccessCredsPath}
+                set +a''
+              else ""
+            }
+
+            exec ${pkgs.tempo}/bin/tempo -log.level ${cfg.logLevel} -config.expand-env -config.file=${conf}
+          '';
+        };
+
+        conf =
+          if cfg.configFile == null
+          then settingsFormat.generate "config.yaml" settings
+          else cfg.configFile;
+      in {
+        ExecStart = "${script}/bin/tempo.sh";
+        DynamicUser = true;
+        Restart = "always";
+        ProtectSystem = "full";
+        DevicePolicy = "closed";
+        NoNewPrivileges = true;
+        WorkingDirectory = "/var/lib/tempo";
+        StateDirectory = "tempo";
       };
     };
   };

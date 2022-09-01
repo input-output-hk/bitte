@@ -25,7 +25,7 @@ in
       };
 
       httpListenAddr = mkOption {
-        default = ":8428";
+        default = "0.0.0.0:8428";
         type = types.str;
         description = ''
           The listen address for the http interface.
