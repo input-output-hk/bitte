@@ -19,6 +19,9 @@ buildGoModule rec {
 
   patches = [
     ./nomad/nomad-exec-nix-driver.patch
+    # Addresses no nomad interpolation in connect envoy config
+    # https://github.com/hashicorp/nomad/issues/14403
+    ./nomad/nomad-interp-connect.patch
   ];
 
   vendorSha256 = "sha256-MqtkYHGIgeCFnbwE09xHgPMuJBSVHL0hB9RbwNX+K40=";
