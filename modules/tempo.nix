@@ -1,45 +1,13 @@
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}: let
-  inherit
-    (lib)
-    flip
-    mdDoc
-    mkEnableOption
-    mkIf
-    mkOption
-    optional
-    optionalAttrs
-    optionals
-    pipe
-    recursiveUpdate
-    ;
-
-  inherit
-    (lib.types)
-    attrs
-    bool
-    enum
-    ints
-    listOf
-    nullOr
-    path
-    port
-    str
-    ;
-
+{ config, lib, pkgs, ...  }:
+with lib; let
   cfg = config.services.tempo;
-
   settingsFormat = pkgs.formats.yaml {};
 in {
   options.services.tempo = {
     enable = mkEnableOption (mdDoc "Grafana Tempo");
 
     logLevel = mkOption {
-      type = enum ["debug" "info" "warn" "error"];
+      type = types.enum ["debug" "info" "warn" "error"];
       default = "info";
       description = mdDoc ''
         Only log messages with the given severity or above.
@@ -47,8 +15,18 @@ in {
       '';
     };
 
+    openFirewall = mkOption {
+      type = types.bool;
+      default = true;
+      description = ''
+        Whether to automatically open Tempo httpListenPort and
+        grpcListenPort in the firewall as well as any optionally
+        enabled Tempo receiver ports.
+      '';
+    };
+
     memcachedEnable = mkOption {
-      type = bool;
+      type = types.bool;
       default = true;
       description = mdDoc ''
         Use memcached to improve performance of Tempo trace lookups.
@@ -57,7 +35,7 @@ in {
     };
 
     memcachedMaxMB = mkOption {
-      type = ints.positive;
+      type = types.ints.positive;
       default = 1024;
       description = mdDoc ''
         If services.tempo.memcachedEnable is true, use a default maximum of 1 GB RAM.
@@ -65,73 +43,73 @@ in {
     };
 
     httpListenAddress = mkOption {
-      type = str;
+      type = types.str;
       default = "0.0.0.0";
       description = mdDoc "HTTP server listen host.";
     };
 
     httpListenPort = mkOption {
-      type = port;
+      type = types.port;
       default = 3200;
       description = mdDoc "HTTP server listen port.";
     };
 
     grpcListenPort = mkOption {
-      type = port;
+      type = types.port;
       default = 9096;
       description = mdDoc "gRPC server listen port.";
     };
 
     receiverOtlpHttp = mkOption {
-      type = bool;
+      type = types.bool;
       default = true;
       description = mdDoc "Enable OTLP receiver on HTTP, port 4318.";
     };
 
     receiverOtlpGrpc = mkOption {
-      type = bool;
+      type = types.bool;
       default = true;
       description = mdDoc "Enable OTLP receiver on gRPC, port 4317.";
     };
 
     receiverJaegerThriftHttp = mkOption {
-      type = bool;
+      type = types.bool;
       default = true;
       description = mdDoc "Enable Jaeger thrift receiver on HTTP, port 14268.";
     };
 
     receiverJaegerGrpc = mkOption {
-      type = bool;
+      type = types.bool;
       default = true;
       description = mdDoc "Enable Jaeger receiver on gRPC, port 14250.";
     };
 
     receiverJaegerThriftBinary = mkOption {
-      type = bool;
+      type = types.bool;
       default = true;
       description = mdDoc "Enable Jaeger thrift receiver for binary, port 6832.";
     };
 
     receiverJaegerThriftCompact = mkOption {
-      type = bool;
+      type = types.bool;
       default = true;
       description = mdDoc "Enable Jaeger thrift receiver on compact, port 6831.";
     };
 
     receiverZipkin = mkOption {
-      type = bool;
+      type = types.bool;
       default = true;
       description = mdDoc "Enable Zipkin receiver, port 9411.";
     };
 
     receiverOpencensus = mkOption {
-      type = bool;
+      type = types.bool;
       default = true;
       description = mdDoc "Enable Opencensus receiver, port 55678.";
     };
 
     receiverKafka = mkOption {
-      type = bool;
+      type = types.bool;
       default = false;
       description = mdDoc ''
         Enable Kafta receiver.
@@ -144,7 +122,7 @@ in {
     };
 
     logReceivedSpansEnable = mkOption {
-      type = bool;
+      type = types.bool;
       default = false;
       description = mdDoc ''
         Enable to log every received span to help debug ingestion
@@ -153,7 +131,7 @@ in {
     };
 
     logReceivedSpansIncludeAllAttrs = mkOption {
-      type = bool;
+      type = types.bool;
       default = false;
       description = mdDoc ''
         Enable to log all attributes of received spans when
@@ -162,7 +140,7 @@ in {
     };
 
     logReceivedSpansFilterByStatusError = mkOption {
-      type = bool;
+      type = types.bool;
       default = false;
       description = mdDoc ''
         Enable to log received spans by error status when
@@ -171,7 +149,7 @@ in {
     };
 
     searchTagsDenyList = mkOption {
-      type = nullOr (listOf str);
+      type = types.nullOr (types.listOf types.str);
       default = null;
       description = mdDoc ''
         List of string tags that will not be extracted from trace data for search lookups.
@@ -180,7 +158,7 @@ in {
     };
 
     ingesterLifecyclerRingRepl = mkOption {
-      type = ints.positive;
+      type = types.ints.positive;
       default = 1;
       description = mdDoc ''
         Number of replicas of each span to make while pushing to the backend.
@@ -188,7 +166,7 @@ in {
     };
 
     metricsGeneratorEnableServiceGraphs = mkOption {
-      type = bool;
+      type = types.bool;
       default = true;
       description = mdDoc ''
         The metrics-generator processes spans and write metrics using
@@ -199,7 +177,7 @@ in {
     };
 
     metricsGeneratorEnableSpanMetrics = mkOption {
-      type = bool;
+      type = types.bool;
       default = true;
       description = mdDoc ''
         The metrics-generator processes spans and write metrics using
@@ -210,7 +188,7 @@ in {
     };
 
     metricsGeneratorStoragePath = mkOption {
-      type = str;
+      type = types.str;
       default = "/var/lib/tempo/storage/wal-metrics";
       description = mdDoc ''
         Path to store the WAL. Each tenant will be stored in its own subdirectory.
@@ -218,7 +196,7 @@ in {
     };
 
     metricsGeneratorStorageRemoteWrite = mkOption {
-      type = nullOr (listOf attrs);
+      type = types.nullOr (types.listOf types.attrs);
       default = null;
       description = mdDoc ''
         A list of remote write endpoints in Prometheus remote_write format:
@@ -227,13 +205,13 @@ in {
     };
 
     compactorCompactionBlockRetention = mkOption {
-      type = str;
+      type = types.str;
       default = "336h";
       description = mdDoc "Duration to keep blocks.  Default is 14 days.";
     };
 
     storageTraceBackend = mkOption {
-      type = enum ["local" "s3"];
+      type = types.enum ["local" "s3"];
       default = "local";
       description = mdDoc ''
         The storage backend to use.
@@ -241,7 +219,7 @@ in {
     };
 
     storageLocalPath = mkOption {
-      type = str;
+      type = types.str;
       default = "/var/lib/tempo/storage/local";
       description = mdDoc ''
         Where to store state if the backend selected is "local".
@@ -249,7 +227,7 @@ in {
     };
 
     storageS3Bucket = mkOption {
-      type = nullOr str;
+      type = types.nullOr types.str;
       default = null;
       description = mdDoc ''
         Bucket name in s3.  Tempo requires a dedicated bucket since it maintains a top-level
@@ -258,7 +236,7 @@ in {
     };
 
     storageS3Endpoint = mkOption {
-      type = nullOr str;
+      type = types.nullOr types.str;
       default = null;
       description = mdDoc ''
         Api endpoint to connect to.  Use AWS S3 or any S3 compatible object storage endpoint.
@@ -269,7 +247,7 @@ in {
     };
 
     storageS3AccessCredsEnable = mkOption {
-      type = bool;
+      type = types.bool;
       default = false;
       description = mdDoc ''
         Whether to enable access key ENV VAR usage for static credentials.
@@ -280,7 +258,7 @@ in {
     };
 
     storageS3AccessCredsPath = mkOption {
-      type = str;
+      type = types.str;
       default = "/run/keys/tempo";
       description = mdDoc ''
         Specifies the location of an S3 credentials file that Tempo should utilize.
@@ -293,7 +271,7 @@ in {
     };
 
     storageS3ForcePathStyle = mkOption {
-      type = bool;
+      type = types.bool;
       default = false;
       description = mdDoc ''
         Enable to use path-style requests.
@@ -301,7 +279,7 @@ in {
     };
 
     storageS3Insecure = mkOption {
-      type = bool;
+      type = types.bool;
       default = false;
       description = mdDoc ''
         Debugging option for temporary http testing.
@@ -309,7 +287,7 @@ in {
     };
 
     storageS3InsecureSkipVerify = mkOption {
-      type = bool;
+      type = types.bool;
       default = false;
       description = mdDoc ''
         Debugging option for temporary https testing.
@@ -317,7 +295,7 @@ in {
     };
 
     storageTraceWalPath = mkOption {
-      type = str;
+      type = types.str;
       default = "/var/lib/tempo/storage/wal";
       description = mdDoc ''
         Where to store the head blocks while they are being appended to.
@@ -325,7 +303,7 @@ in {
     };
 
     searchEnable = mkOption {
-      type = bool;
+      type = types.bool;
       default = true;
       description = mdDoc ''
         Enable tempo search.
@@ -333,7 +311,7 @@ in {
     };
 
     extraConfig = mkOption {
-      type = attrs;
+      type = types.attrs;
       default = {};
       description = mdDoc ''
         Extra configuration to pass to Tempo service.
@@ -342,7 +320,7 @@ in {
     };
 
     configFile = mkOption {
-      type = nullOr path;
+      type = types.nullOr types.path;
       default = null;
       description = mdDoc ''
         As an alternative to building a working Tempo configuration using the available
@@ -358,30 +336,21 @@ in {
   config = mkIf cfg.enable {
     assertions = mkIf (cfg.configFile == null) [
       {
-        assertion =
-          if cfg.metricsGeneratorEnableServiceGraphs || cfg.metricsGeneratorEnableSpanMetrics
-          then cfg.metricsGeneratorStorageRemoteWrite != null
-          else true;
+        assertion = cfg.metricsGeneratorEnableServiceGraphs || cfg.metricsGeneratorEnableSpanMetrics -> cfg.metricsGeneratorStorageRemoteWrite != null;
         message = ''
           Please specify a Prometheus metrics remote write endpoint when using Tempo metrics
           generator services with 'services.tempo.metricsGeneratorStorageRemoteWrite'.
         '';
       }
       {
-        assertion =
-          if cfg.storageTraceBackend == "s3"
-          then cfg.storageS3Bucket != null
-          else true;
+        assertion = cfg.storageTraceBackend == "s3" -> cfg.storageS3Bucket != null;
         message = ''
           Please specify an S3 storage bucket when using the s3 storage backend with
           with 'services.tempo.storageS3Bucket'.
         '';
       }
       {
-        assertion =
-          if cfg.storageTraceBackend == "s3"
-          then cfg.storageS3Endpoint != null
-          else true;
+        assertion = cfg.storageTraceBackend == "s3" -> cfg.storageS3Endpoint != null;
         message = ''
           Please specify an S3 storage endpoint when using the s3 storage backend with
           with 'services.tempo.storageS3Endpoint'.
@@ -389,7 +358,7 @@ in {
       }
     ];
 
-    networking.firewall.allowedTCPPorts = mkIf (cfg.configFile == null) (
+    networking.firewall.allowedTCPPorts = mkIf (cfg.configFile == null && cfg.openFirewall) (
       [
         cfg.httpListenPort # default: 3200
         cfg.grpcListenPort # default: 9096
@@ -407,11 +376,10 @@ in {
       ++ optionals cfg.receiverOpencensus [55678]
     );
 
-    networking.firewall.allowedUDPPorts = mkIf (cfg.configFile == null) (
-      []
+    networking.firewall.allowedUDPPorts = mkIf (cfg.configFile == null && cfg.openFirewall) (
       # Tempo receiver port references:
       # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/jaegerreceiver
-      ++ optionals cfg.receiverJaegerThriftCompact [6831]
+      optionals cfg.receiverJaegerThriftCompact [6831]
       ++ optionals cfg.receiverJaegerThriftBinary [6832]
     );
 
@@ -470,9 +438,7 @@ in {
               path = cfg.metricsGeneratorStoragePath;
               remote_write = cfg.metricsGeneratorStorageRemoteWrite;
             };
-            overrides.metrics_generator_processors =
-              []
-              ++ optional cfg.metricsGeneratorEnableServiceGraphs "service-graphs"
+            overrides.metrics_generator_processors = optional cfg.metricsGeneratorEnableServiceGraphs "service-graphs"
               ++ optional cfg.metricsGeneratorEnableSpanMetrics "span-metrics";
 
             compactor.compaction.block_retention = cfg.compactorCompactionBlockRetention;
