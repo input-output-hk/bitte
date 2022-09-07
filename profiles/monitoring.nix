@@ -33,7 +33,7 @@ in {
     minio.enable = mkDefault true;
     nomad.enable = false;
 
-    vmagent.promscrapeConfig = mkIf config.services.vmagent.enable [
+    vmagent.promscrapeConfig = mkIf (config.services.vmagent.enable && cfgTempo.enable) [
       {
         job_name = "tempo";
         scrape_interval = "60s";
@@ -82,7 +82,7 @@ in {
       }
       else {};
   in
-    pipe {} [
+    mkIf cfgTempo.enable (pipe {} [
       (registerConsulService (mkConsulService cfgTempo.receiverOtlpGrpc "tempo-otlp-grpc" 4317 "tcp" "tempo"))
       (registerConsulService (mkConsulService cfgTempo.receiverOtlpHttp "tempo-otlp-http" 4318 "tcp" "tempo"))
       (registerConsulService (mkConsulService cfgTempo.receiverZipkin "tempo-zipkin" 9411 "tcp" "tempo"))
@@ -96,9 +96,9 @@ in {
       # (registerConsulService (mkConsulService cfgTempo.receiverJaegerThriftBinary "tempo-jaeger-thrift-binary" 6832 "udp" "tempo"))
       #
       # Kafka receiver will depend on specific configuration
-    ];
+    ]);
 
-  secrets = mkIf (cfgTempo.storageS3AccessCredsEnable && isSops) {
+  secrets = mkIf (cfgTempo.enable && cfgTempo.storageS3AccessCredsEnable && isSops) {
     install.tempo = {
       inputType = "binary";
       outputType = "binary";
@@ -114,7 +114,7 @@ in {
     };
   };
 
-  age.secrets = mkIf (cfgTempo.storageS3AccessCredsEnable && !isSops) {
+  age.secrets = mkIf (cfgTempo.enable && cfgTempo.storageS3AccessCredsEnable && !isSops) {
     tempo = {
       file = config.age.encryptedRoot + "/monitoring/tempo.age";
       path = runKeyMaterial.tempo;

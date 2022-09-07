@@ -153,6 +153,26 @@ in rec {
     };
   };
 
+  allowS3ForTempo = bucketTempoArn: prefix: {
+    # Requirements from:
+    # https://grafana.com/docs/tempo/latest/configuration/s3/
+    "${prefix}-s3-tempo-bucket" = {
+      effect = "Allow";
+      actions = [
+        "s3:DeleteObject"
+        "s3:GetObject"
+        "s3:GetObjectTagging"
+        "s3:ListBucket"
+        "s3:PutObject"
+        "s3:PutObjectTagging"
+      ];
+      resources = [
+        "${bucketTempoArn}/*"
+        "${bucketTempoArn}"
+      ];
+    };
+  };
+
   mkStorage = host: kms: specs: {
     availability_zone = var "aws_instance.${host}.availability_zone";
     encrypted = true;
