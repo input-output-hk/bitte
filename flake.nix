@@ -1,6 +1,7 @@
 {
   description = "Flake containing Bitte clusters";
   inputs.std.url = "github:divnix/std";
+  inputs.flake-arch.url = "github:johnalotoski/flake-arch";
   # 21.11 doesn't yet fullfill all contracts that std consumes
   # inputs.std.inputs.nixpkgs.follows = "nixpkgs";
   inputs.n2c.url = "github:nlewo/nix2container";
@@ -55,20 +56,22 @@
   };
 
   outputs = {
-    self,
+    deploy,
+    fenix,
+    flake-arch,
     hydra,
+    nix,
     nixpkgs,
     nixpkgs-unstable,
-    utils,
-    deploy,
     ragenix,
-    nix,
-    fenix,
+    self,
     tullia,
+    utils,
     ...
   } @ inputs:
     inputs.std.growOn {
       inherit inputs;
+      inherit (inputs.flake-arch) systems;
       cellsFrom = ./nix;
       cellBlocks = [
         (inputs.std.devshells "devshells")
@@ -96,6 +99,8 @@
     }
     # soil -- TODO: remove soil
     (let
+      inherit (inputs.flake-arch) systems;
+
       overlays = [
         fenix.overlay
         nix.overlay
@@ -125,19 +130,12 @@
         inherit inputs;
       };
 
-      defaultSystems = [
-        "aarch64-darwin"
-        "aarch64-linux"
-        "x86_64-darwin"
-        "x86_64-linux"
-      ];
-
       mkChecks = systems: pkgs:
         utils.lib.eachSystem systems (system: {
           checks = builtins.foldl' (acc: pkg: acc // {${pkg} = (pkgsForSystem system).${pkg};}) {} pkgs;
         });
     in
-      utils.lib.eachSystem defaultSystems
+      utils.lib.eachSystem systems
       (system: let
         legacyPackages = pkgsForSystem system;
         unstablePackages = unstablePkgsForSystem system;
@@ -160,7 +158,7 @@
         nixosModules = lib.mkModules ./modules;
         devshellModule = import ./devshellModule.nix;
       }
-      // mkChecks defaultSystems [
+      // mkChecks systems [
         "agenix-cli"
         "bitte"
         "bitte-ruby"

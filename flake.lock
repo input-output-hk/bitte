@@ -613,6 +613,21 @@
         "type": "github"
       }
     },
+    "flake-arch": {
+      "locked": {
+        "lastModified": 1660158125,
+        "narHash": "sha256-3DDvmO1OwEJ2ufORwtJYkYiHaeqFodYi8VlKkAc22Co=",
+        "owner": "johnalotoski",
+        "repo": "flake-arch",
+        "rev": "259d3f916cfcc46b6907a82c2254f5bf91b76c3b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "johnalotoski",
+        "repo": "flake-arch",
+        "type": "github"
+      }
+    },
     "flake-compat": {
       "flake": false,
       "locked": {
@@ -2020,6 +2035,7 @@
         "data-merge": "data-merge",
         "deploy": "deploy_2",
         "fenix": "fenix_4",
+        "flake-arch": "flake-arch",
         "hydra": "hydra_2",
         "n2c": "n2c",
         "nix": "nix_4",
