@@ -59,28 +59,37 @@
     else "${pkgs.bitte}/bin/bitte ssh";
 
   exportPath = ''
+    # Use git and gpg user environment binaries when available to avoid config versioning failures
+    findCommand() {
+      if FOUND=$(command -v "$1");  then
+        if LINK=$(readlink --canonicalize-existing "$FOUND"); then
+          dirname "$LINK"
+          return
+        fi
+      fi
+      echo "$2"
+    }
+
+    GIT_PATH=$(findCommand git ${pkgs.gitMinimal}/bin)
+    GPG_PATH=$(findCommand gpg ${pkgs.gnupg}/bin)
+
     export PATH="${
       with pkgs;
         lib.makeBinPath [
           coreutils
           curl
-          gitMinimal
           gnugrep
-          gnupg
           jq
           rage
           sops
           terraform-with-plugins
           util-linux
         ]
-    }"
+    }:$GIT_PATH:$GPG_PATH"
   '';
 
   # Generate declarative TF configuration and copy it to the top level repo dir
   copyTfCfg = ''
-    set -euo pipefail
-    ${exportPath}
-
     rm -f config.tf.json
     cp "${config.output}" config.tf.json
     chmod u+rw config.tf.json
@@ -766,7 +775,12 @@ in {
 
     config = lib.mkOption {
       type = lib.mkOptionType {name = "${name}-config";};
-      apply = v: pkgs.writeBashBinChecked "${name}-config" copyTfCfg;
+      apply = v: pkgs.writeBashBinChecked "${name}-config" ''
+        set -euo pipefail
+        ${exportPath}
+
+        ${copyTfCfg}
+      '';
     };
 
     plan = lib.mkOption {
