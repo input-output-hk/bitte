@@ -39,6 +39,7 @@ in
         '';
       });
 
+      caddy = pkgsUnstable.${prev.system}.callPackage ./pkgs/caddy.nix {buildGoModule = pkgsUnstable.${prev.system}.buildGo118Module;};
       consul = pkgsUnstable.${prev.system}.callPackage ./pkgs/consul {buildGoModule = pkgsUnstable.${prev.system}.buildGo118Module;};
       consulRegister = prev.callPackage ./pkgs/consul-register.nix {};
       cue = prev.callPackage ./pkgs/cue.nix {};

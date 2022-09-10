@@ -56,6 +56,7 @@
     else pkgs.writeText "alertmanager.yml" (builtins.toJSON config.services.prometheus.alertmanager.configuration);
 in {
   imports = [
+    ./caddy.nix
     ./victoriametrics.nix
     ./vault-backend.nix
   ];
@@ -100,6 +101,15 @@ in {
         and set module options appropriately:
 
         modules/docker-registry.nix
+      '';
+    };
+
+    useTempo = mkOption {
+      type = bool;
+      default = true;
+      description = ''
+        Enable the use of a Grafana Tempo datasource when run as a bitte-cell Nomad
+        job in the cluster.
       '';
     };
 
@@ -184,11 +194,10 @@ in {
         // optionalAttrs cfg.useDigestAuth {
           AUTH_PROXY_HEADER_NAME = "X-WebAuth-User";
         }
-        // optionalAttrs config.services.tempo.enable {
+        // optionalAttrs cfg.useTempo {
+          # Utilize caddy for LB to OTLP SRV backends
+          TRACING_OPENTELEMETRY_JAEGER_ADDRESS = "http://127.0.0.1:3098/tempo-jaeger-thrift-http/api/traces?format=jaeger.thrift";
           FEATURE_TOGGLES_ENABLE = "tempoApmTable,traceToMetrics";
-        }
-        // optionalAttrs (config.services.tempo.enable && config.services.tempo.receiverOtlpGrpc) {
-          TRACING_OPENTELEMETRY_OTLP_ADDRESS = "${config.services.tempo.httpListenAddress}:4317";
         };
       rootUrl = "https://monitoring.${domain}/";
       provision = {
@@ -199,7 +208,7 @@ in {
                 type = "loki";
                 name = "Loki";
                 uid = "Loki";
-                # Here we point the datasource for Loki to an nginx
+                # Here we point the datasource for Loki to a caddy
                 # reverse proxy to intercept prometheus rule api
                 # calls so that vmalert handler for declarative loki
                 # alerts can respond, thereby allowing grafana to
@@ -207,7 +216,7 @@ in {
                 # The actual loki service still exists at the standard port.
                 url = "http://127.0.0.1:3099";
                 jsonData.maxLines = 1000;
-              } (lib.optionalAttrs config.services.tempo.enable {
+              } (lib.optionalAttrs cfg.useTempo {
                 jsonData.derivedFields = [
                   {
                     # Regex covers common examples of:
@@ -229,12 +238,13 @@ in {
               url = "http://127.0.0.1:8428";
             }
           ]
-          ++ lib.optionals config.services.tempo.enable [
+          ++ lib.optionals cfg.useTempo [
             {
               type = "tempo";
               name = "Tempo";
               uid = "Tempo";
-              url = "http://${config.services.tempo.httpListenAddress}:${toString config.services.tempo.httpListenPort}";
+              # Utilize caddy for LB to Tempo SRV backends
+              url = "http://127.0.0.1:3098/tempo/";
               jsonData = {
                 httpMethod = "GET";
                 nodeGraph.enabled = true;
@@ -301,45 +311,71 @@ in {
     # to forward Loki rules requests to the vmalert handling declarative alerts for Loki.
     # In this case, we can intercept Grafana's request for Loki alert rules
     # and redirect the request to the appropriate vmalert.
-    services.nginx = {
+    services.caddy = {
       enable = true;
-      logError = "stderr debug";
-      commonHttpConfig = ''
-        log_format myformat '$remote_addr - $remote_user [$time_local] '
-                            '"$request" $status $body_bytes_sent '
-                            '"$http_referer" "$http_user_agent"';
-      '';
-      recommendedProxySettings = true;
-      upstreams.loki = {
-        servers = {"127.0.0.1:3100" = {};};
-        extraConfig = ''
-          keepalive 16;
-        '';
-      };
-      virtualHosts."127.0.0.1" = let
+      configFile = let
         cfg = config.services.vmalert.datasources.loki;
-      in {
-        listen = [
+      in
+        pkgs.writeText "Caddyfile" ''
+          # globals
           {
-            addr = "0.0.0.0";
-            port = 3099;
+            debug
+            log {
+              level debug
+              format json {
+                time_format iso8601
+              }
+              include http.handlers.reverse_proxy
+              include http.log.access.log0
+              include http.log.access.log1
+            }
           }
-        ];
-        locations = {
-          "/" = {
-            proxyPass = "http://loki";
-            proxyWebsockets = true;
-            extraConfig = ''
-              proxy_set_header Connection "Keep-Alive";
-              proxy_set_header Proxy-Connection "Keep-Alive";
-              proxy_read_timeout 600;
-            '';
-          };
-          "/prometheus/api/v1/rules" = {
-            proxyPass = "http://${cfg.httpListenAddr}${cfg.httpPathPrefix}/api/v1/rules";
-          };
-        };
-      };
+
+          # Reverse proxy for Loki vmalert
+          http://:3099 {
+            handle /prometheus/api/v1/rules {
+              reverse_proxy http://${cfg.httpListenAddr} {
+                rewrite /vmalert-loki/api/v1/rules
+              }
+            }
+
+            handle {
+              reverse_proxy http://127.0.0.1:3100 {
+                transport http {
+                  read_timeout 600s
+                }
+              }
+            }
+          }
+
+          # Reverse proxy for SRV backend pools
+          http://:3098 {
+            # Utilize caddy for LB to Tempo SRV backends
+            handle_path /tempo/* {
+              reverse_proxy {
+                dynamic srv {
+                  name tempo.service.consul
+                  refresh 10s
+                  dial_timeout 1s
+                  dial_fallback_delay -1s
+                }
+              }
+            }
+
+            # Utilize caddy for LB to Jaeger tracing SRV backends
+            # TRACING_OPENTELEMETRY_JAEGER_ADDRESS = "http://127.0.0.1:3098/tempo-jaeger-thrift-http/";
+            handle_path /tempo-jaeger-thrift-http/* {
+              reverse_proxy {
+                dynamic srv {
+                  name tempo-jaeger-thrift-http.service.consul
+                  refresh 10s
+                  dial_timeout 1s
+                  dial_fallback_delay -1s
+                }
+              }
+            }
+          }
+        '';
     };
 
     services.prometheus = {

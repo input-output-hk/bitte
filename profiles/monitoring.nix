@@ -48,7 +48,9 @@ in {
     ];
 
     tempo = {
-      enable = mkDefault true;
+      # TODO: Remove this metal layer module and config
+      enable = mkDefault false;
+      # enable = mkDefault true;
       metricsGeneratorStorageRemoteWrite = mkDefault [{url = "http://${config.services.victoriametrics.httpListenAddr}/api/v1/write";}];
       storageS3Bucket = config.cluster.s3BucketTempo;
       storageS3Endpoint = mkDefault "s3.${config.cluster.region}.amazonaws.com";
