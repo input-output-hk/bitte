@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ...  }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 with lib; let
   cfg = config.services.tempo;
   settingsFormat = pkgs.formats.yaml {};
@@ -438,7 +443,8 @@ in {
               path = cfg.metricsGeneratorStoragePath;
               remote_write = cfg.metricsGeneratorStorageRemoteWrite;
             };
-            overrides.metrics_generator_processors = optional cfg.metricsGeneratorEnableServiceGraphs "service-graphs"
+            overrides.metrics_generator_processors =
+              optional cfg.metricsGeneratorEnableServiceGraphs "service-graphs"
               ++ optional cfg.metricsGeneratorEnableSpanMetrics "span-metrics";
 
             compactor.compaction.block_retention = cfg.compactorCompactionBlockRetention;
