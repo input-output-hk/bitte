@@ -72,6 +72,7 @@
 
     GIT_PATH=$(findCommand git ${pkgs.gitMinimal}/bin)
     GPG_PATH=$(findCommand gpg ${pkgs.gnupg}/bin)
+    SSH_PATH=$(findCommand ssh ${pkgs.openssh}/bin)
 
     export PATH="${
       with pkgs;
@@ -85,7 +86,7 @@
           terraform-with-plugins
           util-linux
         ]
-    }:$GIT_PATH:$GPG_PATH"
+    }:$GIT_PATH:$GPG_PATH:$SSH_PATH"
   '';
 
   # Generate declarative TF configuration and copy it to the top level repo dir
