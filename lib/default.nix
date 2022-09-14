@@ -5,6 +5,7 @@
   inherit (inputs) nixpkgs deploy;
   bitte = inputs.self;
 in rec {
+  callFlake = scopedImport {inherit (inputs) nix;} ./call-flake.nix;
   terralib = import ./terralib.nix {inherit lib nixpkgs;};
 
   warningsModule = import ./warnings.nix;
@@ -19,7 +20,10 @@ in rec {
   mkBitteStack =
     import ./mk-bitte-stack.nix {inherit mkCluster mkDeploy lib nixpkgs bitte;};
   mkDeploy = import ./mk-deploy.nix {inherit deploy lib;};
-  mkSystem = import ./mk-system.nix {inherit nixpkgs bitte;};
+  mkSystem = import ./mk-system.nix {
+    inherit nixpkgs bitte;
+    priv = inputs;
+  };
   mkVaultResources = kv.mkVaultResources;
   mkConsulResources = kv.mkConsulResources;
 

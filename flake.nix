@@ -1,61 +1,37 @@
 {
   description = "Flake containing Bitte clusters";
-  inputs.std.url = "github:divnix/std";
-  # 21.11 doesn't yet fullfill all contracts that std consumes
-  # inputs.std.inputs.nixpkgs.follows = "nixpkgs";
-  inputs.n2c.url = "github:nlewo/nix2container";
-  inputs.data-merge.url = "github:divnix/data-merge";
-  inputs.capsules.url = "github:input-output-hk/devshell-capsules";
+
+  # --- Public Inputs --------
+  # intended to defer locking to the consumer
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-21.11";
-    nixpkgs-docker.url = "github:nixos/nixpkgs/ff691ed9ba21528c1b4e034f36a04027e4522c58";
-    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-
-    nix.url = "github:nixos/nix/2.8.1";
-    agenix.url = "github:ryantm/agenix";
-    agenix-cli.url = "github:cole-h/agenix-cli";
-    ragenix.url = "github:yaxitech/ragenix";
-    deploy.url = "github:input-output-hk/deploy-rs";
-
-    terranix.url = "github:terranix/terranix";
-    terranix.inputs.nixpkgs.follows = "blank";
-
-    utils.url = "github:numtide/flake-utils";
-    blank.url = "github:divnix/blank";
-
-    nomad-driver-nix.url = "github:input-output-hk/nomad-driver-nix";
-
-    # Vector >= 0.20.0 versions require nomad-follower watch-config format fix
-    nomad-follower.url = "github:input-output-hk/nomad-follower";
-
-    fenix = {
-      url = "github:nix-community/fenix";
-      inputs.nixpkgs.follows = "nixpkgs-unstable";
-    };
+    nixpkgs.url = "nixos-21_11";
+    nixpkgs-unstable.url = "nixpkgs-unstable";
+    nix.url = "nix-2_10";
 
     ops-lib = {
-      url = "github:input-output-hk/ops-lib";
+      url = "ops-lib";
       flake = false;
     };
-
-    # DEPRECATED: will be replaces by cicero soon
-    hydra.url = "github:kreisys/hydra/hydra-server-includes";
-    hydra.inputs.nix.follows = "nix";
-    hydra.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = {
     self,
-    hydra,
     nixpkgs,
     nixpkgs-unstable,
-    utils,
-    deploy,
-    ragenix,
     nix,
-    fenix,
     ...
-  } @ inputs:
+  } @ pub: let
+    inherit (inputs) std utils;
+
+    priv = (import ./lib/call-flake.nix) {
+      type = "path";
+      path = ./private;
+      # needs to be updated any time private inputs are touched
+      narHash = "sha256-WpyvDOGanWmgh1bk/KF8L0SL/wkJq9oB6aswlIDtNRs=";
+    } {};
+
+    inputs = priv.inputs // pub;
+  in
     inputs.std.growOn {
       inherit inputs;
       cellsFrom = ./nix;
@@ -86,10 +62,8 @@
     # soil -- TODO: remove soil
     (let
       overlays = [
-        fenix.overlay
-        nix.overlay
-        hydra.overlay
-        deploy.overlay
+        inputs.hydra.overlay
+        # inputs.deploy.overlay
         localPkgsOverlay
         terraformProvidersOverlay
         (_: prev: {inherit (self.packages."${prev.system}") bitte;})
@@ -171,4 +145,17 @@
         nixosModule.imports = builtins.attrValues self.nixosModules;
         devshellModule = import ./devshellModule.nix;
       });
+
+  nixConfig = {
+    flake-registry = "https://raw.githubusercontent.com/input-output-hk/flake-registry/iog/flake-registry.json";
+
+    extra-substituters = [
+      "https://nix-community.cachix.org"
+      "https://cache.iog.io"
+    ];
+    extra-trusted-public-keys = [
+      "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+    ];
+  };
 }

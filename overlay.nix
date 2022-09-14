@@ -12,6 +12,7 @@ in
     rec {
       nixFlakes = nixUnstable;
       nixUnstable = builtins.throw "use pkgs.nix directly";
+      inherit (inputs.nix.packages.${prev.system}) nix;
 
       # Packages specifically needing an unstable nixpkgs pinned latest available version
       inherit

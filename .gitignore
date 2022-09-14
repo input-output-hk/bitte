@@ -5,6 +5,7 @@
 .std
 
 # nixos/nix
+flake.lock
 result*
 
 # cargo
