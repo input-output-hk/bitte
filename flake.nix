@@ -59,7 +59,7 @@
     inputs.std.growOn {
       inherit inputs;
       cellsFrom = ./nix;
-      organelles = [
+      cellBlocks = [
         (inputs.std.devshells "devshells")
         (inputs.std.installables "packages")
 
