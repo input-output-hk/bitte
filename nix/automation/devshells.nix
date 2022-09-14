@@ -26,7 +26,9 @@
       ]);
 in {
   default = std.lib.mkShell {
+    name = nixpkgs.lib.mkForce "Bitte";
     imports = [
+      std.devshellProfiles.default
       capsules.base
       capsules.tools
       capsules.integrations
