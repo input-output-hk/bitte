@@ -35,9 +35,9 @@ in {
       type = with lib.types; bool;
       default = true;
       description = ''
-        Enable traefik tracing with the Jaeger tracer.
+        Enable traefik tracing with the Zipkin tracer.
 
-        Enabling this option will cause traefik to send traces to a local jaeger thrift http listener.
+        Enabling this option will cause traefik to send traces to a local zipkin listener.
 
         Requirements:
           - a bitte-cell tempo nomadChart to be running successfully

@@ -62,7 +62,6 @@ in {
       digest-auth = "/run/keys/digest-auth";
       oauth = "/run/keys/oauth-secrets";
       redis = "/run/keys/redis-password";
-      tempo = "/run/keys/tempo";
     };
   };
 }

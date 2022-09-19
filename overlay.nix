@@ -59,14 +59,12 @@ in
       nomad-autoscaler = prev.callPackage ./pkgs/nomad-autoscaler.nix {};
       nomad-follower = inputs.nomad-follower.defaultPackage.${prev.system};
       oauth2-proxy = final.callPackage ./pkgs/oauth2_proxy.nix {};
-      otel-cli = final.callPackage ./pkgs/otel.nix {};
       ragenix = inputs.ragenix.defaultPackage.${final.system};
       spiffe-helper = prev.callPackage ./pkgs/spiffe-helper.nix {};
       spire-agent = spire.agent;
       spire = prev.callPackage ./pkgs/spire.nix {};
       spire-server = spire.server;
       spire-systemd-attestor = prev.callPackage ./pkgs/spire-systemd-attestor.nix {};
-      tempo = pkgsUnstable.${prev.system}.callPackage ./pkgs/tempo.nix {buildGoModule = pkgsUnstable.${prev.system}.buildGo118Module;};
       traefik = pkgsUnstable.${prev.system}.callPackage ./pkgs/traefik.nix {buildGoModule = pkgsUnstable.${prev.system}.buildGo118Module;};
       vault-backend = final.callPackage ./pkgs/vault-backend.nix {};
       vault-bin = prev.callPackage ./pkgs/vault-bin.nix {};
