@@ -33,8 +33,17 @@ in {
   options.services.traefik = {
     enableTracing = lib.mkOption {
       type = with lib.types; bool;
-      default = false;
-      description = "Enable traefik tracing with the Jaeger tracer.";
+      default = true;
+      description = ''
+        Enable traefik tracing with the Jaeger tracer.
+
+        Enabling this option will cause traefik to send traces to a local jaeger thrift http listener.
+
+        Requirements:
+          - a bitte-cell tempo nomadChart to be running successfully
+          - routing machine to be deployed with the bitte-cell tempo hydrationProfile
+            for default tempo entrypoints
+      '';
     };
 
     prometheusPort = lib.mkOption {
@@ -641,11 +650,11 @@ in {
           };
         }
         // lib.optionalAttrs cfg.enableTracing {
-          # TODO: reconfigure for NOMAD SRV
           tracing = {
-            jaeger = {
-              collector.endpoint = "http://tempo-jaeger-thrift-http.service.consul:14268/api/traces?format=jaeger.thrift";
-              disableAttemptReconnecting = false;
+            # Prefer zipkin tracer to jaeger as jaeger does not reconnect to the tempo backend service
+            # after tempo allocation cycling whereas zipkin does.
+            zipkin = {
+              httpEndpoint = "http://127.0.0.1:9411/api/v2/spans";
             };
           };
         };

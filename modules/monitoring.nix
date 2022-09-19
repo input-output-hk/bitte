@@ -311,6 +311,11 @@ in {
     # to forward Loki rules requests to the vmalert handling declarative alerts for Loki.
     # In this case, we can intercept Grafana's request for Loki alert rules
     # and redirect the request to the appropriate vmalert.
+    #
+    # Since caddy support native http dynamic SRV backend pools, we can also
+    # utilize caddy to grafana to tempo datasource integration rather than
+    # adding another dependency to routing machine as a potential central failure
+    # point.
     services.caddy = {
       enable = true;
       configFile = let
