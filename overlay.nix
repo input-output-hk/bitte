@@ -53,7 +53,6 @@ in
       inherit (nixpkgs-docker.legacyPackages.${prev.system}) docker containerd; # v20.10.15
 
       glusterfs = final.callPackage ./pkgs/glusterfs.nix {};
-      grpcdump = prev.callPackage ./pkgs/grpcdump.nix {};
       mill = prev.callPackage ./pkgs/mill.nix {};
       nomad = prev.callPackage ./pkgs/nomad.nix {buildGoModule = prev.buildGo117Module;};
       nomad-autoscaler = prev.callPackage ./pkgs/nomad-autoscaler.nix {};
@@ -71,7 +70,7 @@ in
       victoriametrics = prev.callPackage ./pkgs/victoriametrics.nix {buildGoModule = prev.buildGo117Module;};
 
       scaler-guard = let
-        deps = with final; [awscli bash curl jq nomad];
+        deps = with final; [awscli2 bash curl jq nomad];
       in
         prev.runCommandLocal "scaler-guard" {
           script = ./scripts/scaler-guard.sh;

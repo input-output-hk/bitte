@@ -18,7 +18,7 @@
   inherit (config.cluster) infraType;
 
   bucketArn = "arn:aws:s3:::${config.cluster.s3Bucket}";
-  bucketTempoArn = "arn:aws:s3:::${config.cluster.s3BucketTempo}";
+  bucketTempoArn = "arn:aws:s3:::${config.cluster.s3Tempo}";
   allowS3ForBucket = allowS3For bucketArn;
 in {
   cluster.iam = lib.mkIf (infraType != "prem") {
