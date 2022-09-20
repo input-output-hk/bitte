@@ -21,5 +21,5 @@
     consul.enableDebug = false;
   };
 
-  environment.systemPackages = with pkgs; [sops awscli cfssl tcpdump rage];
+  environment.systemPackages = with pkgs; [sops awscli2 cfssl tcpdump rage];
 }

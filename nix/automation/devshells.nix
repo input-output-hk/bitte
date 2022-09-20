@@ -67,7 +67,7 @@ in {
       bitte = withCategory "bitte";
     in
       with nixpkgs; [
-        (bitte {package = awscli;})
+        (bitte {package = awscli2;})
         (bitte {package = cfssl;})
         (bitte {package = cue;})
       ];
