@@ -8,8 +8,6 @@ command = "shfmt"
 options = [
   "-i",
   "2", # indent 2
-  "-s", # simplify the code
   "-w", # write back to the file
-
 ]
 includes = ["*.sh"]
