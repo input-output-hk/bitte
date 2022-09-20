@@ -99,9 +99,8 @@
     }
   '';
 
-  # ${asg}-source.tar.xz is produced by s3-upload-flake.service
-  # of one of the latest successfully provisioned member of this
-  # auto scaling group
+  # ${asg}-source.tar.xz is produced by a plan/apply
+  # of the terraform client workspace
   userDataDefaultNixosConfigAsg = awsAsg: let
     nixConf = ''
       extra-substituters = ${cfg.s3Cache}
