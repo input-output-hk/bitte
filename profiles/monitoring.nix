@@ -19,7 +19,6 @@ in {
     ./common.nix
     ./consul/client.nix
     ./vault/monitoring.nix
-    ./auxiliaries/loki.nix
 
     # Modules -- enable gated config mutation w/ options
     ../modules/grafana.nix
@@ -31,20 +30,5 @@ in {
     loki.enable = mkDefault true;
     minio.enable = mkDefault true;
     nomad.enable = false;
-
-    vmagent.promscrapeConfig = mkIf (config.services.vmagent.enable && cfg.useTempo) [
-      {
-        job_name = "tempo";
-        scrape_interval = "60s";
-        metrics_path = "/tempo/metrics";
-        static_configs = [
-          {
-            # Utilize the monitoring caddy reverse proxy with dynamic SRV for tempo metrics
-            targets = ["127.0.0.1:3098"];
-            labels.alias = "tempo";
-          }
-        ];
-      }
-    ];
   };
 }

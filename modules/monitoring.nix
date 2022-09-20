@@ -19,6 +19,7 @@
     mkIf
     mkOption
     optionalAttrs
+    optionals
     warn
     ;
 
@@ -135,6 +136,7 @@ in {
 
     networking.firewall.allowedTCPPorts = [
       config.services.grafana.port # default: 3000
+      3100 # loki
       8428 # victoriaMetrics
       8429 # vmagent
       8880 # vmalert-vm
@@ -492,7 +494,21 @@ in {
             ];
           })
           config.services.vmalert.datasources
-        ));
+        ))
+        ++ optionals cfg.useTempo [
+          {
+            job_name = "tempo";
+            scrape_interval = "60s";
+            metrics_path = "/tempo/metrics";
+            static_configs = [
+              {
+                # Utilize the monitoring caddy reverse proxy with dynamic SRV for tempo metrics
+                targets = ["127.0.0.1:3098"];
+                labels.alias = "tempo";
+              }
+            ];
+          }
+        ];
     };
 
     services.vmalert = {
@@ -517,6 +533,66 @@ in {
           # Loki uses PromQL type queries that do not strictly comply with PromQL
           # Ref: https://github.com/VictoriaMetrics/VictoriaMetrics/issues/780
           ruleValidateExpressions = false;
+        };
+      };
+    };
+
+    services.loki = {
+      configuration = {
+        auth_enabled = false;
+
+        ingester = {
+          chunk_idle_period = "5m";
+          chunk_retain_period = "30s";
+          lifecycler = {
+            address = "127.0.0.1";
+            final_sleep = "0s";
+            ring = {
+              kvstore = {store = "inmemory";};
+              replication_factor = 1;
+            };
+          };
+        };
+
+        limits_config = {
+          enforce_metric_name = false;
+          reject_old_samples = true;
+          reject_old_samples_max_age = "168h";
+          ingestion_rate_mb = 160;
+          ingestion_burst_size_mb = 160;
+        };
+
+        schema_config = {
+          configs = [
+            {
+              from = "2020-05-15";
+              index = {
+                period = "168h";
+                prefix = "index_";
+              };
+              object_store = "filesystem";
+              schema = "v11";
+              store = "boltdb";
+            }
+          ];
+        };
+
+        server.http_listen_port = 3100;
+
+        storage_config = {
+          boltdb = {directory = "/var/lib/loki/index";};
+          filesystem = {directory = "/var/lib/loki/chunks";};
+        };
+
+        ruler = {
+          enable_api = true;
+          enable_alertmanager_v2 = true;
+          ring.kvstore.store = "inmemory";
+          rule_path = "/var/lib/loki/rules-temp";
+          storage = {
+            type = "local";
+            local.directory = "/var/lib/loki/rules";
+          };
         };
       };
     };
