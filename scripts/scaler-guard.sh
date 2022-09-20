@@ -20,7 +20,7 @@ while getopts 'amprduenh' c; do
     echo "This command assists with configuring nomad infrastructure clients for autoscaling scale in or scale out."
     echo "The primary criteria for action on a node by any option is whether there are running allocations or not."
     echo "For customized criteria, the commands used for actions can be viewed by the -m option and carried out manually."
-    echo 'Appropriate $NOMAD_TOKEN, $NOMAD_ADDR and $AWS_PROFILE vars must already be exported to the environment.'
+    echo "Appropriate \$NOMAD_TOKEN, \$NOMAD_ADDR and \$AWS_PROFILE vars must already be exported to the environment."
     echo
     echo "usage: $0 [-a] [-m] [-p] [-r] [[-d] [-u] | [-e] [-n]] [-h]"
     echo
@@ -52,15 +52,15 @@ while getopts 'amprduenh' c; do
 done
 
 [ -z "${NOMAD_TOKEN:-}" ] && {
-  echo 'The environmental variable $NOMAD_TOKEN must be set with a valid admin nomad token.  Use -h for help.'
+  echo "The environmental variable \$NOMAD_TOKEN must be set with a valid admin nomad token.  Use -h for help."
   exit 1
 }
 [ -z "${NOMAD_ADDR:-}" ] && {
-  echo 'The environmental variable $NOMAD_ADDR must be set with a valid nomad API FQDN.  Use -h for help.'
+  echo "The environmental variable \$NOMAD_ADDR must be set with a valid nomad API FQDN.  Use -h for help."
   exit 1
 }
 [ -z "${AWS_PROFILE:-}" ] && {
-  echo 'The environmental variable $AWS_PROFILE must be set with a valid AWS profile name for which admin credentials exist.  Use -h for help.'
+  echo "The environmental variable \$AWS_PROFILE must be set with a valid AWS profile name for which admin credentials exist.  Use -h for help."
   exit 1
 }
 [ "${ANALYZE:-}" == "TRUE" ] && [ $# -gt 1 ] && {
@@ -103,32 +103,32 @@ if [ "${REFERENCE:-}" == "TRUE" ]; then
   echo "      | jq -r '. | map(select(.DesiredStatus == \"run\")) | map(select(.ClientStatus == \"running\")) | length'"
   echo -e "\n"
   echo -e "Get specific aws instance autoscaler info (provides the autoscaler group name, etc):\n"
-  echo '    aws --region "$NODE_DATACENTER" autoscaling describe-auto-scaling-instances \'
-  echo '        --instance-ids "$NODE_INSTANCE" \'
+  echo "    aws --region \"\$NODE_DATACENTER\" autoscaling describe-auto-scaling-instances \\"
+  echo "        --instance-ids \"\$NODE_INSTANCE\" "
   echo -e "\n"
   echo -e "Set aws instance autoscaler scale-in protection:\n"
-  echo '    aws --region "$NODE_DATACENTER" autoscaling set-instance-protection \'
-  echo '        --instance-ids "$NODE_INSTANCE" \'
-  echo '        --auto-scaling-group-name "$CLIENT_ASGN" \'
+  echo "    aws --region \"\$NODE_DATACENTER\" autoscaling set-instance-protection \\"
+  echo "        --instance-ids \"\$NODE_INSTANCE\" \\"
+  echo "        --auto-scaling-group-name \"\$CLIENT_ASGN\" \\"
   echo "        --protected-from-scale-in"
   echo -e "\n"
   echo -e "Remove aws instance autoscaler scale-in protection:\n"
-  echo '    aws --region "$NODE_DATACENTER" autoscaling set-instance-protection \'
-  echo '        --instance-ids "$NODE_INSTANCE" \'
-  echo '        --auto-scaling-group-name "$CLIENT_ASGN" \'
+  echo "    aws --region \"\$NODE_DATACENTER\" autoscaling set-instance-protection \\"
+  echo "        --instance-ids \"\$NODE_INSTANCE\" \\"
+  echo "        --auto-scaling-group-name \"\$CLIENT_ASGN\" \\"
   echo "        --no-protected-from-scale-in"
   echo -e "\n"
   echo -e "Set Nomad node eligibility for scheduling allocations:\n"
-  echo '    nomad node eligibility -enable "$FULL_NODE_ID"'
+  echo "    nomad node eligibility -enable \"\$FULL_NODE_ID\""
   echo -e "\n"
   echo -e "Remove Nomad node eligibility for scheduling allocations:\n"
-  echo '    nomad node eligibility -disable "$FULL_NODE_ID"'
+  echo "    nomad node eligibility -disable \"\$FULL_NODE_ID\""
   echo -e "\n"
   echo -e "Set Nomad node draining (see command help for more options):\n"
-  echo '    nomad node drain -yes -no-deadline -enable "$FULL_NODE_ID"'
+  echo "    nomad node drain -yes -no-deadline -enable \"\$FULL_NODE_ID\""
   echo -e "\n"
   echo -e "Remove Nomad node draining (see command help for more options):\n"
-  echo '    nomad node drain -yes -disable "$FULL_NODE_ID"'
+  echo "    nomad node drain -yes -disable \"\$FULL_NODE_ID\""
   echo -e "\n"
   exit 0
 fi
