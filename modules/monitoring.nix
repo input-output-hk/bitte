@@ -14,10 +14,12 @@
     last
     makeBinPath
     mapAttrs
+    mkDefault
     mkEnableOption
     mkForce
     mkIf
     mkOption
+    mod
     optionalAttrs
     optionals
     warn
@@ -25,8 +27,10 @@
 
   inherit
     (lib.types)
-    attrs
+    addCheck
     bool
+    ints
+    str
     ;
 
   inherit (pkiFiles) caCertFile;
@@ -64,6 +68,34 @@ in {
 
   options.services.monitoring = {
     enable = mkEnableOption "Enable monitoring.";
+
+    lokiCompactorRetentionPeriod = mkOption {
+      type = ints.positive;
+      # 7 days per week * 4 weeks per month * 6 months
+      default = 7 * 4 * 6;
+      description = ''
+        The amount of time in days to retain loki logs using the new boltdb_shipper schema.
+        Default is approximately 6 months.
+
+        Stream customization, if required, can be added by declaring:
+          services.loki.configuration.limits_config.retention_stream
+
+        See the loki docs for details:
+          https://grafana.com/docs/loki/latest/configuration/#limits_config
+      '';
+    };
+
+    lokiTableManagerRetentionPeriod = mkOption {
+      type = addCheck ints.positive (x: mod x 7 == 0);
+      # 7 days per week * 4 weeks per month * 6 months
+      default = 7 * 4 * 6;
+      description = ''
+        The amount of time in days to retain loki logs using the deprecated boltdb schema.
+        Default is approximately 6 months.
+
+        Must be a multiple of 7 days.
+      '';
+    };
 
     useOauth2Proxy = mkOption {
       type = bool;
@@ -538,6 +570,7 @@ in {
     };
 
     services.loki = {
+      enable = true;
       configuration = {
         auth_enabled = false;
 
@@ -545,7 +578,7 @@ in {
           chunk_idle_period = "5m";
           chunk_retain_period = "30s";
           lifecycler = {
-            address = "127.0.0.1";
+            interface_names = ["lo"];
             final_sleep = "0s";
             ring = {
               kvstore = {store = "inmemory";};
@@ -560,10 +593,20 @@ in {
           reject_old_samples_max_age = "168h";
           ingestion_rate_mb = 160;
           ingestion_burst_size_mb = 160;
+
+          # Compactor log retention
+          # See also table_manager section below for deprecated retention control
+          retention_period = "${toString cfg.lokiCompactorRetentionPeriod}d";
         };
 
         schema_config = {
           configs = [
+            # Deprecated config using boltdb and optionally
+            # table manager for retention
+            #
+            # TODO: Remove this schema config once the current date is
+            # beyond the default long-lived retention time of the
+            # new boltdb-shipper schema config
             {
               from = "2020-05-15";
               index = {
@@ -574,13 +617,57 @@ in {
               schema = "v11";
               store = "boltdb";
             }
+            # Current config utilizing boltdb_shipper and
+            # compactor for retention
+            {
+              from = "2023-02-01";
+              index = {
+                period = "24h";
+                prefix = "loki_index_";
+              };
+              object_store = "filesystem";
+              schema = "v11";
+              store = "boltdb-shipper";
+            }
           ];
+        };
+
+        # The new long term support method of loki retention
+        # compared to the deprecated table manager approach.
+        # Actual retention duration is found in the limits_config stanza.
+        compactor = {
+          working_directory = "/var/lib/loki/compactor";
+          shared_store = "filesystem";
+          retention_enabled = true;
+          retention_delete_delay = "2h";
+        };
+
+        # The deprecated method of loki retention
+        #
+        # TODO: Remove this table manager config once the current date is
+        # beyond the default long-lived retention time of the
+        # new boltdb-shipper schema config
+        table_manager = {
+          retention_deletes_enabled = mkDefault true;
+          retention_period = mkDefault "${toString cfg.lokiTableManagerRetentionPeriod}d";
         };
 
         server.http_listen_port = 3100;
 
         storage_config = {
+          # Deprecated
+          # To be removed once all clusters on boltdb_shipper schema_config
           boltdb = {directory = "/var/lib/loki/index";};
+
+          # For the new standard shipper, compatible with compactor and
+          # compactor's planned long term support over table manager retention
+          boltdb_shipper = {
+            # Avoid collision with the deprecated boltdb dir
+            active_index_directory = "/var/lib/loki/boltdb-shipper/index";
+            cache_location = "/var/lib/loki/boltdb-shipper/cache";
+            shared_store = "filesystem";
+          };
+
           filesystem = {directory = "/var/lib/loki/chunks";};
         };
 

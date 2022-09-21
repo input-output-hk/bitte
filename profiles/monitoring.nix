@@ -27,7 +27,6 @@ in {
 
   services = {
     monitoring.enable = mkDefault true;
-    loki.enable = mkDefault true;
     minio.enable = mkDefault true;
     nomad.enable = false;
   };
