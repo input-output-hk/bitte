@@ -776,12 +776,13 @@ in {
 
     config = lib.mkOption {
       type = lib.mkOptionType {name = "${name}-config";};
-      apply = v: pkgs.writeBashBinChecked "${name}-config" ''
-        set -euo pipefail
-        ${exportPath}
+      apply = v:
+        pkgs.writeBashBinChecked "${name}-config" ''
+          set -euo pipefail
+          ${exportPath}
 
-        ${copyTfCfg}
-      '';
+          ${copyTfCfg}
+        '';
     };
 
     plan = lib.mkOption {
