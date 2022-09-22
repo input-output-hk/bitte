@@ -72,7 +72,7 @@ in {
     };
 
     role = lib.mkOption {
-      type = with lib.types; enum ["client" "core" "routing" "hydra"];
+      type = with lib.types; enum ["client" "core" "routing" "cache"];
       default = "client";
     };
 

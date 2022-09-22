@@ -884,8 +884,8 @@
             then "router"
             else if lib.hasPrefix "monitor" name
             then "monitor"
-            else if lib.hasPrefix "hydra" name
-            then "hydra"
+            else if lib.hasPrefix "cache" name
+            then "cache"
             else if lib.hasPrefix "storage" name
             then "storage"
             else if lib.hasPrefix "client" name

@@ -255,11 +255,11 @@ in {
             policies=default,routing \
             period=24h
 
-          vault write auth/aws/role/${config.cluster.name}-hydra \
+          vault write auth/aws/role/${config.cluster.name}-cache \
             auth_type=iam \
             bound_iam_principal_arn="$arn:role/${config.cluster.name}-core" \
-            policies=default,hydra \
-            period=24h || true # only available if a hydra is deployed
+            policies=default,cache \
+            period=24h || true # only available if a cache is deployed
 
           ${lib.concatStringsSep "\n" (lib.forEach config.cluster.adminNames (name: ''
             vault write "auth/aws/role/${name}" \

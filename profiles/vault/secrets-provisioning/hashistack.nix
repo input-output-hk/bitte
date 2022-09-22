@@ -118,7 +118,7 @@
       '';
     };
 
-    hydra = rec {
+    cache = rec {
       inherit reload restart;
       inherit (roles.client) consulAgent consulDefault consulNomad;
 

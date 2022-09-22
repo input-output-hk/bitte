@@ -46,20 +46,12 @@
       url = "github:input-output-hk/ops-lib";
       flake = false;
     };
-
-    # Preserved for special use case hydra deployment
-    hydra = {
-      url = "github:kreisys/hydra/hydra-server-includes";
-      inputs.nix.follows = "nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs = {
     deploy,
     fenix,
     flake-arch,
-    hydra,
     nix,
     nixpkgs,
     nixpkgs-unstable,
@@ -104,7 +96,6 @@
       overlays = [
         fenix.overlay
         nix.overlay
-        hydra.overlay
         deploy.overlay
         localPkgsOverlay
         terraformProvidersOverlay
@@ -169,7 +160,6 @@
         "cue"
         "docker-distribution"
         "grafana-loki"
-        "hydra"
         "mill"
         "nomad"
         "nomad-autoscaler"

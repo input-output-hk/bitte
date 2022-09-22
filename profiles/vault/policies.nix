@@ -122,7 +122,7 @@ in {
       "sys/capabilities-self" = [u];
     };
 
-    hydra.path = caps {
+    cache.path = caps {
       "auth/token/lookup-self" = [r];
       "auth/token/renew-self" = [u];
       "consul/creds/consul-default" = [r u];

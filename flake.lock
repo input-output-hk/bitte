@@ -865,30 +865,6 @@
         "type": "github"
       }
     },
-    "hydra_2": {
-      "inputs": {
-        "nix": [
-          "nix"
-        ],
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1631062883,
-        "narHash": "sha256-JZ6/gjHyX50fHCYpXy/FrX9C0e9k8X9In5Jb/SQYlT8=",
-        "owner": "kreisys",
-        "repo": "hydra",
-        "rev": "785326948be4b1cc2ce77435c806521565e9af45",
-        "type": "github"
-      },
-      "original": {
-        "owner": "kreisys",
-        "ref": "hydra-server-includes",
-        "repo": "hydra",
-        "type": "github"
-      }
-    },
     "inclusive": {
       "inputs": {
         "stdlib": "stdlib"
@@ -2095,7 +2071,6 @@
         "deploy": "deploy_2",
         "fenix": "fenix_4",
         "flake-arch": "flake-arch",
-        "hydra": "hydra_2",
         "n2c": "n2c",
         "nix": "nix_4",
         "nixpkgs": "nixpkgs_21",
