@@ -18,12 +18,12 @@ in
       # Packages specifically needing an unstable nixpkgs pinned latest available version
       inherit
         (pkgsUnstable.${prev.system})
-        grafana # 9.1.1
+        grafana # 9.1.5
         grafana-loki # 2.6.1
-        nushell # 0.65.0
-        podman # 4.2.0
+        nushell # 0.68.1
+        podman # 4.2.1
         vector
-        ; # 0.22.3
+        ; # 0.24.1
 
       # Alphabetically sorted packages
       agenix = inputs.agenix.packages.${final.system}.agenix;

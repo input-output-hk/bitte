@@ -4,12 +4,12 @@
   fetchFromGitHub,
   nixosTests,
 }: let
-  version = "2.6.0-beta.3";
+  version = "2.6.1";
   dist = fetchFromGitHub {
     owner = "caddyserver";
     repo = "dist";
     rev = "v${version}";
-    sha256 = "sha256-yw84ooXEqamWKANXmd5pU5Ig7ANDplBUwynF/qPLq1g=";
+    sha256 = "sha256-C9nFl7/ZV5fFYzBKz/PwYhDmY7Asq41aZwj50PLeo6I=";
   };
 in
   buildGoModule {
@@ -22,10 +22,10 @@ in
       owner = "caddyserver";
       repo = "caddy";
       rev = "v${version}";
-      sha256 = "sha256-PAm/XsxDwsnI7ICAz4867DzSNKurgL1/o4TcLyjaqzE=";
+      sha256 = "sha256-Z8MiMhXH1er+uYvmDQiamF/jSxHbTMwjo61qbH0ioEo=";
     };
 
-    vendorSha256 = "sha256-ARfiYHroArk/HmprP8e0AMIACQfqABXYglt+8HIqjR0=";
+    vendorSha256 = "sha256-6UTErIPB/z4RfndPSLKFJDFweLB3ax8WxEDA+3G5asI=";
 
     postInstall = ''
       install -Dm644 ${dist}/init/caddy.service ${dist}/init/caddy-api.service -t $out/lib/systemd/system
