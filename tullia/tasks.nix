@@ -1,4 +1,6 @@
-{rev ? "HEAD", ...}: let
+{...}: let
+  ciInputName = "GitHub event";
+
   common = {
     config,
     lib,
@@ -7,9 +9,9 @@
     preset = {
       nix.enable = true;
       github-ci = __mapAttrs (_: lib.mkDefault) {
-        enable = config.action.facts != {};
+        enable = config.actionRun.facts != {};
         repo = "input-output-hk/bitte";
-        sha = config.preset.github-ci.lib.getRevision "GitHub event" rev;
+        sha = config.preset.github-ci.lib.getRevision ciInputName null;
         clone = false;
       };
     };
@@ -21,8 +23,8 @@
     ...
   }:
     lib.escapeShellArg (
-      if config.action.facts != {}
-      then "github:${config.preset.github-ci.repo}/${config.preset.github-ci.lib.getRevision "GitHub event" rev}"
+      if config.actionRun.facts != {}
+      then with config.preset.github-ci; "github:${repo}/${sha}"
       else "."
     );
 in {

@@ -158,7 +158,7 @@
         nixosModules = lib.mkModules ./modules;
         devshellModule = import ./devshellModule.nix;
       }
-      // mkChecks systems [
+      // nixpkgs.lib.recursiveUpdate (mkChecks systems [
         "agenix-cli"
         "bitte"
         "bitte-ruby"
@@ -185,12 +185,12 @@
         "terraform-with-plugins"
         "traefik"
         "vault-backend"
-      ]
-      // mkChecks ["x86_64-linux"] [
+      ])
+      (mkChecks ["x86_64-linux"] [
         "agenix"
         "glusterfs"
         "nomad-follower"
         "vault-bin"
         "victoriametrics"
-      ]);
+      ]));
 }

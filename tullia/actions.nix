@@ -1,11 +1,18 @@
-{
-  "bitte/ci-push" = {
+let
+  ciInputName = "GitHub event";
+in {
+  "bitte/ci" = {
     task = "build";
     io = ''
-      _lib: github: {
+      let github = {
+        #input: "${ciInputName}"
         #repo: "input-output-hk/bitte"
-        push: #branch: "bitte-tests"
       }
+      #lib.merge
+      #ios: [
+        #lib.io.github_pr   & github,
+        #lib.io.github_push & github,
+      ]
     '';
   };
 }
