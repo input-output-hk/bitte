@@ -16,7 +16,7 @@
   };
 
   Config = {
-    services.vault-agent.role = "hydra";
+    services.vault-agent.role = "cache";
   };
 in
   Imports

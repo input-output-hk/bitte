@@ -427,9 +427,9 @@ in {
 
         [ -s ${hashiTokens.vaultd-consul-json} ] && exit
         [ -s ${gossipEncryptionMaterial.consul} ]
-        jq -e .acl.tokens.master ${gossipEncryptionMaterial.consul} || exit
+        jq -e '.acl.tokens.initial_management // .acl.tokens.master' ${gossipEncryptionMaterial.consul} || exit
 
-        CONSUL_HTTP_TOKEN="$(jq -e -r .acl.tokens.master ${gossipEncryptionMaterial.consul})"
+        CONSUL_HTTP_TOKEN="$(jq -e -r '.acl.tokens.initial_management // .acl.tokens.master' ${gossipEncryptionMaterial.consul})"
         export CONSUL_HTTP_TOKEN
 
         vaultToken="$(

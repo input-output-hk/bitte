@@ -7,6 +7,7 @@
   toPrettyJSON,
 }: {
   creds ? "consul-register",
+  systemdServiceParent ? service.name,
   extraServiceConfig ? {},
   service,
   pkiFiles,
@@ -66,8 +67,8 @@ in rec {
   '';
 
   systemdService = {
-    wantedBy = ["${service.name}.service"];
-    partOf = ["${service.name}.service"];
+    wantedBy = ["${systemdServiceParent}.service"];
+    partOf = ["${systemdServiceParent}.service"];
     after = ["consul.service" "vault-agent.service"];
     wants = ["consul.service" "vault-agent.service"];
 

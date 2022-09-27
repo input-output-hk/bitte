@@ -1,5 +1,5 @@
 diff --git i/agent/xds/config.go w/agent/xds/config.go
-index 020cefeb5..e672b97ce 100644
+index 2fdf9d115..1c84b7b15 100644
 --- i/agent/xds/config.go
 +++ w/agent/xds/config.go
 @@ -38,6 +38,12 @@ type ProxyConfig struct {
@@ -16,10 +16,10 @@ index 020cefeb5..e672b97ce 100644
  	// to the local app instance. If not set, no value is set, Envoy defaults are
  	// respected (15s)
 diff --git i/agent/xds/listeners.go w/agent/xds/listeners.go
-index 319161ff4..b0b6a45df 100644
+index 95b84c94c..8a15cff74 100644
 --- i/agent/xds/listeners.go
 +++ w/agent/xds/listeners.go
-@@ -837,6 +837,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
+@@ -1193,6 +1193,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
  		filterName:       name,
  		routeName:        name,
  		cluster:          LocalAppClusterName,
@@ -27,23 +27,23 @@ index 319161ff4..b0b6a45df 100644
  		requestTimeoutMs: cfg.LocalRequestTimeoutMs,
  	}
  	if useHTTPFilter {
-@@ -1347,6 +1348,7 @@ type listenerFilterOpts struct {
- 	cluster          string
- 	statPrefix       string
- 	routePath        string
-+	idleTimeoutMs    *int
- 	requestTimeoutMs *int
- 	ingressGateway   bool
- 	httpAuthzFilter  *envoy_http_v3.HttpFilter
-@@ -1455,6 +1457,11 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error)
+@@ -1939,6 +1940,7 @@ type listenerFilterOpts struct {
+ 	cluster              string
+ 	statPrefix           string
+ 	routePath            string
++	idleTimeoutMs        *int
+ 	requestTimeoutMs     *int
+ 	ingressGateway       bool
+ 	httpAuthzFilter      *envoy_http_v3.HttpFilter
+@@ -2062,6 +2064,11 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error)
  			},
  		}
  
 +		if opts.idleTimeoutMs != nil {
 +			r := route.GetRoute()
-+			r.IdleTimeout = ptypes.DurationProto(time.Duration(*opts.idleTimeoutMs) * time.Millisecond)
++			r.IdleTimeout = durationpb.New(time.Duration(*opts.idleTimeoutMs) * time.Millisecond)
 +		}
 +
  		if opts.requestTimeoutMs != nil {
  			r := route.GetRoute()
- 			r.Timeout = ptypes.DurationProto(time.Duration(*opts.requestTimeoutMs) * time.Millisecond)
+ 			r.Timeout = durationpb.New(time.Duration(*opts.requestTimeoutMs) * time.Millisecond)

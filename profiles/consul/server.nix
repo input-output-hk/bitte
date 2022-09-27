@@ -10,7 +10,9 @@
   Switches = {
     services.hashi-snapshots.enableConsul = true;
     services.consul.server = true;
-    services.consul.ui = true;
+
+    # Consul UI is intentionally served exclusively through routing machine
+    services.consul.uiConfig.enabled = false;
   };
 
   Config = {
@@ -29,10 +31,6 @@
     services.consul = {
       bootstrapExpect = 3;
       addresses = {http = "${config.currentCoreNode.privateIP} 127.0.0.1";};
-      # autoEncrypt = {
-      #   allowTls = true;
-      #   tls = true;
-      # };
     };
   };
 in

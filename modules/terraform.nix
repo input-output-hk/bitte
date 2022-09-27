@@ -86,7 +86,7 @@
           experimental-features = nix-command flakes
         ''';
         binaryCaches = [
-          "https://hydra.iohk.io"
+          "https://cache.iog.io"
           "${cfg.s3Cache}"
         ];
         binaryCachePublicKeys = [
@@ -99,9 +99,8 @@
     }
   '';
 
-  # ${asg}-source.tar.xz is produced by s3-upload-flake.service
-  # of one of the latest successfully provisioned member of this
-  # auto scaling group
+  # ${asg}-source.tar.xz is produced by a plan/apply
+  # of the terraform client workspace
   userDataDefaultNixosConfigAsg = awsAsg: let
     nixConf = ''
       extra-substituters = ${cfg.s3Cache}
@@ -363,6 +362,8 @@
         };
 
         s3CachePubKey = lib.mkOption {type = with lib.types; str;};
+
+        s3Tempo = lib.mkOption {type = with lib.types; str;};
 
         adminNames = lib.mkOption {
           type = with lib.types; listOf str;
@@ -883,8 +884,8 @@
             then "router"
             else if lib.hasPrefix "monitor" name
             then "monitor"
-            else if lib.hasPrefix "hydra" name
-            then "hydra"
+            else if lib.hasPrefix "cache" name
+            then "cache"
             else if lib.hasPrefix "storage" name
             then "storage"
             else if lib.hasPrefix "client" name

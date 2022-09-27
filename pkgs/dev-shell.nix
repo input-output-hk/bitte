@@ -6,7 +6,7 @@ with pkgs;
     LOG_LEVEL = "debug";
 
     buildInputs = [
-      awscli
+      awscli2
       cfssl
       consul
       consul-template

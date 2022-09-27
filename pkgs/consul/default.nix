@@ -8,7 +8,7 @@
 }:
 buildGoModule rec {
   pname = "consul";
-  version = "1.11.2";
+  version = "1.13.2";
   rev = "v${version}";
 
   # Note: Currently only release tags are supported, because they have the Consul UI
@@ -23,7 +23,7 @@ buildGoModule rec {
     owner = "hashicorp";
     repo = pname;
     inherit rev;
-    sha256 = "sha256-Ql8MAo4OVvOIOkFbeOLHqzloWe3I8HviUIfWrvo6INk=";
+    sha256 = "sha256-+5I5hsVuLZve4FJHe41rKycWuKNv7UdxCSi4kaKk2/w=";
   };
 
   patches = [
@@ -32,6 +32,7 @@ buildGoModule rec {
     # Refs:
     #   https://github.com/hashicorp/consul/issues/8283
     #   https://github.com/hashicorp/consul/pull/9639
+    #   https://github.com/hashicorp/consul/pull/13418
     ./consul-issue-8283.patch
     # https://github.com/hashicorp/consul/issues/12145
     ./pr-12560-deregister-sunken-token.patch
@@ -46,7 +47,7 @@ buildGoModule rec {
   # has a split module structure in one repo
   subPackages = ["." "connect/certgen"];
 
-  vendorSha256 = "sha256-PDj0NP0gswJOENrB8jbPU5Gy6jf2DQhjHQofQ9AibrY=";
+  vendorSha256 = "sha256-SjTG1/WhfGhLuUherVHEC3PmDz4HLMS2Cg0ReKTm0zk=";
 
   ldflags = [
     "-X github.com/hashicorp/consul/version.GitDescribe=v${version}"
@@ -59,6 +60,6 @@ buildGoModule rec {
     homepage = "https://www.consul.io/";
     platforms = platforms.linux ++ platforms.darwin;
     license = licenses.mpl20;
-    maintainers = with maintainers; [pradeepchhetri vdemeester nh2];
+    maintainers = with maintainers; [pradeepchhetri vdemeester nh2 techknowlogick];
   };
 }

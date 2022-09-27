@@ -15,7 +15,7 @@
   time.timeZone = "UTC";
 
   environment.systemPackages = with pkgs; [
-    awscli
+    awscli2
     bat
     bind
     di

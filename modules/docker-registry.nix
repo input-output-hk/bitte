@@ -3,11 +3,14 @@
   pkgs,
   config,
   etcEncrypted,
+  runKeyMaterial,
+  pkiFiles,
   ...
 }: let
   inherit (lib) boolToString last makeBinPath mkDefault mkEnableOption mkIf mkOption;
   inherit (lib.types) bool listOf package str;
   inherit (lib.types.ints) unsigned;
+  inherit (pkiFiles) caCertFile;
 
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
   domain =
@@ -149,7 +152,7 @@ in {
 
     systemd.services.docker-registry-service =
       (pkgs.consulRegister {
-        pkiFiles.caCertFile = "/etc/ssl/certs/ca.pem";
+        pkiFiles = {inherit caCertFile;};
         service = {
           name = "docker-registry";
           port = config.services.dockerRegistry.port;
@@ -210,7 +213,7 @@ in {
 
     secrets.install.redis-password = mkIf isSops {
       source = "${etcEncrypted}/redis-password.json";
-      target = /run/keys/redis-password;
+      target = runKeyMaterial.redis;
       inputType = "binary";
       outputType = "binary";
     };
@@ -221,7 +224,7 @@ in {
     age.secrets = mkIf (!isSops) {
       redis-password = {
         file = config.age.encryptedRoot + "/redis/password.age";
-        path = "/run/keys/redis-password";
+        path = runKeyMaterial.redis;
         owner = "root";
         group = "root";
         mode = "0644";

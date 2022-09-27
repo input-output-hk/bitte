@@ -1,6 +1,7 @@
 {
   description = "Flake containing Bitte clusters";
   inputs.std.url = "github:divnix/std";
+  inputs.flake-arch.url = "github:johnalotoski/flake-arch";
   # 21.11 doesn't yet fullfill all contracts that std consumes
   # inputs.std.inputs.nixpkgs.follows = "nixpkgs";
   inputs.n2c.url = "github:nlewo/nix2container";
@@ -23,10 +24,18 @@
     utils.url = "github:numtide/flake-utils";
     blank.url = "github:divnix/blank";
 
-    nomad-driver-nix.url = "github:input-output-hk/nomad-driver-nix";
-
+    # Cicero related
+    tullia = {
+      url = "github:input-output-hk/tullia";
+      inputs = {
+        # Tullia has nixpkgs 22.05 dependencies (ex: stdenv:shellDryRun)
+        nixpkgs.follows = "nixpkgs-unstable";
+      };
+    };
     # Vector >= 0.20.0 versions require nomad-follower watch-config format fix
     nomad-follower.url = "github:input-output-hk/nomad-follower";
+
+    nomad-driver-nix.url = "github:input-output-hk/nomad-driver-nix";
 
     fenix = {
       url = "github:nix-community/fenix";
@@ -37,27 +46,24 @@
       url = "github:input-output-hk/ops-lib";
       flake = false;
     };
-
-    # DEPRECATED: will be replaces by cicero soon
-    hydra.url = "github:kreisys/hydra/hydra-server-includes";
-    hydra.inputs.nix.follows = "nix";
-    hydra.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = {
-    self,
-    hydra,
+    deploy,
+    fenix,
+    flake-arch,
+    nix,
     nixpkgs,
     nixpkgs-unstable,
-    utils,
-    deploy,
     ragenix,
-    nix,
-    fenix,
+    self,
+    tullia,
+    utils,
     ...
   } @ inputs:
     inputs.std.growOn {
       inherit inputs;
+      inherit (inputs.flake-arch) systems;
       cellsFrom = ./nix;
       cellBlocks = [
         (inputs.std.devshells "devshells")
@@ -85,10 +91,11 @@
     }
     # soil -- TODO: remove soil
     (let
+      inherit (inputs.flake-arch) systems;
+
       overlays = [
         fenix.overlay
         nix.overlay
-        hydra.overlay
         deploy.overlay
         localPkgsOverlay
         terraformProvidersOverlay
@@ -113,62 +120,67 @@
         inherit (nixpkgs) lib;
         inherit inputs;
       };
+
+      mkChecks = systems: pkgs:
+        utils.lib.eachSystem systems (system: {
+          checks = builtins.foldl' (acc: pkg: acc // {${pkg} = (pkgsForSystem system).${pkg};}) {} pkgs;
+        });
     in
-      utils.lib.eachSystem [
-        "aarch64-darwin"
-        "aarch64-linux"
-        "x86_64-darwin"
-        "x86_64-linux"
-      ] (system: let
+      utils.lib.eachSystem systems
+      (system: let
         legacyPackages = pkgsForSystem system;
         unstablePackages = unstablePkgsForSystem system;
-      in rec {
-        inherit legacyPackages;
+      in
+        rec {
+          inherit legacyPackages;
 
-        packages = {inherit (self.${system}.cli.packages) bitte;};
-        defaultPackage = packages.bitte;
-
-        hydraJobs = let
-          constituents = {
-            inherit
-              (legacyPackages)
-              bitte
-              cfssl
-              ci-env
-              consul
-              cue
-              glusterfs
-              grafana-loki
-              haproxy
-              haproxy-auth-request
-              haproxy-cors
-              nixFlakes
-              nomad
-              nomad-autoscaler
-              oauth2-proxy
-              sops
-              terraform-with-plugins
-              vault-backend
-              vault-bin
-              ;
-          };
-        in {
-          inherit constituents;
-          required = legacyPackages.mkRequired constituents;
-        };
-      })
+          packages = {inherit (self.${system}.cli.packages) bitte;};
+          packages.default = packages.bitte;
+        }
+        // tullia.fromSimple system {
+          tasks = import tullia/tasks.nix self;
+          actions = import tullia/actions.nix;
+        })
       // {
         inherit lib;
         # eta reduce not possibe since flake check validates for "final" / "prev"
-        overlay = nixpkgs.lib.composeManyExtensions overlays;
+        overlays.default = nixpkgs.lib.composeManyExtensions overlays;
         profiles = lib.mkModules ./profiles;
-        nixosModules =
-          (lib.mkModules ./modules)
-          // {
-            # Until ready to update to the new age module options
-            # agenix = ragenix.nixosModules.age;
-          };
-        nixosModule.imports = builtins.attrValues self.nixosModules;
+        nixosModules = lib.mkModules ./modules;
         devshellModule = import ./devshellModule.nix;
-      });
+      }
+      // nixpkgs.lib.recursiveUpdate (mkChecks systems [
+        "agenix-cli"
+        "bitte"
+        "bitte-ruby"
+        "bundler"
+        "caddy"
+        "cfssl"
+        "consul"
+        "cue"
+        "docker-distribution"
+        "grafana-loki"
+        "mill"
+        "nomad"
+        "nomad-autoscaler"
+        "oauth2-proxy"
+        "ragenix"
+        "scaler-guard"
+        "sops"
+        "spiffe-helper"
+        "spire"
+        "spire-agent"
+        "spire-server"
+        "spire-systemd-attestor"
+        "terraform-with-plugins"
+        "traefik"
+        "vault-backend"
+      ])
+      (mkChecks ["x86_64-linux"] [
+        "agenix"
+        "glusterfs"
+        "nomad-follower"
+        "vault-bin"
+        "victoriametrics"
+      ]));
 }

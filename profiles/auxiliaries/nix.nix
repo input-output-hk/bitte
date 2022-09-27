@@ -29,7 +29,7 @@ in {
 
     binaryCaches =
       [
-        "https://hydra.iohk.io"
+        "https://cache.iog.io"
       ]
       ++ lib.optional (deployType == "aws") "${config.cluster.s3Cache}";
 

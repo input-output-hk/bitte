@@ -37,7 +37,7 @@
   exportConsulMaster = ''
     set +x
     CONSUL_HTTP_TOKEN="$(
-      jq -e -r '.acl.tokens.master' < ${gossipEncryptionMaterial.consul}
+      jq -e -r '.acl.tokens.initial_management // .acl.tokens.master' < ${gossipEncryptionMaterial.consul}
     )"
     export CONSUL_HTTP_TOKEN
     set -x
@@ -255,11 +255,11 @@ in {
             policies=default,routing \
             period=24h
 
-          vault write auth/aws/role/${config.cluster.name}-hydra \
+          vault write auth/aws/role/${config.cluster.name}-cache \
             auth_type=iam \
             bound_iam_principal_arn="$arn:role/${config.cluster.name}-core" \
-            policies=default,hydra \
-            period=24h || true # only available if a hydra is deployed
+            policies=default,cache \
+            period=24h || true # only available if a cache is deployed
 
           ${lib.concatStringsSep "\n" (lib.forEach config.cluster.adminNames (name: ''
             vault write "auth/aws/role/${name}" \
@@ -535,9 +535,9 @@ in {
         vault read consul/config/access \
         &> /dev/null \
         || vault write consul/config/access \
-          ca_cert="$(< ${config.services.consul.caFile})" \
-          client_cert="$(< ${config.services.consul.certFile})" \
-          client_key="$(< ${config.services.consul.keyFile})" \
+          ca_cert="$(< ${config.services.consul.tls.defaults.caFile})" \
+          client_cert="$(< ${config.services.consul.tls.defaults.certFile})" \
+          client_key="$(< ${config.services.consul.tls.defaults.keyFile})" \
           token="$(
             consul acl token create \
               -policy-name=global-management \

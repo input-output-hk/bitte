@@ -525,6 +525,14 @@ in {
             volume_size = group.volumeSize;
             delete_on_termination = true;
           };
+
+          # Metadata hop limit=2 required for containers on ec2 to have access to IMDSv2 tokens
+          # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/configuring-instance-metadata-service.html
+          metadata_options = {
+            http_endpoint = "enabled";
+            http_put_response_hop_limit = 2;
+            http_tokens = "optional";
+          };
         }
 
         (lib.mkIf config.cluster.generateSSHKey {

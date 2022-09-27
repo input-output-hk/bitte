@@ -67,7 +67,16 @@ in {
         default = /var/lib/consul;
       };
 
-      ui = lib.mkEnableOption "Enable the web UI.";
+      uiConfig = lib.mkOption {
+        default = {};
+        description = "Configure the web UI.";
+        type = with lib.types;
+          submodule {
+            options = {
+              enabled = lib.mkEnableOption "Enable the web UI.";
+            };
+          };
+      };
 
       logLevel = lib.mkOption {
         type = with lib.types; enum ["trace" "debug" "info" "warn" "err"];
@@ -334,21 +343,6 @@ in {
         default = {};
       };
 
-      caFile = lib.mkOption {
-        type = with lib.types; nullOr str;
-        default = null;
-      };
-
-      certFile = lib.mkOption {
-        type = with lib.types; nullOr str;
-        default = null;
-      };
-
-      keyFile = lib.mkOption {
-        type = with lib.types; nullOr str;
-        default = null;
-      };
-
       autoEncrypt = lib.mkOption {
         type = with lib.types;
           nullOr (submodule {
@@ -359,14 +353,6 @@ in {
           });
         default = null;
       };
-
-      verifyIncoming = lib.mkEnableOption "Verify incoming conns";
-
-      verifyIncomingRpc = lib.mkEnableOption "Verify incoming rpc conns";
-
-      verifyOutgoing = lib.mkEnableOption "Verify outgoing conns";
-
-      verifyServerHostname = lib.mkEnableOption "Verify server hostname";
 
       ports = lib.mkOption {
         default = {};
@@ -411,16 +397,6 @@ in {
           };
       };
 
-      tlsMinVersion = lib.mkOption {
-        type = with lib.types; enum ["tls10" "tls11" "tls12" "tls13"];
-        default = "tls12";
-      };
-
-      nodeMeta = lib.mkOption {
-        type = with lib.types; attrsOf str;
-        default = {};
-      };
-
       telemetry = lib.mkOption {
         default = {};
         type = with lib.types;
@@ -439,9 +415,136 @@ in {
           };
       };
 
+      tls = lib.mkOption {
+        default = {};
+        type = with lib.types;
+          submodule {
+            options = {
+              defaults = lib.mkOption {
+                type = with lib.types;
+                  submodule {
+                    options = {
+                      caFile = lib.mkOption {
+                        type = with lib.types; nullOr str;
+                        default = null;
+                        description = ''
+                          This provides a file path to a PEM-encoded certificate authority.
+                          The certificate authority is used to check the authenticity of client
+                          and server connections with the appropriate verifyIncoming or
+                          verifyOutgoing flags.
+                        '';
+                      };
+
+                      certFile = lib.mkOption {
+                        type = with lib.types; nullOr str;
+                        default = null;
+                        description = ''
+                          This provides a file path to a PEM-encoded certificate. The certificate
+                          is provided to clients or servers to verify the agent's authenticity.
+                          It must be provided along with keyFile.
+                        '';
+                      };
+
+                      keyFile = lib.mkOption {
+                        type = with lib.types; nullOr str;
+                        default = null;
+                        description = ''
+                          This provides a the file path to a PEM-encoded private key. The key is
+                          used with the certificate to verify the agent's authenticity. This must
+                          be provided along with certFile.
+                        '';
+                      };
+
+                      tlsMinVersion = lib.mkOption {
+                        type = with lib.types; enum ["TLSv1_0" "TLSv1_1" "TLSv1_2" "TLSv1_3"];
+                        default = "TLSv1_2";
+                        description = ''
+                          This specifies the minimum supported version of TLS.
+                        '';
+                      };
+
+                      verifyIncoming = lib.mkOption {
+                        type = with lib.types; bool;
+                        default = false;
+                        description = ''
+                          If set to true, Consul requires that all incoming connections make use
+                          of TLS and that the client provides a certificate signed by a
+                          Certificate Authority from the caFile or caPath. By default, this is false,
+                          and Consul will not enforce the use of TLS or verify a client's authenticity.
+
+                          Security Note: verifyIncoming must be set to true to prevent anyone with
+                          access to the internal RPC port from gaining full access to the Consul cluster.
+                        '';
+                      };
+
+                      verifyOutgoing = lib.mkOption {
+                        type = with lib.types; bool;
+                        default = false;
+                        description = ''
+                          If set to true, Consul requires that all outgoing connections from this
+                          agent make use of TLS and that the server provides a certificate that is
+                          signed by a Certificate Authority from the caFile or caPath. By default,
+                          this is false, and Consul will not make use of TLS for outgoing connections.
+                          This applies to clients and servers as both will make outgoing connections.
+                          This setting does not apply to the gRPC interface as Consul makes no outgoing
+                          connections on this interface.
+
+                          Security Note: Servers that specify verifyOutgoing = true will always talk to
+                          other servers over TLS, but they still accept non-TLS connections to allow for
+                          a transition of all clients to TLS. Currently the only way to enforce that no
+                          client can communicate with a server unencrypted is to also enable
+                          verifyIncoming which requires client certificates too.
+                        '';
+                      };
+                    };
+                  };
+              };
+
+              internalRpc = lib.mkOption {
+                type = with lib.types;
+                  submodule {
+                    options = {
+                      verifyIncoming = lib.mkOption {
+                        type = with lib.types; bool;
+                        default = false;
+                        description = ''
+                          Overrides tls.defaults.verifyIncoming for the internal RPC interface.
+
+                          Security Note: tls.internalRpc.verifyIncoming must be set to true to prevent
+                          anyone with access to the internal RPC port from gaining full access to
+                          the Consul cluster.
+                        '';
+                      };
+
+                      verifyServerHostname = lib.mkOption {
+                        type = with lib.types; bool;
+                        default = false;
+                        description = ''
+                          When set to true, Consul verifies the TLS certificate presented by the
+                          servers match the hostname server.<datacenter>.<domain>. By default this is
+                          false, and Consul does not verify the hostname of the certificate, only that
+                          it is signed by a trusted CA.
+
+                          Security Note: tls.internalRpc.verifyServerHostname must be set to true to
+                          prevent a compromised client from gaining full read and write access to all
+                          cluster data including all ACL tokens and Connect CA root keys.
+                        '';
+                      };
+                    };
+                  };
+              };
+            };
+          };
+      };
+
       nodeId = lib.mkOption {
         type = with lib.types; nullOr str;
         default = null;
+      };
+
+      nodeMeta = lib.mkOption {
+        type = with lib.types; attrsOf str;
+        default = {};
       };
 
       enableDebug = lib.mkOption {
@@ -459,7 +562,7 @@ in {
     environment.etc."${cfg.configDir}/config.json".source = pkgs.toPrettyJSON "config" (sanitize {
       inherit
         (cfg)
-        ui
+        uiConfig
         datacenter
         bootstrapExpect
         bindAddr
@@ -474,20 +577,13 @@ in {
         primaryDatacenter
         acl
         connect
-        caFile
-        certFile
-        keyFile
         autoEncrypt
-        verifyServerHostname
-        verifyOutgoing
-        verifyIncoming
-        verifyIncomingRpc
         dataDir
-        tlsMinVersion
         ports
         enableLocalScriptChecks
         nodeMeta
         telemetry
+        tls
         nodeId
         enableDebug
         enableScriptChecks
@@ -538,17 +634,14 @@ in {
             set +x
 
             # During bootstrap the vault generated token are not yet available
-            if [ -s ${hashiTokens.consul-default} ]
-            then
+            if [ -s ${hashiTokens.consul-default} ]; then
               CONSUL_HTTP_TOKEN="$(< ${hashiTokens.consul-default})"
               export CONSUL_HTTP_TOKEN
-            # Therefore, on core nodes, use the out-of-band bootstrapped master token
-            elif [ -s ${gossipEncryptionMaterial.consul} ]
-            then
-              # as of writing: core nodes are observed to posess the master token
-              # while clients do not
-              jq -e .acl.tokens.master ${gossipEncryptionMaterial.consul} || exit 5
-              CONSUL_HTTP_TOKEN="$(jq -e -r .acl.tokens.master ${gossipEncryptionMaterial.consul})"
+            # Therefore, on core nodes, use the out-of-band bootstrapped initial management token
+            elif [ -s ${gossipEncryptionMaterial.consul} ]; then
+              # Core nodes are observed to possess the initial management token while clients do not
+              jq -e '.acl.tokens.initial_management // .acl.tokens.master' ${gossipEncryptionMaterial.consul} || exit 5
+              CONSUL_HTTP_TOKEN="$(jq -e -r '.acl.tokens.initial_management // .acl.tokens.master' ${gossipEncryptionMaterial.consul})"
               export CONSUL_HTTP_TOKEN
             else
               # Unknown state, should never reach this.
@@ -567,17 +660,14 @@ in {
             set +x
 
             # During bootstrap the vault generated token are not yet available
-            if [ -s ${hashiTokens.consul-default} ]
-            then
+            if [ -s ${hashiTokens.consul-default} ]; then
               CONSUL_HTTP_TOKEN="$(< ${hashiTokens.consul-default})"
               export CONSUL_HTTP_TOKEN
-            # Therefore, on core nodes, use the out-of-band bootstrapped master token
-            elif [ -s ${gossipEncryptionMaterial.consul} ]
-            then
-              # as of writing: core nodes are observed to posess the master token
-              # while clients do not
-              jq -e .acl.tokens.master ${gossipEncryptionMaterial.consul} || exit 5
-              CONSUL_HTTP_TOKEN="$(jq -e -r .acl.tokens.master ${gossipEncryptionMaterial.consul})"
+            # Therefore, on core nodes, use the out-of-band bootstrapped initial management token
+            elif [ -s ${gossipEncryptionMaterial.consul} ]; then
+              # Core nodes are observed to possess the initial management token while clients do not
+              jq -e '.acl.tokens.initial_management // .acl.tokens.master' ${gossipEncryptionMaterial.consul} || exit 5
+              CONSUL_HTTP_TOKEN="$(jq -e -r '.acl.tokens.initial_management // .acl.tokens.master' ${gossipEncryptionMaterial.consul})"
               export CONSUL_HTTP_TOKEN
             else
               # Unknown state, should never reach this.

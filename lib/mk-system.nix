@@ -20,7 +20,7 @@
         [
           ./mk-system/constants-module.nix
           ./mk-system/show-warnings-and-assertions-module.nix
-          bitte.nixosModule
+          {imports = builtins.attrValues bitte.nixosModules;}
           specializationModule
         ]
         ++ modules;

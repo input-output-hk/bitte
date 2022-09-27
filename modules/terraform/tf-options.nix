@@ -654,11 +654,11 @@
       if [ "$INFRA_TYPE" = "prem" ]; then
         NOMAD_TOKEN="$(rage -i secrets-prem/age-bootstrap -d "$REL_ENCRYPTED_FOLDER/nomad/nomad.bootstrap.enc.json" | jq -r '.token')"
         VAULT_TOKEN="$(rage -i secrets-prem/age-bootstrap -d "$REL_ENCRYPTED_FOLDER/vault/vault.enc.json" | jq -r '.root_token')"
-        CONSUL_HTTP_TOKEN="$(rage -i secrets-prem/age-bootstrap -d "$REL_ENCRYPTED_FOLDER/consul/token-master.age")"
+        CONSUL_HTTP_TOKEN="$(rage -i secrets-prem/age-bootstrap -d "$REL_ENCRYPTED_FOLDER/consul/token-initial-management.age")"
       else
         NOMAD_TOKEN="$(${sopsDecrypt "json" "$REL_ENCRYPTED_FOLDER/nomad.bootstrap.enc.json"} | jq -r '.token')"
         VAULT_TOKEN="$(${sopsDecrypt "json" "$REL_ENCRYPTED_FOLDER/vault.enc.json"} | jq -r '.root_token')"
-        CONSUL_HTTP_TOKEN="$(${sopsDecrypt "json" "$REL_ENCRYPTED_FOLDER/consul-core.json"} | jq -r '.acl.tokens.master')"
+        CONSUL_HTTP_TOKEN="$(${sopsDecrypt "json" "$REL_ENCRYPTED_FOLDER/consul-core.json"} | jq -r '.acl.tokens.initial_management // .acl.tokens.master')"
       fi
 
       export NOMAD_TOKEN
@@ -776,12 +776,13 @@ in {
 
     config = lib.mkOption {
       type = lib.mkOptionType {name = "${name}-config";};
-      apply = v: pkgs.writeBashBinChecked "${name}-config" ''
-        set -euo pipefail
-        ${exportPath}
+      apply = v:
+        pkgs.writeBashBinChecked "${name}-config" ''
+          set -euo pipefail
+          ${exportPath}
 
-        ${copyTfCfg}
-      '';
+          ${copyTfCfg}
+        '';
     };
 
     plan = lib.mkOption {
