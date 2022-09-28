@@ -74,6 +74,10 @@
 
   # This user data only injects the cache and nix3 config so that
   # deploy-rs can take it from there (efficiently)
+  #
+  # CAUTION: Without a special migration procedure, such as TF targeting,
+  #          changing this user data will cause a forced destroy and
+  #          re-create of all core nodes on the next TF core workspace plan/apply.
   userDataDefaultNixosConfigCore = ''
     ### https://nixos.org/channels/nixpkgs-unstable nixos
     { pkgs, config, ... }: {
@@ -86,7 +90,7 @@
           experimental-features = nix-command flakes
         ''';
         binaryCaches = [
-          "https://cache.iog.io"
+          "https://hydra.iohk.io"
           "${cfg.s3Cache}"
         ];
         binaryCachePublicKeys = [
