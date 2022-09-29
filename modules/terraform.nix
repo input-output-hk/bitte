@@ -182,9 +182,6 @@
         --ssh-opts="-oServerAliveInterval=60" \
         --ssh-opts="-oControlPersist=600" \
         --ssh-opts="-oStrictHostKeyChecking=no" \
-        --skip-checks \
-        --no-magic-rollback \
-        --no-auto-rollback \
         "$ip"
 
       sleep 1
