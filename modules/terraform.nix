@@ -72,31 +72,36 @@
     builtins.listToAttrs
   ];
 
-  # This user data only injects the cache and nix3 config so that
+  # This core user data only injects the cache and nix3 config so that
   # deploy-rs can take it from there (efficiently)
   #
-  # CAUTION: Without a special migration procedure, such as TF targeting,
-  #          changing this user data will cause a forced destroy and
-  #          re-create of all core nodes on the next TF core workspace plan/apply.
+  # amazon-init.service then executes the user data on the instance
+  # and masks the systemd service afterwards.
+  #
+  # Since user data is not re-executed through the amazon-init service,
+  # changes can be ignored for existing machines with the TF lifecycle
+  # ignore_changes option.
   userDataDefaultNixosConfigCore = ''
     ### https://nixos.org/channels/nixpkgs-unstable nixos
     { pkgs, config, ... }: {
       imports = [ <nixpkgs/nixos/modules/virtualisation/amazon-image.nix> ];
 
       nix = {
-        package = pkgs.nixFlakes;
+        package = pkgs.nixStable;
+        settings = {
+          substituters = [
+            "https://cache.iog.io"
+            "${cfg.s3Cache}"
+          ];
+          trusted-public-keys = [
+            "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
+            "${cfg.s3CachePubKey}"
+          ];
+        };
         extraOptions = '''
           show-trace = true
           experimental-features = nix-command flakes
         ''';
-        binaryCaches = [
-          "https://hydra.iohk.io"
-          "${cfg.s3Cache}"
-        ];
-        binaryCachePublicKeys = [
-          "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
-          "${cfg.s3CachePubKey}"
-        ];
       };
 
       environment.etc.ready.text = "true";
@@ -182,9 +187,6 @@
         --ssh-opts="-oServerAliveInterval=60" \
         --ssh-opts="-oControlPersist=600" \
         --ssh-opts="-oStrictHostKeyChecking=no" \
-        --skip-checks \
-        --no-magic-rollback \
-        --no-auto-rollback \
         "$ip"
 
       sleep 1

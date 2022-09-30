@@ -198,14 +198,19 @@
             chmod "$PERMS" "$TARGET"
           }
 
-          takeSnapshot () {
+          fsPrep () {
             if [ ! -d "$BACKUP_DIR" ]; then
               mkdir -p "$BACKUP_DIR"
               applyPerms "$BACKUP_DIR" "0700"
             fi
+          }
+
+          takeSnapshot () {
             ${snapshotCmd}
             applyPerms "$SNAP_NAME" "0400"
           }
+
+          fsPrep
 
           ${envPrep}
 
@@ -229,7 +234,7 @@
             | sort-by modified
             | drop ${toString cfg.${hashiService}.${job}.backupCount}
             | each {|f| rm $"($f.name)"; echo $"Deleted: ($f.name)"}
-          '
+          ' || true
         '';
       };
   in {

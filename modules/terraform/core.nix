@@ -384,7 +384,7 @@ in {
           key_name = var "aws_key_pair.core.key_name";
         })
         {
-          lifecycle = [{ignore_changes = ["ami"];}];
+          lifecycle = [{ignore_changes = ["ami" "user_data"];}];
         }
       ])
     config.cluster.coreNodes;
