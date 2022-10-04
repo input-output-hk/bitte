@@ -47,6 +47,7 @@ path."consul/creds/developer".capabilities = [ "read", "update", ] # Allow creat
 path."nomad/creds/developer".capabilities = [ "read", "update", ] # Allow creating Nomad tokens
 path."sops/keys/dev".capabilities = ["read", "list"] # Allow to decrypt dev sops secrets
 path."sops/decrypt/dev".capabilities = ["read", "update", "list"]
+path."sops/encrypt/dev".capabilities = ["read", "update", "list"]
 
 path."auth/token/lookup-self".capabilities = [ "read", ] # Allow lookup of own tokens
 path."auth/token/renew-self".capabilities = [ "update", ] # Allow self renewing tokens
