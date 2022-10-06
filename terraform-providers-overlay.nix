@@ -5,7 +5,7 @@ in
   final: prev: {
     inherit (prev) terraform_0_13 terraform_0_14;
 
-    terraform-provider-names = ["acme" "aws" "consul" "local" "nomad" "null" "sops" "tls" "vault" "rabbitmq" "postgresql"];
+    terraform-provider-names = ["acme" "aws" "consul" "equinix" "local" "nomad" "null" "sops" "tls" "vault" "rabbitmq" "postgresql"];
 
     terraform-provider-versions = lib.listToAttrs (map (name: let
       provider = final.terraform-providers.${name};
@@ -55,6 +55,15 @@ in
           repo = "terraform-provider-aws";
           rev = "v3.27.0";
           sha256 = "sha256-rdO2eb41I5eBY/htRTCqdN843eWnnwqCW3ER824txUI=";
+        };
+        equinix = buildWithGoModule {
+          provider-source-address = "registry.terraform.io/equinix/equinix";
+          version = "1.10.0";
+          vendorSha256 = "sha256-ZGPSNz/6qwEU5EY72fIJ1x9bnsN9OZQ6MQ+XNotMGgA=";
+          owner = "equinix";
+          repo = "terraform-provider-equinix";
+          rev = "v1.10.0";
+          sha256 = "sha256-gvI9awkKiWWnw6O/KvskFTHZfvajGfgYu8DGsT34Siw=";
         };
         local = buildWithGoModule {
           provider-source-address = "registry.terraform.io/hashicorp/local";
