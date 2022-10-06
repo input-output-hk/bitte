@@ -23,6 +23,7 @@
     fd
     file
     gitMinimal
+    glances
     htop
     jq
     lsof
