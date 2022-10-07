@@ -69,12 +69,12 @@
   isTg = cfgTg.enable == true;
 
   infraTypeCheck =
-    if builtins.elem infraType ["aws" "premSim"]
+    if builtins.elem infraType ["aws" "awsExt" "premSim"]
     then true
     else
       (throw ''
         To utilize the clients TF attr, the cluster config parameter `infraType`
-        must either "aws" or "premSim".
+        must be either "aws", "awsExt" or "premSim".
       '');
 in {
   tf.clients.configuration = lib.mkIf infraTypeCheck {
