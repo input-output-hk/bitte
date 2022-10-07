@@ -25,12 +25,12 @@
   tags = {Cluster = config.cluster.name;};
 
   infraTypeCheck =
-    if builtins.elem infraType ["aws" "premSim"]
+    if builtins.elem infraType ["aws" "awsExt" "premSim"]
     then true
     else
       (throw ''
         To utilize the core TF attr, the cluster config parameter `infraType`
-        must either "aws" or "premSim".
+        must be either "aws", "awsExt" or "premSim".
       '');
 in {
   tf.core.configuration = lib.mkIf infraTypeCheck {

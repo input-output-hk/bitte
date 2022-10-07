@@ -28,7 +28,7 @@
     else
       (throw ''
         To utilize the prem-sim TF attr, the cluster config parameter `infraType`
-        must either "aws" or "premSim".
+        must be either "aws" or "premSim".
       '');
 in {
   tf.prem-sim.configuration = lib.mkIf infraTypeCheck {
