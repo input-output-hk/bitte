@@ -16,7 +16,7 @@
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
   roleType = config.currentCoreNode.role or config.currentAwsAutoScalingGroup.role;
 
-  isSops = deployType == "aws";
+  isSops = builtins.elem deployType ["aws" "awsExt"];
   isClient = roleType == "client";
 
   sopsEncrypt = "${pkgs.sops}/bin/sops --encrypt --input-type json --kms '${config.cluster.kms}' /dev/stdin";

@@ -359,11 +359,11 @@ in {
 
       serviceConfig = let
         certChainFile =
-          if deployType == "aws"
+          if builtins.elem deployType ["aws" "awsExt"]
           then pkiFiles.certChainFile
           else pkiFiles.serverCertChainFile;
         certKeyFile =
-          if deployType == "aws"
+          if builtins.elem deployType ["aws" "awsExt"]
           then pkiFiles.keyFile
           else pkiFiles.serverKeyFile;
         preScript = pkgs.writeBashBinChecked "vault-start-pre" ''
@@ -465,7 +465,7 @@ in {
         set -exuo pipefail
 
         ${
-          if deployType == "aws"
+          if builtins.elem deployType ["aws" "awsExt"]
           then ''
             ip="$(curl -f -s http://169.254.169.254/latest/meta-data/local-ipv4)"''
           else ''

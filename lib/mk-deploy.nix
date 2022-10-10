@@ -22,7 +22,7 @@ assert lib.assertMsg (builtins.typeOf deploySshKey == "string") ''
         in
           deploy.lib.${system}.activate.nixos cfg;
       }
-      // (lib.optionalAttrs ((cfg.config.currentCoreNode.deployType or cfg.config.currentAwsAutoScalingGroup.deployType) == "prem") {
+      // (lib.optionalAttrs (builtins.elem (cfg.config.currentCoreNode.deployType or cfg.config.currentAwsAutoScalingGroup.deployType) ["awsExt" "prem"]) {
         hostname = cfg.config.cluster.name + "-" + cfg.config.networking.hostName;
         sshOpts = ["-C" "-o" "StrictHostKeyChecking=no"];
       }))

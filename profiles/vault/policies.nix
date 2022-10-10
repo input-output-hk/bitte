@@ -17,7 +17,7 @@
 in {
   services.vault.policies = {
     # Role for prem or premSim
-    vault-agent-core = lib.mkIf (deployType != "aws") {
+    vault-agent-core = lib.mkIf (!(builtins.elem deployType ["aws" "awsExt"])) {
       path = caps {
         "auth/token/create" = [c r u d l s];
         "consul/creds/nomad-server" = [r];
@@ -41,7 +41,7 @@ in {
     };
 
     # Role for prem or premSim
-    vault-agent-client = lib.mkIf (deployType != "aws") {
+    vault-agent-client = lib.mkIf (!(builtins.elem deployType ["aws" "awsExt"])) {
       path = caps {
         "auth/token/create" = [c r u d l s];
         "consul/creds/consul-agent" = [r u];

@@ -10,7 +10,7 @@
   isRouter = role == "router";
   isServer = (config.services.vault-agent.role == "core") || config.services.consul.server || config.services.nomad.server.enabled;
 in {
-  age.secrets = lib.mkIf (deployType != "aws") {
+  age.secrets = lib.mkIf (!(builtins.elem deployType ["aws" "awsExt"])) {
     vault-full-server = lib.mkIf (isServer || isRouter) {
       file = config.age.encryptedRoot + "/ssl/server-full.age";
       path = pkiFiles.serverCertChainFile;

@@ -31,7 +31,7 @@
 
     services.nomad = {
       datacenter =
-        if deployType == "aws"
+        if builtins.elem deployType ["aws" "awsExt"]
         then region
         else datacenter;
 
@@ -41,7 +41,7 @@
         server_join = {
           retry_join =
             (lib.mapAttrsToList (_: v: v.privateIP) (lib.filterAttrs (k: v: lib.elem k cfg.serverNodeNames) nodes))
-            ++ (lib.optionals (deployType == "aws")
+            ++ (lib.optionals (builtins.elem deployType ["aws" "awsExt"])
               ["provider=aws region=${region} tag_key=Nomad tag_value=server"]);
         };
 

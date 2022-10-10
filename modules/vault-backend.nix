@@ -48,11 +48,11 @@ in {
 
       serviceConfig = let
         certChainFile =
-          if deployType == "aws"
+          if builtins.elem deployType ["aws" "awsExt"]
           then pkiFiles.certChainFile
           else pkiFiles.serverCertChainFile;
         certKeyFile =
-          if deployType == "aws"
+          if builtins.elem deployType ["aws" "awsExt"]
           then pkiFiles.keyFile
           else pkiFiles.serverKeyFile;
         execStartPre = pkgs.writeBashBinChecked "vault-backend-pre" ''
