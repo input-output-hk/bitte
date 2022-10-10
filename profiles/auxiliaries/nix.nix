@@ -31,12 +31,12 @@ in {
       [
         "https://cache.iog.io"
       ]
-      ++ lib.optional (deployType == "aws") "${config.cluster.s3Cache}";
+      ++ lib.optional (builtins.elem deployType ["aws" "awsExt"]) "${config.cluster.s3Cache}";
 
     binaryCachePublicKeys =
       [
         "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
       ]
-      ++ lib.optional (deployType == "aws") "${config.cluster.s3CachePubKey}";
+      ++ lib.optional (builtins.elem deployType ["aws" "awsExt"]) "${config.cluster.s3CachePubKey}";
   };
 }

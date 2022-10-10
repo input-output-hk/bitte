@@ -21,7 +21,7 @@
     domain =
       config
       .${
-        if deployType == "aws"
+        if builtins.elem deployType ["aws" "awsExt"]
         then "cluster"
         else "currentCoreNode"
       }
@@ -32,7 +32,7 @@
       # if we use aws and consul depends on vault bootstrapping (get a token)
       # then we cannot depend on consul to access vault, obviously
       vaultAddress =
-        if deployType == "aws"
+        if builtins.elem deployType ["aws" "awsExt"]
         then "https://vault.${domain}"
         else "https://core.vault.service.consul:8200";
       cache.useAutoAuthToken = true;

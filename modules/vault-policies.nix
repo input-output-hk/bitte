@@ -96,7 +96,7 @@ in {
         NOMAD_ADDR
         ;
       AWS_DEFAULT_REGION =
-        lib.mkIf (deployType == "aws")
+        lib.mkIf (builtins.elem deployType ["aws" "awsExt"])
         config.environment.variables.AWS_DEFAULT_REGION;
     };
 
@@ -106,7 +106,7 @@ in {
       set -euo pipefail
 
       ${
-        if (deployType == "aws")
+        if (builtins.elem deployType ["aws" "awsExt"])
         then ''
           VAULT_TOKEN="$(sops -d --extract '["root_token"]' vault.enc.json)"''
         else ''

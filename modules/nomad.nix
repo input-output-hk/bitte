@@ -1234,11 +1234,11 @@ in {
 
       serviceConfig = let
         certChainFile =
-          if (deployType != "aws" && cfg.server.enabled)
+          if (!(builtins.elem deployType ["aws" "awsExt"]) && cfg.server.enabled)
           then pkiFiles.serverCertChainFile
           else pkiFiles.certChainFile;
         certKeyFile =
-          if (deployType != "aws" && cfg.server.enabled)
+          if (!(builtins.elem deployType ["aws" "awsExt"]) && cfg.server.enabled)
           then pkiFiles.serverKeyFile
           else pkiFiles.keyFile;
         start-pre = pkgs.writeBashChecked "nomad-start-pre" (''

@@ -610,11 +610,11 @@ in {
         # the machine role (isClient) rather than cfg.server which is not
         # granular enough in this case.
         certChainFile =
-          if (deployType != "aws" && !isClient)
+          if (!(builtins.elem deployType ["aws" "awsExt"]) && !isClient)
           then pkiFiles.serverCertChainFile
           else pkiFiles.certChainFile;
         certKeyFile =
-          if (deployType != "aws" && !isClient)
+          if (!(builtins.elem deployType ["aws" "awsExt"]) && !isClient)
           then pkiFiles.serverKeyFile
           else pkiFiles.keyFile;
         preScript = let

@@ -70,7 +70,7 @@
         tlsMinVersion = "tls12";
       };
 
-      seal = lib.mkIf (deployType == "aws") {
+      seal = lib.mkIf (builtins.elem deployType ["aws" "awsExt"]) {
         awskms = {
           kmsKeyId = config.cluster.kms;
           inherit region;
@@ -84,7 +84,7 @@
         dogstatsdTags = [
           "role:vault"
           (
-            if (deployType == "aws")
+            if (builtins.elem deployType ["aws" "awsExt"])
             then "region:${region}"
             else "datacenter:${datacenter}"
           )

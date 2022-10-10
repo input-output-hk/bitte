@@ -51,7 +51,7 @@
         node_class =
           config
           .${
-            if deployType == "aws"
+            if builtins.elem deployType ["aws" "awsExt"]
             then "currentAwsAutoScalingGroup"
             else "currentCoreNode"
           }
@@ -79,7 +79,7 @@
       };
 
       datacenter =
-        if deployType == "aws"
+        if builtins.elem deployType ["aws"]
         then config.currentAwsAutoScalingGroup.region
         else datacenter;
 

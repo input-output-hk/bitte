@@ -84,7 +84,7 @@
         datadog_address = "localhost:8125";
         datadog_tags = [
           (
-            if deployType == "aws"
+            if builtins.elem deployType ["aws" "awsExt"]
             then "region:${region}"
             else "datacenter:${datacenter}"
           )

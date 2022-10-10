@@ -1029,7 +1029,7 @@
         datacenter = lib.mkOption {
           type = with lib.types; str;
           default =
-            if this.config.deployType == "aws"
+            if builtins.elem this.config.deployType ["aws" "awsExt"]
             then (kms2region cfg.kms)
             else "dc1";
         };
@@ -1257,6 +1257,39 @@
         };
       });
 
+  localExecType = with lib.types;
+    submodule {
+      options = {
+        protoCommand = lib.mkOption {
+          type = lib.types.str;
+          description = "Provisioner command to be applied to all nodes";
+        };
+
+        bootstrapperCommand = lib.mkOption {
+          type = with lib.types; nullOr str;
+          default = null;
+          description = ''
+            Provisioner command to apply only to the first node, when applicable.
+          '';
+        };
+
+        workingDir = lib.mkOption {
+          type = with lib.types; nullOr path;
+          default = null;
+        };
+
+        interpreter = lib.mkOption {
+          type = with lib.types; nullOr (listOf str);
+          default = ["${pkgs.bash}/bin/bash" "-c"];
+        };
+
+        environment = lib.mkOption {
+          type = with lib.types; attrsOf str;
+          default = {};
+        };
+      };
+    };
+
   awsAutoScalingGroupType = with lib.types;
     submodule ({name, ...} @ this: {
       options = {
@@ -1283,7 +1316,7 @@
         };
 
         deployType = lib.mkOption {
-          type = with lib.types; enum ["aws" "prem" "premSim"];
+          type = with lib.types; enum ["aws" "premSim"];
           default = "aws";
         };
 
@@ -1422,7 +1455,7 @@ in {
       type = with lib.types; nullOr attrs;
       default = let
         names =
-          map builtins.attrNames [cfg.coreNodes cfg.premNodes cfg.premSimNodes];
+          map builtins.attrNames [cfg.coreNodes cfg.awsExtNodes cfg.premNodes cfg.premSimNodes];
         combinedNames = builtins.foldl' (s: v:
           s
           ++ (map (name:
@@ -1434,6 +1467,7 @@ in {
       in
         builtins.deepSeq combinedNames
         (cfg.coreNodes."${nodeName}"
+          or cfg.awsExtNodes."${nodeName}"
           or cfg.premNodes."${nodeName}"
           or cfg.premSimNodes."${nodeName}"
           or null);

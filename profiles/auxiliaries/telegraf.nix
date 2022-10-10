@@ -119,9 +119,9 @@ in {
           x509_cert = {
             sources = [
               (
-                if (deployType != "aws" && !isClient)
+                if (!(builtins.elem deployType ["aws" "awsExt"]) && !isClient)
                 then pkiFiles.serverCertFile
-                else if (deployType != "aws" && isClient)
+                else if (!(builtins.elem deployType ["aws" "awsExt"]) && isClient)
                 then pkiFiles.clientCertFile
                 else pkiFiles.certFile
               )
