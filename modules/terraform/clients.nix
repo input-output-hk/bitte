@@ -519,12 +519,24 @@ in {
 
           lifecycle = [{create_before_destroy = true;}];
 
-          ebs_block_device = {
-            device_name = "/dev/xvdb";
-            volume_type = group.volumeType;
-            volume_size = group.volumeSize;
-            delete_on_termination = true;
-          };
+          # handy DEBUG BITS:
+          # device_name = abort ( "ohayo ${name} -- ${group.uid}" );
+          # name: client-eu-central-1-c5-4xlarge-infra
+          # group: atala-testnet-client-eu-central-1-c5-4xlarge-infra
+          #
+          # cant find output yet
+          #device_name = builtins.trace { "ohayo ${name} -- {group}"} "/dev/xvdb";
+
+
+          ebs_block_device =
+            if (group.volumeSize == 0)
+            then "no_device"
+            else {
+              device_name = "/dev/xvdb";
+              volume_type = group.volumeType;
+              volume_size = group.volumeSize;
+              delete_on_termination = true;
+            };
 
           # Metadata hop limit=2 required for containers on ec2 to have access to IMDSv2 tokens
           # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/configuring-instance-metadata-service.html
