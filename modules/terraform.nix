@@ -1169,7 +1169,7 @@
         };
 
         volumeSize = lib.mkOption {
-          type = with lib.types; nullOr ints.positive;
+          type = with lib.types; ints.unsigned;
           default = 100;
         };
 
