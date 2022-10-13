@@ -983,7 +983,7 @@
         };
 
         volumeSize = lib.mkOption {
-          type = with lib.types; nullOr ints.positive;
+          type = with lib.types; ints.positive;
           default = 30;
         };
 
@@ -1169,7 +1169,7 @@
         };
 
         volumeSize = lib.mkOption {
-          type = with lib.types; ints.positive;
+          type = with lib.types; nullOr ints.positive;
           default = 100;
         };
 
