@@ -517,18 +517,7 @@ in {
 
           ebs_optimized = false;
 
-          ephemeral_block_device;
-
           lifecycle = [{create_before_destroy = true;}];
-
-          # handy DEBUG BITS:
-          # device_name = abort ( "ohayo ${name} -- ${group.uid}" );
-          # name: client-eu-central-1-c5-4xlarge-infra
-          # group: atala-testnet-client-eu-central-1-c5-4xlarge-infra
-          #
-          # cant find output yet
-          #device_name = builtins.trace { "ohayo ${name} -- {group}"} "/dev/xvdb";
-
 
           ebs_block_device =
             if (group.volumeSize == 0)
