@@ -517,6 +517,8 @@ in {
 
           ebs_optimized = false;
 
+          ephemeral_block_device;
+
           lifecycle = [{create_before_destroy = true;}];
 
           # handy DEBUG BITS:
@@ -537,6 +539,13 @@ in {
               volume_size = group.volumeSize;
               delete_on_termination = true;
             };
+
+          (lib.mkIf (group.volumeSize ==0) {
+            ephemeral_block_device = {
+              device_name = "/dev/xvdb";
+            };
+          })
+
 
           # Metadata hop limit=2 required for containers on ec2 to have access to IMDSv2 tokens
           # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/configuring-instance-metadata-service.html
