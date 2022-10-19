@@ -482,6 +482,51 @@
             self.inputs;
         };
 
+        transitGateway = lib.mkOption {
+          type = with lib.types;
+            submodule ({name, ...} @ this: {
+              options = {
+                enable = lib.mkOption {
+                  type = with lib.types; bool;
+                  default = false;
+                  description = ''
+                    Whether to enable a star topology transit gateway network to allow custom packet routing
+                    through a multi-region cluster.  Applicable to zero-trust tunneling in a ZTNA model.
+                    See the transitGateway description for more detail.
+                  '';
+                };
+
+                transitRoutes = lib.mkOption {
+                  type = with lib.types; addCheck (listOf attrs) (x: x != []);
+                  default = [];
+                  description = ''
+                    A list containing elements of attrs with attribute gatewayCoreNodeName and cidrRange.
+                    Each CIDR range forwards to the respective gatewayCoreNode for zero trust tunneling
+                    in the core VPC.
+
+                    Note that the CIDR ranges cannot overlap with existing VPC, subnet CIDRs or themselves.
+                    Note also that the listed gatewayCoreNode machines must already exist.
+
+                    Example:
+                      [
+                        { gatewayCoreNodeName = "zt1"; cidrRange = "10.10.0.0/24"; }
+                        { gatewayCoreNodeName = "zt2"; cidrRange = "10.11.0.0/24"; }
+                      ]
+                  '';
+                };
+              };
+            });
+          default = {};
+          description = ''
+            Declaring config.cluster.transitGateway options and plan/applying the terraform clients
+            workspace will provision and configure AWS resources for a peered transit gateway in a star
+            topology with the core VPC at the center and the asg VPCs at the edge.
+
+            This enables routing traffic intended for ZT tunneling across the VPCs in private network
+            CIDRs that are outside the configured VPC CIDR ranges to the core VPC.
+          '';
+        };
+
         vaultBackend = lib.mkOption {
           type = with lib.types; str;
           default = "https://vault.infra.aws.iohkdev.io";
@@ -1010,6 +1055,11 @@
               defaultSecurityGroupId = this.config.securityGroupId;
             });
           default = {};
+        };
+
+        sourceDestCheck = lib.mkOption {
+          type = with lib.types; bool;
+          default = true;
         };
 
         initialVaultSecrets = lib.mkOption {

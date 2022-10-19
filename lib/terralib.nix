@@ -33,6 +33,37 @@ in rec {
   nullRoute = nullRoute' // {destination_ipv6_cidr_block = null;};
 
   aws = {
+    # asgVpcs returns a vpc attr struct when provided config.cluster.
+    # Example attr struct:
+    #  [
+    #    {
+    #      "cidr": "10.24.0.0/16",
+    #      "id": "${data.aws_vpc.bitte-world-eu-central-1-asgs.id}",
+    #      "name": "bitte-world-eu-central-1-asgs",
+    #      "region": "eu-central-1",
+    #      "subnets": {
+    #        "a": {
+    #          "availabilityZone": "${element(module.instance_types_to_azs_eu-central-1.availability_zones, 0)}",
+    #          "cidr": "10.24.0.0/18",
+    #          "id": "${aws_subnet.a.id}",
+    #          "name": "a"
+    #        },
+    #        "b": {
+    #          "availabilityZone": "${element(module.instance_types_to_azs_eu-central-1.availability_zones, 1)}",
+    #          "cidr": "10.24.64.0/18",
+    #          "id": "${aws_subnet.b.id}",
+    #          "name": "b"
+    #        },
+    #        "c": {
+    #          "availabilityZone": "${element(module.instance_types_to_azs_eu-central-1.availability_zones, 2)}",
+    #          "cidr": "10.24.128.0/18",
+    #          "id": "${aws_subnet.c.id}",
+    #          "name": "c"
+    #        }
+    #      }
+    #    },
+    #    ...
+    #  ]
     asgVpcs = cluster:
       lib.forEach (builtins.attrValues cluster.awsAutoScalingGroups) (asg: asg.vpc);
 

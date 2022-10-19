@@ -303,6 +303,7 @@ in {
         subnet_id = coreNode.subnet.id;
         security_groups = [coreNode.securityGroupId];
         private_ips = [coreNode.privateIP];
+        source_dest_check = coreNode.sourceDestCheck;
         tags = {
           Cluster = config.cluster.name;
           Name = coreNode.name;
