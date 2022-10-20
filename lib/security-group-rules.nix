@@ -90,4 +90,28 @@ in {
     protocols = ["tcp" "udp"];
     cidrs = global;
   };
+
+  ziti-controller-rest = {
+    port = 1280;
+    protocols = ["tcp"];
+    cidrs = global;
+  };
+
+  ziti-controller-mgmt = {
+    port = 6262;
+    protocols = ["tcp"];
+    cidrs = global;
+  };
+
+  ziti-router-edge = {
+    port = 3022;
+    protocols = ["tcp"];
+    cidrs = global;
+  };
+
+  ziti-router-fabric = {
+    port = 10080;
+    protocols = ["tcp"];
+    cidrs = global;
+  };
 }
