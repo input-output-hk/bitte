@@ -29,12 +29,10 @@ in {
 
   # Maintain backward compat for the aws machines otherwise derive from hostname.
   # Also mkDefault, so machines which receive their own ZFS tied hostID during prov keep that.
-  networking.hostId = lib.mkDefault (
-    if (deployType == "aws")
+  networking.hostId = if (deployType == "aws")
     then "9474d585"
     else
-      (lib.fileContents (pkgs.runCommand "hostId" {} ''
+      (lib.mkDefault (lib.fileContents (pkgs.runCommand "hostId" {} ''
         ${pkgs.ruby}/bin/ruby -rzlib -e 'File.write(ENV["out"], "%08x" % Zlib.crc32("${nodeName}"))'
-      ''))
-  );
+      '')));
 }
