@@ -522,14 +522,14 @@ in {
           httpListenAddr = "0.0.0.0:8880";
           externalUrl = "https://monitoring.${domain}";
           httpPathPrefix = "/vmalert-vm";
-          externalAlertSource = ''explore?left=%%7B%%22datasource%%22:%%22VictoriaMetrics%%22,%%22queries%%22:%%5B%%7B%%22refId%%22:%%22A%%22,%%22expr%%22:%%22{{$expr|quotesEscape|crlfEscape|pathEscape}}%%22,%%22range%%22:true,%%22editorMode%%22:%%22code%%22%%7D%%5D,%%22range%%22:%%7B%%22from%%22:%%22now-1h%%22,%%22to%%22:%%22now%%22%%7D%%7D&orgId=1'';
+          externalAlertSource = ''explore?left=%%7B%%22datasource%%22:%%22VictoriaMetrics%%22,%%22queries%%22:%%5B%%7B%%22refId%%22:%%22A%%22,%%22expr%%22:%%22{{$expr|quotesEscape|pathEscape}}%%22,%%22range%%22:true,%%22editorMode%%22:%%22code%%22%%7D%%5D,%%22range%%22:%%7B%%22from%%22:%%22now-1h%%22,%%22to%%22:%%22now%%22%%7D%%7D&orgId=1'';
         };
         loki = {
           datasourceUrl = "http://127.0.0.1:3100/loki";
           httpListenAddr = "0.0.0.0:8881";
           externalUrl = "https://monitoring.${domain}";
           httpPathPrefix = "/vmalert-loki";
-          externalAlertSource = ''explore?left=%%7B%%22datasource%%22:%%22Loki%%22,%%22queries%%22:%%5B%%7B%%22refId%%22:%%22A%%22,%%22expr%%22:%%22{{$expr|quotesEscape|crlfEscape|pathEscape}}%%22,%%22range%%22:true,%%22editorMode%%22:%%22code%%22%%7D%%5D,%%22range%%22:%%7B%%22from%%22:%%22now-1h%%22,%%22to%%22:%%22now%%22%%7D%%7D&orgId=1'';
+          externalAlertSource = ''explore?left=%%7B%%22datasource%%22:%%22Loki%%22,%%22queries%%22:%%5B%%7B%%22refId%%22:%%22A%%22,%%22expr%%22:%%22{{$expr|quotesEscape|pathEscape}}%%22,%%22range%%22:true,%%22editorMode%%22:%%22code%%22%%7D%%5D,%%22range%%22:%%7B%%22from%%22:%%22now-1h%%22,%%22to%%22:%%22now%%22%%7D%%7D&orgId=1'';
           # Loki uses PromQL type queries that do not strictly comply with PromQL
           # Ref: https://github.com/VictoriaMetrics/VictoriaMetrics/issues/780
           ruleValidateExpressions = false;
