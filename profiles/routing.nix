@@ -323,8 +323,8 @@ in {
           in
             lib.mkDefault ({
                 alertmanager = {
+                  inherit middlewares;
                   entrypoints = "https";
-                  middlewares = [];
                   rule = "Host(`monitoring.${domain}`) && PathPrefix(`/alertmanager`)";
                   service = "alertmanager";
                   tls = tlsCfg;
@@ -372,7 +372,7 @@ in {
 
                 vmagent = {
                   entrypoints = "https";
-                  middlewares = ["ensureFirstLevelSlash"];
+                  middlewares = middlewares ++ ["ensureFirstLevelSlash"];
                   rule = "Host(`monitoring.${domain}`) && PathPrefix(`/vmagent`)";
                   service = "vmagent";
                   tls = tlsCfg;
@@ -380,7 +380,7 @@ in {
 
                 vmalert-loki = {
                   entrypoints = "https";
-                  middlewares = ["ensureFirstLevelSlash"];
+                  middlewares = middlewares ++ ["ensureVmalertRedirect"];
                   rule = "Host(`monitoring.${domain}`) && PathPrefix(`/vmalert-loki`)";
                   service = "vmalert-loki";
                   tls = tlsCfg;
@@ -388,9 +388,17 @@ in {
 
                 vmalert-vm = {
                   entrypoints = "https";
-                  middlewares = ["ensureFirstLevelSlash"];
+                  middlewares = middlewares ++ ["ensureVmalertRedirect"];
                   rule = "Host(`monitoring.${domain}`) && PathPrefix(`/vmalert-vm`)";
                   service = "vmalert-vm";
+                  tls = tlsCfg;
+                };
+
+                vmui = {
+                  entrypoints = "https";
+                  middlewares = middlewares ++ ["ensureFirstLevelSlash"];
+                  rule = "Host(`monitoring.${domain}`) && PathPrefix(`/vmui`,`/prometheus`)";
+                  service = "vmui";
                   tls = tlsCfg;
                 };
               }
@@ -452,6 +460,10 @@ in {
                 servers = [{url = "http://monitoring:8880";}];
               };
 
+              vmui.loadBalancer = {
+                servers = [{url = "http://monitoring:8428";}];
+              };
+
               vault.loadBalancer = {
                 servers = [{url = "https://active.vault.service.consul:8200";}];
                 serversTransport = "cert-transport";
@@ -496,6 +508,7 @@ in {
                   stsSeconds = 315360000;
                 };
               };
+
               # Ensures the first level of the path following the URL FQDN has a trailing slash.
               # Useful for when target requires a trailing slash for relative link use.
               # Refs:
@@ -505,6 +518,17 @@ in {
                 redirectregex = {
                   regex = "^https://([^/]+)/([^/]+)$";
                   replacement = "https://\${1}/\${2}/";
+                  permanent = false;
+                };
+              };
+
+              # Due to victoriametrics >= 1.79.0 vmalert prefix path addition
+              # Ref:
+              #  https://github.com/VictoriaMetrics/VictoriaMetrics/issues/2825
+              ensureVmalertRedirect = {
+                redirectregex = {
+                  regex = "^https://([^/]+)/([^/]+)(/|/vmalert)?$";
+                  replacement = "https://\${1}/\${2}/vmalert/";
                   permanent = false;
                 };
               };
