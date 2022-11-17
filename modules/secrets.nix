@@ -4,9 +4,28 @@ let
   installType = with lib.types;
     submodule {
       options = {
+        preScript = lib.mkOption {
+          type = with lib.types; str;
+          default = "";
+          description = ''
+            Shell script that is injected immediately after shebang and set script header lines.
+          '';
+        };
+
         script = lib.mkOption {
           type = with lib.types; str;
           default = "";
+          description = ''
+            Shell script that is appended to the secret installation script.
+          '';
+        };
+
+        extraPackages = lib.mkOption {
+          type = with lib.types; listOf package;
+          default = [];
+          description = ''
+            Extra packages required for secrets script installation.
+          '';
         };
 
         source = lib.mkOption {
@@ -103,10 +122,12 @@ in {
           WorkingDirectory = "/run/keys";
         };
 
-        path = with pkgs; [ sops coreutils ];
+        path = with pkgs; [ sops coreutils ] ++ cfg.extraPackages;
 
         script = ''
           set -euxo pipefail
+
+          ${cfg.preScript}
 
           ${lib.optionalString (cfg.target != null && cfg.source != null) ''
             target="${toString cfg.target}"

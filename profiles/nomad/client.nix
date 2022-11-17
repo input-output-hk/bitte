@@ -51,7 +51,7 @@
         node_class =
           config
           .${
-            if builtins.elem deployType ["aws" "awsExt"]
+            if builtins.elem deployType ["aws"]
             then "currentAwsAutoScalingGroup"
             else "currentCoreNode"
           }
