@@ -67,12 +67,20 @@
         [ ${pkiFiles.certFile} -nt /etc/ssl/certs/.last_restart ]
         [ ${pkiFiles.keyFile} -nt /etc/ssl/certs/.last_restart ]
 
-        systemctl try-reload-or-restart consul.service
-
-        if curl -s -k https://127.0.0.1:4646/v1/status/leader &> /dev/null; then
-          systemctl try-reload-or-restart nomad.service
+        if systemctl is-enabled consul.service &> /dev/null; then
+          systemctl try-reload-or-restart consul.service
         else
-          systemctl start nomad.service
+          echo "Skipping consul reload or restart as consul is disabled in systemd services."
+        fi
+
+        if systemctl is-enabled nomad.service &> /dev/null; then
+          if curl -s -k https://127.0.0.1:4646/v1/status/leader &> /dev/null; then
+            systemctl try-reload-or-restart nomad.service
+          else
+            systemctl start nomad.service
+          fi
+        else
+          echo "Skipping nomad reload, restart or start as nomad is disabled in systemd services."
         fi
 
         touch /etc/ssl/certs/.last_restart
