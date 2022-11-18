@@ -1,6 +1,9 @@
-{ lib, config, pkgs, ... }:
-let
-
+{
+  lib,
+  config,
+  pkgs,
+  ...
+}: let
   installType = with lib.types;
     submodule {
       options = {
@@ -39,12 +42,12 @@ let
         };
 
         inputType = lib.mkOption {
-          type = with lib.types; enum [ "json" "yaml" "dotenv" "binary" ];
+          type = with lib.types; enum ["json" "yaml" "dotenv" "binary"];
           default = "json";
         };
 
         outputType = lib.mkOption {
-          type = with lib.types; enum [ "json" "yaml" "dotenv" "binary" ];
+          type = with lib.types; enum ["json" "yaml" "dotenv" "binary"];
           default = "json";
         };
       };
@@ -53,37 +56,37 @@ let
   secretType = with lib.types;
     submodule {
       options = {
-        encryptedRoot = lib.mkOption { type = with lib.types; path; };
+        encryptedRoot = lib.mkOption {type = with lib.types; path;};
 
         generate = lib.mkOption {
           type = with lib.types; attrsOf str;
-          default = { };
+          default = {};
         };
 
         install = lib.mkOption {
           type = with lib.types; attrsOf installType;
-          default = { };
+          default = {};
         };
 
         generateScript = lib.mkOption {
           type = with lib.types; str;
-          apply = f:
-            let
-              relEncryptedFolder = lib.last (builtins.split "-" (toString config.secrets.encryptedRoot));
-              scripts = lib.concatStringsSep "\n" (lib.mapAttrsToList
-                (name: value:
-                  let
-                    script = pkgs.writeBashBinChecked name ''
-                      ## ${name}
+          apply = f: let
+            relEncryptedFolder = lib.last (builtins.split "-" (toString config.secrets.encryptedRoot));
+            scripts = lib.concatStringsSep "\n" (lib.mapAttrsToList
+              (name: value: let
+                script = pkgs.writeBashBinChecked name ''
+                  ## ${name}
 
-                      set -euo pipefail
+                  set -euo pipefail
 
-                      ${value}
-                    '';
-                  in "${script}/bin/${name}") config.secrets.generate);
-            in pkgs.writeBashBinChecked "generate-secrets" ''
+                  ${value}
+                '';
+              in "${script}/bin/${name}")
+              config.secrets.generate);
+          in
+            pkgs.writeBashBinChecked "generate-secrets" ''
               export PATH="$PATH:${
-                lib.makeBinPath (with pkgs; [ utillinux git ])
+                lib.makeBinPath (with pkgs; [utillinux git])
               }"
 
               (flock -w 30 9 || exit 1
@@ -100,12 +103,13 @@ let
 in {
   options = {
     secrets = lib.mkOption {
-      default = { };
+      default = {};
       type = with lib.types; secretType;
     };
   };
 
-  config.systemd.services = lib.flip lib.mapAttrs' config.secrets.install
+  config.systemd.services =
+    lib.flip lib.mapAttrs' config.secrets.install
     (name: cfg:
       lib.nameValuePair "secret-${name}" {
         wantedBy = [
@@ -122,7 +126,7 @@ in {
           WorkingDirectory = "/run/keys";
         };
 
-        path = with pkgs; [ sops coreutils ] ++ cfg.extraPackages;
+        path = with pkgs; [sops coreutils] ++ cfg.extraPackages;
 
         script = ''
           set -euxo pipefail
