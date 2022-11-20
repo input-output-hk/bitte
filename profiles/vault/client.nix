@@ -62,10 +62,25 @@
         set -exuo pipefail
 
         test -f /etc/ssl/certs/.last_restart || touch -d '2020-01-01' /etc/ssl/certs/.last_restart
-        [ -f ${pkiFiles.caCertFile} ]
-        [ ${pkiFiles.certChainFile} -nt /etc/ssl/certs/.last_restart ]
-        [ ${pkiFiles.certFile} -nt /etc/ssl/certs/.last_restart ]
-        [ ${pkiFiles.keyFile} -nt /etc/ssl/certs/.last_restart ]
+        if ! [ -f ${pkiFiles.caCertFile} ]; then
+          echo "Waiting to start, restart or reload services since ${pkiFiles.caCertFile} doesn't exist yet"
+          exit 1
+        fi
+
+        if [ ${pkiFiles.certChainFile} -ot /etc/ssl/certs/.last_restart ]; then
+          echo "Waiting to start, restart or reload services since ${pkiFiles.certChainFile} is still older than the last restart"
+          exit 1
+        fi
+
+        if [ ${pkiFiles.certFile} -ot /etc/ssl/certs/.last_restart ]; then
+          echo "Waiting to start, restart or reload services since ${pkiFiles.certFile} is still older than the last restart"
+          exit 1
+        fi
+
+        if [ ${pkiFiles.keyFile} -ot /etc/ssl/certs/.last_restart ]; then
+          echo "Waiting to start, restart or reload services since ${pkiFiles.keyFile} is still older than the last restart"
+          exit 1
+        fi
 
         if systemctl is-enabled consul.service &> /dev/null; then
           systemctl try-reload-or-restart consul.service
