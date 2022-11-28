@@ -76,7 +76,7 @@ in {
     resource.consul_acl_policy =
       __mapAttrs (name: v: {
         inherit name;
-        rules = __toJSON (lib.filterAttrs (n: v: n != "vaultConsulSecretBackendRole") consulPolicies.${name});
+        rules = __toJSON (builtins.removeAttrs consulPolicies.${name} ["vaultConsulSecretBackendRole"]);
       })
       consulPolicies;
 
