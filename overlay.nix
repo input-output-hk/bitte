@@ -66,7 +66,7 @@ in
     traefik = pkgsUnstable.${prev.system}.callPackage ./pkgs/traefik.nix {buildGoModule = pkgsUnstable.${prev.system}.buildGo118Module;};
     vault-backend = final.callPackage ./pkgs/vault-backend.nix {};
     vault-bin = prev.callPackage ./pkgs/vault-bin.nix {};
-    victoriametrics = prev.callPackage ./pkgs/victoriametrics.nix {buildGoModule = prev.buildGo117Module;};
+    victoriametrics = pkgsUnstable.${prev.system}.callPackage ./pkgs/victoriametrics.nix {buildGoModule = pkgsUnstable.${prev.system}.buildGo119Module;};
 
     scaler-guard = let
       deps = with final; [awscli2 bash curl jq nomad];

@@ -62,6 +62,7 @@ in {
         rules_hcl = __toJSON nomadPolicies.${name};
       })
       nomadPolicies;
+
     # ... also create associated vault roles
     resource.vault_generic_endpoint =
       __mapAttrs (name: v: {
@@ -75,9 +76,10 @@ in {
     resource.consul_acl_policy =
       __mapAttrs (name: v: {
         inherit name;
-        rules = __toJSON consulPolicies.${name};
+        rules = __toJSON (builtins.removeAttrs consulPolicies.${name} ["vaultConsulSecretBackendRole"]);
       })
       consulPolicies;
+
     # ... also create associated consul roles
     resource.consul_acl_role =
       __mapAttrs (name: v: {
@@ -85,14 +87,37 @@ in {
         policies = [(id "consul_acl_policy.${name}")];
       })
       consulPolicies;
+
     # ... also create associated vault consul roles
-    resource.vault_consul_secret_backend_role =
-      __mapAttrs (name: v: {
+    resource.vault_consul_secret_backend_role = __mapAttrs (name: v:
+      {
         inherit name;
         backend = "consul";
+
+        # Move from a default token ttl and max_ttl of 32 days via vault system max_ttl_lease to 12 day default.
+        # This allows for a tighter feedback loop on application token rotation, but still also allows
+        # 2 - 3 days lag between attempted rotation at 75 - 80% TTL utilization and token expiration,
+        # which will prevent rotation attempts failing on a Friday evening from having an impact until
+        # working hours Monday.
+        #
+        # Ttl remains matched to max_ttl so that scripts handling token rotation do not need to add
+        # additional renewal logic complexity.
+        ttl = toString (12 * 86400);
+        max_ttl = toString (12 * 86400);
         policies = [name];
-      })
-      consulPolicies;
+
+        # Allow a per policy vault role attribute override.
+        # Example: extra short ttl for fast app rotation testing could customize ttl and max_ttl
+        # in the hydration profile with:
+        #
+        #   locals.policies.consul.$ROLENAME.vaultConsulSecretBackendRole = {
+        #     ttl = "$EXAMPLE_SECS";
+        #     max_ttl = "$EXAMPLE_SECS";
+        #   };
+        #
+      }
+      // (v.vaultConsulSecretBackendRole or {}))
+    consulPolicies;
 
     # PKI for vault and consul roles
     resource.vault_pki_secret_backend_role = __mapAttrs (name: _: {
