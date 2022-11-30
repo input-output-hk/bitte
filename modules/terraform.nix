@@ -19,9 +19,9 @@
 
   relEncryptedFolder = let
     path = with config;
-      if (cluster.infraType == "aws")
-      then secrets.encryptedRoot
-      else age.encryptedRoot;
+      if (cluster.infraType == "prem")
+      then age.encryptedRoot
+      else secrets.encryptedRoot;
   in
     lib.last (builtins.split "/nix/store/.{32}-" (toString path));
 
@@ -657,7 +657,9 @@
               Statement = [
                 {
                   Effect = this.config.effect;
-                  Principal.Service = this.config.principal.service;
+                  Principal =
+                    lib.optionalAttrs (this.config.principal.service != []) {Service = this.config.principal.service;}
+                    // lib.optionalAttrs (this.config.principal.AWS != []) {AWS = this.config.principal.AWS;};
                   Action = this.config.action;
                   Sid = "";
                 }
@@ -679,7 +681,16 @@
 
   iamRolePrincipalsType = with lib.types;
     submodule {
-      options = {service = lib.mkOption {type = with lib.types; str;};};
+      options = {
+        service = lib.mkOption {
+          type = with lib.types; listOf str;
+          default = [];
+        };
+        AWS = lib.mkOption {
+          type = with lib.types; listOf str;
+          default = [];
+        };
+      };
     };
 
   initialVaultSecretsType = with lib.types;
