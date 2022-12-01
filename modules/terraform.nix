@@ -9,7 +9,7 @@
   bittelib,
   ...
 } @ _protoArgs: let
-  inherit (terralib) var id regions awsProviderFor amis;
+  inherit (terralib) var id regions awsProviderFor amis sshArgs;
   inherit (bittelib) net physicalSpec;
 
   kms2region = kms:
@@ -143,8 +143,7 @@
     systemd-run --unit=nixos-init $_
   '';
 
-  sshArgs = "-C -oConnectTimeout=5 -oUserKnownHostsFile=/dev/null -oNumberOfPasswordPrompts=0 -oServerAliveInterval=60 -oControlPersist=600 -oStrictHostKeyChecking=no -i ./secrets/ssh-${cfg.name}";
-  ssh = "ssh ${sshArgs}";
+  ssh = "ssh ${sshArgs} -i ./secrets/ssh-${cfg.name}";
 
   localProvisionerDefaultCommand = pkgs.writeShellApplication {
     name = "local-provisioner-default-command";

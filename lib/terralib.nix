@@ -32,6 +32,9 @@ in rec {
 
   nullRoute = nullRoute' // {destination_ipv6_cidr_block = null;};
 
+  # Common ssh args used in TF provisioning scripts
+  sshArgs = "-C -oConnectTimeout=5 -oUserKnownHostsFile=/dev/null -oNumberOfPasswordPrompts=0 -oServerAliveInterval=60 -oControlPersist=600 -oStrictHostKeyChecking=no";
+
   aws = {
     # asgVpcs returns a vpc attr struct when provided config.cluster.
     # Example attr struct:
