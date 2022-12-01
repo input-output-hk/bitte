@@ -45,6 +45,14 @@
         must be "awsExt".
       '');
 
+  relEncryptedFolder = let
+    path = with config;
+      if (cluster.infraType == "prem")
+      then age.encryptedRoot
+      else secrets.encryptedRoot;
+  in
+    lib.last (builtins.split "/nix/store/.{32}-" (toString path));
+
   awsExtNodesEquinix = filterAttrs (_: v: v ? "equinix") config.cluster.awsExtNodes;
 
   projects = unique (mapAttrsToList (_: v: v.equinix.project) awsExtNodesEquinix);
@@ -66,15 +74,14 @@ in {
 
         **************************************************************************
 
-        Equinix TF Requirements:
+        Equinix TF Pre-provisioning Requirements:
 
         1) The equinix TF provider requires an Equinix metal API token obtained by
         out of band methods (ex: equinix metal console) to be exported in your
         shell as METAL_AUTH_TOKEN.
 
-        2) A sops encrypted file of ''${config.secrets.encryptedRoot}/equinix.json
-        consisting of a json set of project name keys to id values that needs to be
-        available:
+        2) A sops encrypted file consisting of a json set of project name keys to
+        id values needs to be available.  Example format is:
 
         {
           "<project1>": "<project1Id>",
@@ -83,7 +90,36 @@ in {
         }
 
         The `project` name will then be passed in the metal awsExtNodes machine
-        definition to be utilized by the equinix TF provider.
+        definition to be utilized by the equinix TF provider.  The expected file
+        path is:
+
+        ${relEncryptedFolder}/equinix.json
+
+
+        --------------------------------------------------------------------------
+
+
+        Equinix TF Post-provisioning Requirements:
+
+        1) The publicIP of the Equinix machine is not known prior to provisioning
+        and must be updated in the awsExt node declaration when provisioning
+        completes and before any additional deployments from a local deployer are
+        done.
+
+        2) During the provisioning process, Equinix machine specific configuration
+        files are retrieved and placed in the local repo.  These config files need
+        to be included in the nixosConfiguration modules or any subsequent
+        deployment will likely break the machine by rendering it network
+        inaccessible.  By default, these files will be placed at:
+
+        ${relEncryptedFolder}/../equinix/$AWSEXT_NODE_NAME
+
+        3) Keeping an encrypted ssh config.d drop in file up to date for Equinix
+        provisioned machines which others can utilize is good practice since
+        these machines currently do not utilize the bitte cli.
+
+        ${relEncryptedFolder}/equinix-${config.cluster.name}-ssh.conf
+
         **************************************************************************
       ''
       pkgs.terraform-provider-versions;
@@ -155,6 +191,57 @@ in {
                 project_ssh_key_ids = [(var "equinix_metal_project_ssh_key.${config.cluster.name}-awsExt-${project}.id")];
 
                 lifecycle = [{ignore_changes = ["user_data"];}];
+                provisioner = let
+                  publicIP = var "self.access_public_ipv4";
+                in [
+                  {
+                    local-exec = {
+                      command = "${
+                        self.nixosConfigurations."${config.cluster.name}-${name}".config.secrets.generateScript
+                      }/bin/generate-secrets";
+                    };
+                  }
+                  {
+                    local-exec = let
+                      sshArgs = "-C -oConnectTimeout=5 -oUserKnownHostsFile=/dev/null -oNumberOfPasswordPrompts=0 -oServerAliveInterval=60 -oControlPersist=600 -oStrictHostKeyChecking=no -i ./secrets/ssh-${config.cluster.name}";
+                      ssh = "ssh ${sshArgs}";
+                      command = pkgs.writeShellApplication {
+                        name = "awsExt-provision";
+                        runtimeInputs = with pkgs; [
+                          coreutils
+                          gitMinimal
+                          openssh
+                          rsync
+                          sops
+                        ];
+                        text = ''
+                          ip="''${1?Must provide IP}"
+                          ssh_target="root@$ip"
+                          echo Waiting for host to become ready ...
+                          until ${ssh} "$ssh_target" -- uptime &>/dev/null; do
+                            sleep 1
+                          done
+
+                          echo Pulling equinix machine config...
+                          rsync -a -e "${ssh}" "root@$ip:/etc/nixos/*" "$(realpath ${relEncryptedFolder}/../equinix/${name})/"
+                          git add "$(realpath ${relEncryptedFolder}/../equinix/${name})/"
+
+                          echo Pushing awsExt enablement...
+                          CONFIG=$(sops -d ${relEncryptedFolder}/awsExt-config)
+                          CREDENTIALS=$(sops -d ${relEncryptedFolder}/awsExt-credentials)
+                          CMD1="mkdir -p /etc/aws /root/.aws; echo \"$CONFIG\" > /etc/aws/config; echo \"$CREDENTIALS\" > /etc/aws/credentials"
+                          CMD2="cp /etc/aws/* /root/.aws/; chmod 0700 /root/.aws; chmod 0600 /root/.aws/credentials"
+                          ${ssh} "$ssh_target" -- "$CMD1; $CMD2"
+
+                          echo "Provisioning complete.  Public IP is: $ip"
+                        '';
+                      };
+                    in {
+                      command = "${command}/bin/${command.name} ${publicIP}";
+                      interpreter = ["${pkgs.bash}/bin/bash" "-c"];
+                    };
+                  }
+                ];
               })
             ]
       )
