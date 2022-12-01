@@ -10,7 +10,7 @@
     (terralib)
     var
     id
-    pp
+    sshArgs
     regions
     awsProviderNameFor
     awsProviderFor
@@ -203,8 +203,7 @@ in {
                   }
                   {
                     local-exec = let
-                      sshArgs = "-C -oConnectTimeout=5 -oUserKnownHostsFile=/dev/null -oNumberOfPasswordPrompts=0 -oServerAliveInterval=60 -oControlPersist=600 -oStrictHostKeyChecking=no -i ./secrets/ssh-${config.cluster.name}";
-                      ssh = "ssh ${sshArgs}";
+                      ssh = "ssh ${sshArgs} -i ./secrets/ssh-${config.cluster.name}";
                       command = pkgs.writeShellApplication {
                         name = "awsExt-provision";
                         runtimeInputs = with pkgs; [

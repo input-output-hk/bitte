@@ -1,3 +1,5 @@
+# A library file used to store physical machine spec configuration which
+# will be potentially re-used across a number of clusters.
 {lib, ...}: {
   _file = ./physical-spec.nix;
   equinix = let

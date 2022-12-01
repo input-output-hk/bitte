@@ -33,6 +33,8 @@
         must be either "aws", "awsExt" or "premSim".
       '');
 
+  isAwsExt = infraType == "awsExt";
+
   relEncryptedFolder = let
     path = with config;
       if (cluster.infraType == "prem")
@@ -422,12 +424,13 @@ in {
 
     # ---------------------------------------------------------------
     # awsExt infraType additional required resources
-    # (see also:
-    #   cluster.iam.roles.core.assumeRole in aws_policies.nix
-    # )
+    #
+    # See also the following in aws_policies.nix for TF policy hooks:
+    #   cluster.iam.roles.client.assumePolicy
+    #   cluster.iam.roles.core.assumeRole
     # ---------------------------------------------------------------
 
-    resource.aws_iam_user.awsExtBitteSystem = lib.mkIf (infraType == "awsExt") {
+    resource.aws_iam_user.awsExtBitteSystem = lib.mkIf isAwsExt {
       name = "awsExt-bitte-system";
       tags = tags // {InfraType = "awsExt";};
       provisioner.local-exec = let
@@ -446,24 +449,24 @@ in {
       };
     };
 
-    output.aws_iam_user-awsExtBitteSystem-id = lib.mkIf (infraType == "awsExt") {
+    output.aws_iam_user-awsExtBitteSystem-id = lib.mkIf isAwsExt {
       value = id "aws_iam_access_key.awsExtBitteSystem";
       sensitive = true;
       depends_on = ["aws_iam_user.awsExtBitteSystem"];
     };
 
-    output.aws_iam_user-awsExtBitteSystem-secret = lib.mkIf (infraType == "awsExt") {
+    output.aws_iam_user-awsExtBitteSystem-secret = lib.mkIf isAwsExt {
       value = var "aws_iam_access_key.awsExtBitteSystem.secret";
       sensitive = true;
       depends_on = ["aws_iam_user.awsExtBitteSystem"];
     };
 
-    resource.aws_iam_access_key.awsExtBitteSystem = lib.mkIf (infraType == "awsExt") {
+    resource.aws_iam_access_key.awsExtBitteSystem = lib.mkIf isAwsExt {
       user = var "aws_iam_user.awsExtBitteSystem.name";
       depends_on = ["aws_iam_user.awsExtBitteSystem"];
     };
 
-    resource.aws_iam_user_policy.awsExtBitteAssumeClient = lib.mkIf (infraType == "awsExt") {
+    resource.aws_iam_user_policy.awsExtBitteAssumeClient = lib.mkIf isAwsExt {
       name = "awsExt-bitte-assume-client";
       user = id "aws_iam_user.awsExtBitteSystem";
       policy = builtins.toJSON {
