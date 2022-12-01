@@ -215,7 +215,7 @@ in {
         };
 
         vaultClientRoleBoundPrincipalArn =
-          if (infraType == "awsExt")
+          if infraType == "awsExt"
           then "$arn:role/core-${config.cluster.name}-client,$arn:user/awsExt-bitte-system"
           else "$arn:role/core-${config.cluster.name}-client";
       in ''
@@ -251,7 +251,7 @@ in {
 
           vault write auth/aws/role/${config.cluster.name}-client \
             auth_type=iam \
-            bound_iam_principal_arn=${vaultClientRoleBoundPrincipalArn} \
+            bound_iam_principal_arn="${vaultClientRoleBoundPrincipalArn}" \
             policies=default,client,nomad-server \
             period=24h || true # only available after 'tf.clients.apply'
 

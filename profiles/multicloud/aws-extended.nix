@@ -1,11 +1,4 @@
-{
-  config,
-  lib,
-  pkgs,
-  nodeName,
-  pkiFiles,
-  ...
-}: let
+{lib, ...}: let
   Imports = {imports = [];};
 
   Switches = {};
@@ -21,7 +14,7 @@
       export AWS_SHARED_CREDENTIALS_FILE="/etc/aws/credentials"
     '';
   in {
-    # Get sops working in systemd awsExt
+    # Get sops secret decrypt service working in an awsExt environment.
     secrets.install = {
       certs.preScript = awsExtCredsShell;
       consul-server.preScript = awsExtCredsShell;
@@ -29,7 +22,7 @@
       nomad-server.preScript = awsExtCredsShell;
     };
 
-    # Get vault-agent working in systemd awsExt
+    # Get misc systemd services working in an awsExt environment.
     systemd.services = {
       consul.environment = awsExtCredsAttrs;
       vault-agent.environment = awsExtCredsAttrs;

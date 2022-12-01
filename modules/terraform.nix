@@ -19,9 +19,9 @@
 
   relEncryptedFolder = let
     path = with config;
-      if (cluster.infraType == "prem")
-      then age.encryptedRoot
-      else secrets.encryptedRoot;
+      if builtins.elem cluster.infraType ["aws" "awsExt"]
+      then secrets.encryptedRoot
+      else age.encryptedRoot;
   in
     lib.last (builtins.split "/nix/store/.{32}-" (toString path));
 

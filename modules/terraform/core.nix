@@ -37,9 +37,9 @@
 
   relEncryptedFolder = let
     path = with config;
-      if (cluster.infraType == "prem")
-      then age.encryptedRoot
-      else secrets.encryptedRoot;
+      if builtins.elem cluster.infraType ["aws" "awsExt"]
+      then secrets.encryptedRoot
+      else age.encryptedRoot;
   in
     lib.last (builtins.split "/nix/store/.{32}-" (toString path));
 in {
@@ -241,7 +241,7 @@ in {
         name = "core-${client.uid}";
         assume_role_policy = client.assumePolicy.tfJson;
         lifecycle = [{create_before_destroy = true;}];
-        depends_on = lib.mkIf (infraType == "awsExt") ["aws_iam_user.awsExtBitteSystem"];
+        depends_on = lib.mkIf isAwsExt ["aws_iam_user.awsExtBitteSystem"];
       };
       "${core.uid}" = {
         name = core.uid;
