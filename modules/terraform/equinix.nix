@@ -47,9 +47,9 @@
 
   relEncryptedFolder = let
     path = with config;
-      if (cluster.infraType == "prem")
-      then age.encryptedRoot
-      else secrets.encryptedRoot;
+      if builtins.elem cluster.infraType ["aws" "awsExt"]
+      then secrets.encryptedRoot
+      else age.encryptedRoot;
   in
     lib.last (builtins.split "/nix/store/.{32}-" (toString path));
 
@@ -77,8 +77,8 @@ in {
         Equinix TF Pre-provisioning Requirements:
 
         1) The equinix TF provider requires an Equinix metal API token obtained by
-        out of band methods (ex: equinix metal console) to be exported in your
-        shell as METAL_AUTH_TOKEN.
+        out of band methods (ex: project API key via equinix metal console) to be
+        exported in your shell as METAL_AUTH_TOKEN.
 
         2) A sops encrypted file consisting of a json set of project name keys to
         id values needs to be available.  Example format is:
@@ -102,23 +102,33 @@ in {
         Equinix TF Post-provisioning Requirements:
 
         1) The publicIP of the Equinix machine is not known prior to provisioning
-        and must be updated in the awsExt node declaration when provisioning
-        completes and before any additional deployments from a local deployer are
-        done.
+        and must be updated in the corresponding machine declaration once
+        provisioning completes before any additional deployments from a local
+        deployer are done.
 
         2) During the provisioning process, Equinix machine specific configuration
-        files are retrieved and placed in the local repo.  These config files need
-        to be included in the nixosConfiguration modules or any subsequent
-        deployment will likely break the machine by rendering it network
+        files are retrieved and git added to the local repo.  These config files need
+        to be included in the corresponding machine's nixosConfiguration modules,
+        otherwise, any subsequent deployment will likely break by rendering it network
         inaccessible.  By default, these files will be placed at:
 
         ${relEncryptedFolder}/../equinix/$AWSEXT_NODE_NAME
 
-        3) Keeping an encrypted ssh config.d drop in file up to date for Equinix
-        provisioned machines which others can utilize is good practice since
-        these machines currently do not utilize the bitte cli.
+        3) Keep an encrypted ssh config.d drop in file up to date for Equinix
+        provisioned machines which others can utilize.  This is good practice as
+        these Equinix machines currently do not utilize the bitte cli and are
+        deployed via direct deploy-rs, example:
+
+        deploy -s .#$CLUSTER_NAME-$MACHINE_NAME --auto-rollback false
+
+        The ssh config.d drop in file should be placed at:
 
         ${relEncryptedFolder}/equinix-${config.cluster.name}-ssh.conf
+
+        4) Once provisioned, Equinix machines will require a network overlay in
+        their module configuration to participate as normal internal Hashistack
+        clients with the main AWS cluster.   See zero trust configuration examples
+        in the world repos for more information.
 
         **************************************************************************
       ''
@@ -142,7 +152,7 @@ in {
     # SSL/TLS - root ssh
     # ---------------------------------------------------------------
 
-    # awsExt nodes shares the aws cloud keypair with each equinix project
+    # awsExt nodes share the aws cloud keypair with each equinix project
     resource.equinix_metal_project_ssh_key = mkIf (config.cluster.generateSSHKey) (foldl' (acc: project:
       acc
       // {
@@ -186,8 +196,8 @@ in {
                 tags = tags ++ ["Project:${var "jsondecode(data.sops_file.equinix-projects.raw).${project}"}"];
 
                 # When not specified, all user keys authorized to a project and all project specific keys are automatically added.
-                # Keys can only be added once as TF resources or an error is thrown, regardless of key name being unique.
-                # To avoid key collision errors, add further keys on the nix level.
+                # Keys can only be added as TF resources one time or a TF error is thrown, regardless of key name being unique.
+                # To avoid key collision errors, add further keys at the nixos module level.
                 project_ssh_key_ids = [(var "equinix_metal_project_ssh_key.${config.cluster.name}-awsExt-${project}.id")];
 
                 lifecycle = [{ignore_changes = ["user_data"];}];

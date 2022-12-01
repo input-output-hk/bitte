@@ -1,15 +1,12 @@
 {
   config,
   lib,
-  pkgs,
-  nodeName,
-  pkiFiles,
   ...
 }: let
   Imports = {imports = [];};
 
   Switches = {
-    # Required due to Equinix networkd default and wireless dhcp default
+    # Required due to Equinix networkd default and wireless dhcp default.
     networking.useDHCP = false;
   };
 
