@@ -16,14 +16,17 @@
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
   roleType = config.currentCoreNode.role or config.currentAwsAutoScalingGroup.role;
 
-  isSops = builtins.elem deployType ["aws" "awsExt"];
+  isAwsExt = deployType == "awsExt";
   isClient = roleType == "client";
+  isSops = builtins.elem deployType ["aws" "awsExt"];
 
-  sopsEncrypt = "${pkgs.sops}/bin/sops --encrypt --input-type json --kms '${config.cluster.kms}' /dev/stdin";
-
-  sopsDecrypt = path:
+  sopsEncType = type: "${pkgs.sops}/bin/sops --encrypt --input-type ${type} --kms '${config.cluster.kms}' /dev/stdin";
+  sopsDecType = type: path:
   # NB: we can't work on store paths that don't yet exist before they are generated
     assert lib.assertMsg (builtins.isString path) "sopsDecrypt: path must be a string ${toString path}"; "${pkgs.sops}/bin/sops --decrypt --input-type json ${path}";
+
+  sopsEncrypt = sopsEncType "json";
+  sopsDecrypt = path: sopsDecType "json" path;
 
   isInstance = config.currentCoreNode != null;
 
@@ -94,6 +97,40 @@
   relEncryptedFolder = lib.last (builtins.split "-" (toString config.secrets.encryptedRoot));
 in {
   environment.etc.encrypted.source = config.secrets.encryptedRoot; # etcEncrypted
+
+  secrets.generate.awsExt-config = lib.mkIf isAwsExt ''
+    export PATH="${lib.makeBinPath (with pkgs; [coreutils])}"
+
+    if [ ! -s ${relEncryptedFolder}/awsExt-config ]; then
+      read -r -d "" CONFIG <<'EOF' || true
+    [profile default]
+    region = ${config.cluster.region}
+    role_arn = arn:aws:iam::${builtins.head (builtins.match ".*:.*:.*:.*:([0-9]+):.*" config.cluster.kms)}:role/core-${config.cluster.name}-client
+    source_profile = default
+    EOF
+      echo "$CONFIG" | ${sopsEncType "binary"} > ${relEncryptedFolder}/awsExt-config
+      echo "Encrypted secret file for awsExt operations git added: ${relEncryptedFolder}/awsExt-config"
+    fi
+  '';
+
+  secrets.generate.awsExt-credentials = lib.mkIf isAwsExt ''
+    export PATH="${lib.makeBinPath (with pkgs; [coreutils gitMinimal jq sops])}"
+
+    git remote update &> /dev/null || true
+    DECRYPTED=$(git cat-file blob "origin/tf:tf/terraform-core.tfstate.enc" | sops -d /dev/stdin)
+    ID=$(jq -r '.outputs."aws_iam_user-awsExtBitteSystem-id".value' <<< "$DECRYPTED")
+    SECRET=$(jq -r '.outputs."aws_iam_user-awsExtBitteSystem-secret".value' <<< "$DECRYPTED")
+
+    if [ ! -s ${relEncryptedFolder}/awsExt-credentials ]; then
+      read -r -d "" CREDENTIALS <<EOF || true
+    [default]
+    aws_access_key_id = $ID
+    aws_secret_access_key = $SECRET
+    EOF
+      echo "$CREDENTIALS" | ${sopsEncType "binary"} > ${relEncryptedFolder}/awsExt-credentials
+      echo "Encrypted secret file for awsExt operations git added: ${relEncryptedFolder}/awsExt-credentials"
+    fi
+  '';
 
   secrets.generate.consul = lib.mkIf (isInstance && isSops) ''
     export PATH="${lib.makeBinPath (with pkgs; [consul toybox jq coreutils])}"
