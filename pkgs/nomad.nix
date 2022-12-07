@@ -1,30 +1,27 @@
 {
   lib,
-  buildGoModule,
+  buildGo119Module,
   fetchFromGitHub,
   nixosTests,
 }:
-buildGoModule rec {
+buildGo119Module rec {
   pname = "nomad";
-  version = "1.3.2";
+  version = "1.4.3";
 
   subPackages = ["."];
 
   src = fetchFromGitHub {
     owner = "hashicorp";
     repo = pname;
-    rev = "v${version}";
-    sha256 = "sha256-GJul7slXNLEp+3l3OQ43ALVH3IscoCDDL7FG2UFtLG8=";
+    rev = "release/${version}";
+    sha256 = "sha256-bk4kQSDqi4KuoPrTgbtveanc1TYUFsY9aVD0WmetjBc=";
   };
 
   patches = [
     ./nomad/nomad-exec-nix-driver.patch
-    # Addresses no nomad interpolation in connect envoy config
-    # https://github.com/hashicorp/nomad/issues/14403
-    ./nomad/nomad-interp-connect.patch
   ];
 
-  vendorSha256 = "sha256-MqtkYHGIgeCFnbwE09xHgPMuJBSVHL0hB9RbwNX+K40=";
+  vendorSha256 = "sha256-JQRpsQhq5r/QcgFwtnptmvnjBEhdCFrXFrTKkJioL3A=";
 
   # ui:
   #  Nomad release commits include the compiled version of the UI, but the file

@@ -53,7 +53,7 @@ in
 
     glusterfs = final.callPackage ./pkgs/glusterfs.nix {};
     mill = prev.callPackage ./pkgs/mill.nix {};
-    nomad = prev.callPackage ./pkgs/nomad.nix {buildGoModule = prev.buildGo117Module;};
+    nomad = nixpkgs-unstable.legacyPackages.${prev.system}.callPackage ./pkgs/nomad.nix {};
     nomad-autoscaler = prev.callPackage ./pkgs/nomad-autoscaler.nix {};
     nomad-follower = inputs.nomad-follower.defaultPackage.${prev.system};
     oauth2-proxy = final.callPackage ./pkgs/oauth2_proxy.nix {};
