@@ -43,7 +43,7 @@
   in
     lib.last (builtins.split "/nix/store/.{32}-" (toString path));
 in {
-  tf.core.configuration = lib.mkIf infraTypeCheck {
+  tf.core.configuration = lib.mkIf infraTypeCheck (lib.recursiveUpdate {
     terraform.backend = lib.mkIf (vbkBackend != "local") {
       http = let
         vbk = "${vbkBackend}/state/${config.cluster.name}/core";
@@ -241,8 +241,10 @@ in {
         name = "core-${client.uid}";
         assume_role_policy = client.assumePolicy.tfJson;
         lifecycle = [{create_before_destroy = true;}];
-        depends_on = lib.mkIf isAwsExt ["aws_iam_user.awsExtBitteSystem"];
+      } // lib.optionalAttrs isAwsExt {
+      depends_on = ["aws_iam_user.awsExtBitteSystem"];
       };
+
       "${core.uid}" = {
         name = core.uid;
         assume_role_policy = core.assumePolicy.tfJson;
@@ -422,6 +424,7 @@ in {
         )
         storageNodes);
 
+  } (lib.optionalAttrs isAwsExt {
     # ---------------------------------------------------------------
     # awsExt infraType additional required resources
     #
@@ -430,7 +433,7 @@ in {
     #   cluster.iam.roles.core.assumeRole
     # ---------------------------------------------------------------
 
-    resource.aws_iam_user.awsExtBitteSystem = lib.mkIf isAwsExt {
+    resource.aws_iam_user.awsExtBitteSystem = {
       name = "awsExt-bitte-system";
       tags = tags // {InfraType = "awsExt";};
       provisioner.local-exec = let
@@ -449,24 +452,24 @@ in {
       };
     };
 
-    output.aws_iam_user-awsExtBitteSystem-id = lib.mkIf isAwsExt {
+    output.aws_iam_user-awsExtBitteSystem-id = {
       value = id "aws_iam_access_key.awsExtBitteSystem";
       sensitive = true;
       depends_on = ["aws_iam_user.awsExtBitteSystem"];
     };
 
-    output.aws_iam_user-awsExtBitteSystem-secret = lib.mkIf isAwsExt {
+    output.aws_iam_user-awsExtBitteSystem-secret = {
       value = var "aws_iam_access_key.awsExtBitteSystem.secret";
       sensitive = true;
       depends_on = ["aws_iam_user.awsExtBitteSystem"];
     };
 
-    resource.aws_iam_access_key.awsExtBitteSystem = lib.mkIf isAwsExt {
+    resource.aws_iam_access_key.awsExtBitteSystem = {
       user = var "aws_iam_user.awsExtBitteSystem.name";
       depends_on = ["aws_iam_user.awsExtBitteSystem"];
     };
 
-    resource.aws_iam_user_policy.awsExtBitteAssumeClient = lib.mkIf isAwsExt {
+    resource.aws_iam_user_policy.awsExtBitteAssumeClient = {
       name = "awsExt-bitte-assume-client";
       user = id "aws_iam_user.awsExtBitteSystem";
       policy = builtins.toJSON {
@@ -482,11 +485,11 @@ in {
           {
             Effect = "Allow";
             Action = "sts:AssumeRole";
-            Resource = var "aws_iam_role.bitte-world-client.arn";
+            Resource = var "aws_iam_role.${config.cluster.name}-client.arn";
           }
         ];
       };
       depends_on = ["aws_iam_user.awsExtBitteSystem"];
     };
-  };
+  }));
 }

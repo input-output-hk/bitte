@@ -153,7 +153,7 @@ in {
     # ---------------------------------------------------------------
 
     # awsExt nodes share the aws cloud keypair with each equinix project
-    resource.equinix_metal_project_ssh_key = mkIf (config.cluster.generateSSHKey) (foldl' (acc: project:
+    resource.equinix_metal_project_ssh_key = mkIf (awsExtNodesEquinix != {} && config.cluster.generateSSHKey) (foldl' (acc: project:
       acc
       // {
         "${config.cluster.name}-awsExt-${project}" = {
@@ -232,6 +232,7 @@ in {
                           done
 
                           echo Pulling equinix machine config...
+                          mkdir -p "${relEncryptedFolder}/../equinix/${name}"
                           rsync -a -e "${ssh}" "root@$ip:/etc/nixos/*" "$(realpath ${relEncryptedFolder}/../equinix/${name})/"
                           git add "$(realpath ${relEncryptedFolder}/../equinix/${name})/"
 
