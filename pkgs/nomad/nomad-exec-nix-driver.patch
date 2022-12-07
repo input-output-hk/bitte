@@ -1,8 +1,8 @@
-diff --git c/client/allocrunner/taskrunner/nix_hook.go i/client/allocrunner/taskrunner/nix_hook.go
+diff --git a/client/allocrunner/taskrunner/nix_hook.go b/client/allocrunner/taskrunner/nix_hook.go
 new file mode 100644
-index 000000000..fab111d6f
+index 0000000000..fab111d6fa
 --- /dev/null
-+++ i/client/allocrunner/taskrunner/nix_hook.go
++++ b/client/allocrunner/taskrunner/nix_hook.go
 @@ -0,0 +1,295 @@
 +package taskrunner
 +
@@ -299,11 +299,11 @@ index 000000000..fab111d6f
 +		return append(splitPath(dir), base)
 +	}
 +}
-diff --git c/client/allocrunner/taskrunner/task_runner_hooks.go i/client/allocrunner/taskrunner/task_runner_hooks.go
-index 0789dd184..8a0303a82 100644
---- c/client/allocrunner/taskrunner/task_runner_hooks.go
-+++ i/client/allocrunner/taskrunner/task_runner_hooks.go
-@@ -82,6 +82,8 @@ func (tr *TaskRunner) initHooks() {
+diff --git a/client/allocrunner/taskrunner/task_runner_hooks.go b/client/allocrunner/taskrunner/task_runner_hooks.go
+index 089e834d71..0c2ac3504c 100644
+--- a/client/allocrunner/taskrunner/task_runner_hooks.go
++++ b/client/allocrunner/taskrunner/task_runner_hooks.go
+@@ -83,6 +83,8 @@ func (tr *TaskRunner) initHooks() {
  			}))
  	}
  
@@ -312,25 +312,230 @@ index 0789dd184..8a0303a82 100644
  	// If Vault is enabled, add the hook
  	if task.Vault != nil {
  		tr.runnerHooks = append(tr.runnerHooks, newVaultHook(&vaultHookConfig{
-diff --git c/drivers/exec/driver.go i/drivers/exec/driver.go
-index eff9627ea..a2bd5794d 100644
---- c/drivers/exec/driver.go
-+++ i/drivers/exec/driver.go
-@@ -89,6 +89,9 @@ var (
- 		"ipc_mode": hclspec.NewAttr("ipc_mode", "string", false),
- 		"cap_add":  hclspec.NewAttr("cap_add", "list(string)", false),
- 		"cap_drop": hclspec.NewAttr("cap_drop", "list(string)", false),
-+		"flake":      hclspec.NewAttr("flake", "string", false),
-+		"flake_args": hclspec.NewAttr("flake_args", "list(string)", false),
-+		"flake_deps": hclspec.NewAttr("flake_deps", "list(string)", false),
+diff --git a/drivers/exec/driver.go b/drivers/exec/driver.go
+index f035d1568d..2a3468a7eb 100644
+--- a/drivers/exec/driver.go
++++ b/drivers/exec/driver.go
+@@ -83,12 +83,16 @@ var (
+ 	// taskConfigSpec is the hcl specification for the driver config section of
+ 	// a task within a job. It is returned in the TaskConfigSchema RPC
+ 	taskConfigSpec = hclspec.NewObject(map[string]*hclspec.Spec{
+-		"command":  hclspec.NewAttr("command", "string", true),
+-		"args":     hclspec.NewAttr("args", "list(string)", false),
+-		"pid_mode": hclspec.NewAttr("pid_mode", "string", false),
+-		"ipc_mode": hclspec.NewAttr("ipc_mode", "string", false),
+-		"cap_add":  hclspec.NewAttr("cap_add", "list(string)", false),
+-		"cap_drop": hclspec.NewAttr("cap_drop", "list(string)", false),
++		"command":     hclspec.NewAttr("command", "string", true),
++		"args":        hclspec.NewAttr("args", "list(string)", false),
++		"pid_mode":    hclspec.NewAttr("pid_mode", "string", false),
++		"ipc_mode":    hclspec.NewAttr("ipc_mode", "string", false),
++		"cap_add":     hclspec.NewAttr("cap_add", "list(string)", false),
++		"cap_drop":    hclspec.NewAttr("cap_drop", "list(string)", false),
++		"flake":       hclspec.NewAttr("flake", "string", false),
++		"flake_args":  hclspec.NewAttr("flake_args", "list(string)", false),
++		"flake_deps":  hclspec.NewAttr("flake_deps", "list(string)", false),
++		"store_paths": hclspec.NewAttr("store_paths", "list(string)", false),
  	})
  
  	// driverCapabilities represents the RPC response for what features are
-@@ -195,6 +198,7 @@ type TaskConfig struct {
+@@ -195,6 +199,11 @@ type TaskConfig struct {
  
  	// CapDrop is a set of linux capabilities to disable.
  	CapDrop []string `codec:"cap_drop"`
-+	Flake   *string `codec:"flake"`
++
++	Flake      *string `codec:"flake"`
++	FlakeArgs  *string `codec:"flake_args"`
++	FlakeDeps  *string `codec:"flake_deps"`
++	StorePaths *string `codec:"store_paths"`
  }
  
  func (tc *TaskConfig) validate() error {
+diff --git a/flake.lock b/flake.lock
+new file mode 100644
+index 0000000000..40ee5c9324
+--- /dev/null
++++ b/flake.lock
+@@ -0,0 +1,110 @@
++{
++  "nodes": {
++    "lowdown-src": {
++      "flake": false,
++      "locked": {
++        "lastModified": 1598695561,
++        "narHash": "sha256-gyH/5j+h/nWw0W8AcR2WKvNBUsiQ7QuxqSJNXAwV+8E=",
++        "owner": "kristapsdz",
++        "repo": "lowdown",
++        "rev": "1705b4a26fbf065d9574dce47a94e8c7c79e052f",
++        "type": "github"
++      },
++      "original": {
++        "owner": "kristapsdz",
++        "repo": "lowdown",
++        "type": "github"
++      }
++    },
++    "nix": {
++      "inputs": {
++        "lowdown-src": "lowdown-src",
++        "nixpkgs": "nixpkgs",
++        "nixpkgs-regression": "nixpkgs-regression"
++      },
++      "locked": {
++        "lastModified": 1663261928,
++        "narHash": "sha256-oQOuN2oeph4ScDGhPuJdmtuVZOBYitGKYTK5Px7DpxU=",
++        "path": "/nix/store/lzmaymi4czq2kk271ixaxi474jvs422n-source",
++        "rev": "567636cce8a6a55e0933ecebb081a80da2a5bd45",
++        "type": "path"
++      },
++      "original": {
++        "id": "nix",
++        "type": "indirect"
++      }
++    },
++    "nixpkgs": {
++      "locked": {
++        "lastModified": 1670363342,
++        "narHash": "sha256-VCleVeiToASAEb3gcjqVA8MckPAME6y+27QApquGT8k=",
++        "owner": "NixOS",
++        "repo": "nixpkgs",
++        "rev": "d881cf9fd64218a99a64a8bdae1272c3f94daea7",
++        "type": "github"
++      },
++      "original": {
++        "owner": "NixOS",
++        "ref": "nixos-22.05-small",
++        "repo": "nixpkgs",
++        "type": "github"
++      }
++    },
++    "nixpkgs-regression": {
++      "locked": {
++        "lastModified": 1643052045,
++        "narHash": "sha256-uGJ0VXIhWKGXxkeNnq4TvV3CIOkUJ3PAoLZ3HMzNVMw=",
++        "owner": "NixOS",
++        "repo": "nixpkgs",
++        "rev": "215d4d0fd80ca5163643b03a33fde804a29cc1e2",
++        "type": "github"
++      },
++      "original": {
++        "owner": "NixOS",
++        "repo": "nixpkgs",
++        "rev": "215d4d0fd80ca5163643b03a33fde804a29cc1e2",
++        "type": "github"
++      }
++    },
++    "nixpkgs_2": {
++      "locked": {
++        "lastModified": 1670276674,
++        "narHash": "sha256-FqZ7b2RpoHQ/jlG6JPcCNmG/DoUPCIvyaropUDFhF3Q=",
++        "owner": "NixOS",
++        "repo": "nixpkgs",
++        "rev": "52e3e80afff4b16ccb7c52e9f0f5220552f03d04",
++        "type": "github"
++      },
++      "original": {
++        "owner": "NixOS",
++        "ref": "nixos-22.11",
++        "repo": "nixpkgs",
++        "type": "github"
++      }
++    },
++    "root": {
++      "inputs": {
++        "nix": "nix",
++        "nixpkgs": "nixpkgs_2",
++        "utils": "utils"
++      }
++    },
++    "utils": {
++      "locked": {
++        "lastModified": 1601282935,
++        "narHash": "sha256-WQAFV6sGGQxrRs3a+/Yj9xUYvhTpukQJIcMbIi7LCJ4=",
++        "owner": "numtide",
++        "repo": "flake-utils",
++        "rev": "588973065fce51f4763287f0fda87a174d78bf48",
++        "type": "github"
++      },
++      "original": {
++        "owner": "numtide",
++        "repo": "flake-utils",
++        "type": "github"
++      }
++    }
++  },
++  "root": "root",
++  "version": 7
++}
+diff --git a/flake.nix b/flake.nix
+new file mode 100644
+index 0000000000..618d64b7cf
+--- /dev/null
++++ b/flake.nix
+@@ -0,0 +1,66 @@
++{
++  description = "Flake for Nomad";
++
++  inputs = {
++    nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.11";
++    utils.url = "github:numtide/flake-utils";
++  };
++
++  outputs = {
++    self,
++    nixpkgs,
++    utils,
++    nix,
++  }: (utils.lib.eachSystem ["x86_64-linux" "x86_64-darwin"] (system: let
++    overlay = final: prev: {
++      go = prev.go_1_19;
++      nomad = final.buildGoModule {
++        pname = "nomad";
++        version = "1.4.3";
++
++        subPackages = ["."];
++
++        src = ./.;
++
++        vendorSha256 = "sha256-JQRpsQhq5r/QcgFwtnptmvnjBEhdCFrXFrTKkJioL3A=";
++
++        # ui:
++        #  Nomad release commits include the compiled version of the UI, but the file
++        #  is only included if we build with the ui tag.
++        # nonvidia:
++        #  We disable Nvidia GPU scheduling on Linux, as it doesn't work there:
++        #  Ref: https://github.com/hashicorp/nomad/issues/5535
++        preBuild = let
++          tags = ["ui"] ++ prev.lib.optional prev.stdenv.isLinux "nonvidia";
++          tagsString = prev.lib.concatStringsSep " " tags;
++        in ''
++          export buildFlagsArray=(
++            -tags="${tagsString}"
++          )
++        '';
++
++        meta = with prev.lib; {
++          homepage = "https://www.nomadproject.io/";
++          description = "A Distributed, Highly Available, Datacenter-Aware Scheduler";
++          platforms = platforms.unix;
++          license = licenses.mpl20;
++          maintainers = with maintainers; [manveru];
++        };
++      };
++    };
++
++    pkgs = import nixpkgs {
++      inherit system;
++      overlays = [overlay];
++    };
++  in {
++    inherit overlay;
++
++    packages = {inherit (pkgs) nomad;};
++    defaultPackage = pkgs.nomad;
++
++    devShell = pkgs.mkShell {
++      buildInputs = with pkgs; [go gotools gopls gocode];
++    };
++  }));
++}
