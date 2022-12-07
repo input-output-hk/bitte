@@ -1188,7 +1188,7 @@
 
           plan = lib.mkOption {
             type = with lib.types; str;
-            default = "c3.small.x86";
+            default = "m3.small.x86";
             description = ''
               The device plan slug. To find the plan slug, visit Device plans API docs, set your auth
               token in the top of the page and see JSON from the API response.
