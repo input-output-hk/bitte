@@ -4,12 +4,20 @@
   pkgs,
   ...
 }: let
+  deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+
   installType = with lib.types;
     submodule {
       options = {
         preScript = lib.mkOption {
           type = with lib.types; str;
-          default = "";
+          default =
+            if deployType == "awsExt"
+            then ''
+              export AWS_CONFIG_FILE="/etc/aws/config"
+              export AWS_SHARED_CREDENTIALS_FILE="/etc/aws/credentials"
+            ''
+            else "";
           description = ''
             Shell script that is injected immediately after shebang and set script header lines.
           '';
