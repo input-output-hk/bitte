@@ -81,8 +81,16 @@ in
 
     ssh-keys = let
       keys = import (ops-lib + "/overlays/ssh-keys.nix") lib;
-      inherit (keys) allKeysFrom devOps;
-    in {devOps = allKeysFrom devOps;};
+      inherit (keys) allKeysFrom devOps csl-developers plutus-developers remoteBuilderKeys;
+    in {
+      devOps = allKeysFrom devOps;
+      ciInfra = allKeysFrom devOps ++ allKeysFrom {inherit (csl-developers) angerman;};
+      buildSlaveKeys = {
+        macos = allKeysFrom devOps ++ allKeysFrom remoteBuilderKeys;
+        linux = remoteBuilderKeys.hydraBuildFarm;
+      };
+      plutus-developers = allKeysFrom plutus-developers;
+    };
 
     toPrettyJSON = final.callPackage ./pkgs/to-pretty-json.nix {};
 
