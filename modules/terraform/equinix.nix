@@ -203,6 +203,7 @@ in {
                 lifecycle = [{ignore_changes = ["user_data"];}];
                 provisioner = let
                   publicIP = var "self.access_public_ipv4";
+                  privateIP = var "self.access_private_ipv4";
                 in [
                   {
                     local-exec = {
@@ -225,6 +226,7 @@ in {
                         ];
                         text = ''
                           ip="''${1?Must provide IP}"
+                          private_ip="''${2?Must provide private IP}"
                           ssh_target="root@$ip"
                           echo Waiting for host to become ready ...
                           until ${ssh} "$ssh_target" -- uptime &>/dev/null; do
@@ -243,11 +245,13 @@ in {
                           CMD2="cp /etc/aws/* /root/.aws/; chmod 0700 /root/.aws; chmod 0600 /root/.aws/credentials"
                           ${ssh} "$ssh_target" -- "$CMD1; $CMD2"
 
-                          echo "Provisioning complete.  Public IP is: $ip"
+                          echo "Provisioning complete:"
+                          echo "Public IP is: $ip"
+                          echo "Private IP is: $private_ip"
                         '';
                       };
                     in {
-                      command = "${command}/bin/${command.name} ${publicIP}";
+                      command = "${command}/bin/${command.name} ${publicIP} ${privateIP}";
                       interpreter = ["${pkgs.bash}/bin/bash" "-c"];
                     };
                   }
