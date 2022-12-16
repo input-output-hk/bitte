@@ -29,7 +29,8 @@ in {
 
   # Maintain backward compat for the aws machines otherwise derive from hostname.
   # Also mkDefault, so machines which receive their own ZFS tied hostID during prov keep that.
-  networking.hostId = if (deployType == "aws")
+  networking.hostId =
+    if (deployType == "aws")
     then "9474d585"
     else
       (lib.mkDefault (lib.fileContents (pkgs.runCommand "hostId" {} ''
