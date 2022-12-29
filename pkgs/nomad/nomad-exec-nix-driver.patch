@@ -1,9 +1,9 @@
 diff --git a/client/allocrunner/taskrunner/nix_hook.go b/client/allocrunner/taskrunner/nix_hook.go
 new file mode 100644
-index 000000000..c06723241
+index 000000000..472149beb
 --- /dev/null
 +++ b/client/allocrunner/taskrunner/nix_hook.go
-@@ -0,0 +1,323 @@
+@@ -0,0 +1,290 @@
 +package taskrunner
 +
 +import (
@@ -28,7 +28,7 @@ index 000000000..c06723241
 +	HookNameNix = "nix"
 +)
 +
-+// nixHook is used to prepare a task directory structure based on a Nix flake
++// nixHook is used to prepare a task directory structure based on Nix packages
 +type nixHook struct {
 +	alloc    *structs.Allocation
 +	runner   *TaskRunner
@@ -59,23 +59,31 @@ index 000000000..c06723241
 +}
 +
 +func (h *nixHook) Prestart(ctx context.Context, req *interfaces.TaskPrestartRequest, resp *interfaces.TaskPrestartResponse) error {
-+	first := h.firstRun
-+	if first {
++	if h.firstRun {
 +		h.firstRun = false
 +	} else {
 +		return nil
 +	}
 +
-+	configFlakeDeps, flakeDepsSet := req.Task.Config["flake_deps"]
-+	configFlake, flakeSet := req.Task.Config["flake"]
-+	configFlakeArgs, flakeArgsSet := req.Task.Config["flake_args"]
-+	configStorePaths, storePathsSet := req.Task.Config["store_paths"]
-+
-+	storePaths := []string{}
-+	if storePathsSet {
-+		for _, sp := range configStorePaths.([]interface{}) {
-+			storePaths = append(storePaths, sp.(string))
++	installables := []string{}
++	if v, set := req.Task.Config["nix_installables"]; set {
++		for _, vv := range v.([]interface{}) {
++			installables = append(installables, vv.(string))
 +		}
++	}
++
++	if len(installables) == 0 {
++		return nil
++	}
++
++	profileInstallArgs := []string{}
++	if v, set := req.Task.Config["nix_profile_install_args"]; set {
++		profileInstallArgs = v.([]string)
++	}
++
++	mount := false
++	if v, set := req.Task.Config["nix_host"]; set && v.(bool) {
++		mount = true
 +
 +		resp.Mounts = append(resp.Mounts, &drivers.MountConfig{
 +			TaskPath:        "/nix",
@@ -83,59 +91,27 @@ index 000000000..c06723241
 +			Readonly:        false,
 +			PropagationMode: "host-to-task",
 +		})
-+
-+		return h.buildStorePaths(storePaths)
 +	}
 +
-+	flakes := []string{}
-+	if flakeDepsSet {
-+		for _, dep := range configFlakeDeps.([]interface{}) {
-+			flakes = append(flakes, dep.(string))
-+		}
-+	}
-+
-+	if flakeSet {
-+		flakes = append(flakes, configFlake.(string))
-+	}
-+
-+	flakeArgs := []string{}
-+	if flakeArgsSet {
-+		flakeArgs = configFlakeArgs.([]string)
-+	}
-+
-+	if len(flakes) == 0 {
-+		return nil
-+	}
-+
-+	return h.install(flakes, flakeArgs, req.TaskDir.Dir)
++	return h.install(installables, profileInstallArgs, req.TaskDir.Dir, mount)
 +}
 +
-+// store paths are anything buildable really.
-+// as well as /nix/store/<hash>-<name> which will be pulled from a substituter
-+func (h *nixHook) buildStorePaths(storePaths []string) error {
-+	h.logger.Debug("fetching store paths", "paths", storePaths)
-+	h.emitEvent("Nix", "fetching store paths: "+strings.Join(storePaths, " "))
-+
-+	args := append([]string{"-L", "build", "--no-link"}, storePaths...)
-+	cmd := exec.Command("nix", args...)
-+	return cmd.Run()
-+}
-+
-+// install takes a flake URL like:
++// install takes an installable like:
 +// github:NixOS/nixpkgs#cowsay
 +// github:NixOS/nixpkgs?ref=nixpkgs-unstable#cowsay
 +// github:NixOS/nixpkgs?rev=04b19784342ac2d32f401b52c38a43a1352cd916#cowsay
++// /nix/store/<hash>-<name>
 +//
-+// the given flake
-+func (h *nixHook) install(flakes []string, flakeArgs []string, taskDir string) error {
++// the given installable
++func (h *nixHook) install(installables []string, profileInstallArgs []string, taskDir string, mounted bool) error {
 +	linkPath := filepath.Join(taskDir, "current-alloc")
 +	_, err := os.Stat(linkPath)
 +	if err == nil {
 +		return nil
 +	}
 +
-+	h.logger.Debug("Building flakes", "flake", flakes)
-+	h.emitEvent("Nix", "building flakes: "+strings.Join(flakes, " "))
++	h.logger.Debug("Building", "installable", installables)
++	h.emitEvent("Nix", "building: "+strings.Join(installables, " "))
 +
 +	taskDirInfo, err := os.Stat(taskDir)
 +	if err != nil {
@@ -144,24 +120,26 @@ index 000000000..c06723241
 +
 +	uid, gid := getOwner(taskDirInfo)
 +
-+	for _, flake := range flakes {
-+		if err = h.profileInstall(linkPath, flake, flakeArgs); err != nil {
++	for _, installable := range installables {
++		if err = h.profileInstall(linkPath, installable, profileInstallArgs); err != nil {
 +			return err
 +		}
 +	}
 +
-+	requisites, err := h.requisites(linkPath)
-+	if err != nil {
-+		return err
-+	}
-+
-+	// Now copy each dependency into the allocation /nix/store directory
-+	for _, requisit := range requisites {
-+		h.logger.Debug("linking", "requisit", requisit)
-+
-+		err = filepath.Walk(requisit, copyAll(h.logger, taskDir, false, uid, gid))
++	if !mounted {
++		requisites, err := h.requisites(linkPath)
 +		if err != nil {
 +			return err
++		}
++
++		// Now copy each dependency into the allocation /nix/store directory
++		for _, requisit := range requisites {
++			h.logger.Debug("linking", "requisit", requisit)
++
++			err = filepath.Walk(requisit, installAll(h.logger, taskDir, false, false, uid, gid))
++			if err != nil {
++				return err
++			}
 +		}
 +	}
 +
@@ -172,15 +150,15 @@ index 000000000..c06723241
 +
 +	h.logger.Debug("linking main drv paths", "linkPath", linkPath, "link", link)
 +
-+	return filepath.Walk(link, copyAll(h.logger, taskDir, true, uid, gid))
++	return filepath.Walk(link, installAll(h.logger, taskDir, true, mounted, uid, gid))
 +}
 +
-+func (h *nixHook) profileInstall(linkPath string, flake string, flakeArgs []string) error {
-+	h.logger.Debug("Building flake", "flake", flake)
-+	h.emitEvent("Nix", "building flake: "+flake)
++func (h *nixHook) profileInstall(linkPath string, installable string, extraArgs []string) error {
++	h.logger.Debug("Building", "installable", installable)
++	h.emitEvent("Nix", "building: "+installable)
 +
-+	args := []string{"profile", "install", "--no-write-lock-file", "--profile", linkPath}
-+	args = append(append(args, flakeArgs...), flake)
++	args := []string{"profile", "install", "-L", "--no-write-lock-file", "--profile", linkPath}
++	args = append(append(args, extraArgs...), installable)
 +	cmd := exec.Command("nix", args...)
 +	output, err := cmd.CombinedOutput()
 +
@@ -189,30 +167,9 @@ index 000000000..c06723241
 +	if err != nil {
 +		h.logger.Error(cmd.String(), "output", string(output), "error", err)
 +		h.emitEvent("Nix", "build failed with error: "+err.Error()+" output: "+string(output))
-+		return err
 +	}
 +
-+	return nil
-+}
-+
-+func (h *nixHook) outPath(flake string, flakeArgs []string) (string, error) {
-+	// Then get the path to the derivation output
-+	args := []string{"eval", "--raw", "--apply", "(pkg: pkg.outPath)"}
-+	args = append(append(args, flakeArgs...), flake)
-+	cmd := exec.Command("nix", args...)
-+	nixEvalOutput, err := cmd.Output()
-+	path := string(nixEvalOutput)
-+	h.logger.Debug(cmd.String(), "stdout", path)
-+	if err != nil {
-+		if ee, ok := err.(*exec.ExitError); ok {
-+			h.logger.Error(cmd.String(), "error", err, "stderr", string(ee.Stderr))
-+		} else {
-+			h.logger.Error(cmd.String(), "error", err, "stdout", path)
-+		}
-+		return path, err
-+	}
-+
-+	return path, nil
++	return err
 +}
 +
 +// Collect all store paths required to run it
@@ -232,7 +189,7 @@ index 000000000..c06723241
 +	return strings.Fields(string(nixStoreOutput)), nil
 +}
 +
-+func copyAll(logger hclog.Logger, targetDir string, truncate bool, uid, gid int) filepath.WalkFunc {
++func installAll(logger hclog.Logger, targetDir string, truncate, link bool, uid, gid int) filepath.WalkFunc {
 +	return func(path string, info os.FileInfo, err error) error {
 +		if err != nil {
 +			return err
@@ -260,12 +217,12 @@ index 000000000..c06723241
 +		}
 +
 +		if info.Mode()&os.ModeSymlink != 0 {
-+			link, err := os.Readlink(path)
++			symlink, err := os.Readlink(path)
 +			if err != nil {
 +				return err
 +			}
-+			// logger.Debug("l", "link", link, "dst", dst)
-+			if err := os.Symlink(link, dst); err != nil {
++			// logger.Debug("l", "symlink", symlink, "dst", dst)
++			if err := os.Symlink(symlink, dst); err != nil {
 +				if !os.IsExist(err) {
 +					logger.Debug("stat", fmt.Sprintf("%#v", stat))
 +					logger.Debug("lstat", fmt.Sprintf("%#v", lstat))
@@ -284,25 +241,35 @@ index 000000000..c06723241
 +			return os.MkdirAll(dst, 0777)
 +		}
 +
-+		// logger.Debug("f", "dst", dst)
-+		srcfd, err := os.Open(path)
-+		if err != nil {
-+			return err
-+		}
-+		defer srcfd.Close()
++		if link {
++			if err := os.Symlink(path, dst); err != nil {
++				return fmt.Errorf("Couldn't link %q to %q: %v", path, dst, err)
++			}
 +
-+		dstfd, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE, info.Mode())
-+		if err != nil {
-+			return err
-+		}
-+		defer dstfd.Close()
++			if err := os.Lchown(dst, uid, gid); err != nil {
++				return fmt.Errorf("Couldn't chown link %q to %q: %v", dst, path, err)
++			}
++		} else {
++			// logger.Debug("f", "dst", dst)
++			srcfd, err := os.Open(path)
++			if err != nil {
++				return err
++			}
++			defer srcfd.Close()
 +
-+		if _, err = io.Copy(dstfd, srcfd); err != nil {
-+			return err
-+		}
++			dstfd, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE, info.Mode())
++			if err != nil {
++				return err
++			}
++			defer dstfd.Close()
 +
-+		if err := dstfd.Chown(uid, gid); err != nil {
-+			return fmt.Errorf("Couldn't copy %q to %q: %v", path, dst, err)
++			if _, err = io.Copy(dstfd, srcfd); err != nil {
++				return err
++			}
++
++			if err := dstfd.Chown(uid, gid); err != nil {
++				return fmt.Errorf("Couldn't copy %q to %q: %v", path, dst, err)
++			}
 +		}
 +
 +		return nil
@@ -404,10 +371,10 @@ index 8538908cc..36e41e936 100644
  	select {
  	case <-tm.shutdownCh:
 diff --git a/drivers/exec/driver.go b/drivers/exec/driver.go
-index f035d1568..82a5064bf 100644
+index f035d1568..8af0f6924 100644
 --- a/drivers/exec/driver.go
 +++ b/drivers/exec/driver.go
-@@ -83,12 +83,16 @@ var (
+@@ -83,12 +83,15 @@ var (
  	// taskConfigSpec is the hcl specification for the driver config section of
  	// a task within a job. It is returned in the TaskConfigSchema RPC
  	taskConfigSpec = hclspec.NewObject(map[string]*hclspec.Spec{
@@ -417,28 +384,26 @@ index f035d1568..82a5064bf 100644
 -		"ipc_mode": hclspec.NewAttr("ipc_mode", "string", false),
 -		"cap_add":  hclspec.NewAttr("cap_add", "list(string)", false),
 -		"cap_drop": hclspec.NewAttr("cap_drop", "list(string)", false),
-+		"command":     hclspec.NewAttr("command", "string", true),
-+		"args":        hclspec.NewAttr("args", "list(string)", false),
-+		"pid_mode":    hclspec.NewAttr("pid_mode", "string", false),
-+		"ipc_mode":    hclspec.NewAttr("ipc_mode", "string", false),
-+		"cap_add":     hclspec.NewAttr("cap_add", "list(string)", false),
-+		"cap_drop":    hclspec.NewAttr("cap_drop", "list(string)", false),
-+		"flake":       hclspec.NewAttr("flake", "string", false),
-+		"flake_args":  hclspec.NewAttr("flake_args", "list(string)", false),
-+		"flake_deps":  hclspec.NewAttr("flake_deps", "list(string)", false),
-+		"store_paths": hclspec.NewAttr("store_paths", "list(string)", false),
++		"command":                  hclspec.NewAttr("command", "string", true),
++		"args":                     hclspec.NewAttr("args", "list(string)", false),
++		"pid_mode":                 hclspec.NewAttr("pid_mode", "string", false),
++		"ipc_mode":                 hclspec.NewAttr("ipc_mode", "string", false),
++		"cap_add":                  hclspec.NewAttr("cap_add", "list(string)", false),
++		"cap_drop":                 hclspec.NewAttr("cap_drop", "list(string)", false),
++		"nix_installables":         hclspec.NewAttr("nix_installables", "list(string)", false),
++		"nix_profile_install_args": hclspec.NewAttr("nix_profile_install_args", "list(string)", false),
++		"nix_host":                 hclspec.NewAttr("nix_host", "bool", false),
  	})
  
  	// driverCapabilities represents the RPC response for what features are
-@@ -195,6 +199,11 @@ type TaskConfig struct {
+@@ -195,6 +198,10 @@ type TaskConfig struct {
  
  	// CapDrop is a set of linux capabilities to disable.
  	CapDrop []string `codec:"cap_drop"`
 +
-+	Flake      []string `codec:"flake"`
-+	FlakeArgs  []string `codec:"flake_args"`
-+	FlakeDeps  []string `codec:"flake_deps"`
-+	StorePaths []string `codec:"store_paths"`
++	NixInstallables       []string `codec:"nix_installables"`
++	NixProfileInstallArgs []string `codec:"nix_profile_install_args"`
++	NixHost               bool     `codec:"nix_host"`
  }
  
  func (tc *TaskConfig) validate() error {
