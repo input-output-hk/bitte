@@ -298,9 +298,24 @@
           # Git commit encrypted state
           echo "  Committing encrypted state       ..."
           git -C "$WORKTREE" add "$WORKTREE/$ENC_STATE_PATH" &>> "$WORKLOG"
-          commitPrompt
-          git -C "$WORKTREE" commit --no-verify -m "$(echo -e "$(printf '%s' "''${MSG[@]}")")" &>> "$WORKLOG"
-          git -C "$WORKTREE" push -u "$REMOTE" "$TF_BRANCH" &>> "$WORKLOG"
+          MESSAGE="$(echo -e "$(printf '%s' "''${MSG[@]}")")"
+          if [[ -v CI && $CI == true ]] && type gh &>/dev/null; then
+            SHA=$(git rev-parse "$TF_BRANCH:$ENC_STATE_PATH")
+
+            base64 -w 0 "$WORKTREE/$ENC_STATE_PATH" \
+            | jq -R '{content: ., $message, $branch, $sha, encoding: "base64"}' \
+              --arg message "$MESSAGE" \
+              --arg sha "$SHA" \
+              --arg branch "$TF_BRANCH" \
+            | GH_TOKEN=$GITHUB_TOKEN gh api --method PUT "/repos/{owner}/{repo}/contents/$ENC_STATE_PATH" \
+              --input /dev/stdin &>> "$WORKLOG" \
+            && git -C "$WORKTREE" restore --staged . &>> "$WORKLOG" \
+            && git -C "$WORKTREE" checkout . &>> "$WORKLOG"
+          else
+            commitPrompt
+            git -C "$WORKTREE" commit --no-verify -m "$MESSAGE" &>> "$WORKLOG"
+            git -C "$WORKTREE" push -u "$REMOTE" "$TF_BRANCH" &>> "$WORKLOG"
+          fi
           echo "  ...done"
           echo
 
