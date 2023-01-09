@@ -30,6 +30,7 @@
       inputs = {
         # Tullia has nixpkgs 22.05 dependencies (ex: stdenv:shellDryRun)
         nixpkgs.follows = "nixpkgs-unstable";
+        std.follows = "std";
       };
     };
     # Vector >= 0.20.0 versions require nomad-follower watch-config format fix
@@ -87,8 +88,18 @@
 
         # loops - reconcile a target state
         (inputs.std.functions "loops")
+
+        # Tullia
+        (inputs.std.functions "actions")
+        (tullia.tasks "pipelines")
       ];
     }
+    (
+      tullia.fromStd {
+        actions = inputs.std.harvest self ["cloud" "actions"];
+        tasks = inputs.std.harvest self ["automation" "pipelines"];
+      }
+    )
     # soil -- TODO: remove soil
     (let
       inherit (inputs.flake-arch) systems;
@@ -127,20 +138,17 @@
         });
     in
       utils.lib.eachSystem systems
-      (system: let
-        legacyPackages = pkgsForSystem system;
-        unstablePackages = unstablePkgsForSystem system;
-      in
-        rec {
+      (
+        system: let
+          legacyPackages = pkgsForSystem system;
+          unstablePackages = unstablePkgsForSystem system;
+        in rec {
           inherit legacyPackages;
 
           packages = {inherit (self.${system}.cli.packages) bitte;};
           packages.default = packages.bitte;
         }
-        // tullia.fromSimple system {
-          tasks = import tullia/tasks.nix self;
-          actions = import tullia/actions.nix;
-        })
+      )
       // {
         inherit lib;
         # eta reduce not possibe since flake check validates for "final" / "prev"
