@@ -6,24 +6,16 @@
 }:
 buildGoModule rec {
   pname = "spiffe-helper";
-  version = "0.5";
+  version = "16c09cad5e9734296f429fd9eb7986132650ce6b"; # 0.5
 
   src = fetchFromGitHub {
     owner = "spiffe";
     repo = pname;
     rev = version;
-    sha256 = "0v3g6ls1d0493vrawhgq72wyv1nc2k6dwbf7sras6fjqvk2jya65";
+    hash = "sha256-jAPpW0o0aXUYOnRhunnuB+77nxmKNlz0qoRPXG50IVw=";
   };
 
-  patches = [
-    # Move to go-spiffe/v2 API
-    (fetchpatch {
-      url = "https://patch-diff.githubusercontent.com/raw/spiffe/spiffe-helper/pull/25.patch";
-      sha256 = "sha256-cAEp9T0uXRM6E9D7yXsKSzGgdGFArCtyMYoP0h9g7j0=";
-    })
-  ];
-
-  vendorSha256 = "sha256-f1AougFjmlIAJiieaTSvCPvzT1SEVB8a8PvZ0ZXSdrw=";
+  vendorSha256 = "sha256-WK6KVqzhp/L4Xc3Afq6QS5g83fmzvfaOyzvHZMwBRio=";
 
   subPackages = ["cmd/spiffe-helper"];
 
