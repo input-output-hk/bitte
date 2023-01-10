@@ -2,7 +2,6 @@
   config,
   lib,
   pkgs,
-  nomad-driver-nix,
   dockerAuth,
   ...
 }: let
@@ -10,8 +9,6 @@
 
   Switches = {
     services.nomad.client.enabled = true;
-    services.nomad.plugin.raw_exec.enabled = false;
-    services.nomad.plugin.nix-driver.enabled = true;
   };
 
   Config = let
@@ -43,8 +40,8 @@
     };
 
     services.nomad = {
-      pluginDir = "${nomad-driver-nix.defaultPackage.x86_64-linux}/bin";
       plugin.docker.auth.config = dockerAuth;
+      plugin.raw_exec.enabled = false;
 
       client = {
         gc_interval = "12h";

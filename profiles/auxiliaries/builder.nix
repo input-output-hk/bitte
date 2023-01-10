@@ -121,11 +121,12 @@ in {
 
     nix = {
       distributedBuilds = isAsg || isClient;
-      maxJobs = lib.mkIf (isAsg || isClient) 0;
-      extraOptions = ''
-        builders-use-substitutes = true
-      '';
-      trustedUsers = lib.mkIf isRemoteBuilder ["root" "builder"];
+      settings = {
+        max-jobs = lib.mkIf (isAsg || isClient) 0;
+        trusted-users = lib.mkIf isRemoteBuilder ["root" "builder"];
+        builders-use-substitutes = true;
+      };
+
       buildMachines = lib.optionals (!isRemoteBuilder) [
         ({
             hostName = cfg.remoteBuilder.nodeName;

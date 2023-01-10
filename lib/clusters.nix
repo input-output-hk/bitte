@@ -12,6 +12,7 @@ lib.listToAttrs (lib.forEach bitteProfiles (bitteProfile: let
   _proto =
     (mkSystem {
       inherit pkgs self inputs;
+      nodeName = "proto";
       modules = [bitteProfile hydrationProfile];
     })
     .bitteProtoSystem;
@@ -22,7 +23,7 @@ lib.listToAttrs (lib.forEach bitteProfiles (bitteProfile: let
   # Currently groupings are viewed as core or awsAsg.
   coreAndPremSimNodes = let
     inherit (cluster);
-    names = map builtins.attrNames [cluster.coreNodes cluster.awsExtNodes cluster.premNodes cluster.premSimNodes];
+    names = [["proto"]] ++ map builtins.attrNames [cluster.coreNodes cluster.awsExtNodes cluster.premNodes cluster.premSimNodes];
     combinedNames = builtins.foldl' (s: v:
       s
       ++ (map (name:
@@ -45,8 +46,8 @@ lib.listToAttrs (lib.forEach bitteProfiles (bitteProfile: let
     .${systemType};
 
   awsCoreNodes = lib.mapAttrs (ourMkSystem "bitteAmazonSystem" coreModules) coreAndPremSimNodes;
-  awsExtNodes = lib.mapAttrs (ourMkSystem "bitteProtoSystem" coreModules) cluster.awsExtNodes;
-  premNodes = lib.mapAttrs (ourMkSystem "bitteProtoSystem" coreModules) cluster.premNodes;
+  awsExtNodes = lib.mapAttrs (ourMkSystem "bittePremSystem" coreModules) cluster.awsExtNodes;
+  premNodes = lib.mapAttrs (ourMkSystem "bittePremSystem" coreModules) cluster.premNodes;
   coreNodes = awsCoreNodes // awsExtNodes // premNodes;
 
   awsAutoScalingGroups = lib.mapAttrs (ourMkSystem "bitteAmazonZfsSystem" asgModules) cluster.awsAutoScalingGroups;

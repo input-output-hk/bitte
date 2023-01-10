@@ -10,7 +10,7 @@
   self ? null,
   inputs ? null,
   modules ? [],
-  nodeName ? null,
+  nodeName,
 }: let
   bitteSystem = specializationModule: let
     res = nixpkgs.lib.nixosSystem {
@@ -26,7 +26,7 @@
         ++ modules;
       specialArgs = {
         inherit nodeName self inputs;
-        inherit (bitte.inputs) terranix nomad-driver-nix nomad-follower;
+        inherit (bitte.inputs) terranix nomad-follower;
         bittelib = bitte.lib;
         inherit (bitte.lib) terralib;
       };
@@ -38,21 +38,32 @@
     imports = [
       ../profiles/auxiliaries/nix.nix
       ../profiles/consul/policies.nix
-      # This module purely exists to appease failing assertions on evaluating
+      # This module exists to appease failing assertions on evaluating
       # the proto system. The protosystem is only used to obtain the tf config.
-      ({lib, ...}: {
+      ({
+        lib,
+        config,
+        ...
+      }: {
         # assertion: The ‘fileSystems’ option does not specify your root file system.
         fileSystems."/" =
           lib.mkDefault {device = "/dev/disk/by-label/nixos";};
+
         # assertion: You must set the option ‘boot.loader.grub.devices’ or 'boot.loader.grub.mirroredBoots' to make the system bootable.
         boot.loader.grub.enable = lib.mkDefault false;
+
+        # Set to avoid multiple warning traces for all proto evaluations
+        system.stateVersion = lib.mkDefault config.system.nixos.release;
       })
     ];
   };
 
   bitteAmazonSystem = bitteSystem ({modulesPath, ...}: {
-    imports = ["${modulesPath}/../maintainers/scripts/ec2/amazon-image.nix"];
+    imports = [
+      "${modulesPath}/../maintainers/scripts/ec2/amazon-image.nix"
+    ];
   });
+
   bitteAmazonSystemBaseAMI = bitteSystem ({modulesPath, ...}: {
     imports = [
       "${modulesPath}/../maintainers/scripts/ec2/amazon-image.nix"
@@ -61,17 +72,25 @@
   });
 
   bitteAmazonZfsSystem = bitteSystem ({modulesPath, ...}: {
-    imports = ["${modulesPath}/../maintainers/scripts/ec2/amazon-image-zfs.nix"];
+    imports = [
+      "${modulesPath}/../maintainers/scripts/ec2/amazon-image-zfs.nix"
+    ];
   });
+
   bitteAmazonZfsSystemBaseAMI = bitteSystem ({modulesPath, ...}: {
     imports = [
       "${modulesPath}/../maintainers/scripts/ec2/amazon-image-zfs.nix"
       ../profiles/ami-base-config.nix
     ];
   });
+
+  bittePremSystem = bitteSystem ({modulesPath, ...}: {
+    imports = [];
+  });
 in {
   inherit
     bitteSystem
+    bittePremSystem
     bitteProtoSystem
     bitteAmazonSystem
     bitteAmazonSystemBaseAMI

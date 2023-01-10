@@ -33,7 +33,8 @@ in {
     if (deployType == "aws")
     then "9474d585"
     else
-      (lib.mkDefault (lib.fileContents (pkgs.runCommand "hostId" {} ''
+      # metal machines may be provisioned with externally declared nix host id
+      lib.mkDefault (lib.fileContents (pkgs.runCommand "hostId" {} ''
         ${pkgs.ruby}/bin/ruby -rzlib -e 'File.write(ENV["out"], "%08x" % Zlib.crc32("${nodeName}"))'
-      '')));
+      ''));
 }

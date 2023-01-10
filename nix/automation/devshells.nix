@@ -32,7 +32,6 @@ in {
       capsules.base
       capsules.tools
       capsules.integrations
-      capsules.hooks
     ];
   };
   cli = std.lib.mkShell {
