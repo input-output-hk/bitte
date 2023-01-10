@@ -21,6 +21,9 @@ in {
     ./auxiliaries/builder.nix
   ];
 
+  # Set the state version to the current nixpkgs being used
+  system.stateVersion = lib.mkDefault config.system.nixos.release;
+
   # avoid CVE-2021-4034 (PwnKit)
   security.polkit.enable = false;
 

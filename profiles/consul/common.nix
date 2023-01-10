@@ -77,8 +77,10 @@
           region = lib.mkIf (deployType != "prem") config.cluster.region;
         }
         // (lib.optionalAttrs ((config.currentCoreNode or null) != null) {
-          inherit (config.currentCoreNode) domain;
           instanceType = lib.mkIf (builtins.elem deployType ["aws" "premSim"]) config.currentCoreNode.instanceType;
+        })
+        // (lib.optionalAttrs ((config.currentCoreNode or {}) ? domain) {
+          inherit (config.currentCoreNode) domain;
         });
 
       # generate deterministic UUIDs for each node so they can rejoin.

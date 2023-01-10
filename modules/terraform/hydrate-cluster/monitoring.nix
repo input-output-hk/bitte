@@ -4,7 +4,8 @@
   ...
 }: {
   tf.hydrate-monitoring.configuration = let
-    onlyTfDashboards = builtins.length config.services.grafana.provision.dashboards == 0;
+    grafanaDashboards = config.services.grafana.provision.dashboards.settings.providers or null;
+    onlyTfDashboards = builtins.length grafanaDashboards == 0;
     dashHeader = "Extra grafana provisioning dashboard declaration detected";
     dashNote = ''
       FAIL
@@ -19,7 +20,7 @@
 
       It will be a nix block appearing similar to the following:
 
-      services.grafana.provision.dashboards = [
+      services.grafana.provision.dashboards.settings.providers = [
         {
           name = "$CLUSTER_PROVISIONING_NAME";
           options.path = ./dashboards;
@@ -27,5 +28,5 @@
       ];
     '';
   in
-    assert lib.asserts.assertMsg onlyTfDashboards (lib.warn dashHeader dashNote); {};
+    lib.mkIf (grafanaDashboards != null) (assert lib.asserts.assertMsg onlyTfDashboards (lib.warn dashHeader dashNote); {});
 }

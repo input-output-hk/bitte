@@ -147,7 +147,10 @@ in {
         };
       };
 
-      redis.enable = true;
+      redis.servers.docker-redis = {
+        enable = true;
+        requirePassFile = runKeyMaterial.redis;
+      };
     };
 
     systemd.services.docker-registry-service =
