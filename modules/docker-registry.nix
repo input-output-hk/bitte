@@ -147,10 +147,9 @@ in {
         };
       };
 
-      redis.servers.docker-redis = {
-        enable = true;
-        requirePassFile = runKeyMaterial.redis;
-      };
+      # Naming the redis server "" ensures backward compatibility
+      # with pre RFC42 module behavior for state path, port binding and service user.
+      redis.servers."".enable = true;
     };
 
     systemd.services.docker-registry-service =

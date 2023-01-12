@@ -159,18 +159,27 @@ in {
     # requires bash variables in the group rules which will not pass syntax validation
     # in some fields, such as a url field.  This works around the problem.
     # Ref: https://github.com/prometheus/alertmanager/issues/504
-    systemd.services.alertmanager.preStart = let
-      cfg = config.services.prometheus.alertmanager;
-      alertmanagerYml =
-        if cfg.configText != null
-        then pkgs.writeText "alertmanager.yml" cfg.configText
-        else pkgs.writeText "alertmanager.yml" (builtins.toJSON cfg.configuration);
-    in
-      mkForce ''
-        ${pkgs.gnused}/bin/sed 's|https://deadmanssnitch.com|$DEADMANSSNITCH|g' "${alertmanagerYml}" > "/tmp/alert-manager-sed.yaml"
-        ${getBin pkgs.envsubst}/bin/envsubst  -o "/tmp/alert-manager-substituted.yaml" \
-                                                  -i "/tmp/alert-manager-sed.yaml"
-      '';
+    systemd.services.alertmanager = {
+      preStart = let
+        cfg = config.services.prometheus.alertmanager;
+        alertmanagerYml =
+          if cfg.configText != null
+          then pkgs.writeText "alertmanager.yml" cfg.configText
+          else pkgs.writeText "alertmanager.yml" (builtins.toJSON cfg.configuration);
+      in
+        mkForce ''
+          ${pkgs.gnused}/bin/sed 's|https://deadmanssnitch.com|$DEADMANSSNITCH|g' "${alertmanagerYml}" > "/tmp/alert-manager-sed.yaml"
+          ${getBin pkgs.envsubst}/bin/envsubst  -o "/tmp/alert-manager-substituted.yaml" \
+                                                    -i "/tmp/alert-manager-sed.yaml"
+        '';
+
+      serviceConfig = {
+        Restart = "always";
+        RestartSec = "5";
+      };
+
+      wantedBy = lib.mkIf isSops ["secret-alertmanager.service"];
+    };
 
     services.victoriametrics = {
       retentionPeriod = 12; # months
