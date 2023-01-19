@@ -16,7 +16,7 @@
   domain =
     config
     .${
-      if deployType == "aws"
+      if builtins.elem deployType ["aws" "awsExt"]
       then "cluster"
       else "currentCoreNode"
     }
@@ -487,7 +487,7 @@ in {
               insecureSkipVerify = true;
               rootCAs = let
                 certChainFile =
-                  if deployType == "aws"
+                  if builtins.elem deployType ["aws" "awsExt"]
                   then pkiFiles.certChainFile
                   else pkiFiles.serverCertChainFile;
               in [certChainFile];

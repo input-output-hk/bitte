@@ -35,12 +35,12 @@
   domain =
     config
     .${
-      if deployType == "aws"
+      if builtins.elem deployType ["aws" "awsExt"]
       then "cluster"
       else "currentCoreNode"
     }
     .domain;
-  isSops = deployType == "aws";
+  isSops = builtins.elem deployType ["aws" "awsExt"];
   cfg = config.services.monitoring;
 
   relEncryptedFolder = let

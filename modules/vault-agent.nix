@@ -84,7 +84,7 @@ in {
     autoAuthMethod = lib.mkOption {
       type = with lib.types; enum ["aws" "cert"];
       default =
-        if deployType == "aws"
+        if builtins.elem deployType ["aws" "awsExt"]
         then "aws"
         else "cert";
     };

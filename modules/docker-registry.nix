@@ -16,12 +16,12 @@
   domain =
     config
     .${
-      if deployType == "aws"
+      if builtins.elem deployType ["aws" "awsExt"]
       then "cluster"
       else "currentCoreNode"
     }
     .domain;
-  isSops = deployType == "aws";
+  isSops = builtins.elem deployType ["aws" "awsElem"];
   relEncryptedFolder = last (builtins.split "-" (toString config.secrets.encryptedRoot));
   cfg = config.services.docker-registry;
 in {

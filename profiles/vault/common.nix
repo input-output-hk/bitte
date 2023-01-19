@@ -31,7 +31,7 @@
       ];
 
       autoAuthMethod =
-        if deployType == "aws"
+        if builtins.elem deployType ["aws" "awsExt"]
         then "aws"
         else "cert";
 

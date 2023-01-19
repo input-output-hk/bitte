@@ -53,7 +53,7 @@ in
 
     glusterfs = final.callPackage ./pkgs/glusterfs.nix {};
     mill = prev.callPackage ./pkgs/mill.nix {};
-    nomad = prev.callPackage ./pkgs/nomad.nix {buildGoModule = prev.buildGo117Module;};
+    nomad = nixpkgs-unstable.legacyPackages.${prev.system}.callPackage ./pkgs/nomad.nix {};
     nomad-autoscaler = prev.callPackage ./pkgs/nomad-autoscaler.nix {};
     nomad-follower = inputs.nomad-follower.defaultPackage.${prev.system};
     oauth2-proxy = final.callPackage ./pkgs/oauth2_proxy.nix {};
@@ -81,8 +81,16 @@ in
 
     ssh-keys = let
       keys = import (ops-lib + "/overlays/ssh-keys.nix") lib;
-      inherit (keys) allKeysFrom devOps;
-    in {devOps = allKeysFrom devOps;};
+      inherit (keys) allKeysFrom devOps csl-developers plutus-developers remoteBuilderKeys;
+    in {
+      devOps = allKeysFrom devOps;
+      ciInfra = allKeysFrom devOps ++ allKeysFrom {inherit (csl-developers) angerman;};
+      buildSlaveKeys = {
+        macos = allKeysFrom devOps ++ allKeysFrom remoteBuilderKeys;
+        linux = remoteBuilderKeys.hydraBuildFarm;
+      };
+      plutus-developers = allKeysFrom plutus-developers;
+    };
 
     toPrettyJSON = final.callPackage ./pkgs/to-pretty-json.nix {};
 

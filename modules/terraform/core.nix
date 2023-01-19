@@ -25,15 +25,25 @@
   tags = {Cluster = config.cluster.name;};
 
   infraTypeCheck =
-    if builtins.elem infraType ["aws" "premSim"]
+    if builtins.elem infraType ["aws" "awsExt" "premSim"]
     then true
     else
       (throw ''
         To utilize the core TF attr, the cluster config parameter `infraType`
-        must either "aws" or "premSim".
+        must be either "aws", "awsExt" or "premSim".
       '');
+
+  isAwsExt = infraType == "awsExt";
+
+  relEncryptedFolder = let
+    path = with config;
+      if builtins.elem cluster.infraType ["aws" "awsExt"]
+      then secrets.encryptedRoot
+      else age.encryptedRoot;
+  in
+    lib.last (builtins.split "/nix/store/.{32}-" (toString path));
 in {
-  tf.core.configuration = lib.mkIf infraTypeCheck {
+  tf.core.configuration = lib.mkIf infraTypeCheck (lib.recursiveUpdate {
     terraform.backend = lib.mkIf (vbkBackend != "local") {
       http = let
         vbk = "${vbkBackend}/state/${config.cluster.name}/core";
@@ -231,7 +241,10 @@ in {
         name = "core-${client.uid}";
         assume_role_policy = client.assumePolicy.tfJson;
         lifecycle = [{create_before_destroy = true;}];
+      } // lib.optionalAttrs isAwsExt {
+      depends_on = ["aws_iam_user.awsExtBitteSystem"];
       };
+
       "${core.uid}" = {
         name = core.uid;
         assume_role_policy = core.assumePolicy.tfJson;
@@ -410,5 +423,73 @@ in {
           host: cfg: mkStorage host config.cluster.kms cfg.ebsVolume
         )
         storageNodes);
-  };
+
+  } (lib.optionalAttrs isAwsExt {
+    # ---------------------------------------------------------------
+    # awsExt infraType additional required resources
+    #
+    # See also the following in aws_policies.nix for TF policy hooks:
+    #   cluster.iam.roles.client.assumePolicy
+    #   cluster.iam.roles.core.assumeRole
+    # ---------------------------------------------------------------
+
+    resource.aws_iam_user.awsExtBitteSystem = {
+      name = "awsExt-bitte-system";
+      tags = tags // {InfraType = "awsExt";};
+      provisioner.local-exec = let
+        command = pkgs.writeShellApplication {
+          name = "awsExt-bootstrap";
+          text = ''
+            echo "Sleeping 60 seconds for IAM user propagation, starting now: $(date -u --rfc-3339=seconds)"
+            sleep 60
+          '';
+        };
+      in {
+        command = "${command}/bin/${command.name}";
+        interpreter = ["${pkgs.bash}/bin/bash" "-c"];
+        working_dir = null;
+        environment = {};
+      };
+    };
+
+    output.aws_iam_user-awsExtBitteSystem-id = {
+      value = id "aws_iam_access_key.awsExtBitteSystem";
+      sensitive = true;
+      depends_on = ["aws_iam_user.awsExtBitteSystem"];
+    };
+
+    output.aws_iam_user-awsExtBitteSystem-secret = {
+      value = var "aws_iam_access_key.awsExtBitteSystem.secret";
+      sensitive = true;
+      depends_on = ["aws_iam_user.awsExtBitteSystem"];
+    };
+
+    resource.aws_iam_access_key.awsExtBitteSystem = {
+      user = var "aws_iam_user.awsExtBitteSystem.name";
+      depends_on = ["aws_iam_user.awsExtBitteSystem"];
+    };
+
+    resource.aws_iam_user_policy.awsExtBitteAssumeClient = {
+      name = "awsExt-bitte-assume-client";
+      user = id "aws_iam_user.awsExtBitteSystem";
+      policy = builtins.toJSON {
+        Version = "2012-10-17";
+        Statement = [
+          # Required for awsExt clients to participate in aws node discovery.
+          {
+            Effect = "Allow";
+            Action = "ec2:DescribeInstances";
+            Resource = "*";
+          }
+          # Required for awsExt clients to assume client role status.
+          {
+            Effect = "Allow";
+            Action = "sts:AssumeRole";
+            Resource = var "aws_iam_role.${config.cluster.name}-client.arn";
+          }
+        ];
+      };
+      depends_on = ["aws_iam_user.awsExtBitteSystem"];
+    };
+  }));
 }

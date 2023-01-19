@@ -12,7 +12,7 @@
 
   cfg = config.profiles.auxiliaries.builder;
 
-  isSops = deployType == "aws";
+  isSops = builtins.elem deployType ["aws" "awsExt"];
   isInstance = config.currentCoreNode != null;
   isAsg = !isInstance;
   isClient = role == "client";

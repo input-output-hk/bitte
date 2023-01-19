@@ -12,6 +12,7 @@ assert lib.assertMsg (builtins.typeOf deploySshKey == "string") ''
   deploy' = {
     nodes = builtins.mapAttrs (k: _: let
       cfg = self.nixosConfigurations.${k};
+      deployType = cfg.config.currentCoreNode.deployType or cfg.config.currentAwsAutoScalingGroup.deployType;
     in
       {
         sshUser = "root";
@@ -22,8 +23,10 @@ assert lib.assertMsg (builtins.typeOf deploySshKey == "string") ''
         in
           deploy.lib.${system}.activate.nixos cfg;
       }
-      // (lib.optionalAttrs ((cfg.config.currentCoreNode.deployType or cfg.config.currentAwsAutoScalingGroup.deployType) == "prem") {
+      // (lib.optionalAttrs (builtins.elem deployType ["awsExt" "prem"]) {
         hostname = cfg.config.cluster.name + "-" + cfg.config.networking.hostName;
+      })
+      // (lib.optionalAttrs (deployType == "prem") {
         sshOpts = ["-C" "-o" "StrictHostKeyChecking=no"];
       }))
     self.nixosConfigurations;

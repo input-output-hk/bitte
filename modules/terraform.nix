@@ -9,8 +9,8 @@
   bittelib,
   ...
 } @ _protoArgs: let
-  inherit (terralib) var id regions awsProviderFor amis;
-  inherit (bittelib) net;
+  inherit (terralib) var id regions awsProviderFor amis sshArgs;
+  inherit (bittelib) net physicalSpec;
 
   kms2region = kms:
     if kms == null
@@ -19,7 +19,7 @@
 
   relEncryptedFolder = let
     path = with config;
-      if (cluster.infraType == "aws")
+      if builtins.elem cluster.infraType ["aws" "awsExt"]
       then secrets.encryptedRoot
       else age.encryptedRoot;
   in
@@ -143,8 +143,7 @@
     systemd-run --unit=nixos-init $_
   '';
 
-  sshArgs = "-C -oConnectTimeout=5 -oUserKnownHostsFile=/dev/null -oNumberOfPasswordPrompts=0 -oServerAliveInterval=60 -oControlPersist=600 -oStrictHostKeyChecking=no -i ./secrets/ssh-${cfg.name}";
-  ssh = "ssh ${sshArgs}";
+  ssh = "ssh ${sshArgs} -i ./secrets/ssh-${cfg.name}";
 
   localProvisionerDefaultCommand = pkgs.writeShellApplication {
     name = "local-provisioner-default-command";
@@ -280,10 +279,15 @@
         nodes = lib.mkOption {
           type = with lib.types; attrsOf coreNodeType;
           internal = true;
-          default = cfg.coreNodes // cfg.premSimNodes // cfg.premNodes;
+          default = cfg.coreNodes // cfg.awsExtNodes // cfg.premNodes // cfg.premSimNodes;
         };
 
         coreNodes = lib.mkOption {
+          type = with lib.types; attrsOf coreNodeType;
+          default = {};
+        };
+
+        awsExtNodes = lib.mkOption {
           type = with lib.types; attrsOf coreNodeType;
           default = {};
         };
@@ -299,27 +303,23 @@
         };
 
         infraType = lib.mkOption {
-          type = with lib.types; enum ["aws" "prem" "premSim"];
+          type = with lib.types; enum ["aws" "awsExt" "prem" "premSim"];
           default = "aws";
           description = ''
             The cluster infrastructure deployment type.
 
             For an AWS cluster, "aws" should be declared.
-            For an AWS plus premSim cluster, "aws" should be declared (see NB).
-            For a premSim only cluster, "premSim" should be declared.
+            For an AWS cluster extended via IAM to additional external machines, "awsExt" should be declared.
             For a prem only cluster, "prem" should be declared.
+            For a premSim only cluster, "premSim" should be declared.
 
             The declared machine composition for a cluster should
             comprise machines of the declared cluster type:
 
-              * type "aws" should declare coreNodes
+              * type "aws" should declare coreNodes and autoScalingGroups
+              * type "awsExt" should declare coreNodes and autoScalingGroups as usual for AWS infra, plus awsExtNodes for external machines
               * type "prem" should declare premNodes
               * type "premSim" should declare premSimNodes
-
-            NOTE: The use of AWS plus premSim deployment in the same
-            cluster with mixed machine compoition of premNodes and
-            premSimNodes is deprecated and will not be supported in
-            the future.
           '';
         };
 
@@ -656,7 +656,9 @@
               Statement = [
                 {
                   Effect = this.config.effect;
-                  Principal.Service = this.config.principal.service;
+                  Principal =
+                    lib.optionalAttrs (this.config.principal.service != []) {Service = this.config.principal.service;}
+                    // lib.optionalAttrs (this.config.principal.AWS != []) {AWS = this.config.principal.AWS;};
                   Action = this.config.action;
                   Sid = "";
                 }
@@ -678,7 +680,16 @@
 
   iamRolePrincipalsType = with lib.types;
     submodule {
-      options = {service = lib.mkOption {type = with lib.types; str;};};
+      options = {
+        service = lib.mkOption {
+          type = with lib.types; listOf str;
+          default = [];
+        };
+        AWS = lib.mkOption {
+          type = with lib.types; listOf str;
+          default = [];
+        };
+      };
     };
 
   initialVaultSecretsType = with lib.types;
@@ -945,7 +956,7 @@
         };
 
         deployType = lib.mkOption {
-          type = with lib.types; enum ["aws" "prem" "premSim"];
+          type = with lib.types; enum ["aws" "awsExt" "prem" "premSim"];
           default = "aws";
         };
 
@@ -1006,9 +1017,18 @@
             Cluster = cfg.name;
             Name = this.config.name;
             UID = this.config.uid;
-            Consul = "server";
-            Vault = "server";
-            Nomad = "server";
+            Consul =
+              if this.config.role == "core"
+              then "server"
+              else "client";
+            Vault =
+              if this.config.role == "core"
+              then "server"
+              else "client";
+            Nomad =
+              if this.config.role == "core"
+              then "server"
+              else "client";
           };
         };
 
@@ -1019,7 +1039,7 @@
         datacenter = lib.mkOption {
           type = with lib.types; str;
           default =
-            if this.config.deployType == "aws"
+            if builtins.elem this.config.deployType ["aws" "awsExt"]
             then (kms2region cfg.kms)
             else "dc1";
         };
@@ -1071,8 +1091,181 @@
           type = with lib.types; nullOr bool;
           default = null;
         };
+
+        # TODO: Consider moving all platform specific options to a platform submodule
+        #       to enable better support of platform specific options in a mixed environment
+        equinix = lib.mkOption {
+          type = with lib.types; equinixTfType;
+          default = {};
+        };
+      };
+
+      config = {
+        # Allow the awsExtNode attrName to be passed to the external TF submodule type
+        equinix._module.args = {
+          awsExtNodeName = name;
+          awsExtNodeConfig = this.config;
+        };
       };
     });
+
+  equinixTfType = with lib.types;
+    submodule ({
+        config,
+        awsExtNodeName,
+        awsExtNodeConfig,
+        ...
+      } @ this: {
+        options = {
+          billing_cycle = lib.mkOption {
+            type = with lib.types; str;
+            default = "hourly";
+            description = ''
+              Monthly or hourly.
+            '';
+          };
+
+          custom_data = lib.mkOption {
+            type = with lib.types; nullOr attrs;
+            default =
+              if physicalSpec.equinix ? ${this.config.plan}
+              then physicalSpec.equinix.${this.config.plan}
+              else null;
+            description = ''
+              Custom Data for the device.
+
+              NOTE: the attrs supplied for this option will be converted to JSON.
+            '';
+          };
+
+          facilities = lib.mkOption {
+            type = with lib.types; listOf str;
+            default = ["am6"];
+            description = ''
+              List of facility codes with deployment preferences. Equinix Metal API will go through
+              the list and will deploy your device to first facility with free capacity. List items
+              must be facility codes or any (a wildcard). To find the facility code, visit Facilities
+              API docs, set your API auth token in the top of the page and see JSON from the API response.
+            '';
+          };
+
+          hardware_reservation_id = lib.mkOption {
+            type = with lib.types; nullOr str;
+            default = null;
+            description = ''
+              The UUID of the hardware reservation where you want this device deployed, or
+              next-available if you want to pick your next available reservation automatically.
+              Changing this from a reservation UUID to next-available will re-create the device in
+              another reservation. Please be careful when using hardware reservation UUID and next-available
+              together for the same pool of reservations. It might happen that the reservation which Equinix
+              Metal API will pick as next-available is the reservation which you refer with UUID in another
+              equinix_metal_device resource. If that happens, and the equinix_metal_device with the UUID is
+              created later, resource creation will fail because the reservation is already in use (by the
+              resource created with next-available). To workaround this, have the next-available resource
+              explicitly depend_on the resource with hardware reservation UUID, so that the latter is
+              created first. For more details, see issue:
+              https://github.com/packethost/terraform-provider-packet/issues/176
+            '';
+          };
+
+          hostname = lib.mkOption {
+            type = with lib.types; str;
+            default = awsExtNodeName;
+            description = ''
+              The device hostname used in deployments taking advantage of Layer3 DHCP or metadata
+              service configuration.
+            '';
+          };
+
+          operating_system = lib.mkOption {
+            type = with lib.types; str;
+            default = "nixos_22_05";
+            description = ''
+              The operating system slug. To find the slug, visit Operating Systems API docs,
+              set your API auth token in the top of the page and see JSON from the API response.
+            '';
+          };
+
+          plan = lib.mkOption {
+            type = with lib.types; str;
+            default = "m3.small.x86";
+            description = ''
+              The device plan slug. To find the plan slug, visit Device plans API docs, set your auth
+              token in the top of the page and see JSON from the API response.
+            '';
+          };
+
+          project = lib.mkOption {
+            type = with lib.types; str;
+            description = ''
+              Name of the Equinix project to use.  This will be used to substitute a project
+              id from a sops encrypted file of ''${config.secrets.encryptedRoot}/equinix.json
+              consisting of a json set of project name keys to id values which need to be
+              available:
+
+              {
+                "<project1>": "<project1Id>",
+                "<project2>": "<project2Id>",
+                ...
+              }
+
+              The ID of the project in which to create the device.
+            '';
+          };
+
+          storage = lib.mkOption {
+            type = with lib.types; nullOr attrs;
+            default = null;
+            description = ''
+              For custom partitioning. Only usable on reserved hardware. More information
+              in the Custom Partitioning and RAID doc. Please note that the disks.partitions.size
+              attribute must be a string, not an integer. It can be a number string, or size notation
+              string, e.g. "4G" or "8M" (for gigabytes and megabytes).
+
+              NOTE: the attrs supplied for this option will be converted to JSON and the JSON
+              must be compatible with the CPR JSON structure here:
+              https://metal.equinix.com/developers/docs/storage/custom-partitioning-raid/
+            '';
+          };
+
+          tags = lib.mkOption {
+            type = with lib.types; listOf str;
+            default = [
+              "Cluster:${cfg.name}"
+              "Name:${awsExtNodeName}"
+              "UID:${awsExtNodeConfig.uid}"
+              "Consul:${
+                if awsExtNodeConfig.role == "core"
+                then "server"
+                else "client"
+              }"
+              "Vault:${
+                if awsExtNodeConfig.role == "core"
+                then "server"
+                else "client"
+              }"
+              "Nomad:${
+                if awsExtNodeConfig.role == "core"
+                then "server"
+                else "client"
+              }"
+            ];
+            description = ''
+              Tags attached to the device.
+            '';
+          };
+
+          user_data = lib.mkOption {
+            type = with lib.types; nullOr str;
+            default = null;
+            description = ''
+              A string of the desired User Data for the device.
+
+              NOTE: Appears to have no effect with the NixOS Equinix installer.
+            '';
+          };
+        };
+      });
 
   localExecType = with lib.types;
     submodule {
@@ -1133,7 +1326,7 @@
         };
 
         deployType = lib.mkOption {
-          type = with lib.types; enum ["aws" "prem" "premSim"];
+          type = with lib.types; enum ["aws" "premSim"];
           default = "aws";
         };
 
@@ -1272,7 +1465,7 @@ in {
       type = with lib.types; nullOr attrs;
       default = let
         names =
-          map builtins.attrNames [cfg.coreNodes cfg.premNodes cfg.premSimNodes];
+          map builtins.attrNames [cfg.coreNodes cfg.awsExtNodes cfg.premNodes cfg.premSimNodes];
         combinedNames = builtins.foldl' (s: v:
           s
           ++ (map (name:
@@ -1284,6 +1477,7 @@ in {
       in
         builtins.deepSeq combinedNames
         (cfg.coreNodes."${nodeName}"
+          or cfg.awsExtNodes."${nodeName}"
           or cfg.premNodes."${nodeName}"
           or cfg.premSimNodes."${nodeName}"
           or null);

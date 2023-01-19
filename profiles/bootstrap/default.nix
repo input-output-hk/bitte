@@ -10,6 +10,7 @@
   etcEncrypted,
   ...
 }: let
+  inherit (config.cluster) infraType;
   inherit (config.currentCoreNode) datacenter deployType privateIP;
 
   cfg = config.services.bootstrap;
@@ -212,6 +213,11 @@ in {
           token_period = 259200;
           renewable = true;
         };
+
+        vaultClientRoleBoundPrincipalArn =
+          if infraType == "awsExt"
+          then "$arn:role/core-${config.cluster.name}-client,$arn:user/awsExt-bitte-system"
+          else "$arn:role/core-${config.cluster.name}-client";
       in ''
         set -exuo pipefail
 
@@ -245,7 +251,7 @@ in {
 
           vault write auth/aws/role/${config.cluster.name}-client \
             auth_type=iam \
-            bound_iam_principal_arn="$arn:role/core-${config.cluster.name}-client" \
+            bound_iam_principal_arn="${vaultClientRoleBoundPrincipalArn}" \
             policies=default,client,nomad-server \
             period=24h || true # only available after 'tf.clients.apply'
 

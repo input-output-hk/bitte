@@ -10,7 +10,7 @@
   inherit (pkiFiles) caCertFile;
 
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
-  isSops = deployType == "aws";
+  isSops = builtins.elem deployType ["aws" "awsExt"];
 
   cfg = config.services.monitoring;
 in {

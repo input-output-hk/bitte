@@ -78,7 +78,7 @@
         }
         // (lib.optionalAttrs ((config.currentCoreNode or null) != null) {
           inherit (config.currentCoreNode) domain;
-          instanceType = lib.mkIf (deployType != "prem") config.currentCoreNode.instanceType;
+          instanceType = lib.mkIf (builtins.elem deployType ["aws" "premSim"]) config.currentCoreNode.instanceType;
         });
 
       # generate deterministic UUIDs for each node so they can rejoin.
@@ -96,7 +96,7 @@
       retryJoin =
         (lib.mapAttrsToList (_: v: v.privateIP)
           (lib.filterAttrs (k: v: lib.elem k cfg.serverNodeNames) nodes))
-        ++ lib.optionals (deployType == "aws")
+        ++ lib.optionals (builtins.elem deployType ["aws" "awsExt"])
         ["provider=aws region=${config.cluster.region} tag_key=Consul tag_value=server"];
 
       connect = {
@@ -143,20 +143,20 @@
           else consulDnsLocal
         }
         ${
-          lib.optionalString (deployType != "prem") ''
+          lib.optionalString (builtins.elem deployType ["aws" "premSim"]) ''
             server=/internal/169.254.169.253#53''
         }
 
         # Configure reverse in-addr.arpa DNS lookups to consul
         ${
-          lib.optionalString (deployType != "prem") ''
+          lib.optionalString (builtins.elem deployType ["aws" "premSim"]) ''
             rev-server=10.0.0.0/8,127.0.0.1#8600
             rev-server=172.16.0.0/16,127.0.0.1#8600''
         }
 
         # Define upstream DNS servers
         ${
-          lib.optionalString (deployType != "prem") ''
+          lib.optionalString (builtins.elem deployType ["aws" "premSim"]) ''
             server=169.254.169.253''
         }
         server=8.8.8.8

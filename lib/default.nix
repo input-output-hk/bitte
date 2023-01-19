@@ -30,6 +30,8 @@ in rec {
   ensureDependencies = import ./ensure-dependencies.nix {inherit lib;};
   mkNomadHostVolumesConfig = import ./mk-nomad-host-volumes-config.nix {inherit lib;};
 
+  physicalSpec = import ./physical-spec.nix {inherit lib;};
+
   augmentNomadJob = import ./augment-nomad-job.nix {inherit nixpkgs;};
   mkNomadJobs = ns: envs: let
     pkgs = import nixpkgs {system = "x86_64-linux";};

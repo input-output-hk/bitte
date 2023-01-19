@@ -27,7 +27,13 @@ in {
         assumePolicy = {
           effect = "Allow";
           action = "sts:AssumeRole";
-          principal.service = "ec2.amazonaws.com";
+          principal.service = ["ec2.amazonaws.com"];
+          principal.AWS = lib.mkIf (infraType == "awsExt") [
+            # Required for awsExt clients to assume client role status.
+            "\${aws_iam_user.awsExtBitteSystem.arn}"
+            # Required for vault-setup service on bootstrapper to resolve unique AWS resource ID for awsExtBitteSystem.
+            "\${aws_iam_role.${config.cluster.name}-core.arn}"
+          ];
         };
 
         policies = let
@@ -135,7 +141,7 @@ in {
         assumePolicy = {
           effect = "Allow";
           action = "sts:AssumeRole";
-          principal.service = "ec2.amazonaws.com";
+          principal.service = ["ec2.amazonaws.com"];
         };
 
         policies = let
@@ -193,11 +199,15 @@ in {
 
             assumeRole = {
               effect = "Allow";
-              resources = [
-                config.cluster.coreNodes.core-1.iam.instanceProfile.tfArn
-                config.cluster.coreNodes.core-2.iam.instanceProfile.tfArn
-                config.cluster.coreNodes.core-3.iam.instanceProfile.tfArn
-              ];
+              resources =
+                [
+                  config.cluster.coreNodes.core-1.iam.instanceProfile.tfArn
+                  config.cluster.coreNodes.core-2.iam.instanceProfile.tfArn
+                  config.cluster.coreNodes.core-3.iam.instanceProfile.tfArn
+                ]
+                ++ lib.optional (infraType == "awsExt")
+                # Required for vault-setup service on bootstrapper to resolve unique AWS resource ID for awsExtBitteSystem.
+                "\${aws_iam_role.${config.cluster.name}-client.arn}";
               actions = ["sts:AssumeRole"];
             };
 

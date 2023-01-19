@@ -1,12 +1,42 @@
-{ lib, config, pkgs, ... }:
-let
+{
+  lib,
+  config,
+  pkgs,
+  ...
+}: let
+  deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
 
   installType = with lib.types;
     submodule {
       options = {
+        preScript = lib.mkOption {
+          type = with lib.types; str;
+          default =
+            if deployType == "awsExt"
+            then ''
+              export AWS_CONFIG_FILE="/etc/aws/config"
+              export AWS_SHARED_CREDENTIALS_FILE="/etc/aws/credentials"
+            ''
+            else "";
+          description = ''
+            Shell script that is injected immediately after shebang and set script header lines.
+          '';
+        };
+
         script = lib.mkOption {
           type = with lib.types; str;
           default = "";
+          description = ''
+            Shell script that is appended to the secret installation script.
+          '';
+        };
+
+        extraPackages = lib.mkOption {
+          type = with lib.types; listOf package;
+          default = [];
+          description = ''
+            Extra packages required for secrets script installation.
+          '';
         };
 
         source = lib.mkOption {
@@ -20,12 +50,12 @@ let
         };
 
         inputType = lib.mkOption {
-          type = with lib.types; enum [ "json" "yaml" "dotenv" "binary" ];
+          type = with lib.types; enum ["json" "yaml" "dotenv" "binary"];
           default = "json";
         };
 
         outputType = lib.mkOption {
-          type = with lib.types; enum [ "json" "yaml" "dotenv" "binary" ];
+          type = with lib.types; enum ["json" "yaml" "dotenv" "binary"];
           default = "json";
         };
       };
@@ -34,37 +64,37 @@ let
   secretType = with lib.types;
     submodule {
       options = {
-        encryptedRoot = lib.mkOption { type = with lib.types; path; };
+        encryptedRoot = lib.mkOption {type = with lib.types; path;};
 
         generate = lib.mkOption {
           type = with lib.types; attrsOf str;
-          default = { };
+          default = {};
         };
 
         install = lib.mkOption {
           type = with lib.types; attrsOf installType;
-          default = { };
+          default = {};
         };
 
         generateScript = lib.mkOption {
           type = with lib.types; str;
-          apply = f:
-            let
-              relEncryptedFolder = lib.last (builtins.split "-" (toString config.secrets.encryptedRoot));
-              scripts = lib.concatStringsSep "\n" (lib.mapAttrsToList
-                (name: value:
-                  let
-                    script = pkgs.writeBashBinChecked name ''
-                      ## ${name}
+          apply = f: let
+            relEncryptedFolder = lib.last (builtins.split "-" (toString config.secrets.encryptedRoot));
+            scripts = lib.concatStringsSep "\n" (lib.mapAttrsToList
+              (name: value: let
+                script = pkgs.writeBashBinChecked name ''
+                  ## ${name}
 
-                      set -euo pipefail
+                  set -euo pipefail
 
-                      ${value}
-                    '';
-                  in "${script}/bin/${name}") config.secrets.generate);
-            in pkgs.writeBashBinChecked "generate-secrets" ''
+                  ${value}
+                '';
+              in "${script}/bin/${name}")
+              config.secrets.generate);
+          in
+            pkgs.writeBashBinChecked "generate-secrets" ''
               export PATH="$PATH:${
-                lib.makeBinPath (with pkgs; [ utillinux git ])
+                lib.makeBinPath (with pkgs; [utillinux git])
               }"
 
               (flock -w 30 9 || exit 1
@@ -81,12 +111,13 @@ let
 in {
   options = {
     secrets = lib.mkOption {
-      default = { };
+      default = {};
       type = with lib.types; secretType;
     };
   };
 
-  config.systemd.services = lib.flip lib.mapAttrs' config.secrets.install
+  config.systemd.services =
+    lib.flip lib.mapAttrs' config.secrets.install
     (name: cfg:
       lib.nameValuePair "secret-${name}" {
         wantedBy = [
@@ -103,10 +134,12 @@ in {
           WorkingDirectory = "/run/keys";
         };
 
-        path = with pkgs; [ sops coreutils ];
+        path = with pkgs; [sops coreutils] ++ cfg.extraPackages;
 
         script = ''
           set -euxo pipefail
+
+          ${cfg.preScript}
 
           ${lib.optionalString (cfg.target != null && cfg.source != null) ''
             target="${toString cfg.target}"

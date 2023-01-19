@@ -26,12 +26,12 @@
     scrape_configs = [
       {
         ec2_sd_configs =
-          if deployType == "aws"
+          if builtins.elem deployType ["aws" "awsExt"]
           then [{inherit (config.cluster) region;}]
           else [];
 
         job_name =
-          if deployType == "aws"
+          if builtins.elem deployType ["aws" "awsExt"]
           then "ec2-logs"
           else "prem-logs";
 
@@ -74,10 +74,10 @@
             {
               job = "systemd-journal";
             }
-            // lib.optionalAttrs (deployType == "aws") {
+            // lib.optionalAttrs (builtins.elem deployType ["aws" "awsExt"]) {
               inherit (config.cluster) region;
             }
-            // lib.optionalAttrs (deployType != "aws") {
+            // lib.optionalAttrs (!(builtins.elem deployType ["aws" "awsExt"])) {
               inherit datacenter;
             };
           max_age = "12h";

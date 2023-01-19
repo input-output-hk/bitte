@@ -21,7 +21,7 @@
     domain =
       config
       .${
-        if deployType == "aws"
+        if builtins.elem deployType ["aws" "awsExt"]
         then "cluster"
         else "currentCoreNode"
       }
@@ -32,7 +32,7 @@
       # if we use aws and consul depends on vault bootstrapping (get a token)
       # then we cannot depend on consul to access vault, obviously
       vaultAddress =
-        if deployType == "aws"
+        if builtins.elem deployType ["aws" "awsExt"]
         then "https://vault.${domain}"
         else "https://core.vault.service.consul:8200";
       cache.useAutoAuthToken = true;
@@ -62,17 +62,40 @@
         set -exuo pipefail
 
         test -f /etc/ssl/certs/.last_restart || touch -d '2020-01-01' /etc/ssl/certs/.last_restart
-        [ -f ${pkiFiles.caCertFile} ]
-        [ ${pkiFiles.certChainFile} -nt /etc/ssl/certs/.last_restart ]
-        [ ${pkiFiles.certFile} -nt /etc/ssl/certs/.last_restart ]
-        [ ${pkiFiles.keyFile} -nt /etc/ssl/certs/.last_restart ]
+        if ! [ -f ${pkiFiles.caCertFile} ]; then
+          echo "Waiting to start, restart or reload services since ${pkiFiles.caCertFile} doesn't exist yet"
+          exit 1
+        fi
 
-        systemctl try-reload-or-restart consul.service
+        if [ ${pkiFiles.certChainFile} -ot /etc/ssl/certs/.last_restart ]; then
+          echo "Waiting to start, restart or reload services since ${pkiFiles.certChainFile} is still older than the last restart"
+          exit 1
+        fi
 
-        if curl -s -k https://127.0.0.1:4646/v1/status/leader &> /dev/null; then
-          systemctl try-reload-or-restart nomad.service
+        if [ ${pkiFiles.certFile} -ot /etc/ssl/certs/.last_restart ]; then
+          echo "Waiting to start, restart or reload services since ${pkiFiles.certFile} is still older than the last restart"
+          exit 1
+        fi
+
+        if [ ${pkiFiles.keyFile} -ot /etc/ssl/certs/.last_restart ]; then
+          echo "Waiting to start, restart or reload services since ${pkiFiles.keyFile} is still older than the last restart"
+          exit 1
+        fi
+
+        if systemctl is-enabled consul.service &> /dev/null; then
+          systemctl try-reload-or-restart consul.service
         else
-          systemctl start nomad.service
+          echo "Skipping consul reload or restart as consul is disabled in systemd services."
+        fi
+
+        if systemctl is-enabled nomad.service &> /dev/null; then
+          if curl -s -k https://127.0.0.1:4646/v1/status/leader &> /dev/null; then
+            systemctl try-reload-or-restart nomad.service
+          else
+            systemctl start nomad.service
+          fi
+        else
+          echo "Skipping nomad reload, restart or start as nomad is disabled in systemd services."
         fi
 
         touch /etc/ssl/certs/.last_restart
