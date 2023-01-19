@@ -59,7 +59,6 @@ in {
       capsules.base
       capsules.tools
       capsules.integrations
-      capsules.hooks
     ];
     commands = let
       withCategory = category: attrset: attrset // {inherit category;};

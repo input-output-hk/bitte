@@ -52,8 +52,8 @@
         # assertion: You must set the option ‘boot.loader.grub.devices’ or 'boot.loader.grub.mirroredBoots' to make the system bootable.
         boot.loader.grub.enable = lib.mkDefault false;
 
-        # Set to avoid multiple warning traces for all proto evaluations
-        system.stateVersion = lib.mkDefault config.system.nixos.release;
+        # Set the default state version to avoid multiple warning traces for all proto evaluations
+        system.stateVersion = lib.mkDefault "22.11";
       })
     ];
   };

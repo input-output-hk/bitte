@@ -7,6 +7,7 @@
   cfg = config.services.promtail;
 
   deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
+  datacenter = config.currentCoreNode.datacenter or config.currentAwsAutoScalingGroup.datacenter;
 
   configJson = pkgs.toPrettyJSON "promtail" {
     server = {
@@ -77,7 +78,7 @@
               inherit (config.cluster) region;
             }
             // lib.optionalAttrs (!(builtins.elem deployType ["aws" "awsExt"])) {
-              datacenter = config.currentCoreNode.datacenter or config.currentAwsAutoScalingGroup.datacenter;
+              inherit datacenter;
             };
           max_age = "12h";
           path = "/var/log/journal";
