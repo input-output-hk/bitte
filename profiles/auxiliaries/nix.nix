@@ -17,7 +17,7 @@ in {
       system-features = ["recursive-nix" "nixos-test"];
       tarball-ttl = 60 * 60 * 72;
       show-trace = true;
-      experimental-features = "nix-command flakes recursive-nix";
+      experimental-features = ["nix-command" "flakes" "recursive-nix"];
       builders-use-substitutes = true;
 
       substituters =
