@@ -183,5 +183,80 @@
         };
       };
     };
+
+    "m3.large.x86" = {
+      cpr_storage = {
+        disks = [
+          {
+            device = "/dev/disk/by-packet-category/boot0";
+            partitions = [
+              {
+                label = "BIOS";
+                number = 1;
+                size = "512M";
+              }
+              {
+                label = "SWAP";
+                number = 2;
+                size = 0;
+              }
+            ];
+          }
+          {
+            device = "/dev/disk/by-packet-category/boot1";
+            partitions = [
+              {
+                label = "SCRATCH";
+                number = 1;
+                size = 0;
+              }
+            ];
+          }
+        ];
+        filesystems = [
+          {
+            mount = {
+              device = "/dev/disk/by-packet-category/boot0-part1";
+              format = "vfat";
+              point = "/boot";
+              create.options = ["32" "-n" "EFI"];
+            };
+          }
+          {
+            mount = {
+              device = "/dev/disk/by-packet-category/boot0-part2";
+              format = "swap";
+              point = "none";
+              create.options = ["-L" "SWAP"];
+            };
+          }
+          {
+            mount = {
+              device = "/dev/disk/by-packet-category/boot1-part1";
+              format = "ext4";
+              point = "/scratch";
+              create.options = ["-L" "SCRATCH"];
+            };
+          }
+        ];
+      };
+
+      cpr_zfs = {
+        inherit datasets mounts;
+        pools = {
+          zpool = {
+            pool_properties = {};
+            vdevs = [
+              {
+                disk = [
+                  "/dev/disk/by-packet-category/storage0"
+                  "/dev/disk/by-packet-category/storage1"
+                ];
+              }
+            ];
+          };
+        };
+      };
+    };
   };
 }
