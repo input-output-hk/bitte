@@ -85,7 +85,17 @@
   });
 
   bittePremSystem = bitteSystem ({modulesPath, ...}: {
-    imports = [];
+    imports = [
+      ({
+        lib,
+        config,
+        ...
+      }: {
+        # Required for initialization of equinix metal resources prior to the initial provisioning profile being obtained.
+        fileSystems."/" = lib.mkDefault {device = "/dev/disk/by-label/nixos";};
+        boot.loader.grub.enable = lib.mkDefault false;
+      })
+    ];
   });
 in {
   inherit

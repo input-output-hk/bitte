@@ -1169,7 +1169,7 @@
 
           operating_system = lib.mkOption {
             type = with lib.types; str;
-            default = "nixos_22_05";
+            default = "nixos_22_11";
             description = ''
               The operating system slug. To find the slug, visit Operating Systems API docs,
               set your API auth token in the top of the page and see JSON from the API response.
