@@ -59,7 +59,8 @@
       cpr_storage = {
         disks = [
           {
-            device = "/dev/disk/by-packet-category/boot0";
+            # c3.small.x86 in am6 no longer have /dev/disk/by-packet/category available
+            device = "/dev/sda";
             partitions = [
               {
                 label = "BIOS";
@@ -87,7 +88,7 @@
         filesystems = [
           {
             mount = {
-              device = "/dev/disk/by-packet-category/boot0-part2";
+              device = "/dev/sda2";
               format = "ext4";
               point = "/boot";
               create.options = ["-L" "BOOT"];
@@ -95,7 +96,7 @@
           }
           {
             mount = {
-              device = "/dev/disk/by-packet-category/boot0-part3";
+              device = "/dev/sda3";
               format = "swap";
               point = "none";
               create.options = ["-L" "SWAP"];
@@ -112,8 +113,8 @@
             vdevs = [
               {
                 disk = [
-                  "/dev/disk/by-packet-category/boot1"
-                  "/dev/disk/by-packet-category/boot0-part4"
+                  "/dev/sda4"
+                  "/dev/sdb"
                 ];
               }
             ];
