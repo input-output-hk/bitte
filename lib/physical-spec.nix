@@ -62,6 +62,7 @@
             # c3.small.x86 in am6 no longer have /dev/disk/by-packet/category available
             device = "/dev/sda";
             partitions = [
+              # GPT disk on a non-EFI system requires a BIOS partition
               {
                 label = "BIOS";
                 number = 1;
