@@ -20,23 +20,19 @@ in {
       };
     };
 
-    command.text =
-      ''
-        nix flake check --allow-import-from-derivation --no-build
-      ''
-      + config.preset.github.status.lib.reportBulk {
-        bulk.text = ''
-          nix eval .#checks --apply __attrNames --json |
-          nix-systems -i |
-          jq 'with_entries(select(.value))' # filter out systems that we cannot build for
-        '';
-        each.text = ''
-          IFS=$'\n'
-          for drv in $(nix eval .#checks."$1" --apply __attrNames --json | jq -r .[]); do
-            nix build -L .#checks."$1"."$drv"
-          done
-        '';
-      };
+    command.text = config.preset.github.status.lib.reportBulk {
+      bulk.text = ''
+        nix eval .#checks --apply __attrNames --json |
+        nix-systems -i |
+        jq 'with_entries(select(.value))' # filter out systems that we cannot build for
+      '';
+      each.text = ''
+        IFS=$'\n'
+        for drv in $(nix eval .#checks."$1" --apply __attrNames --json | jq -r .[]); do
+          nix build -L .#checks."$1"."$drv"
+        done
+      '';
+    };
 
     memory = 1024 * 12;
 
