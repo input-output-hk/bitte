@@ -175,7 +175,6 @@
         "spire-systemd-attestor"
         "terraform-with-plugins"
         "traefik"
-        "vault-backend"
       ])
       (mkChecks ["x86_64-linux"] [
         "agenix"
@@ -183,5 +182,6 @@
         "nomad-follower"
         "vault-bin"
         "victoriametrics"
+        "vault-backend"
       ]));
 }
