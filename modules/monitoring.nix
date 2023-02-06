@@ -135,7 +135,7 @@ in {
     ];
 
     networking.firewall.allowedTCPPorts = [
-      config.services.grafana.port # default: 3000
+      config.services.grafana.settings.server.http_port # default: 3000
       3100 # loki
       8428 # victoriaMetrics
       8429 # vmagent
@@ -159,52 +159,71 @@ in {
     # requires bash variables in the group rules which will not pass syntax validation
     # in some fields, such as a url field.  This works around the problem.
     # Ref: https://github.com/prometheus/alertmanager/issues/504
-    systemd.services.alertmanager.preStart = let
-      cfg = config.services.prometheus.alertmanager;
-      alertmanagerYml =
-        if cfg.configText != null
-        then pkgs.writeText "alertmanager.yml" cfg.configText
-        else pkgs.writeText "alertmanager.yml" (builtins.toJSON cfg.configuration);
-    in
-      mkForce ''
-        ${pkgs.gnused}/bin/sed 's|https://deadmanssnitch.com|$DEADMANSSNITCH|g' "${alertmanagerYml}" > "/tmp/alert-manager-sed.yaml"
-        ${getBin pkgs.envsubst}/bin/envsubst  -o "/tmp/alert-manager-substituted.yaml" \
-                                                  -i "/tmp/alert-manager-sed.yaml"
-      '';
+    systemd.services.alertmanager = {
+      preStart = let
+        cfg = config.services.prometheus.alertmanager;
+        alertmanagerYml =
+          if cfg.configText != null
+          then pkgs.writeText "alertmanager.yml" cfg.configText
+          else pkgs.writeText "alertmanager.yml" (builtins.toJSON cfg.configuration);
+      in
+        mkForce ''
+          ${pkgs.gnused}/bin/sed 's|https://deadmanssnitch.com|$DEADMANSSNITCH|g' "${alertmanagerYml}" > "/tmp/alert-manager-sed.yaml"
+          ${getBin pkgs.envsubst}/bin/envsubst  -o "/tmp/alert-manager-substituted.yaml" \
+                                                    -i "/tmp/alert-manager-sed.yaml"
+        '';
+
+      serviceConfig = {
+        Restart = "always";
+        RestartSec = "5";
+      };
+
+      wantedBy = lib.mkIf isSops ["secret-alertmanager.service"];
+    };
 
     services.victoriametrics = {
       retentionPeriod = 12; # months
     };
 
     services.grafana = {
-      auth.anonymous.enable = false;
-      analytics.reporting.enable = false;
-      addr = "";
-      domain = "monitoring.${domain}";
-      extraOptions =
-        {
-          AUTH_PROXY_ENABLED = "true";
-          USERS_AUTO_ASSIGN_ORG_ROLE = "Editor";
-          # Enable next generation alerting for >= 8.2.x
-          UNIFIED_ALERTING_ENABLED = "true";
-          ALERTING_ENABLED = "false";
-        }
-        // optionalAttrs cfg.useOauth2Proxy {
-          AUTH_PROXY_HEADER_NAME = "X-Auth-Request-Email";
-          AUTH_SIGNOUT_REDIRECT_URL = "/oauth2/sign_out";
-        }
-        // optionalAttrs cfg.useDigestAuth {
-          AUTH_PROXY_HEADER_NAME = "X-WebAuth-User";
-        }
-        // optionalAttrs cfg.useTempo {
-          # Utilize caddy for LB to OTLP SRV backends
-          TRACING_OPENTELEMETRY_JAEGER_ADDRESS = "http://127.0.0.1:3098/tempo-jaeger-thrift-http/api/traces?format=jaeger.thrift";
-          FEATURE_TOGGLES_ENABLE = "tempoApmTable,traceToMetrics";
-        };
-      rootUrl = "https://monitoring.${domain}/";
+      settings =
+        lib.foldl' (acc: set: lib.recursiveUpdate acc set) {} [
+          {
+            alerting.enabled = false;
+            analytics.reporting_enabled = false;
+            "auth.anonymous".enabled = false;
+            "auth.proxy".enabled = true;
+            security.admin_password = "$__file{${
+              if isSops
+              then "/var/lib/grafana/password"
+              else config.age.secrets.grafana-password.path
+            }}";
+            server.domain = "monitoring.${domain}";
+            server.http_addr = "";
+            server.root_url = "https://monitoring.${domain}/";
+            unified_alerting.enabled = true;
+            users.auto_assign_org_role = "Editor";
+          }
+
+          (optionalAttrs cfg.useOauth2Proxy {
+            "auth.proxy".header_name = "X-Auth-Request-Email";
+            auth.signout_redirect_url = "/oauth2/sign_out";
+          })
+
+          (optionalAttrs cfg.useDigestAuth {
+            "auth.proxy".header_name = "X-WebAuth-User";
+          })
+
+          (optionalAttrs cfg.useTempo {
+            feature_toggles.enable = "tempoApmTable traceToMetrics";
+            # Utilize caddy for LB to OTLP SRV backends
+            "tracing.opentelemetry.jaeger".address = "http://127.0.0.1:3098/tempo-jaeger-thrift-http/api/traces?format=jaeger.thrift";
+          })
+        ];
+
       provision = {
         enable = true;
-        datasources =
+        datasources.settings.datasources =
           [
             (lib.recursiveUpdate {
                 type = "loki";
@@ -294,18 +313,13 @@ in {
             }
           ];
 
-        dashboards = [
+        dashboards.settings.providers = [
           {
             name = "tf-declared-dashboards";
             options.path = "/var/lib/grafana/dashboards";
           }
         ];
       };
-
-      security.adminPasswordFile =
-        if isSops
-        then "/var/lib/grafana/password"
-        else config.age.secrets.grafana-password.path;
     };
 
     # While victoriametrics offers a -vmalert.proxyURL option to forward grafana

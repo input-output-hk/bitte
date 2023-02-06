@@ -200,7 +200,9 @@ in {
                 # To avoid key collision errors, add further keys at the nixos module level.
                 project_ssh_key_ids = [(var "equinix_metal_project_ssh_key.${config.cluster.name}-awsExt-${project}.id")];
 
-                lifecycle = [{ignore_changes = ["user_data"];}];
+                # Ignore some declarations on machines after they are provisioned to avoid TF from destroying them
+                # for changes that are only relevant to new machines.
+                lifecycle = [{ignore_changes = ["operating_system" "custom_data" "user_data"];}];
                 provisioner = let
                   publicIP = var "self.access_public_ipv4";
                   privateIP = var "self.access_private_ipv4";

@@ -9,7 +9,10 @@
   cfgVmalert = config.services.vmalert;
 in
   with lib; {
-    disabledModules = ["services/databases/victoriametrics.nix"];
+    disabledModules = [
+      "services/databases/victoriametrics.nix"
+      "services/monitoring/vmagent.nix"
+    ];
     options.services.victoriametrics = {
       enable = mkEnableOption "victoriametrics";
 

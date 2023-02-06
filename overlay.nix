@@ -1,5 +1,5 @@
 inputs: let
-  inherit (inputs) nixpkgs nixpkgs-docker nixpkgs-unstable ops-lib self;
+  inherit (inputs) nixpkgs nixpkgs-docker nix nixpkgs-unstable ops-lib self;
   inherit (nixpkgs) lib;
 
   deprecated = k:
@@ -11,9 +11,6 @@ inputs: let
   pkgsUnstable = nixpkgs-unstable.legacyPackages;
 in
   final: prev: rec {
-    nixFlakes = nixUnstable;
-    nixUnstable = builtins.throw "use pkgs.nix directly";
-
     # Packages specifically needing an unstable nixpkgs pinned latest available version
     inherit
       (pkgsUnstable.${prev.system})
@@ -32,9 +29,10 @@ in
       gemdir = ./.;
     };
 
+    # TODO: this should be fixed upstream?
     bundler = prev.bundler.overrideAttrs (o: {
       postInstall = ''
-        sed -i -e '/if sudo_needed/I,+2 d' $out/${prev.ruby.gemPath}/gems/${o.gemName}-${o.version}/lib/bundler.rb
+        find $out -name bundler.rb | xargs sed -i -e '/if sudo_needed/I,+2 d'
       '';
     });
 
@@ -53,6 +51,7 @@ in
 
     glusterfs = final.callPackage ./pkgs/glusterfs.nix {};
     mill = prev.callPackage ./pkgs/mill.nix {};
+    nix = inputs.nix.packages.${prev.system}.nix;
     nomad = nixpkgs-unstable.legacyPackages.${prev.system}.callPackage ./pkgs/nomad.nix {};
     nomad-autoscaler = prev.callPackage ./pkgs/nomad-autoscaler.nix {};
     nomad-follower = inputs.nomad-follower.defaultPackage.${prev.system};

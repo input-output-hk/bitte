@@ -11,13 +11,28 @@ in {
     gc.automatic = true;
     gc.options = "--max-freed $((10 * 1024 * 1024))";
     optimise.automatic = true;
-    autoOptimiseStore = true;
-    extraOptions = ''
-      tarball-ttl = ${toString (60 * 60 * 72)}
-      show-trace = true
-      experimental-features = nix-command flakes recursive-nix
-      builders-use-substitutes = true
-    '';
+
+    settings = {
+      auto-optimise-store = true;
+      system-features = ["recursive-nix" "nixos-test"];
+      tarball-ttl = 60 * 60 * 72;
+      show-trace = true;
+      experimental-features = ["nix-command" "flakes" "recursive-nix"];
+      builders-use-substitutes = true;
+
+      substituters =
+        [
+          "https://cache.iog.io"
+        ]
+        ++ lib.optional (builtins.elem deployType ["aws" "awsExt"]) "${config.cluster.s3Cache}";
+
+      trusted-public-keys =
+        [
+          "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
+        ]
+        ++ lib.optional (builtins.elem deployType ["aws" "awsExt"]) "${config.cluster.s3CachePubKey}";
+    };
+
     registry.nixpkgs = {
       flake = self.inputs.nixpkgs;
       from = {
@@ -25,18 +40,5 @@ in {
         type = "indirect";
       };
     };
-    systemFeatures = ["recursive-nix" "nixos-test"];
-
-    binaryCaches =
-      [
-        "https://cache.iog.io"
-      ]
-      ++ lib.optional (builtins.elem deployType ["aws" "awsExt"]) "${config.cluster.s3Cache}";
-
-    binaryCachePublicKeys =
-      [
-        "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
-      ]
-      ++ lib.optional (builtins.elem deployType ["aws" "awsExt"]) "${config.cluster.s3CachePubKey}";
   };
 }

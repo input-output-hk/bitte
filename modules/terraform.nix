@@ -11,6 +11,7 @@
 } @ _protoArgs: let
   inherit (terralib) var id regions awsProviderFor amis sshArgs;
   inherit (bittelib) net physicalSpec;
+  pp = v: lib.traceSeqN 10 v v;
 
   kms2region = kms:
     if kms == null
@@ -895,7 +896,7 @@
     submodule ({name, ...} @ this: {
       options = {
         name = lib.mkOption {
-          type = with lib.types; str;
+          type = lib.types.str;
           default = name;
         };
 
@@ -915,18 +916,7 @@
         };
 
         modules = lib.mkOption {
-          # Required due to types.anything not being intended for arbitrary modules.
-          # types.anything usage broken by:
-          #   https://github.com/NixOS/nixpkgs/commit/48293bd6b6b791b9af745e9b7b94a6856e279fa0
-          # Ref: https://github.com/NixOS/nixpkgs/issues/140879
-          # TODO: use types.raw on next nixpkgs bump (>= 22.05)
-          type = with lib.types;
-            listOf (mkOptionType {
-              name = "submodule";
-              inherit (submodule {}) check;
-              merge = lib.options.mergeOneOption;
-            });
-          default = [];
+          type = with lib.types; listOf raw;
         };
 
         node_class = lib.mkOption {
@@ -1179,7 +1169,7 @@
 
           operating_system = lib.mkOption {
             type = with lib.types; str;
-            default = "nixos_22_05";
+            default = "nixos_22_11";
             description = ''
               The operating system slug. To find the slug, visit Operating Systems API docs,
               set your API auth token in the top of the page and see JSON from the API response.
@@ -1465,7 +1455,7 @@ in {
       type = with lib.types; nullOr attrs;
       default = let
         names =
-          map builtins.attrNames [cfg.coreNodes cfg.awsExtNodes cfg.premNodes cfg.premSimNodes];
+          [["proto"]] ++ map builtins.attrNames [cfg.coreNodes cfg.awsExtNodes cfg.premNodes cfg.premSimNodes];
         combinedNames = builtins.foldl' (s: v:
           s
           ++ (map (name:

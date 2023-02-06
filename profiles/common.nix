@@ -21,6 +21,9 @@ in {
     ./auxiliaries/builder.nix
   ];
 
+  # Set the default state version
+  system.stateVersion = lib.mkDefault "22.11";
+
   # avoid CVE-2021-4034 (PwnKit)
   security.polkit.enable = false;
 

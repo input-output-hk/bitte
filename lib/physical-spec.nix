@@ -59,8 +59,10 @@
       cpr_storage = {
         disks = [
           {
-            device = "/dev/disk/by-packet-category/boot0";
+            # c3.small.x86 in am6 no longer have /dev/disk/by-packet/category available
+            device = "/dev/sda";
             partitions = [
+              # GPT disk on a non-EFI system requires a BIOS partition
               {
                 label = "BIOS";
                 number = 1;
@@ -87,7 +89,7 @@
         filesystems = [
           {
             mount = {
-              device = "/dev/disk/by-packet-category/boot0-part2";
+              device = "/dev/sda2";
               format = "ext4";
               point = "/boot";
               create.options = ["-L" "BOOT"];
@@ -95,7 +97,7 @@
           }
           {
             mount = {
-              device = "/dev/disk/by-packet-category/boot0-part3";
+              device = "/dev/sda3";
               format = "swap";
               point = "none";
               create.options = ["-L" "SWAP"];
@@ -112,8 +114,8 @@
             vdevs = [
               {
                 disk = [
-                  "/dev/disk/by-packet-category/boot1"
-                  "/dev/disk/by-packet-category/boot0-part4"
+                  "/dev/sda4"
+                  "/dev/sdb"
                 ];
               }
             ];
@@ -176,6 +178,81 @@
                 disk = [
                   "/dev/disk/by-packet-category/boot1"
                   "/dev/disk/by-packet-category/boot0-part3"
+                ];
+              }
+            ];
+          };
+        };
+      };
+    };
+
+    "m3.large.x86" = {
+      cpr_storage = {
+        disks = [
+          {
+            device = "/dev/disk/by-packet-category/boot0";
+            partitions = [
+              {
+                label = "BIOS";
+                number = 1;
+                size = "512M";
+              }
+              {
+                label = "SWAP";
+                number = 2;
+                size = 0;
+              }
+            ];
+          }
+          {
+            device = "/dev/disk/by-packet-category/boot1";
+            partitions = [
+              {
+                label = "SCRATCH";
+                number = 1;
+                size = 0;
+              }
+            ];
+          }
+        ];
+        filesystems = [
+          {
+            mount = {
+              device = "/dev/disk/by-packet-category/boot0-part1";
+              format = "vfat";
+              point = "/boot";
+              create.options = ["32" "-n" "EFI"];
+            };
+          }
+          {
+            mount = {
+              device = "/dev/disk/by-packet-category/boot0-part2";
+              format = "swap";
+              point = "none";
+              create.options = ["-L" "SWAP"];
+            };
+          }
+          {
+            mount = {
+              device = "/dev/disk/by-packet-category/boot1-part1";
+              format = "ext4";
+              point = "/scratch";
+              create.options = ["-L" "SCRATCH"];
+            };
+          }
+        ];
+      };
+
+      cpr_zfs = {
+        inherit datasets mounts;
+        pools = {
+          zpool = {
+            pool_properties = {};
+            vdevs = [
+              {
+                disk = [
+                  "/dev/disk/by-packet-category/storage0"
+                  "/dev/disk/by-packet-category/storage1"
                 ];
               }
             ];

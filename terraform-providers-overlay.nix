@@ -1,11 +1,11 @@
 inputs: let
-  inherit (inputs) nixpkgs;
-  inherit (nixpkgs) lib;
+  inherit (inputs.nixpkgs) lib;
+  pkgsTf = system: inputs.nixpkgs-terraform.legacyPackages.${system};
+  terraform-provider-names = ["acme" "aws" "consul" "equinix" "local" "nomad" "null" "sops" "tls" "vault" "rabbitmq" "postgresql"];
 in
   final: prev: {
-    inherit (prev) terraform_0_13 terraform_0_14;
 
-    terraform-provider-names = ["acme" "aws" "consul" "equinix" "local" "nomad" "null" "sops" "tls" "vault" "rabbitmq" "postgresql"];
+    terraform_0_13 = (inputs.nixpkgs-terraform.legacyPackages.${final.system}.extend (_: _: {inherit (final) terraform-providers;})).terraform_0_13;
 
     terraform-provider-versions = lib.listToAttrs (map (name: let
       provider = final.terraform-providers.${name};
@@ -18,12 +18,12 @@ in
         inherit source;
         version = "= ${provider.version}";
       })
-    final.terraform-provider-names);
+    terraform-provider-names);
 
     terraform-providers =
       prev.terraform-providers
       // (let
-        inherit (prev) buildGo117Module;
+        inherit (pkgsTf prev.system) buildGo117Module;
         buildWithGoModule = data:
           buildGo117Module {
             pname = data.repo;
@@ -47,6 +47,7 @@ in
           rev = "v1.5.0-patched2";
           sha256 = "1h6yk0wrn1dxsy9dsh0dwkpkbs8w9qjqqc6gl9nkrqbcd558jxfb";
         };
+
         aws = buildWithGoModule {
           provider-source-address = "registry.terraform.io/hashicorp/aws";
           version = "3.27.0";
@@ -56,33 +57,7 @@ in
           rev = "v3.27.0";
           sha256 = "sha256-rdO2eb41I5eBY/htRTCqdN843eWnnwqCW3ER824txUI=";
         };
-        equinix = buildWithGoModule {
-          provider-source-address = "registry.terraform.io/equinix/equinix";
-          version = "1.10.0";
-          vendorSha256 = "sha256-ZGPSNz/6qwEU5EY72fIJ1x9bnsN9OZQ6MQ+XNotMGgA=";
-          owner = "equinix";
-          repo = "terraform-provider-equinix";
-          rev = "v1.10.0";
-          sha256 = "sha256-gvI9awkKiWWnw6O/KvskFTHZfvajGfgYu8DGsT34Siw=";
-        };
-        local = buildWithGoModule {
-          provider-source-address = "registry.terraform.io/hashicorp/local";
-          version = "2.0.0";
-          vendorSha256 = null;
-          owner = "hashicorp";
-          repo = "terraform-provider-local";
-          rev = "v2.0.0";
-          sha256 = "sha256-5ZMDyzCFyNwdQ3mpccx5jzz/9N6eAkQvkhUPSIeZNTA=";
-        };
-        null = buildWithGoModule {
-          provider-source-address = "registry.terraform.io/hashicorp/null";
-          version = "3.0.0";
-          vendorSha256 = null;
-          owner = "hashicorp";
-          repo = "terraform-provider-null";
-          rev = "v3.0.0";
-          sha256 = "sha256-+eR9JaAZBhHxMOwlw5bJsrOo0LzB7QYLikIkk5jeM2Q=";
-        };
+
         consul = buildWithGoModule {
           provider-source-address = "registry.terraform.io/hashicorp/consul";
           version = "2.11.0";
@@ -92,32 +67,47 @@ in
           rev = "v2.11.0";
           sha256 = "007v7blzsfh0gd3i54w8jl2czbxidwk3rl2wgdncq423xh9pkx1d";
         };
-        vault = buildWithGoModule {
-          provider-source-address = "registry.terraform.io/hashicorp/vault";
-          version = "3.7.0";
-          vendorSha256 = "sha256-TqhnjsK36EGpDlN4yy1jd/1KpdOT+hu4koMM3VCJEV0=";
+
+        equinix = buildWithGoModule {
+          provider-source-address = "registry.terraform.io/equinix/equinix";
+          version = "1.10.0";
+          vendorSha256 = "sha256-ZGPSNz/6qwEU5EY72fIJ1x9bnsN9OZQ6MQ+XNotMGgA=";
+          owner = "equinix";
+          repo = "terraform-provider-equinix";
+          rev = "v1.10.0";
+          sha256 = "sha256-gvI9awkKiWWnw6O/KvskFTHZfvajGfgYu8DGsT34Siw=";
+        };
+
+        local = buildWithGoModule {
+          provider-source-address = "registry.terraform.io/hashicorp/local";
+          version = "2.0.0";
+          vendorSha256 = null;
           owner = "hashicorp";
-          repo = "terraform-provider-vault";
-          rev = "v3.7.0";
-          sha256 = "sha256-n2sUc71Ymk2kI9bpQxp2TRG4hte5/xIP+NbUxBwyNaM=";
+          repo = "terraform-provider-local";
+          rev = "v2.0.0";
+          sha256 = "sha256-5ZMDyzCFyNwdQ3mpccx5jzz/9N6eAkQvkhUPSIeZNTA=";
         };
-        sops = buildWithGoModule {
-          version = "0.6.3";
-          vendorSha256 = "sha256-kBQVgxeGTu0tLgbjoCMdswwMvfZI3tEXNHa8buYJXME=";
-          owner = "carlpett";
-          repo = "terraform-provider-sops";
-          rev = "v0.6.3";
-          sha256 = "sha256-yfHO/vGk7M5CbA7VkrxLVldAMexhuk0wTEe8+5g8ZrU=";
+
+        nomad = buildWithGoModule {
+          provider-source-address = "registry.terraform.io/hashicorp/nomad";
+          version = "1.4.15";
+          vendorSha256 = "sha256-qyaJm+tLx2TfWVKBwJI65Yr+UglDfITi+idYbGm8vPg=";
+          owner = "hashicorp";
+          repo = "terraform-provider-nomad";
+          rev = "v1.4.15";
+          sha256 = "sha256-YSajlQMotNBbz4EIsnFT/OxRlhRUKohiC8UdAc/dOaM=";
         };
-        rabbitmq = buildWithGoModule {
-          provider-source-address = "registry.terraform.io/cyrilgdn/rabbitmq";
-          version = "1.6.0";
-          vendorSha256 = "sha256-wbnjAM2PYocAtRuY4fjLPGFPJfzsKih6Q0YCvFyMulQ=";
-          owner = "cyrilgdn";
-          repo = "terraform-provider-rabbitmq";
-          rev = "v1.6.0";
-          sha256 = "sha256-gtqH+/Yg5dCovdDlg/JrDqOKfxTKPwfCvnV8MUAjLGs=";
+
+        null = buildWithGoModule {
+          provider-source-address = "registry.terraform.io/hashicorp/null";
+          version = "3.0.0";
+          vendorSha256 = null;
+          owner = "hashicorp";
+          repo = "terraform-provider-null";
+          rev = "v3.0.0";
+          sha256 = "sha256-+eR9JaAZBhHxMOwlw5bJsrOo0LzB7QYLikIkk5jeM2Q=";
         };
+
         postgresql = buildWithGoModule {
           provider-source-address = "registry.terraform.io/cyrilgdn/postgresql";
           version = "1.14.0";
@@ -127,9 +117,48 @@ in
           rev = "v1.14.0";
           sha256 = "sha256-2VDPKpBedX0Q6xWwUL/2afGvtvlRSQhK+wdXTLyI6CM=";
         };
+
+        rabbitmq = buildWithGoModule {
+          provider-source-address = "registry.terraform.io/cyrilgdn/rabbitmq";
+          version = "1.6.0";
+          vendorSha256 = "sha256-wbnjAM2PYocAtRuY4fjLPGFPJfzsKih6Q0YCvFyMulQ=";
+          owner = "cyrilgdn";
+          repo = "terraform-provider-rabbitmq";
+          rev = "v1.6.0";
+          sha256 = "sha256-gtqH+/Yg5dCovdDlg/JrDqOKfxTKPwfCvnV8MUAjLGs=";
+        };
+
+        sops = buildWithGoModule {
+          version = "0.6.3";
+          vendorSha256 = "sha256-kBQVgxeGTu0tLgbjoCMdswwMvfZI3tEXNHa8buYJXME=";
+          owner = "carlpett";
+          repo = "terraform-provider-sops";
+          rev = "v0.6.3";
+          sha256 = "sha256-yfHO/vGk7M5CbA7VkrxLVldAMexhuk0wTEe8+5g8ZrU=";
+        };
+
+        tls = buildWithGoModule {
+          provider-source-address = "registry.terraform.io/hashicorp/tls";
+          version = "3.0.0";
+          vendorSha256 = null;
+          owner = "hashicorp";
+          repo = "terraform-provider-tls";
+          rev = "v3.0.0";
+          sha256 = "sha256-n4OrTJ4EzH7hytkwb4fUHtEfalaMfjBSFI53kjMvLd0=";
+        };
+
+        vault = buildWithGoModule {
+          provider-source-address = "registry.terraform.io/hashicorp/vault";
+          version = "3.7.0";
+          vendorSha256 = "sha256-TqhnjsK36EGpDlN4yy1jd/1KpdOT+hu4koMM3VCJEV0=";
+          owner = "hashicorp";
+          repo = "terraform-provider-vault";
+          rev = "v3.7.0";
+          sha256 = "sha256-n2sUc71Ymk2kI9bpQxp2TRG4hte5/xIP+NbUxBwyNaM=";
+        };
       });
 
     terraform-with-plugins =
       final.terraform_0_13.withPlugins
-      (lib.attrVals final.terraform-provider-names);
+      (lib.attrVals terraform-provider-names);
   }

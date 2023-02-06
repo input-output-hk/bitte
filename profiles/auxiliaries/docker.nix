@@ -16,6 +16,7 @@ in {
           Set the logging level ("debug"|"info"|"warn"|"error"|"fatal") (default "info")
         '';
       };
+
       logBlockingMode = lib.mkOption {
         type = lib.types.bool;
         default = true;
@@ -28,6 +29,7 @@ in {
           to docker daemon config.
         '';
       };
+
       logMaxBufferSize = lib.mkOption {
         type = lib.types.str;
         default = "1m";
@@ -40,6 +42,7 @@ in {
           docker daemon config.
         '';
       };
+
       insecureRegistries = lib.mkOption {
         type = with lib.types; nullOr (listOf str);
         default = null;
@@ -59,7 +62,6 @@ in {
       autoPrune.dates = "daily";
 
       extraOptions = lib.concatStringsSep " " ([
-          "--log-driver=journald"
           # For simplicity, let the bridge network have a static ip/mask (by default it
           # would choose this one, but fall back to the next range if this one is already used)
           "--bip=172.17.0.1/16"

@@ -9,9 +9,6 @@
   inherit (lib) flip mkDefault mkIf pipe recursiveUpdate;
   inherit (pkiFiles) caCertFile;
 
-  deployType = config.currentCoreNode.deployType or config.currentAwsAutoScalingGroup.deployType;
-  isSops = builtins.elem deployType ["aws" "awsExt"];
-
   cfg = config.services.monitoring;
 in {
   imports = [
@@ -21,7 +18,6 @@ in {
     ./vault/monitoring.nix
 
     # Modules -- enable gated config mutation w/ options
-    ../modules/grafana.nix
     ../modules/monitoring.nix
   ];
 

@@ -2,17 +2,16 @@
   description = "Flake containing Bitte clusters";
   inputs.std.url = "github:divnix/std";
   inputs.flake-arch.url = "github:johnalotoski/flake-arch";
-  # 21.11 doesn't yet fullfill all contracts that std consumes
-  # inputs.std.inputs.nixpkgs.follows = "nixpkgs";
   inputs.n2c.url = "github:nlewo/nix2container";
   inputs.data-merge.url = "github:divnix/data-merge";
   inputs.capsules.url = "github:input-output-hk/devshell-capsules";
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-21.11";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-22.11";
     nixpkgs-docker.url = "github:nixos/nixpkgs/ff691ed9ba21528c1b4e034f36a04027e4522c58";
+    nixpkgs-terraform.url = "github:NixOS/nixpkgs/8b3398bc7587ebb79f93dfeea1b8c574d3c6dba1";
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixpkgs-unstable";
 
-    nix.url = "github:nixos/nix/2.8.1";
+    nix.url = "github:nixos/nix/2.13-maintenance";
     agenix.url = "github:ryantm/agenix";
     agenix-cli.url = "github:cole-h/agenix-cli";
     ragenix.url = "github:yaxitech/ragenix";
@@ -27,21 +26,13 @@
     # Cicero related
     tullia = {
       url = "github:input-output-hk/tullia";
-      inputs = {
-        # Tullia has nixpkgs 22.05 dependencies (ex: stdenv:shellDryRun)
-        nixpkgs.follows = "nixpkgs-unstable";
-        std.follows = "std";
-      };
+      inputs.std.follows = "std";
     };
+
     # Vector >= 0.20.0 versions require nomad-follower watch-config format fix
     nomad-follower.url = "github:input-output-hk/nomad-follower";
 
-    nomad-driver-nix.url = "github:input-output-hk/nomad-driver-nix";
-
-    fenix = {
-      url = "github:nix-community/fenix";
-      inputs.nixpkgs.follows = "nixpkgs-unstable";
-    };
+    fenix.url = "github:nix-community/fenix";
 
     ops-lib = {
       url = "github:input-output-hk/ops-lib";
@@ -55,6 +46,7 @@
     flake-arch,
     nix,
     nixpkgs,
+    nixpkgs-terraform,
     nixpkgs-unstable,
     ragenix,
     self,
@@ -106,14 +98,15 @@
 
       overlays = [
         fenix.overlay
-        nix.overlay
         deploy.overlay
         localPkgsOverlay
         terraformProvidersOverlay
         (_: prev: {inherit (self.packages."${prev.system}") bitte;})
       ];
+
       terraformProvidersOverlay =
         import ./terraform-providers-overlay.nix inputs;
+
       localPkgsOverlay = import ./overlay.nix inputs;
 
       pkgsForSystem = system:
@@ -182,7 +175,6 @@
         "spire-systemd-attestor"
         "terraform-with-plugins"
         "traefik"
-        "vault-backend"
       ])
       (mkChecks ["x86_64-linux"] [
         "agenix"
@@ -190,5 +182,6 @@
         "nomad-follower"
         "vault-bin"
         "victoriametrics"
+        "vault-backend"
       ]));
 }
