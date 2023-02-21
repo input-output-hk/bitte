@@ -2,7 +2,7 @@
   inputs,
   cell,
 }: let
-  inherit (inputs.std) std;
+  inherit (inputs) std;
   inherit (inputs) capsules nixpkgs;
   inherit (inputs.cells.cli.packages) bitte;
   inherit (bitte) rustPkg rustPlatform;
@@ -25,16 +25,16 @@
         CoreFoundation
       ]);
 in {
-  default = std.lib.mkShell {
+  default = std.lib.dev.mkShell {
     name = nixpkgs.lib.mkForce "Bitte";
     imports = [
-      std.devshellProfiles.default
+      std.std.devshellProfiles.default
       capsules.base
       capsules.tools
       capsules.integrations
     ];
   };
-  cli = std.lib.mkShell {
+  cli = std.lib.dev.mkShell {
     packages = rust-dev-pkgs;
     language.rust = {
       packageSet = rustPlatform;
@@ -55,7 +55,7 @@ in {
       }
     ];
     imports = [
-      "${inputs.std.inputs.devshell}/extra/language/rust.nix"
+      "${std.inputs.devshell}/extra/language/rust.nix"
       capsules.base
       capsules.tools
       capsules.integrations
