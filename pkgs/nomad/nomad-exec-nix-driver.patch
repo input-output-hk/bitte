@@ -1,9 +1,9 @@
 diff --git a/client/allocrunner/taskrunner/nix_hook.go b/client/allocrunner/taskrunner/nix_hook.go
 new file mode 100644
-index 000000000..472149beb
+index 000000000..83b897b90
 --- /dev/null
 +++ b/client/allocrunner/taskrunner/nix_hook.go
-@@ -0,0 +1,290 @@
+@@ -0,0 +1,310 @@
 +package taskrunner
 +
 +import (
@@ -30,17 +30,15 @@ index 000000000..472149beb
 +
 +// nixHook is used to prepare a task directory structure based on Nix packages
 +type nixHook struct {
-+	alloc    *structs.Allocation
-+	runner   *TaskRunner
-+	logger   log.Logger
-+	firstRun bool
++	alloc  *structs.Allocation
++	runner *TaskRunner
++	logger log.Logger
 +}
 +
 +func newNixHook(runner *TaskRunner, logger log.Logger) *nixHook {
 +	h := &nixHook{
-+		alloc:    runner.Alloc(),
-+		runner:   runner,
-+		firstRun: true,
++		alloc:  runner.Alloc(),
++		runner: runner,
 +	}
 +	h.logger = logger.Named(h.Name())
 +	return h
@@ -59,38 +57,60 @@ index 000000000..472149beb
 +}
 +
 +func (h *nixHook) Prestart(ctx context.Context, req *interfaces.TaskPrestartRequest, resp *interfaces.TaskPrestartResponse) error {
-+	if h.firstRun {
-+		h.firstRun = false
-+	} else {
-+		return nil
++	defer func() {
++		resp.Done = true
++	}()
++
++	getStrArr := func(key string) ([]string, error) {
++		v, set := req.Task.Config[key]
++		if !set {
++			return nil, nil
++		}
++
++		vs, ok := v.([]interface{})
++		if !ok {
++			return nil, fmt.Errorf("%s is not a list: %v", key, v)
++		}
++
++		var arr []string
++		for i, vv := range vs {
++			if vvs, ok := vv.(string); !ok {
++				return nil, fmt.Errorf("%s[%d] is not a string: %v", key, i, vv)
++			} else {
++				arr = append(arr, vvs)
++			}
++		}
++		return arr, nil
 +	}
 +
-+	installables := []string{}
-+	if v, set := req.Task.Config["nix_installables"]; set {
-+		for _, vv := range v.([]interface{}) {
-+			installables = append(installables, vv.(string))
-+		}
++	installables, err := getStrArr("nix_installables")
++	if err != nil {
++		return err
 +	}
 +
 +	if len(installables) == 0 {
 +		return nil
 +	}
 +
-+	profileInstallArgs := []string{}
-+	if v, set := req.Task.Config["nix_profile_install_args"]; set {
-+		profileInstallArgs = v.([]string)
++	profileInstallArgs, err := getStrArr("nix_profile_install_args")
++	if err != nil {
++		return err
 +	}
 +
 +	mount := false
-+	if v, set := req.Task.Config["nix_host"]; set && v.(bool) {
-+		mount = true
++	if v, set := req.Task.Config["nix_host"]; set {
++		if vv, ok := v.(bool); !ok {
++			return fmt.Errorf("nix_host is not a bool: %v", v)
++		} else if vv {
++			mount = true
 +
-+		resp.Mounts = append(resp.Mounts, &drivers.MountConfig{
-+			TaskPath:        "/nix",
-+			HostPath:        "/nix",
-+			Readonly:        false,
-+			PropagationMode: "host-to-task",
-+		})
++			resp.Mounts = append(resp.Mounts, &drivers.MountConfig{
++				TaskPath:        "/nix",
++				HostPath:        "/nix",
++				Readonly:        false,
++				PropagationMode: "host-to-task",
++			})
++		}
 +	}
 +
 +	return h.install(installables, profileInstallArgs, req.TaskDir.Dir, mount)
