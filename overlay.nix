@@ -49,7 +49,6 @@ in
     # during metal deploy resulting in OCI jobs being killed or behaving unexpectedly
     inherit (nixpkgs-docker.legacyPackages.${prev.system}) docker containerd; # v20.10.15
 
-    glusterfs = final.callPackage ./pkgs/glusterfs.nix {};
     mill = prev.callPackage ./pkgs/mill.nix {};
     nix = inputs.nix.packages.${prev.system}.nix;
     nomad = nixpkgs-unstable.legacyPackages.${prev.system}.callPackage ./pkgs/nomad.nix {};
