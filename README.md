@@ -86,7 +86,7 @@ To create new deployment from scratch, run the following commands:
     bitte terraform consul
     bitte terraform clients
 
-### Rebuild
+### Deploy
 
 This is the equivalent to `nixos-rebuild`. In the `core` workspace it will only
 rebuild the core instances. In the `clients` workspace it will include the
@@ -95,8 +95,8 @@ instances in all auto-scaling groups.
 The `--dirty` flag is used for rebuilds that use the current directory as base,
 and doesn't require committing all files.
 
-    bitte rebuild --dirty
-    bitte rebuild --dirty --only monitoring
+    bitte deploy --dirty
+    bitte deploy --dirty monitoring
 
 ### Debugging
 
