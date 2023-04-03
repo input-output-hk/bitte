@@ -1177,6 +1177,13 @@ in {
                 ${name} = [{config = [value];}];
               }));
     };
+
+    limits = with lib; mkOption {
+      type = types.submodule {
+        freeformType = types.attrs;
+      };
+      default = {};
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -1195,6 +1202,7 @@ in {
           consul
           server
           client
+          limits
           plugin
           telemetry
           vault
