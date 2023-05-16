@@ -12,6 +12,9 @@ in {
 
   systemd.services.glusterd = lib.mkIf cfg.enable {
     path = with pkgs; [nettools];
+    postStart = ''
+      systemctl restart --no-block mnt-gv0.mount
+    '';
   };
 
   systemd.mounts = [
