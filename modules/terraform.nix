@@ -40,6 +40,7 @@
 
   # with zfs
   clientAMIs = {
+    ap-southeast-2.x86_64-linux = "ami-0abd7b4ceaded65ba";
     ca-central-1.x86_64-linux = "ami-0c00d841dac47a1fd";
     eu-central-1.x86_64-linux = "ami-06924f74c403bc518";
     eu-west-1.x86_64-linux = "ami-0c38ecafe1b467389";
