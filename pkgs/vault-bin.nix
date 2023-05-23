@@ -21,7 +21,7 @@
     };
     x86_64-darwin = fetchurl {
       url = "${base}/vault_${version}_darwin_amd64.zip";
-      sha256 = "sha256-UDwMC+Bf01EWzNFcrpcOF/IZOzGx70s8mRVvGrKNhYk=";
+      sha256 = "sha256-DGeTtaUVbclr5FUXdPOhCH5vavsH4UH0AIjqDZPXGDs=";
     };
     aarch64-linux = fetchurl {
       url = "${base}/vault_${version}_linux_arm64.zip";
@@ -48,7 +48,7 @@ in
 
       mv vault $out/bin
       wrapProgram $out/bin/vault \
-        --set PATH ${lib.makeBinPath [gawk glibc]}
+        --set PATH ${lib.makeBinPath ([gawk] ++ (lib.optional (stdenv.hostPlatform.system == "x86_64-linux") glibc))}
     '';
 
     meta = with lib; {
