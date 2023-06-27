@@ -23,12 +23,6 @@
     utils.url = "github:numtide/flake-utils";
     blank.url = "github:divnix/blank";
 
-    # Cicero related
-    tullia = {
-      url = "github:input-output-hk/tullia";
-      inputs.std.follows = "std";
-    };
-
     # Vector >= 0.20.0 versions require nomad-follower watch-config format fix
     nomad-follower.url = "github:input-output-hk/nomad-follower";
 
@@ -50,7 +44,6 @@
     nixpkgs-unstable,
     ragenix,
     self,
-    tullia,
     utils,
     ...
   } @ inputs:
@@ -80,18 +73,8 @@
 
         # loops - reconcile a target state
         (inputs.std.functions "loops")
-
-        # Tullia
-        (inputs.std.functions "actions")
-        (tullia.tasks "pipelines")
       ];
     }
-    (
-      tullia.fromStd {
-        actions = inputs.std.harvest self ["cloud" "actions"];
-        tasks = inputs.std.harvest self ["automation" "pipelines"];
-      }
-    )
     # soil -- TODO: remove soil
     (let
       inherit (inputs.flake-arch) systems;
@@ -149,6 +132,15 @@
         profiles = lib.mkModules ./profiles;
         nixosModules = lib.mkModules ./modules;
         devshellModule = import ./devshellModule.nix;
+
+        hydraJobs = builtins.mapAttrs (system: v: v // {
+          required = inputs.nixpkgs.legacyPackages.${system}.releaseTools.aggregate {
+            name = "required";
+            constituents = builtins.attrValues v;
+          };
+        }) (removeAttrs self.checks [
+          "aarch64-linux" # not supported on our Hydra instance
+        ]);
       }
       // nixpkgs.lib.recursiveUpdate (mkChecks systems [
         "agenix-cli"
