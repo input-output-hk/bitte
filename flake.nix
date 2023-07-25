@@ -11,7 +11,7 @@
     nixpkgs-terraform.url = "github:NixOS/nixpkgs/8b3398bc7587ebb79f93dfeea1b8c574d3c6dba1";
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixpkgs-unstable";
 
-    nix.url = "github:nixos/nix/2.13-maintenance";
+    nix.url = "github:nixos/nix/2.17-maintenance";
     agenix.url = "github:ryantm/agenix";
     agenix-cli.url = "github:cole-h/agenix-cli";
     ragenix.url = "github:yaxitech/ragenix";
