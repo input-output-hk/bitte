@@ -133,6 +133,6 @@ in {
       key_usage = ["DigitalSignature" "KeyAgreement" "KeyEncipherment"];
       # 87600h
       max_ttl = "315360000";
-    }) (consulPolicies // vaultPolicies); # we'r only interested in the keys anyway
+    }) (consulPolicies // vaultPolicies); # we're only interested in the keys anyway
   };
 }

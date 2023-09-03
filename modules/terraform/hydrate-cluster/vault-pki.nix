@@ -76,7 +76,7 @@ in {
 
       validity_period_hours = 43800;
       is_ca_certificate = true;
-      allowed_uses = ["signing" "key encipherment" "cert sign" "crl sign"];
+      allowed_uses = ["cert_signing" "crl_signing" "digital_signature" "key_encipherment"];
     };
 
     resource.vault_pki_secret_backend_intermediate_set_signed.issuing_ca = {
